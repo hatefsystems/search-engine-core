@@ -29,6 +29,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libuv CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 find_package(unofficial-gumbo CONFIG REQUIRED)
+find_package(redis++ CONFIG REQUIRED)
 
 # Add include directory to include path for all targets
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -139,6 +140,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     mongoc-1.0
     bsoncxx
     mongocxx
+    redis++::redis++
     ws2_32
     iphlpapi
     crypt32

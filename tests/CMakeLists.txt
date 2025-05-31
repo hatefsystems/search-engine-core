@@ -7,4 +7,5 @@ find_package(Catch2 3 REQUIRED)
 enable_testing()
 
 # Add test executables
-add_subdirectory(crawler) 
+add_subdirectory(crawler)
+add_subdirectory(content_storage)

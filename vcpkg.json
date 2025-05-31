@@ -9,7 +9,8 @@
     "libuv",
     "curl",
     "gumbo",
-    "catch2"
+    "catch2",
+    "redis-plus-plus"
   ]
 }
 

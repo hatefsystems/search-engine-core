@@ -1,0 +1,36 @@
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libssl-dev \
+    libcurl4-openssl-dev \
+    pkg-config \
+    libz-dev \
+    wget \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install MongoDB C driver
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | apt-key add - \
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list \
+    && apt-get update \
+    && apt-get install -y mongodb-org-shell libmongoc-dev libmongocxx-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Redis and Redis++ dependencies
+RUN apt-get update && apt-get install -y \
+    redis-tools \
+    libhiredis-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up working directory
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Build and run tests
+CMD ["bash", "-c", "mkdir -p build && cd build && cmake -DBUILD_TESTS=ON .. && make content_storage_tests && ./tests/content_storage/content_storage_tests"]
