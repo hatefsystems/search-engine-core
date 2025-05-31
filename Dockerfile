@@ -51,6 +51,8 @@ RUN apt-get update && apt-get install -y \
     libcurl4 \
     redis-tools \
     libhiredis0.14 \
+    wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MongoDB client runtime
