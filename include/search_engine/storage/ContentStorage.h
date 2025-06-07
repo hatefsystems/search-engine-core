@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace search_engine {
 namespace storage {
