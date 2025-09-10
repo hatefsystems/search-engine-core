@@ -80,6 +80,257 @@ try {
 - Use `LOG_DEBUG()` for debugging (only in debug builds)
 - Use `LOG_WARNING()` for warnings
 
+## ⚠️ CRITICAL: Configurable Debug Output Rules
+
+### MANDATORY: Environment-Based Debug Configuration
+**NEVER use hardcoded debug output - ALWAYS make it configurable via LOG_LEVEL:**
+
+```cpp
+// ❌ WRONG - Hardcoded debug output (breaks production performance)
+std::cout << "[DEBUG] Processing request: " << requestId << std::endl;
+
+// ✅ CORRECT - Configurable debug logging
+LOG_DEBUG("Processing request: " + std::to_string(requestId));
+
+// ✅ EVEN BETTER - Structured debug logging
+LOG_DEBUG("Processing request with ID: " + std::to_string(requestId) +
+          ", method: " + std::string(method) +
+          ", timestamp: " + getCurrentTimestamp());
+```
+
+### Debug Output Configuration Rules
+
+1. **ALWAYS use `LOG_DEBUG()` instead of `std::cout`** for debug messages
+2. **NEVER use `std::cout`** for application debug output
+3. **ALWAYS configure log level via `LOG_LEVEL` environment variable**
+4. **NEVER hardcode debug verbosity** - let environment control it
+5. **ALWAYS test with different log levels** before committing
+
+### LOG_LEVEL Environment Variable Usage
+
+```bash
+# Development - Full debug output
+LOG_LEVEL=debug docker-compose up
+
+# Production - Standard logging only
+LOG_LEVEL=info docker-compose up
+
+# High-performance - Minimal logging
+LOG_LEVEL=warning docker-compose up
+
+# Silent operation - Errors only
+LOG_LEVEL=error docker-compose up
+
+# No logging - Maximum performance
+LOG_LEVEL=none docker-compose up
+```
+
+### Available Log Levels
+
+| Level | Use Case | What Gets Logged |
+|-------|----------|------------------|
+| `trace` | Deep debugging | Everything including execution flow |
+| `debug` | Development | WebSocket, crawler, API calls, performance |
+| `info` | Production | Standard operations, system status |
+| `warning` | High-performance | Non-critical issues, performance warnings |
+| `error` | Critical monitoring | System failures, database errors |
+| `none` | Performance testing | No logging output |
+
+### Debug Output Migration Checklist
+
+When adding new debug output:
+1. [ ] **Use `LOG_DEBUG()` instead of `std::cout`**
+2. [ ] **Test with `LOG_LEVEL=debug`** to ensure output appears
+3. [ ] **Test with `LOG_LEVEL=info`** to ensure output is suppressed
+4. [ ] **Document the debug message purpose** in comments
+5. [ ] **Use structured logging** with clear, searchable messages
+
+### Why Configurable Debug Output Matters
+
+1. **Performance**: Debug output can significantly slow down production systems
+2. **Security**: Debug messages might leak sensitive information
+3. **Monitoring**: Clean production logs are essential for monitoring
+4. **Scalability**: Debug output affects log aggregation and storage costs
+5. **Compliance**: Production systems often require clean, controlled logging
+
+### Legacy Code Migration Pattern
+
+For existing `std::cout` debug statements:
+
+```cpp
+// BEFORE (Legacy code - DO NOT USE)
+std::cout << "[DEBUG] User " << userId << " logged in" << std::endl;
+
+// AFTER (Modern approach - ALWAYS USE)
+LOG_DEBUG("User " + std::to_string(userId) + " logged in successfully");
+```
+
+### Testing Debug Configuration
+
+Always test your debug output with different log levels:
+
+```bash
+# Test debug level (should show debug messages)
+LOG_LEVEL=debug ./server
+
+# Test info level (should hide debug messages)
+LOG_LEVEL=info ./server
+
+# Test production level (should hide debug messages)
+LOG_LEVEL=warning ./server
+```
+
+## ⚠️ CRITICAL: uWebSockets Rules
+
+### MANDATORY: onData + onAborted Pattern
+**NEVER use `res->onData()` without `res->onAborted()`:**
+
+```cpp
+// ❌ WRONG - This will crash the server when client disconnects!
+res->onData([this, res, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
+    buffer.append(data.data(), data.length());
+    if (last) {
+        // Process request...
+    }
+});
+// Missing onAborted() - SERVER CRASH!
+```
+
+**ALWAYS pair onData with onAborted:**
+
+```cpp
+// ✅ CORRECT - Safe from client disconnections
+res->onData([this, res, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
+    buffer.append(data.data(), data.length());
+    if (last) {
+        // Process request...
+    }
+});
+
+res->onAborted([]() {
+    LOG_WARNING("Request aborted by client");
+});
+```
+
+### uWebSockets Integration Checklist
+When implementing POST/PUT endpoints with request body:
+1. **ALWAYS** add `res->onAborted()` after `res->onData()`
+2. Use `std::move(buffer)` in lambda capture for performance
+3. Check `if (last)` before processing complete request
+4. Add appropriate logging in `onAborted` for debugging
+5. Never access `res` or controller members after client disconnect
+
+### Common uWebSockets Crashes
+- **"Empty reply from server"** → Missing `onAborted()` callback
+- **Segmentation fault in POST** → Client disconnect without `onAborted()` handling
+- **Undefined behavior in lambdas** → Accessing invalid `this` pointer after disconnect
+
+### uWebSockets Best Practices
+```cpp
+// Template for safe POST endpoint
+void Controller::safePostEndpoint(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    std::string buffer;
+    res->onData([this, res, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
+        buffer.append(data.data(), data.length());
+        
+        if (last) {
+            try {
+                // Process request safely
+                auto jsonBody = nlohmann::json::parse(buffer);
+                // ... business logic ...
+                this->json(res, response);
+            } catch (const std::exception& e) {
+                LOG_ERROR("Error in endpoint: " + std::string(e.what()));
+                serverError(res, "Processing error");
+            }
+        }
+    });
+
+    // CRITICAL: Always add this
+    res->onAborted([]() {
+        LOG_WARNING("Client disconnected during request processing");
+    });
+}
+```
+
+## ⚠️ CRITICAL: Controller Initialization Rules
+
+### MANDATORY: Lazy Initialization Pattern
+**NEVER initialize services in controller constructors (static initialization order fiasco):**
+
+```cpp
+// ❌ WRONG - This causes static initialization order fiasco!
+class DomainController : public routing::Controller {
+public:
+    DomainController() {
+        // BAD: Initializing during static initialization before main()
+        domainStorage_ = std::make_unique<DomainStorage>();  // Can crash!
+        jobQueue_ = std::make_unique<JobQueue>();           // Can crash!
+    }
+private:
+    std::unique_ptr<DomainStorage> domainStorage_;
+    std::unique_ptr<JobQueue> jobQueue_;
+};
+```
+
+**ALWAYS use lazy initialization with getter methods:**
+
+```cpp
+// ✅ CORRECT - Safe lazy initialization pattern
+class DomainController : public routing::Controller {
+public:
+    DomainController() {
+        // Empty constructor - no initialization during static startup
+    }
+    
+private:
+    mutable std::unique_ptr<DomainStorage> domainStorage_;
+    mutable std::unique_ptr<JobQueue> jobQueue_;
+    
+    // Lazy initialization helpers
+    DomainStorage* getDomainStorage() const {
+        if (!domainStorage_) {
+            try {
+                LOG_INFO("Lazy initializing DomainStorage");
+                domainStorage_ = std::make_unique<DomainStorage>();
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to lazy initialize DomainStorage: " + std::string(e.what()));
+                throw;
+            }
+        }
+        return domainStorage_.get();
+    }
+    
+    JobQueue* getJobQueue() const {
+        if (!jobQueue_) {
+            try {
+                LOG_INFO("Lazy initializing JobQueue");
+                jobQueue_ = std::make_unique<JobQueue>();
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to lazy initialize JobQueue: " + std::string(e.what()));
+                throw;
+            }
+        }
+        return jobQueue_.get();
+    }
+};
+```
+
+### Why Lazy Initialization is Critical
+1. **Prevents Static Initialization Order Fiasco:** Services initialize after Docker containers are ready
+2. **Better Error Handling:** Can catch and handle initialization failures gracefully
+3. **Resource Efficiency:** Only creates objects when actually needed
+4. **Timing Independence:** No race conditions with service startup
+5. **Testability:** Easy to mock and test individual components
+
+### Lazy Initialization Checklist
+When creating controllers with service dependencies:
+1. **NEVER** initialize services in constructor
+2. **ALWAYS** declare service members as `mutable std::unique_ptr<Service>`
+3. **ALWAYS** create lazy getter methods with proper error handling
+4. **ALWAYS** use getter methods instead of direct member access
+5. **ALWAYS** add logging for initialization events
+
 ## File Organization
 
 ### Header Includes
@@ -147,9 +398,21 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 
 ## Common Issues and Solutions
 
-### Server Crash: "Empty reply from server"
+### Server Crash: "Empty reply from server" (Most Common)
+**Cause:** Missing `res->onAborted()` callback after `res->onData()`
+**Solution:** Always pair every `res->onData()` with `res->onAborted()`
+
+### Server Crash: MongoDB Connection
 **Cause:** MongoDB instance not initialized
 **Solution:** Use `MongoDBInstance::getInstance()` before creating clients
+
+### Server Crash: Static Initialization Order Fiasco
+**Cause:** Controller constructor initializes services during static startup (before Docker containers ready)
+**Solution:** Use lazy initialization pattern with getter methods instead of constructor initialization
+
+### POST Endpoints Crash on Client Disconnect
+**Cause:** Client disconnects during `onData` processing without `onAborted` handler
+**Solution:** Add `res->onAborted([](){ LOG_WARNING("Request aborted"); });`
 
 ### Undefined Reference Errors
 **Cause:** Missing library in CMakeLists.txt
@@ -168,6 +431,7 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 - `browserless` - Headless Chrome for SPA rendering
 
 ### Environment Variables
+- `LOG_LEVEL` - **CRITICAL**: Logging verbosity level (debug, info, warning, error, none)
 - `MONGODB_URI` - MongoDB connection string (default: mongodb://admin:password123@mongodb:27017)
 - `REDIS_URL` - Redis connection string
 - `BROWSERLESS_URL` - Browserless service URL
@@ -341,6 +605,9 @@ Types:
 ## Code Review Checklist
 
 Before submitting code:
+- [ ] **uWebSockets: Every `onData` paired with `onAborted`**
+- [ ] **Controllers: Use lazy initialization pattern (no service init in constructor)**
+- [ ] **Debug Output: Use `LOG_DEBUG()` instead of `std::cout` (configurable via LOG_LEVEL)**
 - [ ] MongoDB instance properly initialized
 - [ ] Error handling implemented
 - [ ] Logging added for debugging
@@ -391,4 +658,8 @@ Before submitting code:
 5. Implement backup strategies
 6. Use production Docker images from GHCR
 
-Remember: Always test MongoDB connections with the singleton pattern to avoid server crashes!
+Remember:
+1. Always test MongoDB connections with the singleton pattern to avoid server crashes!
+2. **CRITICAL: Every `res->onData()` MUST be paired with `res->onAborted()` to prevent crashes!**
+3. **CRITICAL: Use lazy initialization in controllers - NEVER initialize services in constructors!**
+4. **CRITICAL: Use `LOG_DEBUG()` instead of `std::cout` - configure via `LOG_LEVEL` environment variable!**

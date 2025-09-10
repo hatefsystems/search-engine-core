@@ -71,31 +71,39 @@ std::string HomeController::loadFile(const std::string& path) {
 }
 
 void HomeController::index(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::index called");
-    
+    LOG_INFO("HomeController::index - Serving coming soon page");
+    LOG_DEBUG("HomeController::index called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     // Load and serve the coming soon page
     static std::string comingSoonHtml = loadFile("public/coming-soon.html");
-    
+
     if (comingSoonHtml.empty()) {
+        LOG_ERROR("HomeController::index - Failed to load coming soon page");
         serverError(res, "Failed to load page");
         return;
     }
-    
+
+    LOG_DEBUG("HomeController::index - Serving coming soon page (size: " + std::to_string(comingSoonHtml.size()) + " bytes)");
     html(res, comingSoonHtml);
+    LOG_TRACE("HomeController::index - Response sent successfully");
 }
 
 void HomeController::searchPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::searchPage called");
-    
+    LOG_INFO("HomeController::searchPage - Serving search engine interface");
+    LOG_DEBUG("HomeController::searchPage called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     // Load and serve the search engine page
     static std::string searchIndexHtml = loadFile("public/index.html");
-    
+
     if (searchIndexHtml.empty()) {
+        LOG_ERROR("HomeController::searchPage - Failed to load search interface");
         serverError(res, "Failed to load page");
         return;
     }
-    
+
+    LOG_DEBUG("HomeController::searchPage - Serving search interface (size: " + std::to_string(searchIndexHtml.size()) + " bytes)");
     html(res, searchIndexHtml);
+    LOG_TRACE("HomeController::searchPage - Response sent successfully");
 }
 
 std::string HomeController::renderTemplate(const std::string& templateName, const nlohmann::json& data) {
@@ -114,23 +122,32 @@ std::string HomeController::renderTemplate(const std::string& templateName, cons
 }
 
 void HomeController::sponsorPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::sponsorPage called");
+    LOG_INFO("HomeController::sponsorPage - Serving sponsor page");
+    LOG_DEBUG("HomeController::sponsorPage called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     try {
+        LOG_DEBUG("HomeController::sponsorPage - Loading default locale configuration");
         std::string defaultLang = getDefaultLocale();
         // Load language metadata (code/dir) from root locale file
         std::string metaData = loadFile("locales/" + defaultLang + ".json");
         if (metaData.empty()) {
+            LOG_ERROR("HomeController::sponsorPage - Failed to load localization metadata for language: " + defaultLang);
             serverError(res, "Failed to load localization metadata");
             return;
         }
+
+        LOG_DEBUG("HomeController::sponsorPage - Parsing metadata JSON for language: " + defaultLang);
         nlohmann::json metaJson = nlohmann::json::parse(metaData);
 
+        LOG_DEBUG("HomeController::sponsorPage - Loading sponsor page translations");
         // Load sponsor page translations (primary=default for base route)
         std::string sponsorPrimaryStr = loadFile("locales/" + defaultLang + "/sponsor.json");
         std::string sponsorFallbackStr = loadFile("locales/" + getDefaultLocale() + "/sponsor.json");
         nlohmann::json sponsorPrimary = sponsorPrimaryStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorPrimaryStr);
         nlohmann::json sponsorFallback = sponsorFallbackStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorFallbackStr);
         jsonDeepMergeMissing(sponsorPrimary, sponsorFallback);
+
+        LOG_DEBUG("HomeController::sponsorPage - Merged sponsor translations successfully");
 
         // Pre-format tier prices with thousands separators
         try {
@@ -398,25 +415,33 @@ void HomeController::crawlRequestPageWithLang(uWS::HttpResponse<false>* res, uWS
 }
 
 void HomeController::emailSubscribe(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::emailSubscribe called");
-    
+    LOG_INFO("HomeController::emailSubscribe - Processing email subscription request");
+    LOG_DEBUG("HomeController::emailSubscribe - Request from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     // Read the request body
     std::string buffer;
     res->onData([this, res, req, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
-        
+
         if (last) {
+            LOG_DEBUG("HomeController::emailSubscribe - Received complete request body (" + std::to_string(buffer.size()) + " bytes)");
+
             try {
+                LOG_TRACE("HomeController::emailSubscribe - Parsing JSON request body");
                 // Parse JSON body
                 auto jsonBody = nlohmann::json::parse(buffer);
                 std::string email = jsonBody.value("email", "");
-                
+
                 if (email.empty()) {
+                    LOG_WARNING("HomeController::emailSubscribe - Empty email field in request");
                     badRequest(res, "Email is required");
                     return;
                 }
+
+                LOG_DEBUG("HomeController::emailSubscribe - Processing subscription for email: " + email);
                 
                 // Get IP address and user agent
+                LOG_TRACE("HomeController::emailSubscribe - Extracting client information");
                 std::string ipAddress = std::string(req->getHeader("x-forwarded-for"));
                 if (ipAddress.empty()) {
                     ipAddress = std::string(req->getHeader("x-real-ip"));
@@ -424,45 +449,52 @@ void HomeController::emailSubscribe(uWS::HttpResponse<false>* res, uWS::HttpRequ
                 if (ipAddress.empty()) {
                     ipAddress = "unknown";
                 }
-                
+
                 std::string userAgent = std::string(req->getHeader("user-agent"));
                 if (userAgent.empty()) {
                     userAgent = "unknown";
                 }
-                
+
+                LOG_DEBUG("HomeController::emailSubscribe - Client info: IP=" + ipAddress + ", UA=" + userAgent.substr(0, 30) + "...");
+
                 // Save email to MongoDB with additional data
                 try {
+                    LOG_DEBUG("HomeController::emailSubscribe - Saving subscription to database");
                     auto result = mongodb().subscribeEmail(email, ipAddress, userAgent);
-                    
+
                     if (result.success) {
-                        LOG_INFO("Email subscription saved to MongoDB: " + email + " from IP: " + ipAddress);
+                        LOG_INFO("✅ Email subscription successful: " + email + " from IP: " + ipAddress);
+                        LOG_DEBUG("HomeController::emailSubscribe - Database message: " + result.message);
                         nlohmann::json response = {
                             {"success", true},
                             {"message", result.message}
                         };
                         json(res, response);
+                        LOG_TRACE("HomeController::emailSubscribe - Success response sent");
                     } else {
-                        LOG_WARNING("Email subscription failed: " + email + " - " + result.message);
+                        LOG_WARNING("❌ Email subscription failed: " + email + " - " + result.message);
                         if (result.message == "duplicate") {
+                            LOG_DEBUG("HomeController::emailSubscribe - Duplicate subscription detected");
                             badRequest(res, "You are already subscribed!");
                         } else {
+                            LOG_DEBUG("HomeController::emailSubscribe - Subscription failed with message: " + result.message);
                             badRequest(res, "Failed to subscribe: " + result.message);
                         }
                     }
                 } catch (const std::exception& e) {
-                    LOG_ERROR("MongoDB error in email subscription: " + std::string(e.what()));
+                    LOG_ERROR("💥 MongoDB error in email subscription: " + std::string(e.what()));
                     badRequest(res, "Database error occurred");
                 }
                 
             } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse email subscription: " + std::string(e.what()));
+                LOG_ERROR("❌ Failed to parse email subscription JSON: " + std::string(e.what()));
                 badRequest(res, "Invalid request body");
             }
         }
     });
-    
+
     res->onAborted([]() {
-        LOG_WARNING("Email subscription request aborted");
+        LOG_WARNING("⚠️ Email subscription request aborted by client");
     });
 }
 
@@ -496,90 +528,129 @@ std::string HomeController::getDefaultLocale() {
 }
 
 void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::sponsorSubmit called");
-    
+    LOG_INFO("🏢 HomeController::sponsorSubmit - Processing sponsor application");
+    LOG_DEBUG("HomeController::sponsorSubmit - Request from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     // Read the request body
     std::string buffer;
     res->onData([this, res, req, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
-        
+
         if (last) {
+            LOG_DEBUG("HomeController::sponsorSubmit - Received complete request body (" + std::to_string(buffer.size()) + " bytes)");
+
             try {
+                LOG_TRACE("HomeController::sponsorSubmit - Parsing JSON request body");
                 // Parse JSON body
                 auto jsonBody = nlohmann::json::parse(buffer);
-                
+
+                LOG_TRACE("HomeController::sponsorSubmit - Extracting and validating form fields");
                 // Validate required fields
                 std::string fullname = jsonBody.value("name", "");
                 std::string email = jsonBody.value("email", "");
                 std::string mobile = jsonBody.value("mobile", "");
                 std::string plan = jsonBody.value("tier", "");
-                
+
                 if (fullname.empty() || email.empty() || mobile.empty() || plan.empty()) {
+                    LOG_WARNING("HomeController::sponsorSubmit - Missing required fields");
+                    LOG_DEBUG("HomeController::sponsorSubmit - Received: name='" + fullname + "', email='" + email + "', mobile='" + mobile + "', tier='" + plan + "'");
                     badRequest(res, "Missing required fields: name, email, mobile, tier");
                     return;
                 }
+
+                LOG_DEBUG("HomeController::sponsorSubmit - Validated sponsor: " + fullname + " (" + email + ") - Plan: " + plan);
                 
                 // Get amount
+                LOG_TRACE("HomeController::sponsorSubmit - Processing amount field");
                 double amount = 0.0;
                 if (jsonBody.contains("amount")) {
                     if (jsonBody["amount"].is_number()) {
                         amount = jsonBody["amount"];
+                        LOG_DEBUG("HomeController::sponsorSubmit - Amount parsed as number: " + std::to_string(amount));
                     } else if (jsonBody["amount"].is_string()) {
                         try {
                             amount = std::stod(jsonBody["amount"].get<std::string>());
+                            LOG_DEBUG("HomeController::sponsorSubmit - Amount parsed from string: " + std::to_string(amount));
                         } catch (const std::exception&) {
+                            LOG_ERROR("HomeController::sponsorSubmit - Invalid amount format in string");
                             badRequest(res, "Invalid amount format");
                             return;
                         }
+                    } else {
+                        LOG_WARNING("HomeController::sponsorSubmit - Amount field has unexpected type");
                     }
+                } else {
+                    LOG_DEBUG("HomeController::sponsorSubmit - No amount field provided");
                 }
-                
+
                 // Get optional company
                 std::string company = jsonBody.value("company", "");
-                
+                if (!company.empty()) {
+                    LOG_DEBUG("HomeController::sponsorSubmit - Company provided: " + company);
+                }
+
                 // Get IP address and user agent
+                LOG_TRACE("HomeController::sponsorSubmit - Extracting client information");
                 std::string ipAddress = std::string(req->getHeader("x-forwarded-for"));
                 if (ipAddress.empty()) {
                     ipAddress = std::string(req->getHeader("x-real-ip"));
+                    if (!ipAddress.empty()) {
+                        LOG_TRACE("HomeController::sponsorSubmit - Using X-Real-IP header: " + ipAddress);
+                    }
+                } else {
+                    LOG_TRACE("HomeController::sponsorSubmit - Using X-Forwarded-For header: " + ipAddress);
                 }
                 if (ipAddress.empty()) {
                     // Fallback to connection IP if no forwarded headers
                     ipAddress = "unknown";
+                    LOG_DEBUG("HomeController::sponsorSubmit - No forwarded IP headers found, using 'unknown'");
                 }
-                
+
                 std::string userAgent = std::string(req->getHeader("user-agent"));
+                LOG_DEBUG("HomeController::sponsorSubmit - Client info: IP=" + ipAddress + ", UA=" + userAgent.substr(0, 30) + "...");
                 
                 // Create sponsor profile
+                LOG_TRACE("HomeController::sponsorSubmit - Creating sponsor profile object");
                 search_engine::storage::SponsorProfile profile;
                 profile.fullName = fullname;
                 profile.email = email;
                 profile.mobile = mobile;
                 profile.plan = plan;
                 profile.amount = amount;
-                
+
                 if (!company.empty()) {
                     profile.company = company;
+                    LOG_TRACE("HomeController::sponsorSubmit - Company field set: " + company);
                 }
-                
+
                 profile.ipAddress = ipAddress;
                 profile.userAgent = userAgent;
                 profile.submissionTime = std::chrono::system_clock::now();
                 profile.lastModified = std::chrono::system_clock::now();
                 profile.status = search_engine::storage::SponsorStatus::PENDING;
                 profile.currency = "IRR"; // Default to Iranian Rial
+
+                LOG_DEBUG("HomeController::sponsorSubmit - Sponsor profile created:");
+                LOG_DEBUG("  Name: " + fullname + ", Email: " + email + ", Mobile: " + mobile);
+                LOG_DEBUG("  Plan: " + plan + ", Amount: " + std::to_string(amount) + " " + profile.currency);
+                LOG_DEBUG("  Status: PENDING, IP: " + ipAddress);
                 
                 // Save to database with better error handling
-                LOG_INFO("Starting database save process for sponsor: " + fullname);
-                
+                LOG_INFO("💾 Starting database save process for sponsor: " + fullname);
+                LOG_DEBUG("HomeController::sponsorSubmit - Preparing to save sponsor profile to MongoDB");
+
                 try {
+                    LOG_TRACE("HomeController::sponsorSubmit - Retrieving MongoDB connection configuration");
                     // Get MongoDB connection string from environment
                     const char* mongoUri = std::getenv("MONGODB_URI");
                     std::string mongoConnectionString = mongoUri ? mongoUri : "mongodb://localhost:27017";
-                    
-                    LOG_INFO("MongoDB URI from environment: " + mongoConnectionString);
-                    
+
+                    LOG_INFO("📊 MongoDB URI from environment: " + mongoConnectionString);
+                    LOG_DEBUG("HomeController::sponsorSubmit - Database connection string configured");
+
                     // Now try to actually save to MongoDB
-                    LOG_INFO("Attempting to save sponsor data to MongoDB:");
+                    LOG_INFO("💾 Attempting to save sponsor data to MongoDB:");
+                    LOG_DEBUG("HomeController::sponsorSubmit - Initiating database transaction");
                     LOG_INFO("  Name: " + fullname);
                     LOG_INFO("  Email: " + email);
                     LOG_INFO("  Mobile: " + mobile);
@@ -594,43 +665,57 @@ void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpReque
                     bool savedToDatabase = false;
                     
                     try {
+                        LOG_TRACE("HomeController::sponsorSubmit - Establishing database connection");
                         // Get MongoDB connection string from environment
                         const char* mongoUri = std::getenv("MONGODB_URI");
                         std::string mongoConnectionString = mongoUri ? mongoUri : "mongodb://admin:password123@mongodb_test:27017/search-engine";
-                        
-                        LOG_INFO("Attempting to save sponsor data to MongoDB: " + mongoConnectionString);
-                        
+
+                        LOG_INFO("🔗 Attempting to save sponsor data to MongoDB: " + mongoConnectionString);
+                        LOG_DEBUG("HomeController::sponsorSubmit - Connection string: " + mongoConnectionString);
+
+                        LOG_TRACE("HomeController::sponsorSubmit - Creating SponsorStorage instance");
                         // Create SponsorStorage and save the profile
                         search_engine::storage::SponsorStorage storage(mongoConnectionString, "search-engine");
+
+                        LOG_TRACE("HomeController::sponsorSubmit - Calling storage.store() method");
                         auto result = storage.store(profile);
-                        
+
                         if (result.success) {
                             actualSubmissionId = result.value;
                             savedToDatabase = true;
-                            LOG_INFO("Successfully saved sponsor data to MongoDB with ID: " + actualSubmissionId);
+                            LOG_INFO("✅ Successfully saved sponsor data to MongoDB with ID: " + actualSubmissionId);
+                            LOG_DEBUG("HomeController::sponsorSubmit - Database transaction completed successfully");
                         } else {
-                            LOG_ERROR("Failed to save to MongoDB: " + result.message);
+                            LOG_ERROR("❌ Failed to save to MongoDB: " + result.message);
+                            LOG_DEBUG("HomeController::sponsorSubmit - Generating fallback submission ID");
                             // Generate fallback ID
                             auto now = std::chrono::system_clock::now();
                             auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
                             actualSubmissionId = "temp_" + std::to_string(timestamp);
+                            LOG_WARNING("HomeController::sponsorSubmit - Using temporary ID: " + actualSubmissionId);
                         }
-                        
+
                     } catch (const std::exception& e) {
-                        LOG_ERROR("Exception while saving to MongoDB: " + std::string(e.what()));
+                        LOG_ERROR("💥 Exception while saving to MongoDB: " + std::string(e.what()));
+                        LOG_DEBUG("HomeController::sponsorSubmit - Generating fallback submission ID due to exception");
                         // Generate fallback ID
                         auto now = std::chrono::system_clock::now();
                         auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
                         actualSubmissionId = "temp_" + std::to_string(timestamp);
+                        LOG_WARNING("HomeController::sponsorSubmit - Using temporary ID due to exception: " + actualSubmissionId);
                     }
                     
                     // Fetch payment accounts from JSON file
+                    LOG_DEBUG("HomeController::sponsorSubmit - Fetching payment account information");
                     nlohmann::json bankInfo;
                     try {
                         std::string url = "https://cdn.hatef.ir/sponsor_payment_accounts.json";
-                        
+                        LOG_TRACE("HomeController::sponsorSubmit - Payment accounts URL: " + url);
+
+                        LOG_TRACE("HomeController::sponsorSubmit - Initializing CURL for payment accounts fetch");
                         CURL* curl = curl_easy_init();
                         if (curl) {
+                            LOG_TRACE("HomeController::sponsorSubmit - CURL initialized successfully");
                             std::string response_data;
                             
                             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -686,17 +771,20 @@ void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpReque
                         };
                     }
                     
-                    nlohmann::json response = {
-                        {"success", true},
-                        {"message", savedToDatabase ? "فرم حمایت با موفقیت ارسال و ذخیره شد" : "فرم حمایت دریافت شد"},
-                        {"submissionId", actualSubmissionId},
-                        {"bankInfo", bankInfo},
-                        {"note", "لطفاً پس از واریز مبلغ، رسید پرداخت را به آدرس ایمیل sponsors@hatef.ir ارسال کنید."},
-                        {"savedToDatabase", savedToDatabase}
-                    };
-                    
-                    json(res, response);
-                    return;
+                nlohmann::json response = {
+                    {"success", true},
+                    {"message", savedToDatabase ? "فرم حمایت با موفقیت ارسال و ذخیره شد" : "فرم حمایت دریافت شد"},
+                    {"submissionId", actualSubmissionId},
+                    {"bankInfo", bankInfo},
+                    {"note", "لطفاً پس از واریز مبلغ، رسید پرداخت را به آدرس ایمیل sponsors@hatef.ir ارسال کنید."},
+                    {"savedToDatabase", savedToDatabase}
+                };
+
+                LOG_INFO("🎉 Sponsor submission completed successfully for: " + fullname + " (ID: " + actualSubmissionId + ")");
+                LOG_DEBUG("HomeController::sponsorSubmit - Sending success response with submission ID: " + actualSubmissionId);
+                json(res, response);
+                LOG_TRACE("HomeController::sponsorSubmit - Success response sent");
+                return;
                     
                 } catch (const std::exception& e) {
                     LOG_ERROR("Exception in sponsor data logging: " + std::string(e.what()));
@@ -771,34 +859,41 @@ void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpReque
                     {"note", "لطفاً پس از واریز مبلغ، رسید پرداخت را به آدرس ایمیل sponsors@hatef.ir ارسال کنید."}
                 };
                 
+                LOG_INFO("📝 Sponsor submission completed with fallback response for: " + fullname);
+                LOG_DEBUG("HomeController::sponsorSubmit - Sending fallback response due to processing issues");
                 json(res, response);
-                
+
             } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse sponsor form data: " + std::string(e.what()));
+                LOG_ERROR("❌ Failed to parse sponsor form data: " + std::string(e.what()));
                 badRequest(res, "Invalid JSON format");
             }
         }
     });
-    
+
     res->onAborted([]() {
-        LOG_WARNING("Sponsor form submission request aborted");
+        LOG_WARNING("⚠️ Sponsor form submission request aborted by client");
     });
 } 
 
 void HomeController::getSponsorPaymentAccounts(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::getSponsorPaymentAccounts called");
-    
+    LOG_INFO("🏦 HomeController::getSponsorPaymentAccounts - Fetching payment account information");
+    LOG_DEBUG("HomeController::getSponsorPaymentAccounts called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
     try {
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Preparing to fetch payment accounts");
         // Fetch payment accounts from the JSON file
         std::string url = "https://cdn.hatef.ir/sponsor_payment_accounts.json";
-        
+        LOG_DEBUG("HomeController::getSponsorPaymentAccounts - Target URL: " + url);
+
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Initializing CURL");
         // Use libcurl to fetch the JSON data
         CURL* curl = curl_easy_init();
         if (!curl) {
-            LOG_ERROR("Failed to initialize CURL for fetching payment accounts");
+            LOG_ERROR("❌ Failed to initialize CURL for fetching payment accounts");
             serverError(res, "Failed to fetch payment accounts");
             return;
         }
+        LOG_DEBUG("HomeController::getSponsorPaymentAccounts - CURL initialized successfully");
         
         std::string response_data;
         
@@ -813,20 +908,27 @@ void HomeController::getSponsorPaymentAccounts(uWS::HttpResponse<false>* res, uW
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "SearchEngine/1.0");
         
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Executing CURL request");
         CURLcode res_code = curl_easy_perform(curl);
         long http_code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
         curl_easy_cleanup(curl);
-        
+
+        LOG_DEBUG("HomeController::getSponsorPaymentAccounts - HTTP response code: " + std::to_string(http_code) + ", CURL code: " + std::to_string(res_code));
+
         if (res_code != CURLE_OK || http_code != 200) {
-            LOG_ERROR("Failed to fetch payment accounts from " + url + ". HTTP code: " + std::to_string(http_code));
+            LOG_ERROR("❌ Failed to fetch payment accounts from " + url + ". HTTP code: " + std::to_string(http_code) + ", CURL error: " + std::to_string(res_code));
             serverError(res, "Failed to fetch payment accounts");
             return;
         }
-        
+
+        LOG_DEBUG("HomeController::getSponsorPaymentAccounts - Successfully fetched data (" + std::to_string(response_data.size()) + " bytes)");
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Parsing JSON response");
+
         // Parse the JSON response
         auto json_data = nlohmann::json::parse(response_data);
-        
+
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Extracting active accounts");
         // Extract active accounts only
         std::vector<nlohmann::json> active_accounts;
         if (json_data.contains("sponsor_payment_accounts") && json_data["sponsor_payment_accounts"].is_array()) {
@@ -836,7 +938,10 @@ void HomeController::getSponsorPaymentAccounts(uWS::HttpResponse<false>* res, uW
                 }
             }
         }
-        
+
+        LOG_INFO("✅ Payment accounts fetched successfully - " + std::to_string(active_accounts.size()) + " active accounts found");
+        LOG_DEBUG("HomeController::getSponsorPaymentAccounts - Preparing response with " + std::to_string(active_accounts.size()) + " accounts");
+
         // Return the active accounts
         nlohmann::json response = {
             {"success", true},
@@ -844,11 +949,13 @@ void HomeController::getSponsorPaymentAccounts(uWS::HttpResponse<false>* res, uW
             {"total_accounts", active_accounts.size()},
             {"source_url", url}
         };
-        
+
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Sending JSON response");
         json(res, response);
+        LOG_TRACE("HomeController::getSponsorPaymentAccounts - Response sent successfully");
         
     } catch (const std::exception& e) {
-        LOG_ERROR("Exception in getSponsorPaymentAccounts: " + std::string(e.what()));
+        LOG_ERROR("💥 Exception in getSponsorPaymentAccounts: " + std::string(e.what()));
         serverError(res, "Failed to process payment accounts");
     }
 } 

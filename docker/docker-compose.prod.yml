@@ -5,6 +5,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
+      - LOG_LEVEL=${LOG_LEVEL:-warning}  # CRITICAL: Production logging (warning, error only)
       - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}

@@ -23,111 +23,188 @@ Crawler::Crawler(const CrawlConfig& config, std::shared_ptr<search_engine::stora
     , sessionId(sessionId)
     , sessionSpaDetected(false)
     , sessionSpaChecked(false) {
-    // Initialize logger with DEBUG level to troubleshoot textContent issue
-    Logger::getInstance().init(LogLevel::DEBUG, true);
-    LOG_DEBUG("Crawler constructor called");
-    
+    LOG_INFO("🏗️ Crawler::Crawler - Initializing crawler with session: " + sessionId);
+    LOG_DEBUG("Crawler::Crawler - Configuration details:");
+    LOG_DEBUG("  • Max Pages: " + std::to_string(config.maxPages));
+    LOG_DEBUG("  • Max Depth: " + std::to_string(config.maxDepth));
+    LOG_DEBUG("  • User Agent: " + config.userAgent);
+    LOG_DEBUG("  • Request Timeout: " + std::to_string(config.requestTimeout.count()) + "ms");
+    LOG_DEBUG("  • SPA Rendering: " + std::string(config.spaRenderingEnabled ? "enabled" : "disabled"));
+    LOG_DEBUG("  • Extract Text Content: " + std::string(config.extractTextContent ? "enabled" : "disabled"));
+    LOG_DEBUG("  • Follow Redirects: " + std::string(config.followRedirects ? "enabled" : "disabled"));
+
+    // Initialize components with detailed logging
+    LOG_TRACE("Crawler::Crawler - Creating URLFrontier");
     urlFrontier = std::make_unique<URLFrontier>();
+
     if (storage && storage->getMongoStorage()) {
+        LOG_DEBUG("Crawler::Crawler - Setting up MongoDB persistent storage for session: " + sessionId);
         static search_engine::storage::MongoFrontierPersistence staticMongoPers(storage->getMongoStorage());
         urlFrontier->setPersistentStorage(&staticMongoPers, sessionId);
+        LOG_INFO("✅ MongoDB persistent storage configured for frontier");
+    } else {
+        LOG_WARNING("⚠️ No MongoDB storage available - frontier will not be persistent");
     }
+
+    LOG_TRACE("Crawler::Crawler - Creating RobotsTxtParser");
     robotsParser = std::make_unique<RobotsTxtParser>();
+
+    LOG_TRACE("Crawler::Crawler - Creating PageFetcher");
     pageFetcher = std::make_unique<PageFetcher>(
         config.userAgent,
         config.requestTimeout,
         config.followRedirects,
         config.maxRedirects
     );
+
+    LOG_TRACE("Crawler::Crawler - Creating ContentParser");
     contentParser = std::make_unique<ContentParser>();
+
+    LOG_TRACE("Crawler::Crawler - Creating DomainManager");
     domainManager = std::make_unique<DomainManager>(config);
+
+    LOG_TRACE("Crawler::Crawler - Creating CrawlMetrics");
     metrics = std::make_unique<CrawlMetrics>();
+
+    LOG_INFO("✅ Crawler initialization completed successfully");
+    LOG_DEBUG("Crawler::Crawler - All components initialized and ready for crawling");
 }
 
 Crawler::~Crawler() {
-    LOG_DEBUG("Crawler destructor called");
+    LOG_INFO("🗑️ Crawler::~Crawler - Destroying crawler instance for session: " + sessionId);
+    LOG_DEBUG("Crawler::~Crawler - Stopping crawler and cleaning up resources");
     stop();
+    LOG_DEBUG("Crawler::~Crawler - Crawler destruction completed");
 }
 
 void Crawler::start() {
+    LOG_INFO("🚀 Crawler::start - Starting crawler for session: " + sessionId);
+
     if (isRunning) {
-        LOG_DEBUG("Crawler already running, ignoring start request");
+        LOG_WARNING("⚠️ Crawler::start - Crawler already running, ignoring start request");
+        LOG_DEBUG("Crawler::start - Current state: isRunning=true, sessionId=" + sessionId);
         return;
     }
-    
-    LOG_INFO("Starting crawler");
+
+    LOG_INFO("🏁 Starting crawler session: " + sessionId);
     logToCrawlSession("Starting crawler", "info");
+    LOG_DEBUG("Crawler::start - Logged start event to crawl session");
 
     // Rehydrate pending tasks from persistent frontier (Mongo) if available
+    LOG_DEBUG("Crawler::start - Attempting to rehydrate pending frontier tasks from MongoDB");
     try {
         if (storage && storage->getMongoStorage()) {
+            LOG_TRACE("Crawler::start - MongoDB storage available, loading pending tasks");
             auto pending = storage->getMongoStorage()->frontierLoadPending(sessionId, 2000);
             if (pending.success) {
                 size_t count = 0;
+                LOG_DEBUG("Crawler::start - Processing " + std::to_string(pending.value.size()) + " pending tasks");
+
                 for (const auto& item : pending.value) {
                     const auto& url = item.first;
                     int depth = item.second;
                     urlFrontier->addURL(url, false, CrawlPriority::NORMAL, depth);
                     count++;
+                    LOG_TRACE("Crawler::start - Rehydrated URL: " + url + " (depth: " + std::to_string(depth) + ")");
                 }
-                LOG_INFO("Rehydrated " + std::to_string(count) + " pending frontier tasks from Mongo");
+
+                LOG_INFO("✅ Rehydrated " + std::to_string(count) + " pending frontier tasks from MongoDB");
+                LOG_DEBUG("Crawler::start - Frontier restoration completed successfully");
             } else {
-                LOG_WARNING("Failed to load pending frontier tasks: " + pending.message);
+                LOG_WARNING("⚠️ Failed to load pending frontier tasks: " + pending.message);
+                LOG_DEBUG("Crawler::start - Frontier rehydration failed, starting with empty frontier");
             }
+        } else {
+            LOG_WARNING("⚠️ No MongoDB storage available for frontier persistence");
+            LOG_DEBUG("Crawler::start - Proceeding without frontier persistence");
         }
     } catch (const std::exception& e) {
-        LOG_WARNING(std::string("Error rehydrating frontier: ") + e.what());
+        LOG_ERROR("💥 Exception during frontier rehydration: " + std::string(e.what()));
+        LOG_DEBUG("Crawler::start - Continuing startup despite frontier rehydration failure");
     }
+
+    LOG_DEBUG("Crawler::start - Setting crawler state to running");
     isRunning = true;
+
     if (workerThread.joinable()) {
+        LOG_DEBUG("Crawler::start - Joining existing worker thread before starting new one");
         workerThread.join();
     }
+
+    LOG_DEBUG("Crawler::start - Starting crawler worker thread");
     workerThread = std::thread(&Crawler::crawlLoop, this);
+    LOG_INFO("✅ Crawler started successfully - worker thread launched");
+    LOG_DEBUG("Crawler::start - Crawler startup sequence completed");
 }
 
 void Crawler::stop() {
-    LOG_INFO("Stopping crawler");
+    LOG_INFO("🛑 Crawler::stop - Stopping crawler for session: " + sessionId);
+    LOG_DEBUG("Crawler::stop - Setting isRunning flag to false");
+
     isRunning = false;
-    
+
     // Give a small delay to ensure all results are collected
+    LOG_DEBUG("Crawler::stop - Waiting 500ms for pending operations to complete");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    
+
     // Wait for worker thread to exit cleanly
     if (workerThread.joinable()) {
+        LOG_DEBUG("Crawler::stop - Joining worker thread for clean shutdown");
         workerThread.join();
+        LOG_DEBUG("Crawler::stop - Worker thread joined successfully");
+    } else {
+        LOG_DEBUG("Crawler::stop - No worker thread to join (not running)");
     }
+
     // Log the final results count
     {
         std::lock_guard<std::mutex> lock(resultsMutex);
-        LOG_INFO("Final results count: " + std::to_string(results.size()));
+        size_t finalCount = results.size();
+        LOG_INFO("✅ Crawler stopped successfully. Final results count: " + std::to_string(finalCount));
+        LOG_DEBUG("Crawler::stop - Session " + sessionId + " completed with " + std::to_string(finalCount) + " results");
     }
+
+    LOG_DEBUG("Crawler::stop - Crawler shutdown completed");
 }
 
 void Crawler::reset() {
-    LOG_INFO("Resetting crawler state");
-    
+    LOG_INFO("🔄 Crawler::reset - Resetting crawler state for session: " + sessionId);
+
     // Stop crawling if it's running
     if (isRunning) {
+        LOG_DEBUG("Crawler::reset - Stopping running crawler before reset");
         stop();
+    } else {
+        LOG_DEBUG("Crawler::reset - Crawler not running, proceeding with reset");
     }
-    
+
     // Clear all state
+    LOG_DEBUG("Crawler::reset - Clearing results collection and seed domain");
     {
         std::lock_guard<std::mutex> lock(resultsMutex);
+        size_t oldCount = results.size();
         results.clear();
         seedDomain.clear();
+        LOG_DEBUG("Crawler::reset - Cleared " + std::to_string(oldCount) + " results and seed domain");
     }
-    
+
     // Reset URL frontier
     if (urlFrontier) {
+        LOG_DEBUG("Crawler::reset - Recreating URL frontier");
         urlFrontier = std::make_unique<URLFrontier>();
+        LOG_DEBUG("Crawler::reset - URL frontier recreated successfully");
+    } else {
+        LOG_WARNING("⚠️ Crawler::reset - No URL frontier instance to reset");
     }
-    
+
     // Reset session-level SPA detection flags
+    LOG_DEBUG("Crawler::reset - Resetting session SPA detection flags");
     sessionSpaDetected.store(false);
     sessionSpaChecked.store(false);
-    
-    LOG_INFO("Crawler state reset completed");
+    LOG_DEBUG("Crawler::reset - SPA detection flags reset to false");
+
+    LOG_INFO("✅ Crawler state reset completed for session: " + sessionId);
+    LOG_DEBUG("Crawler::reset - All crawler state has been reset and is ready for new session");
 }
 
 void Crawler::addSeedURL(const std::string& url, bool force) {
