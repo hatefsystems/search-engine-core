@@ -109,7 +109,7 @@ services:
       - search-network
 
   mongodb:
-    image: mongodb/mongodb-enterprise-server:latest
+    image: mongo:7
     container_name: mongodb_test
     restart: unless-stopped
     ports:
@@ -117,8 +117,8 @@ services:
     volumes:
       - mongodb_data:/data/db
     environment:
-      - MONGODB_INITDB_ROOT_USERNAME=admin
-      - MONGODB_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
     command: mongod --bind_ip_all
     networks:
       - search-network
