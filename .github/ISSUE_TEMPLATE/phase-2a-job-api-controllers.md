@@ -1,3 +1,11 @@
+---
+name: 🌐 Phase 2a - Job API Controllers
+about: Implement REST API endpoints for job management and submission
+title: '[Phase 2a] Job API Controllers Implementation'
+labels: 'phase-2a, api, controllers, rest, authentication, testable'
+assignees: ''
+---
+
 # 🌐 **Phase 2a: Job API Controllers Implementation**
 
 ## 📋 **Issue Description**

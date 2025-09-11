@@ -1,3 +1,11 @@
+---
+name: 🕷️ Phase 2b - Crawler Integration
+about: Integrate existing Crawler class with the job system for asynchronous crawling
+title: '[Phase 2b] Crawler Integration with Job System'
+labels: 'phase-2b, crawler, integration, backward-compatibility, progress-tracking'
+assignees: ''
+---
+
 # 🕷️ **Phase 2b: Crawler Integration with Job System**
 
 ## 📋 **Issue Description**

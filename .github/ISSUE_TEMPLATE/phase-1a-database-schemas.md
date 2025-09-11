@@ -1,3 +1,11 @@
+---
+name: 🗄️ Phase 1a - Core Database Schemas & Models
+about: Implement foundational database schemas and basic job models
+title: '[Phase 1a] Core Database Schemas & Models Implementation'
+labels: 'phase-1a, database, models, foundation, testable, mongodb'
+assignees: ''
+---
+
 # 🗄️ **Phase 1a: Core Database Schemas & Models**
 
 ## 📋 **Issue Description**

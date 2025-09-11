@@ -1,3 +1,11 @@
+---
+name: ⚙️ Phase 1b - JobQueue & WorkerService
+about: Implement core job processing engine with queue management and worker pools
+title: '[Phase 1b] JobQueue & WorkerService Implementation'
+labels: 'phase-1b, job-queue, workers, redis, core-engine, testable'
+assignees: ''
+---
+
 # ⚙️ **Phase 1b: JobQueue & WorkerService Implementation**
 
 ## 📋 **Issue Description**

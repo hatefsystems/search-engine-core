@@ -1,3 +1,11 @@
+---
+name: 📡 Phase 3a - Real-time Status System
+about: Implement real-time job status updates using WebSocket, SSE, and polling fallbacks
+title: '[Phase 3a] Real-time Status System Implementation'
+labels: 'phase-3a, real-time, websocket, sse, redis, scalability'
+assignees: ''
+---
+
 # 📡 **Phase 3a: Real-time Status System**
 
 ## 📋 **Issue Description**

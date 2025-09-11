@@ -1,3 +1,11 @@
+---
+name: 🎨 Phase 3b - Frontend Job Dashboard
+about: Create responsive web dashboard for real-time job monitoring and management
+title: '[Phase 3b] Frontend Job Dashboard Implementation'
+labels: 'phase-3b, frontend, dashboard, real-time, responsive, javascript'
+assignees: ''
+---
+
 # 🎨 **Phase 3b: Frontend Job Dashboard**
 
 ## 📋 **Issue Description**

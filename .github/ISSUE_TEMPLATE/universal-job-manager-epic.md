@@ -1,3 +1,11 @@
+---
+name: 🚀 Epic - Universal Job Manager System
+about: Complete implementation of enterprise-grade job management system
+title: '[EPIC] Universal Job Manager System Implementation'
+labels: 'epic, enhancement, job-system, crawler, real-time, enterprise, backend, frontend'
+assignees: ''
+---
+
 # 🚀 **Epic: Universal Job Manager System Implementation**
 
 ## 📋 **Issue Description**
