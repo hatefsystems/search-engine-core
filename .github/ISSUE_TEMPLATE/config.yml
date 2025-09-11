@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📋 Job Manager Epic Overview
+    url: https://github.com/YOUR_USERNAME/search-engine-core/blob/main/.github/ISSUE_TEMPLATE/universal-job-manager-epic.md
+    about: Read the complete epic overview before creating phase-specific issues
+  - name: 🔧 Implementation Guide  
+    url: https://github.com/YOUR_USERNAME/search-engine-core/blob/main/.github/ISSUE_TEMPLATE/README-issue-breakdown.md
+    about: Development guidelines and phase breakdown explanation
