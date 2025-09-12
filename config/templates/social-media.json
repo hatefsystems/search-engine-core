@@ -1,0 +1,31 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 2,
+    "maxPages": 200,
+    "politenessDelay": 2000,
+    "spaRenderingEnabled": true
+  },
+  "description": "Template for social platforms and user-generated content",
+  "name": "social-media",
+  "patterns": {
+    "articleSelectors": [
+      ".post",
+      ".tweet",
+      ".status",
+      ".update"
+    ],
+    "contentSelectors": [
+      ".content",
+      ".post-content",
+      ".status-content",
+      ".body"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".post-title",
+      ".status-title",
+      ".title"
+    ]
+  }
+}

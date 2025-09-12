@@ -199,6 +199,7 @@ RUN rm -rf build && \
 COPY public/ /app/public/
 COPY locales/ /app/locales/
 COPY templates/ /app/templates/
+COPY config/ /app/config/
 
 # Run tests after build - crawler tests first, then all tests
 # RUN cd build && \
@@ -226,6 +227,7 @@ ENV MINIFY_JS=true
 ENV SEARCH_REDIS_URI=tcp://127.0.0.1:6379
 ENV SEARCH_REDIS_POOL_SIZE=4
 ENV SEARCH_INDEX_NAME=search_index
+ENV TEMPLATES_PATH=/app/config/templates
 
 WORKDIR /app
 
@@ -272,6 +274,7 @@ RUN ldconfig
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/locales ./locales
 COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/config ./config
 
 
 

@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "message": "Crawl session started with template",
+  "data": {
+    "sessionId": "crawl_1757365587937_0",
+    "url": "https://www.bbc.com/news",
+    "template": "news-site",
+    "appliedConfig": {
+      "maxPages": 500,
+      "maxDepth": 3,
+      "politenessDelay": 1000,
+      "spaRenderingEnabled": true,
+      "extractTextContent": true,
+      "requestTimeout": 15000,
+      "browserlessUrl": "http://browserless:3000"
+    }
+  }
+}

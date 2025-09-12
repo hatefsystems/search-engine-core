@@ -1,0 +1,31 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 2,
+    "maxPages": 150,
+    "politenessDelay": 1000,
+    "spaRenderingEnabled": false
+  },
+  "description": "Template for business websites and corporate pages",
+  "name": "corporate-site",
+  "patterns": {
+    "articleSelectors": [
+      ".page-content",
+      ".main-content",
+      ".content",
+      ".page"
+    ],
+    "contentSelectors": [
+      ".content",
+      ".main-content",
+      ".page-content",
+      ".body"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".page-title",
+      ".title",
+      ".heading"
+    ]
+  }
+}

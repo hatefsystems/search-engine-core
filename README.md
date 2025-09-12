@@ -14,8 +14,9 @@ of all.
 
 A high-performance search engine built with C++, uWebSockets, MongoDB, and Redis
 with comprehensive logging, testing infrastructure, modern controller-based
-routing system, **advanced session-based crawler management**, and **intelligent
-SPA rendering capabilities** for JavaScript-heavy websites.
+routing system, **advanced session-based crawler management**, **intelligent
+SPA rendering capabilities** for JavaScript-heavy websites, and **reusable
+template system** for common crawling patterns.
 
 ## ⚡ **Latest Performance Optimizations**
 
@@ -95,6 +96,18 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 - **Size-based Optimization**: JSON payload (≤100KB) vs file upload (>100KB)
 - **Thread-safe Operations**: Concurrent request handling with mutex protection
 
+
+### 🎯 **Reusable Template System for Common Crawling Patterns**
+
+- **7 Pre-built Templates**: News, e-commerce, blog, corporate, documentation, forum, social media
+- **Standardized Configurations**: Site-specific crawling parameters and CSS selectors
+- **Template Management API**: Full CRUD operations for template creation and management
+- **Template Application**: Easy integration with existing crawl API via `/api/crawl/add-site-with-template`
+- **Backward Compatibility**: Existing crawl API continues to work unchanged
+- **Performance Optimized**: Singleton registry with efficient template lookup and application
+- **Validation & Error Handling**: Comprehensive input validation with clear error messages
+- **Persistence**: Automatic template saving to disk with directory-based storage
+=======
 ### 💰 **Sponsor Management API**
 
 - **MongoDB Integration**: Direct database storage with proper C++ driver initialization
@@ -104,6 +117,7 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 - **Status Management**: Support for PENDING, VERIFIED, REJECTED, CANCELLED states
 - **Error Handling**: Graceful fallbacks with detailed error logging
 - **Frontend Integration**: JavaScript form handling with success/error notifications
+
 
 ## Project Structure
 
@@ -119,7 +133,8 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   │   ├── HomeController.cpp  # Home page, sponsor API, and coming soon handling
 │   │   ├── SearchController.cpp # Search functionality and crawler APIs
 │   │   ├── StaticFileController.cpp # Static file serving with caching
-│   │   └── CacheController.cpp # Cache monitoring and management
+│   │   ├── CacheController.cpp # Cache monitoring and management
+│   │   └── TemplatesController.cpp # Template system API endpoints
 │   ├── routing/                # Routing infrastructure
 │   │   ├── Controller.cpp      # Base controller class with route registration
 │   │   └── RouteRegistry.cpp   # Central route registry singleton
@@ -132,6 +147,13 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   │   ├── Crawler.cpp         # Main crawler with SPA detection and processing
 │   │   ├── RobotsTxtParser.cpp # Robots.txt parsing with rule logging
 │   │   ├── URLFrontier.cpp     # URL queue management with frontier logging
+│   │   ├── templates/          # Template system for common crawling patterns
+│   │   │   ├── TemplateTypes.h # Core template data structures
+│   │   │   ├── TemplateRegistry.h # Singleton template registry
+│   │   │   ├── TemplateValidator.h # Input validation and normalization
+│   │   │   ├── TemplateApplier.h # Template application to CrawlConfig
+│   │   │   ├── TemplateStorage.h # JSON persistence and file operations
+│   │   │   └── PrebuiltTemplates.h # Pre-built template definitions
 │   │   └── models/             # Data models and configuration
 │   │       ├── CrawlConfig.h   # Enhanced configuration with SPA parameters
 │   │       └── CrawlResult.h   # Crawl result structure
@@ -185,6 +207,14 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   ├── search_core/            # Search API unit tests
 │   └── storage/                # Storage component tests
 ├── config/                     # Configuration files
+│   └── templates/              # Template system configuration
+│       ├── news-site.json      # News website template
+│       ├── ecommerce-site.json # E-commerce template
+│       ├── blog-site.json      # Blog template
+│       ├── corporate-site.json # Corporate website template
+│       ├── documentation-site.json # Documentation template
+│       ├── forum-site.json     # Forum template
+│       └── social-media.json   # Social media template
 ├── examples/                   # Usage examples
 │   └── spa_crawler_example.cpp # SPA crawling example
 ├── docker-compose.yml          # Development multi-service orchestration
@@ -412,6 +442,104 @@ The crawler automatically detects Single Page Applications using:
 - **Connection pooling** to browserless service
 - **Graceful fallback** to static HTML if rendering fails
 
+## Template System API
+
+### Overview
+
+The Template System provides reusable configurations for common crawling patterns, enabling developers to standardize crawler behavior across similar site types.
+
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/templates` | List all available templates |
+| `GET` | `/api/templates/:name` | Get specific template configuration |
+| `POST` | `/api/templates` | Create new custom template |
+| `DELETE` | `/api/templates/:name` | Delete template |
+| `POST` | `/api/crawl/add-site-with-template` | Crawl using template configuration |
+
+### Pre-built Templates
+
+The system includes 7 pre-built templates optimized for common site types:
+
+- **`news-site`**: News websites and online publications
+- **`ecommerce-site`**: Online stores and product listings  
+- **`blog-site`**: Personal blogs and content management systems
+- **`corporate-site`**: Business websites and corporate pages
+- **`documentation-site`**: Technical documentation and API references
+- **`forum-site`**: Discussion forums and community sites
+- **`social-media`**: Social platforms and user-generated content
+
+### Template Structure
+
+```json
+{
+  "name": "news-site",
+  "description": "Template for news websites",
+  "config": {
+    "maxPages": 500,
+    "maxDepth": 3,
+    "spaRenderingEnabled": true,
+    "extractTextContent": true,
+    "politenessDelay": 1000
+  },
+  "patterns": {
+    "articleSelectors": ["article", ".post", ".story"],
+    "titleSelectors": ["h1", ".headline", ".title"],
+    "contentSelectors": [".content", ".body", ".article-body"]
+  }
+}
+```
+
+### Usage Examples
+
+#### List Available Templates
+
+```bash
+curl http://localhost:3000/api/templates
+```
+
+#### Use Template for Crawling
+
+```bash
+curl -X POST http://localhost:3000/api/crawl/add-site-with-template \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://www.bbc.com/news",
+    "template": "news-site"
+  }'
+```
+
+#### Create Custom Template
+
+```bash
+curl -X POST http://localhost:3000/api/templates \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-blog-template",
+    "description": "Template for my personal blog",
+    "config": {
+      "maxPages": 100,
+      "maxDepth": 2,
+      "politenessDelay": 2000
+    },
+    "patterns": {
+      "articleSelectors": [".blog-post"],
+      "titleSelectors": ["h1.blog-title"],
+      "contentSelectors": [".blog-content"]
+    }
+  }'
+```
+
+### Key Features
+
+- **Standardized Configurations**: Site-specific crawling parameters and CSS selectors
+- **Template Management**: Full CRUD operations for template creation and management
+- **Backward Compatibility**: Existing crawl API continues to work unchanged
+- **Performance Optimized**: Singleton registry with efficient template lookup
+- **Validation & Error Handling**: Comprehensive input validation with clear error messages
+- **Persistence**: Automatic template saving to disk with directory-based storage
+
 ## Web Server Architecture
 
 ### Controller-Based Routing System
@@ -431,6 +559,12 @@ The search engine features a modern, attribute-based routing system inspired by
   - `GET /api/crawl/details` - Detailed crawl results
   - `POST /api/spa/detect` - SPA detection endpoint
   - `POST /api/spa/render` - Direct SPA rendering
+- **TemplatesController**:
+  - `GET /api/templates` - List all available templates
+  - `GET /api/templates/:name` - Get specific template configuration
+  - `POST /api/templates` - Create new custom template
+  - `DELETE /api/templates/:name` - Delete template
+  - `POST /api/crawl/add-site-with-template` - Crawl using template configuration
 - **StaticFileController**: Static file serving with proper MIME types
 
 ## Search Engine API (search_core)

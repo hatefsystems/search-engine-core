@@ -53,8 +53,11 @@ services:
       - JS_CACHE_TYPE=redis
       - JS_CACHE_TTL=3600
       - JS_CACHE_REDIS_DB=1
+      - TEMPLATES_PATH=/app/config/templates
       # - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       # - KAFKA_FRONTIER_TOPIC=crawl.frontier
+    volumes:
+      - ./config/templates:/app/config/templates:rw
     depends_on:
       - redis
       - mongodb

@@ -3,6 +3,7 @@
 #include <string>
 #include <chrono>
 #include <set>
+#include <vector>
 #include <curl/curl.h>
 
 struct CrawlConfig {
@@ -52,6 +53,11 @@ struct CrawlConfig {
     bool useKafkaFrontier = false;
     std::string kafkaBootstrapServers = "kafka:9092";
     std::string kafkaTopic = "crawl.frontier";
+
+    // Optional template-driven selector patterns
+    std::vector<std::string> articleSelectors;
+    std::vector<std::string> titleSelectors;
+    std::vector<std::string> contentSelectors;
 };
 
 

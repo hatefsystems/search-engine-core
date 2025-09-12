@@ -1,0 +1,31 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 2,
+    "maxPages": 300,
+    "politenessDelay": 1200,
+    "spaRenderingEnabled": false
+  },
+  "description": "Template for personal blogs and content management systems",
+  "name": "blog-site",
+  "patterns": {
+    "articleSelectors": [
+      "article",
+      ".post",
+      ".blog-post",
+      ".entry"
+    ],
+    "contentSelectors": [
+      ".content",
+      ".post-content",
+      ".entry-content",
+      ".blog-content"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".post-title",
+      ".entry-title",
+      ".blog-title"
+    ]
+  }
+}

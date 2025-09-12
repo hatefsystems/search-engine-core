@@ -1,0 +1,227 @@
+{
+  "templates": [
+    {
+      "name": "news-site",
+      "description": "Template for news websites and online publications",
+      "config": {
+        "maxPages": 500,
+        "maxDepth": 3,
+        "spaRenderingEnabled": true,
+        "extractTextContent": true,
+        "politenessDelay": 1000
+      },
+      "patterns": {
+        "articleSelectors": [
+          "article",
+          ".post",
+          ".story",
+          ".news-item",
+          ".article-item",
+          "[data-testid='article']",
+          ".entry"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".headline",
+          ".title",
+          ".article-title",
+          ".post-title",
+          ".story-title",
+          "h1.entry-title"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".body",
+          ".article-body",
+          ".post-content",
+          ".story-content",
+          ".entry-content",
+          ".article-text",
+          ".main-content"
+        ]
+      }
+    },
+    {
+      "name": "ecommerce-site",
+      "description": "Template for ecommerce product listings",
+      "config": {
+        "maxPages": 800,
+        "maxDepth": 4,
+        "extractTextContent": true,
+        "politenessDelay": 800
+      },
+      "patterns": {
+        "articleSelectors": [
+          ".product",
+          ".product-item",
+          ".product-card"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".product-title",
+          ".title"
+        ],
+        "contentSelectors": [
+          ".description",
+          ".product-description",
+          ".details"
+        ]
+      }
+    },
+    {
+      "name": "blog-site",
+      "description": "Template for personal blogs and content management systems",
+      "config": {
+        "maxPages": 300,
+        "maxDepth": 2,
+        "spaRenderingEnabled": false,
+        "extractTextContent": true,
+        "politenessDelay": 1200
+      },
+      "patterns": {
+        "articleSelectors": [
+          "article",
+          ".post",
+          ".blog-post",
+          ".entry"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".post-title",
+          ".entry-title",
+          ".blog-title"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".post-content",
+          ".entry-content",
+          ".blog-content"
+        ]
+      }
+    },
+    {
+      "name": "corporate-site",
+      "description": "Template for business websites and corporate pages",
+      "config": {
+        "maxPages": 150,
+        "maxDepth": 2,
+        "spaRenderingEnabled": false,
+        "extractTextContent": true,
+        "politenessDelay": 1000
+      },
+      "patterns": {
+        "articleSelectors": [
+          ".page-content",
+          ".main-content",
+          ".content",
+          ".page"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".page-title",
+          ".title",
+          ".heading"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".main-content",
+          ".page-content",
+          ".body"
+        ]
+      }
+    },
+    {
+      "name": "documentation-site",
+      "description": "Template for technical documentation and API references",
+      "config": {
+        "maxPages": 1000,
+        "maxDepth": 5,
+        "spaRenderingEnabled": true,
+        "extractTextContent": true,
+        "politenessDelay": 600
+      },
+      "patterns": {
+        "articleSelectors": [
+          ".documentation",
+          ".doc-content",
+          ".content",
+          ".page"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".page-title",
+          ".doc-title",
+          ".title"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".doc-content",
+          ".main-content",
+          ".body"
+        ]
+      }
+    },
+    {
+      "name": "forum-site",
+      "description": "Template for discussion forums and community sites",
+      "config": {
+        "maxPages": 400,
+        "maxDepth": 3,
+        "spaRenderingEnabled": false,
+        "extractTextContent": true,
+        "politenessDelay": 1500
+      },
+      "patterns": {
+        "articleSelectors": [
+          ".post",
+          ".topic",
+          ".thread",
+          ".message"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".post-title",
+          ".topic-title",
+          ".thread-title"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".post-content",
+          ".message-content",
+          ".body"
+        ]
+      }
+    },
+    {
+      "name": "social-media",
+      "description": "Template for social platforms and user-generated content",
+      "config": {
+        "maxPages": 200,
+        "maxDepth": 2,
+        "spaRenderingEnabled": true,
+        "extractTextContent": true,
+        "politenessDelay": 2000
+      },
+      "patterns": {
+        "articleSelectors": [
+          ".post",
+          ".tweet",
+          ".status",
+          ".update"
+        ],
+        "titleSelectors": [
+          "h1",
+          ".post-title",
+          ".status-title",
+          ".title"
+        ],
+        "contentSelectors": [
+          ".content",
+          ".post-content",
+          ".status-content",
+          ".body"
+        ]
+      }
+    }
+  ]
+}

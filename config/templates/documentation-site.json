@@ -1,0 +1,31 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 5,
+    "maxPages": 1000,
+    "politenessDelay": 600,
+    "spaRenderingEnabled": true
+  },
+  "description": "Template for technical documentation and API references",
+  "name": "documentation-site",
+  "patterns": {
+    "articleSelectors": [
+      ".documentation",
+      ".doc-content",
+      ".content",
+      ".page"
+    ],
+    "contentSelectors": [
+      ".content",
+      ".doc-content",
+      ".main-content",
+      ".body"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".page-title",
+      ".doc-title",
+      ".title"
+    ]
+  }
+}

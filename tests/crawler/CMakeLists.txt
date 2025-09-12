@@ -5,6 +5,12 @@ add_executable(crawler_tests
     robots_txt_parser_tests.cpp
     url_frontier_tests.cpp
     page_fetcher_tests.cpp
+    template_validator_tests.cpp
+    template_registry_tests.cpp
+    template_storage_tests.cpp
+    template_applier_tests.cpp
+    template_integration_tests.cpp
+    template_performance_tests.cpp
     ../../src/storage/ContentStorage.cpp
     ../../src/storage/MongoDBStorage.cpp
 )
