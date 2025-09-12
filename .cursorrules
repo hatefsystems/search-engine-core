@@ -3,6 +3,109 @@
 ## Project Context
 This is a high-performance search engine built with C++, uWebSockets, MongoDB, and Redis. The project uses Docker for containerization and includes features like web crawling, SPA rendering, and sponsor management.
 
+## ⚠️ CRITICAL: Zero-Error Development Rules
+
+### MANDATORY: Always Use Correct API Patterns
+**NEVER guess API usage - ALWAYS use the correct patterns to prevent compilation errors:**
+
+#### Result<T> Interface (MOST COMMON ERROR SOURCE)
+```cpp
+// ❌ WRONG - These methods DON'T EXIST and cause 50+ build errors
+if (result.isSuccess()) { }
+result.getError()
+result.getValue()
+Result<T>::success(value)
+Result<T>::failure(message)
+
+// ✅ CORRECT - Use actual struct interface
+if (result.success) { }           // bool member, not method
+result.message                    // string member, not getError()
+result.value                     // T member, not getValue()
+Result<T>::Success(value, "msg") // Static factory with capital S
+Result<T>::Failure("error")      // Static factory with capital F
+```
+
+#### MongoDB BSON String Access
+```cpp
+// ❌ WRONG - get_utf8() doesn't exist in current mongocxx driver
+element.get_utf8().value.to_string()
+element.key().to_string()  // string_view has no to_string()
+
+// ✅ CORRECT - Use current BSON API
+std::string(element.get_string().value)
+std::string(element.key())
+```
+
+#### MongoDB Aggregation Pipeline
+```cpp
+// ❌ WRONG - Can't pass BSON documents to aggregate()
+auto pipeline = document{} << "pipeline" << array{...} << finalize;
+collection.aggregate(pipeline.view())
+
+// ✅ CORRECT - Use mongocxx::pipeline class
+mongocxx::pipeline pipeline;
+pipeline.match(document{} << "field" << "value" << finalize);
+pipeline.group(document{} << "_id" << "$field" << finalize);
+collection.aggregate(pipeline)
+```
+
+#### MongoDB Optional Result Checks
+```cpp
+// ❌ WRONG - bsoncxx types not directly convertible to bool
+if (result) { }                // run_command result
+if (!result) { }              // find_one result
+
+// ✅ CORRECT - Use appropriate checks
+if (!result.empty()) { }      // for run_command
+if (!result.has_value()) { }  // for find_one (std::optional)
+```
+
+## Fast Development Workflow
+
+### 1. Code Template Checklist
+Before implementing any feature:
+- [ ] Use `Result<T>::Success()` and `Result<T>::Failure()` (capital letters)
+- [ ] Include MongoDB singleton: `MongoDBInstance::getInstance()`
+- [ ] Use lazy initialization for controller services
+- [ ] Pair `res->onData()` with `res->onAborted()` for POST endpoints
+- [ ] Use `LOG_DEBUG()` instead of `std::cout`
+- [ ] Check BSON strings with `std::string(element.get_string().value)`
+- [ ] Use `mongocxx::pipeline` for aggregations
+
+### 2. Quick Build Verification
+```bash
+cd /root/search-engine-core && mkdir -p build && cd build
+cmake .. && make -j4
+```
+
+### 3. Common API Quick Reference
+```cpp
+// Result usage (ALWAYS use these patterns)
+if (result.success) { /* success */ }
+auto value = result.value;
+auto msg = result.message;
+
+// BSON string extraction (ALWAYS use this pattern)
+std::string str = std::string(element.get_string().value);
+std::string key = std::string(element.key());
+
+// MongoDB aggregation (ALWAYS use this pattern)
+mongocxx::pipeline pipe;
+pipe.match(filter).group(grouping);
+auto cursor = collection.aggregate(pipe);
+
+// Optional checks (ALWAYS use these patterns)
+if (findResult.has_value()) { /* found */ }
+if (!runCommandResult.empty()) { /* success */ }
+```
+
+### 4. Zero-Error Strategy
+1. **Copy Working Patterns**: Use the templates above - they always work
+2. **Build Frequently**: Compile after every major function/class
+3. **Fix Immediately**: Don't accumulate compilation errors
+4. **Use Static Analysis**: Let IDE catch issues before building
+5. **Follow Patterns**: Stick to established project patterns
+
 ## Critical MongoDB C++ Rules
 
 ### ⚠️ MOST IMPORTANT: MongoDB Instance Initialization

@@ -114,6 +114,8 @@ add_subdirectory(src/crawler)
 add_subdirectory(src/storage)
 add_subdirectory(src/scoring)
 add_subdirectory(src/search_core)
+add_subdirectory(src/models)
+add_subdirectory(src/database)
 
 # Add source files recursively to include subdirectories like src/common/
 # file(GLOB_RECURSE SOURCES "src/*.cpp")
@@ -125,7 +127,7 @@ add_subdirectory(src/search_core)
 
 file(GLOB_RECURSE MAIN_SOURCES "src/*.cpp" "src/main.cpp")
 
-# Remove crawler sources, storage sources, test sources, and common sources from MAIN_SOURCES
+# Remove crawler sources, storage sources, test sources, common sources, models, and database sources from MAIN_SOURCES
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*crawler/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*storage/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
@@ -133,6 +135,8 @@ list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*common/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*scoring/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*search_core/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*kafka/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*models/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*database/.*\\.cpp$")
 
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
@@ -168,6 +172,8 @@ target_link_libraries(server
         crawler
         search_core
         scoring
+        job_models
+        job_database
         mongodb_instance
         /usr/local/lib/libmongocxx.so
         /usr/local/lib/libbsoncxx.so
