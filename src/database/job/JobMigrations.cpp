@@ -1,6 +1,6 @@
-#include "../../include/Logger.h"
-#include "../../include/mongodb.h"
-#include "../../include/infrastructure.h"
+#include "Logger.h"
+#include "mongodb.h"
+#include "infrastructure.h"
 #include <mongocxx/client.hpp>
 #include <mongocxx/database.hpp>
 #include <mongocxx/collection.hpp>

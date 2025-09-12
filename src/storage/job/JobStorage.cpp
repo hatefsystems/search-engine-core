@@ -1,6 +1,6 @@
-#include "../../include/search_engine/storage/JobStorage.h"
-#include "../../include/Logger.h"
-#include "../../include/mongodb.h"
+#include "search_engine/storage/JobStorage.h"
+#include "Logger.h"
+#include "mongodb.h"
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>

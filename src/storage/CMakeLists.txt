@@ -54,7 +54,6 @@ set(STORAGE_SOURCES
     MongoDBStorage.cpp
     ContentStorage.cpp
     SponsorStorage.cpp
-    JobStorage.cpp
     ../infrastructure.cpp
 )
 
@@ -75,7 +74,6 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h
     ../../include/search_engine/storage/ContentStorage.h
-    ../../include/search_engine/storage/JobStorage.h
     ../../include/infrastructure.h
 )
 
@@ -185,20 +183,11 @@ if(REDIS_AVAILABLE)
     target_compile_definitions(ContentStorage PUBLIC REDIS_AVAILABLE)
 endif()
 
-add_library(JobStorage STATIC JobStorage.cpp ../infrastructure.cpp)
-target_include_directories(JobStorage 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(JobStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance job_models)
-target_compile_definitions(JobStorage PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
+# JobStorage target moved to src/storage/job/CMakeLists.txt
+# (This allows for Grok-style modular structure)
 
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage JobStorage
+install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

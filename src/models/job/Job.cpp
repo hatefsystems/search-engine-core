@@ -1,5 +1,5 @@
-#include "../../include/search_engine/models/Job.h"
-#include "../../include/Logger.h"
+#include "search_engine/job/Job.h"
+#include "Logger.h"
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>

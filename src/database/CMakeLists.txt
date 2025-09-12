@@ -40,10 +40,8 @@ if(TARGET mongo::mongocxx_shared)
     endif()
 endif()
 
-# Define source files for job database components
+# Define source files for job database components - job sources moved to src/database/job/
 set(JOB_DATABASE_SOURCES
-    JobIndexes.cpp
-    JobMigrations.cpp
     ../infrastructure.cpp
 )
 
@@ -96,33 +94,11 @@ target_compile_definitions(job_database PRIVATE
     MONGOCXX_STATIC
 )
 
-# Create individual component targets for selective building
-add_library(JobIndexes STATIC JobIndexes.cpp ../infrastructure.cpp)
-target_include_directories(JobIndexes 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(JobIndexes PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
-target_compile_definitions(JobIndexes PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
-
-add_library(JobMigrations STATIC JobMigrations.cpp ../infrastructure.cpp)
-target_include_directories(JobMigrations 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(JobMigrations PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
-target_compile_definitions(JobMigrations PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
+# Individual job component targets moved to src/database/job/CMakeLists.txt
+# (This allows for Grok-style modular structure)
 
 # Export targets for use by other CMake projects
-install(TARGETS job_database JobIndexes JobMigrations
+install(TARGETS job_database
     EXPORT JobDatabaseTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

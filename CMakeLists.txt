@@ -117,6 +117,11 @@ add_subdirectory(src/search_core)
 add_subdirectory(src/models)
 add_subdirectory(src/database)
 
+# Add job subdirectories (modular structure)
+add_subdirectory(src/models/job)
+add_subdirectory(src/database/job)
+add_subdirectory(src/storage/job)
+
 # Add source files recursively to include subdirectories like src/common/
 # file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -137,6 +142,11 @@ list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*search_core/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*kafka/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*models/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*database/.*\\.cpp$")
+
+# Exclude job sources from global globs to avoid ODR (One Definition Rule) violations
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*/src/models/job/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*/src/storage/job/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*/src/database/job/.*\\.cpp$")
 
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
@@ -174,6 +184,7 @@ target_link_libraries(server
         scoring
         job_models
         job_database
+        job_storage
         mongodb_instance
         /usr/local/lib/libmongocxx.so
         /usr/local/lib/libbsoncxx.so

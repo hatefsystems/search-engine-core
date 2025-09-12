@@ -40,11 +40,8 @@ if(TARGET mongo::mongocxx_shared)
     endif()
 endif()
 
-# Define source files for job models
+# Define source files for job models - job sources moved to src/models/job/
 set(JOB_MODELS_SOURCES
-    Job.cpp
-    JobConfig.cpp
-    JobResult.cpp
     ../infrastructure.cpp
 )
 
@@ -98,45 +95,11 @@ target_compile_definitions(job_models PRIVATE
     MONGOCXX_STATIC
 )
 
-# Create individual component targets for selective building
-add_library(Job STATIC Job.cpp ../infrastructure.cpp)
-target_include_directories(Job 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(Job PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
-target_compile_definitions(Job PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
-
-add_library(JobConfig STATIC JobConfig.cpp ../infrastructure.cpp)
-target_include_directories(JobConfig 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(JobConfig PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
-target_compile_definitions(JobConfig PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
-
-add_library(JobResult STATIC JobResult.cpp ../infrastructure.cpp)
-target_include_directories(JobResult 
-    PUBLIC 
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(JobResult PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
-target_compile_definitions(JobResult PRIVATE
-    BSONCXX_STATIC
-    MONGOCXX_STATIC
-)
+# Individual job component targets moved to src/models/job/CMakeLists.txt
+# (This allows for modular structure)
 
 # Export targets for use by other CMake projects
-install(TARGETS job_models Job JobConfig JobResult
+install(TARGETS job_models
     EXPORT JobModelsTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
