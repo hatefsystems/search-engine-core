@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
 find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
 
 # Set CMake policy to handle imported targets properly
 cmake_policy(SET CMP0111 NEW)
@@ -54,6 +55,7 @@ set(STORAGE_SOURCES
     MongoDBStorage.cpp
     ContentStorage.cpp
     SponsorStorage.cpp
+    EmailService.cpp
     ../infrastructure.cpp
 )
 
@@ -74,6 +76,7 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h
     ../../include/search_engine/storage/ContentStorage.h
+    ../../include/search_engine/storage/EmailService.h
     ../../include/infrastructure.h
 )
 
@@ -105,6 +108,7 @@ target_link_libraries(storage
         mongo::mongocxx_shared
         mongodb_instance
         Threads::Threads
+        CURL::libcurl
 )
 
 # Link Redis libraries if available
@@ -183,8 +187,16 @@ if(REDIS_AVAILABLE)
     target_compile_definitions(ContentStorage PUBLIC REDIS_AVAILABLE)
 endif()
 
+add_library(EmailService STATIC EmailService.cpp ../infrastructure.cpp)
+target_include_directories(EmailService 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(EmailService PUBLIC common CURL::libcurl)
+
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage
+install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

@@ -3,6 +3,109 @@
 ## Project Context
 This is a high-performance search engine built with C++, uWebSockets, MongoDB, and Redis. The project uses Docker for containerization and includes features like web crawling, SPA rendering, and sponsor management.
 
+## ⚠️ CRITICAL: Zero-Error Development Rules
+
+### MANDATORY: Always Use Correct API Patterns
+**NEVER guess API usage - ALWAYS use the correct patterns to prevent compilation errors:**
+
+#### Result<T> Interface (MOST COMMON ERROR SOURCE)
+```cpp
+// ❌ WRONG - These methods DON'T EXIST and cause 50+ build errors
+if (result.isSuccess()) { }
+result.getError()
+result.getValue()
+Result<T>::success(value)
+Result<T>::failure(message)
+
+// ✅ CORRECT - Use actual struct interface
+if (result.success) { }           // bool member, not method
+result.message                    // string member, not getError()
+result.value                     // T member, not getValue()
+Result<T>::Success(value, "msg") // Static factory with capital S
+Result<T>::Failure("error")      // Static factory with capital F
+```
+
+#### MongoDB BSON String Access
+```cpp
+// ❌ WRONG - get_utf8() doesn't exist in current mongocxx driver
+element.get_utf8().value.to_string()
+element.key().to_string()  // string_view has no to_string()
+
+// ✅ CORRECT - Use current BSON API
+std::string(element.get_string().value)
+std::string(element.key())
+```
+
+#### MongoDB Aggregation Pipeline
+```cpp
+// ❌ WRONG - Can't pass BSON documents to aggregate()
+auto pipeline = document{} << "pipeline" << array{...} << finalize;
+collection.aggregate(pipeline.view())
+
+// ✅ CORRECT - Use mongocxx::pipeline class
+mongocxx::pipeline pipeline;
+pipeline.match(document{} << "field" << "value" << finalize);
+pipeline.group(document{} << "_id" << "$field" << finalize);
+collection.aggregate(pipeline)
+```
+
+#### MongoDB Optional Result Checks
+```cpp
+// ❌ WRONG - bsoncxx types not directly convertible to bool
+if (result) { }                // run_command result
+if (!result) { }              // find_one result
+
+// ✅ CORRECT - Use appropriate checks
+if (!result.empty()) { }      // for run_command
+if (!result.has_value()) { }  // for find_one (std::optional)
+```
+
+## Fast Development Workflow
+
+### 1. Code Template Checklist
+Before implementing any feature:
+- [ ] Use `Result<T>::Success()` and `Result<T>::Failure()` (capital letters)
+- [ ] Include MongoDB singleton: `MongoDBInstance::getInstance()`
+- [ ] Use lazy initialization for controller services
+- [ ] Pair `res->onData()` with `res->onAborted()` for POST endpoints
+- [ ] Use `LOG_DEBUG()` instead of `std::cout`
+- [ ] Check BSON strings with `std::string(element.get_string().value)`
+- [ ] Use `mongocxx::pipeline` for aggregations
+
+### 2. Quick Build Verification
+```bash
+cd /root/search-engine-core && mkdir -p build && cd build
+cmake .. && make -j4
+```
+
+### 3. Common API Quick Reference
+```cpp
+// Result usage (ALWAYS use these patterns)
+if (result.success) { /* success */ }
+auto value = result.value;
+auto msg = result.message;
+
+// BSON string extraction (ALWAYS use this pattern)
+std::string str = std::string(element.get_string().value);
+std::string key = std::string(element.key());
+
+// MongoDB aggregation (ALWAYS use this pattern)
+mongocxx::pipeline pipe;
+pipe.match(filter).group(grouping);
+auto cursor = collection.aggregate(pipe);
+
+// Optional checks (ALWAYS use these patterns)
+if (findResult.has_value()) { /* found */ }
+if (!runCommandResult.empty()) { /* success */ }
+```
+
+### 4. Zero-Error Strategy
+1. **Copy Working Patterns**: Use the templates above - they always work
+2. **Build Frequently**: Compile after every major function/class
+3. **Fix Immediately**: Don't accumulate compilation errors
+4. **Use Static Analysis**: Let IDE catch issues before building
+5. **Follow Patterns**: Stick to established project patterns
+
 ## Critical MongoDB C++ Rules
 
 ### ⚠️ MOST IMPORTANT: MongoDB Instance Initialization
@@ -436,6 +539,118 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 - `REDIS_URL` - Redis connection string
 - `BROWSERLESS_URL` - Browserless service URL
 
+## ✅ **Environment Variable Configuration Best Practices**
+
+### MANDATORY: Use Direct Environment Variable Access
+**ALWAYS use `std::getenv()` for configuration - works perfectly with Docker Compose:**
+
+```cpp
+// ✅ CORRECT - Simple and reliable approach
+search_engine::storage::EmailService::SMTPConfig EmailController::loadSMTPConfig() const {
+    search_engine::storage::EmailService::SMTPConfig config;
+    
+    // Load from environment variables (works with Docker Compose and .env files)
+    const char* smtpHost = std::getenv("SMTP_HOST");
+    config.smtpHost = smtpHost ? smtpHost : "smtp.gmail.com";
+    
+    const char* smtpPort = std::getenv("SMTP_PORT");
+    config.smtpPort = smtpPort ? std::stoi(smtpPort) : 587;
+    
+    const char* useTLS = std::getenv("SMTP_USE_TLS");
+    if (useTLS) {
+        std::string tlsStr = std::string(useTLS);
+        std::transform(tlsStr.begin(), tlsStr.end(), tlsStr.begin(), ::tolower);
+        config.useTLS = (tlsStr == "true" || tlsStr == "1" || tlsStr == "yes");
+    } else {
+        config.useTLS = true; // Default value
+    }
+    
+    return config;
+}
+```
+
+### Environment Variable Compatibility
+
+This approach is simpler and works perfectly with:
+- ✅ **Docker Compose environment variables** (primary method for containers)
+- ✅ **System environment variables** (for local development)  
+- ✅ **`.env` files** (Docker Compose reads them automatically)
+
+### Docker Compose Integration Pattern
+
+```yaml
+# docker-compose.yml
+environment:
+  - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+  - SMTP_PORT=${SMTP_PORT:-587}
+  - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+  - SMTP_USERNAME=${SMTP_USERNAME}
+  - SMTP_PASSWORD=${SMTP_PASSWORD}
+  - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
+```
+
+### Configuration Priority Order
+
+1. **Docker environment** (highest priority)
+2. **`.env` file** (fallback for Docker Compose)
+3. **Default values** (built-in fallbacks in code)
+
+### Environment Variable Best Practices
+
+#### Boolean Environment Variables
+```cpp
+// ✅ CORRECT - Handle boolean environment variables properly
+const char* useTLS = std::getenv("SMTP_USE_TLS");
+if (useTLS) {
+    std::string tlsStr = std::string(useTLS);
+    std::transform(tlsStr.begin(), tlsStr.end(), tlsStr.begin(), ::tolower);
+    config.useTLS = (tlsStr == "true" || tlsStr == "1" || tlsStr == "yes");
+} else {
+    config.useTLS = true; // Default
+}
+```
+
+#### Integer Environment Variables  
+```cpp
+// ✅ CORRECT - Handle integer environment variables with error checking
+const char* smtpPort = std::getenv("SMTP_PORT");
+try {
+    config.smtpPort = smtpPort ? std::stoi(smtpPort) : 587;
+} catch (const std::exception& e) {
+    LOG_WARNING("Invalid SMTP_PORT value, using default: 587");
+    config.smtpPort = 587;
+}
+```
+
+#### String Environment Variables
+```cpp
+// ✅ CORRECT - Handle string environment variables with defaults
+const char* smtpHost = std::getenv("SMTP_HOST");
+config.smtpHost = smtpHost ? smtpHost : "smtp.gmail.com";
+```
+
+### Why Avoid Custom .env Parsers
+
+❌ **DON'T** create custom EnvLoader classes:
+- Complex to implement correctly
+- Linking issues in static libraries  
+- Reinventing what Docker Compose already provides
+- Additional maintenance burden
+
+✅ **DO** use direct `std::getenv()`:
+- Simple and reliable
+- No external dependencies
+- Works everywhere (Docker, system, CI/CD)
+- Docker Compose handles `.env` files automatically
+
+### Environment Variable Security
+
+1. **NEVER** commit `.env` files with credentials to git
+2. **ALWAYS** add `.env` to `.gitignore`
+3. **USE** Docker secrets or environment injection in production
+4. **PROVIDE** meaningful defaults for non-sensitive values
+5. **VALIDATE** required environment variables at startup
+
 ## Frontend Integration
 
 ### Static Files
@@ -447,6 +662,66 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 - Location: `/templates/` directory
 - Engine: Inja templating
 - Localization: `/locales/` directory
+
+### Localization Structure Rules
+
+#### ⚠️ MANDATORY: Language-Specific Folder Structure
+**NEVER place localization files in the root of locales folder - ALWAYS use language-specific subfolders:**
+
+```
+// ❌ WRONG - Files in root locales directory
+locales/
+├── en.json
+├── fa.json
+├── de.json
+└── fr.json
+
+// ✅ CORRECT - Language-specific folders with descriptive names
+locales/
+├── en/
+│   ├── common.json
+│   ├── crawling-notification.json
+│   └── sponsor.json
+├── fa/
+│   ├── common.json
+│   ├── crawling-notification.json
+│   └── sponsor.json
+├── de/
+│   └── common.json
+└── languages.json (language metadata)
+```
+
+#### Localization File Organization Rules
+
+1. **ALWAYS** create a dedicated folder for each language code (`en/`, `fa/`, `de/`, etc.)
+2. **ALWAYS** use descriptive file names within language folders (`common.json`, `crawling-notification.json`, `sponsor.json`)
+3. **NEVER** place translation files directly in `/locales/` root
+4. **ALWAYS** keep `languages.json` in the root for language metadata
+5. **ALWAYS** follow consistent naming conventions across all language folders
+
+#### Loading Localization Files in Code
+
+```cpp
+// ✅ CORRECT - Load from language-specific folder
+std::string localesPath = "locales/" + lang + "/crawling-notification.json";
+std::string localeContent = loadFile(localesPath);
+
+// For fallback loading
+if (localeContent.empty()) {
+    LOG_WARNING("Failed to load locale file: " + localesPath + ", falling back to English");
+    localesPath = "locales/en/crawling-notification.json";
+    localeContent = loadFile(localesPath);
+}
+```
+
+#### Localization Checklist
+
+When adding new localized content:
+- [ ] Create language-specific folders (`locales/en/`, `locales/fa/`, etc.)
+- [ ] Use descriptive file names (not just language codes)
+- [ ] Update code to load from correct folder structure
+- [ ] Ensure fallback loading works for missing translations
+- [ ] Keep `languages.json` in root for metadata
 
 ### CSS Best Practices
 

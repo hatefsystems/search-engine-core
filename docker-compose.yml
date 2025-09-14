@@ -40,6 +40,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+    - .env
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}  # CRITICAL: Configurable logging (debug, info, warning, error, none)
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017
@@ -60,6 +62,17 @@ services:
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
       - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}
       - DEFAULT_REQUEST_TIMEOUT=${DEFAULT_REQUEST_TIMEOUT:-60000}
+      # SMTP Email Configuration
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_TIMEOUT=${SMTP_TIMEOUT:-30}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
+      - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
+      - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
     depends_on:
       - redis
       - mongodb

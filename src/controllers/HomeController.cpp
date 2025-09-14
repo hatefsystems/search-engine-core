@@ -111,6 +111,67 @@ std::string HomeController::renderTemplate(const std::string& templateName, cons
         // Initialize Inja environment
         inja::Environment env("templates/");
         
+        // Register template functions
+        env.add_callback("formatThousands", 1, [](inja::Arguments& args) {
+            try {
+                if (args.empty()) return std::string("0");
+                
+                // Handle different numeric types
+                if (args[0]->is_number_integer()) {
+                    long long value = args[0]->get<long long>();
+                    return formatThousands(value);
+                } else if (args[0]->is_number()) {
+                    double value = args[0]->get<double>();
+                    return formatThousands(static_cast<long long>(value));
+                }
+                return std::string("0");
+            } catch (...) {
+                return std::string("0");
+            }
+        });
+        
+        env.add_callback("formatTime", 1, [](inja::Arguments& args) {
+            try {
+                if (args.empty()) return std::string("00:00:00");
+                
+                long long timestamp = 0;
+                if (args[0]->is_number_integer()) {
+                    timestamp = args[0]->get<long long>();
+                } else if (args[0]->is_number()) {
+                    timestamp = static_cast<long long>(args[0]->get<double>());
+                }
+                
+                std::time_t time = static_cast<std::time_t>(timestamp);
+                std::tm* tm = std::localtime(&time);
+                char buffer[32];
+                std::strftime(buffer, sizeof(buffer), "%H:%M:%S", tm);
+                return std::string(buffer);
+            } catch (...) {
+                return std::string("00:00:00");
+            }
+        });
+        
+        env.add_callback("formatDateTime", 1, [](inja::Arguments& args) {
+            try {
+                if (args.empty()) return std::string("1970-01-01 00:00:00");
+                
+                long long timestamp = 0;
+                if (args[0]->is_number_integer()) {
+                    timestamp = args[0]->get<long long>();
+                } else if (args[0]->is_number()) {
+                    timestamp = static_cast<long long>(args[0]->get<double>());
+                }
+                
+                std::time_t time = static_cast<std::time_t>(timestamp);
+                std::tm* tm = std::localtime(&time);
+                char buffer[64];
+                std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+                return std::string(buffer);
+            } catch (...) {
+                return std::string("1970-01-01 00:00:00");
+            }
+        });
+        
         // Load the template and render with data  
         std::string result = env.render_file(templateName, data);
         return result;
@@ -957,5 +1018,142 @@ void HomeController::getSponsorPaymentAccounts(uWS::HttpResponse<false>* res, uW
     } catch (const std::exception& e) {
         LOG_ERROR("💥 Exception in getSponsorPaymentAccounts: " + std::string(e.what()));
         serverError(res, "Failed to process payment accounts");
+    }
+}
+
+void HomeController::crawlingNotificationPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("HomeController::crawlingNotificationPage - Serving crawling notification page");
+    LOG_DEBUG("HomeController::crawlingNotificationPage called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
+    try {
+        std::string defaultLang = getDefaultLocale();
+        crawlingNotificationPageWithLang(res, req, defaultLang);
+    } catch (const std::exception& e) {
+        LOG_ERROR("HomeController::crawlingNotificationPage - Exception: " + std::string(e.what()));
+        serverError(res, "Failed to load crawling notification page");
+    }
+}
+
+void HomeController::crawlingNotificationPageWithLang(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("HomeController::crawlingNotificationPageWithLang - Serving localized crawling notification page");
+    
+    try {
+        // Extract language from URL path
+        std::string fullUrl = std::string(req->getUrl());
+        std::string lang = "en"; // Default language
+        
+        // Extract language from path like "/crawling-notification/fa"
+        size_t lastSlash = fullUrl.find_last_of('/');
+        if (lastSlash != std::string::npos && lastSlash < fullUrl.length() - 1) {
+            std::string extractedLang = fullUrl.substr(lastSlash + 1);
+            // Validate language code (simple check for now)
+            if (extractedLang == "fa" || extractedLang == "en") {
+                lang = extractedLang;
+            }
+        }
+        
+        crawlingNotificationPageWithLang(res, req, lang);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("HomeController::crawlingNotificationPageWithLang - Exception: " + std::string(e.what()));
+        serverError(res, "Failed to load localized crawling notification page");
+    }
+}
+
+void HomeController::crawlingNotificationPageWithLang(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& lang) {
+    LOG_INFO("HomeController::crawlingNotificationPageWithLang - Serving crawling notification page for language: " + lang);
+    LOG_DEBUG("Request from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
+    try {
+        // Load localization data using new folder structure
+        std::string localesPath = "locales/" + lang + "/crawling-notification.json";
+        std::string localeContent = loadFile(localesPath);
+        
+        if (localeContent.empty()) {
+            LOG_WARNING("Failed to load locale file: " + localesPath + ", falling back to English");
+            localesPath = "locales/en/crawling-notification.json";
+            localeContent = loadFile(localesPath);
+        }
+
+        if (localeContent.empty()) {
+            LOG_ERROR("Failed to load fallback locale file");
+            serverError(res, "Localization data unavailable");
+            return;
+        }
+
+        nlohmann::json localeData = nlohmann::json::parse(localeContent);
+        LOG_DEBUG("Loaded locale data for: " + lang);
+
+        // Prepare template data with sample crawling results
+        // In a real implementation, you would get this data from query parameters or database
+        nlohmann::json templateData = localeData;
+        
+        // Sample crawling data - this would typically come from URL parameters or database
+        templateData["domainName"] = "example.com";
+        templateData["crawledPagesCount"] = 1250;
+        templateData["crawlSessionId"] = "session_" + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+        templateData["completionTime"] = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        templateData["base_url"] = "https://hatef.ir";
+
+        // Override with URL query parameters if provided
+        std::string queryString = std::string(req->getQuery());
+        if (!queryString.empty()) {
+            // Parse query parameters (simple implementation)
+            std::istringstream queryStream(queryString);
+            std::string param;
+            
+            while (std::getline(queryStream, param, '&')) {
+                size_t equalPos = param.find('=');
+                if (equalPos != std::string::npos) {
+                    std::string key = param.substr(0, equalPos);
+                    std::string value = param.substr(equalPos + 1);
+                    
+                    // URL decode value (basic implementation)
+                    // Replace %20 with space, etc.
+                    size_t pos = 0;
+                    while ((pos = value.find("%20", pos)) != std::string::npos) {
+                        value.replace(pos, 3, " ");
+                        pos += 1;
+                    }
+                    
+                    if (key == "domain") {
+                        templateData["domainName"] = value;
+                    } else if (key == "pages") {
+                        try {
+                            templateData["crawledPagesCount"] = std::stoi(value);
+                        } catch (...) {
+                            LOG_WARNING("Invalid pages parameter: " + value);
+                        }
+                    } else if (key == "session") {
+                        templateData["crawlSessionId"] = value;
+                    }
+                }
+            }
+        }
+
+        LOG_DEBUG("Template data prepared for domain: " + templateData["domainName"].get<std::string>() + 
+                  ", pages: " + std::to_string(templateData["crawledPagesCount"].get<int>()));
+
+        // Render template
+        std::string renderedHtml = renderTemplate("crawling-notification.inja", templateData);
+        
+        if (renderedHtml.empty()) {
+            LOG_ERROR("Failed to render crawling notification template");
+            serverError(res, "Template rendering failed");
+            return;
+        }
+
+        LOG_INFO("Successfully rendered crawling notification page for language: " + lang);
+        html(res, renderedHtml);
+        LOG_TRACE("Crawling notification page response sent successfully");
+        
+    } catch (const nlohmann::json::parse_error& e) {
+        LOG_ERROR("HomeController::crawlingNotificationPageWithLang - JSON parse error: " + std::string(e.what()));
+        serverError(res, "Localization data parse error");
+    } catch (const std::exception& e) {
+        LOG_ERROR("HomeController::crawlingNotificationPageWithLang - Exception: " + std::string(e.what()));
+        serverError(res, "Failed to load crawling notification page");
     }
 } 
