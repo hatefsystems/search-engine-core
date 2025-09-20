@@ -56,6 +56,7 @@ set(STORAGE_SOURCES
     ContentStorage.cpp
     SponsorStorage.cpp
     EmailService.cpp
+    UnsubscribeService.cpp
     ../infrastructure.cpp
 )
 
@@ -77,6 +78,7 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/SponsorStorage.h
     ../../include/search_engine/storage/ContentStorage.h
     ../../include/search_engine/storage/EmailService.h
+    ../../include/search_engine/storage/UnsubscribeService.h
     ../../include/infrastructure.h
 )
 
@@ -193,10 +195,22 @@ target_include_directories(EmailService
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(EmailService PUBLIC common CURL::libcurl)
+target_link_libraries(EmailService PUBLIC common CURL::libcurl UnsubscribeService)
+
+add_library(UnsubscribeService STATIC UnsubscribeService.cpp ../infrastructure.cpp)
+target_include_directories(UnsubscribeService 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(UnsubscribeService PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(UnsubscribeService PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
 
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService
+install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService UnsubscribeService
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

@@ -12,6 +12,7 @@
 #include "controllers/HomeController.h"
 #include "controllers/SearchController.h"
 #include "controllers/StaticFileController.h"
+#include "controllers/UnsubscribeController.h"
 
 #include <chrono>
 #include <iomanip>

@@ -8,6 +8,9 @@
 
 namespace search_engine { namespace storage {
 
+// Forward declaration
+class UnsubscribeService;
+
 /**
  * @brief Email notification service for sending crawling notifications
  * 
@@ -98,7 +101,7 @@ private:
     static size_t readCallback(void* ptr, size_t size, size_t nmemb, void* userp);
     
     // Helper methods
-    std::string formatEmailHeaders(const std::string& to, const std::string& subject);
+    std::string formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken = "");
     std::string formatEmailBody(const std::string& htmlContent, const std::string& textContent);
     std::string generateBoundary();
     bool performSMTPRequest(const std::string& to, const std::string& emailData);
@@ -117,6 +120,15 @@ private:
     
     // CURL handle for connection reuse
     CURL* curlHandle_;
+    
+    // Unsubscribe service (lazy initialized)
+    mutable std::unique_ptr<UnsubscribeService> unsubscribeService_;
+    
+    /**
+     * @brief Get or create UnsubscribeService instance (lazy initialization)
+     * @return UnsubscribeService instance or nullptr if initialization fails
+     */
+    UnsubscribeService* getUnsubscribeService() const;
     
     // Email content buffer for CURL callback
     struct EmailBuffer {

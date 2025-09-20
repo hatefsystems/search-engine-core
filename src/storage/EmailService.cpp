@@ -1,4 +1,5 @@
 #include "../../include/search_engine/storage/EmailService.h"
+#include "../../include/search_engine/storage/UnsubscribeService.h"
 #include "../../include/Logger.h"
 #include <sstream>
 #include <iomanip>
@@ -78,8 +79,22 @@ bool EmailService::sendHtmlEmail(const std::string& to,
     LOG_DEBUG("Preparing to send email to: " + to + " with subject: " + subject);
     
     try {
+        // Generate unsubscribe token for List-Unsubscribe headers
+        std::string unsubscribeToken = "";
+        auto unsubscribeService = getUnsubscribeService();
+        if (unsubscribeService) {
+            unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                to, 
+                "", // IP address - not available during email sending
+                "Email Sending System" // User agent
+            );
+            if (!unsubscribeToken.empty()) {
+                LOG_DEBUG("EmailService: Generated unsubscribe token for email headers: " + to);
+            }
+        }
+        
         // Prepare email data
-        std::string emailData = formatEmailHeaders(to, subject) + 
+        std::string emailData = formatEmailHeaders(to, subject, unsubscribeToken) + 
                                formatEmailBody(htmlContent, textContent);
         
         return performSMTPRequest(to, emailData);
@@ -158,13 +173,24 @@ size_t EmailService::readCallback(void* ptr, size_t size, size_t nmemb, void* us
     return toWrite;
 }
 
-std::string EmailService::formatEmailHeaders(const std::string& to, const std::string& subject) {
+std::string EmailService::formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken) {
     std::ostringstream headers;
     
     headers << "To: " << to << "\r\n";
     headers << "From: " << config_.fromName << " <" << config_.fromEmail << ">\r\n";
     headers << "Subject: " << subject << "\r\n";
     headers << "MIME-Version: 1.0\r\n";
+    
+    // Add List-Unsubscribe headers if unsubscribe token is provided
+    if (!unsubscribeToken.empty()) {
+        // RFC 8058 compliant List-Unsubscribe header
+        headers << "List-Unsubscribe: <https://notify.hatef.ir/u/" << unsubscribeToken << ">, <mailto:unsubscribe+" << unsubscribeToken << "@notify.hatef.ir>\r\n";
+        
+        // RFC 8058 List-Unsubscribe-Post header for one-click unsubscribe
+        headers << "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
+        
+        LOG_DEBUG("EmailService: Added List-Unsubscribe headers with token: " + unsubscribeToken.substr(0, 8) + "...");
+    }
     
     return headers.str();
 }
@@ -392,6 +418,24 @@ std::string EmailService::renderEmailTemplate(const std::string& templateName, c
         auto time_t = std::chrono::system_clock::to_time_t(data.crawlCompletedAt);
         templateData["completionTime"] = static_cast<long long>(time_t);
         
+        // Generate unsubscribe token
+        auto unsubscribeService = getUnsubscribeService();
+        if (unsubscribeService) {
+            std::string unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                data.recipientEmail, 
+                "", // IP address - not available during email generation
+                "Email Template System" // User agent
+            );
+            if (!unsubscribeToken.empty()) {
+                templateData["unsubscribeToken"] = unsubscribeToken;
+                LOG_DEBUG("EmailService: Generated unsubscribe token for: " + data.recipientEmail);
+            } else {
+                LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + data.recipientEmail);
+            }
+        } else {
+            LOG_WARNING("EmailService: UnsubscribeService unavailable, skipping token generation");
+        }
+        
         // Initialize Inja environment
         inja::Environment env("templates/");
         
@@ -449,6 +493,19 @@ std::string EmailService::renderEmailTemplate(const std::string& templateName, c
         LOG_ERROR("EmailService: Template rendering error: " + std::string(e.what()));
         throw std::runtime_error("Failed to render email template: " + std::string(e.what()));
     }
+}
+
+UnsubscribeService* EmailService::getUnsubscribeService() const {
+    if (!unsubscribeService_) {
+        try {
+            LOG_INFO("EmailService: Lazy initializing UnsubscribeService");
+            unsubscribeService_ = std::make_unique<UnsubscribeService>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("EmailService: Failed to lazy initialize UnsubscribeService: " + std::string(e.what()));
+            return nullptr;
+        }
+    }
+    return unsubscribeService_.get();
 }
 
 } } // namespace search_engine::storage
