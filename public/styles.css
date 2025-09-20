@@ -78,6 +78,12 @@ body {
 }
 
 .logo { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; }
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: "Vazirmatn FD", "Vazirmatn", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
 .theme-toggle {
   background: transparent;
   border: 1px solid color-mix(in oklab, var(--text) 20%, transparent);

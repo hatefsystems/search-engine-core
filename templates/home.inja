@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="{{ t.language.code }}" dir="{{ t.language.direction }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ t.meta.title }}</title>
+    <meta name="description" content="{{ t.meta.description }}" />
+    <meta name="theme-color" content="#0b0f14" id="theme-color" />
+    <meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta property="og:title" content="{{ t.meta.title }}" />
+    <meta property="og:description" content="{{ t.meta.description }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ base_url }}/" />
+    
+    <!-- Language alternate links for SEO -->
+    <link rel="alternate" hreflang="en" href="{{ base_url }}/?lang=en">
+    <link rel="alternate" hreflang="fa" href="{{ base_url }}/?lang=fa">
+    <link rel="alternate" hreflang="x-default" href="{{ base_url }}/">
+    
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111827'/%3E%3Cpath fill='%2322d3ee' d='M18 16h8v12h12V16h8v32h-8V36H26v12h-8z'/%3E%3C/svg%3E"
+    />
+    <link rel="preload" href="{{ base_url }}/styles.css" as="style" />
+    <link rel="stylesheet" href="{{ base_url }}/styles.css" />
+    
+    <style>
+      /* Language Switch Styles */
+      .language-switch {
+        text-align: center;
+        margin-top: 1rem;
+      }
+      
+      .language-switch-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary, #666);
+        margin: 0;
+        line-height: 1.4;
+      }
+      
+      /* Language switch direction control */
+      .language-switch-text[lang="en"] {
+        direction: ltr;
+        text-align: center;
+      }
+      
+      .language-switch-text[lang="fa"] {
+        direction: rtl;
+        text-align: center;
+      }
+      
+      .language-link {
+        color: var(--accent-color, #007bff);
+        text-decoration: underline;
+        transition: color 0.2s ease;
+      }
+      
+      .language-link:hover {
+        color: var(--accent-hover, #0056b3);
+        text-decoration: none;
+      }
+      
+      .language-link:focus {
+        outline: 2px solid var(--accent-color, #007bff);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+      
+      /* RTL adjustments */
+      html[dir="rtl"] .language-switch {
+        direction: rtl;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="{{ base_url }}/" class="logo" aria-label="{{ t.header.logo_text }} home">
+        <span class="logo-text">{{ t.header.logo_text }}</span>
+      </a>
+      <button id="theme-toggle" class="theme-toggle" aria-label="{{ t.header.theme_toggle_label }}" aria-pressed="false">🌙</button>
+    </header>
+
+    <main class="site-main">
+      <h1 class="tagline">{{ t.main.tagline }}</h1>
+
+      <section class="search-section" aria-label="{{ t.main.search_label }}">
+        <form id="search-form" action="{{ base_url }}/search" method="get" role="search" autocomplete="off">
+          <label for="q" class="visually-hidden">{{ t.main.search_label }}</label>
+
+          <div class="input-wrap">
+            <button type="submit" class="icon-btn" aria-label="{{ t.main.search_submit_label }}">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L20 21.5 21.5 20l-6-6zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </button>
+
+            <input
+              id="q"
+              name="q"
+              type="search"
+              placeholder="{{ t.main.search_placeholder }}"
+              inputmode="search"
+              spellcheck="false"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="suggestions"
+              aria-activedescendant=""
+            />
+
+            <button type="button" class="icon-btn mic-btn" aria-label="{{ t.main.voice_search_label }}" title="{{ t.main.voice_search_title }}" disabled>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/>
+              </svg>
+            </button>
+          </div>
+
+          <ul id="suggestions" class="suggestions" role="listbox" aria-label="{{ t.main.suggestions_label }}"></ul>
+        </form>
+
+        <div id="recent" class="recent" aria-label="{{ t.main.recent_searches_label }}"></div>
+
+        <!-- Language Switch Link -->
+        <div class="language-switch">
+          <p class="language-switch-text" lang="{% if t.language.code == "fa" %}en{% else %}fa{% endif %}">
+            {{ t.main.language_switch_text }}<a href="{% if t.language.code == "fa" %}{{ base_url }}/?lang=en{% else %}{{ base_url }}/?lang=fa{% endif %}" class="language-link" data-action="language-switch">{{ t.main.language_switch_link }}</a>{{ t.main.language_switch_dot }}
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="{{ base_url }}/about">{{ t.footer.about }}</a>
+        <span aria-hidden="true">•</span>
+        <a href="https://github.com/HatefSystems" rel="noopener">{{ t.footer.github }}</a>
+        <!-- <span aria-hidden="true">•</span>
+        <a href="{{ base_url }}/privacy">{{ t.footer.privacy }}</a> -->
+      </nav>
+      <div class="copyright">{{ t.footer.copyright }}</div>
+    </footer>
+
+    <script>
+      // Get current year for copyright and focus search input
+      {# document.addEventListener('DOMContentLoaded', function() {
+        const yearSpan = document.getElementById('year');
+        if (yearSpan) {
+          yearSpan.textContent = new Date().getFullYear();
+        }
+        
+        // Focus and activate search input after page load
+        const searchInput = document.getElementById('q');fdsf
+        if (searchInput) {
+          // Small delay to ensure page is fully loaded
+          setTimeout(function() {
+            searchInput.focus();
+            searchInput.activate();
+          }, 100);
+        }
+      }); #}
+    </script>
+    
+    <script defer src="{{ base_url }}/script.js"></script>
+  </body>
+</html>

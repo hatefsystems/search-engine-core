@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "Hatef — Private. Fast. Independent.",
+    "description": "Hatef is a private, fast, independent search engine."
+  },
+  "header": {
+    "logo_text": "Hatef",
+    "theme_toggle_label": "Toggle color theme"
+  },
+  "main": {
+    "tagline": "Private. Fast. Independent.",
+    "search_label": "Search the web",
+    "search_placeholder": "Search the web...",
+    "search_submit_label": "Submit search",
+    "voice_search_label": "Voice search (coming soon)",
+    "voice_search_title": "Voice search (coming soon)",
+    "suggestions_label": "Suggestions",
+    "recent_searches_label": "Recent searches",
+    "language_switch_text": "هاتف به زبان ",
+    "language_switch_link": "فارسی",
+    "language_switch_dot": " همراه شماست"
+  },
+  "footer": {
+    "about": "About",
+    "github": "GitHub",
+    "privacy": "Privacy",
+    "copyright": "© 2024 Hatef"
+  }
+}

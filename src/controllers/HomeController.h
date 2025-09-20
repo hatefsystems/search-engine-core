@@ -37,6 +37,9 @@ public:
     
     // GET /crawling-notification/{lang}
     void crawlingNotificationPageWithLang(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // GET /about
+    void aboutPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
 private:
     std::string getAvailableLocales();
@@ -65,4 +68,5 @@ ROUTE_CONTROLLER(HomeController) {
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification.html", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification/*", crawlingNotificationPageWithLang, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/about", aboutPage, HomeController);
 } 

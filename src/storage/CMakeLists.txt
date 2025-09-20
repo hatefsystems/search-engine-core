@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find required packages
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Set CMake policy to handle imported targets properly
 cmake_policy(SET CMP0111 NEW)
@@ -111,6 +112,8 @@ target_link_libraries(storage
         mongodb_instance
         Threads::Threads
         CURL::libcurl
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 # Link Redis libraries if available
@@ -203,7 +206,7 @@ target_include_directories(UnsubscribeService
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(UnsubscribeService PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_link_libraries(UnsubscribeService PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(UnsubscribeService PRIVATE
     BSONCXX_STATIC
     MONGOCXX_STATIC

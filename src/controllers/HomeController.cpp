@@ -71,21 +71,105 @@ std::string HomeController::loadFile(const std::string& path) {
 }
 
 void HomeController::index(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("HomeController::index - Serving coming soon page");
+    LOG_INFO("HomeController::index - Serving localized home page");
     LOG_DEBUG("HomeController::index called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
 
-    // Load and serve the coming soon page
-    static std::string comingSoonHtml = loadFile("public/coming-soon.html");
+    try {
+        // Extract language parameter from query string (default to Persian)
+        std::string langCode = getDefaultLocale(); // Default to Persian
+        std::string queryString = std::string(req->getQuery());
+        
+        if (!queryString.empty()) {
+            // Simple lang parameter extraction
+            size_t langPos = queryString.find("lang=");
+            if (langPos != std::string::npos) {
+                langPos += 5; // Skip "lang="
+                size_t langEnd = queryString.find("&", langPos);
+                if (langEnd == std::string::npos) {
+                    langEnd = queryString.length();
+                }
+                std::string requestedLang = queryString.substr(langPos, langEnd - langPos);
+                
+                // Validate language code exists
+                std::string metaFile = "locales/" + requestedLang + "/common.json";
+                LOG_DEBUG("Checking if language file exists: " + metaFile);
+                if (std::filesystem::exists(metaFile)) {
+                    langCode = requestedLang;
+                    LOG_DEBUG("Using requested language: " + langCode);
+                } else {
+                    LOG_WARNING("Requested language not found: " + requestedLang + ", file: " + metaFile + ", using default: " + langCode);
+                }
+            }
+        }
 
-    if (comingSoonHtml.empty()) {
-        LOG_ERROR("HomeController::index - Failed to load coming soon page");
-        serverError(res, "Failed to load page");
-        return;
+        LOG_DEBUG("HomeController::index - Loading language metadata for: " + langCode);
+        
+        // Load language metadata from common.json
+        std::string metaData = loadFile("locales/" + langCode + "/common.json");
+        if (metaData.empty()) {
+            LOG_ERROR("HomeController::index - Failed to load common metadata for language: " + langCode);
+            serverError(res, "Failed to load localization metadata");
+            return;
+        }
+
+        nlohmann::json metaJson = nlohmann::json::parse(metaData);
+
+        // Load home page translations with fallback system
+        std::string homePrimaryStr = loadFile("locales/" + langCode + "/home.json");
+        std::string homeDefaultStr = loadFile("locales/" + getDefaultLocale() + "/home.json");
+        nlohmann::json homePrimary = homePrimaryStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(homePrimaryStr);
+        nlohmann::json homeDefault = homeDefaultStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(homeDefaultStr);
+        
+        // Merge translations (fallback to default if missing)
+        jsonDeepMergeMissing(homePrimary, homeDefault);
+        
+        // Merge with common translations
+        jsonDeepMergeMissing(homePrimary, metaJson);
+
+        // Add language metadata to template data
+        nlohmann::json templateData = homePrimary;
+        if (metaJson.contains("language")) {
+            templateData["language"] = metaJson["language"];
+        }
+
+        // Get the host from the request headers for base_url
+        std::string host = std::string(req->getHeader("host"));
+        std::string protocol = "http://";
+        
+        // Check if we're behind a proxy (X-Forwarded-Proto header)
+        std::string forwardedProto = std::string(req->getHeader("x-forwarded-proto"));
+        if (!forwardedProto.empty()) {
+            protocol = forwardedProto + "://";
+        }
+        
+        std::string baseUrl = protocol + host;
+
+        nlohmann::json finalTemplateData = {
+            {"t", templateData},
+            {"base_url", baseUrl}
+        };
+
+        LOG_DEBUG("HomeController::index - Rendering home template with language: " + langCode);
+        
+        // Render template with data
+        std::string renderedHtml = renderTemplate("home.inja", finalTemplateData);
+        
+        if (renderedHtml.empty()) {
+            LOG_ERROR("HomeController::index - Failed to render home template");
+            serverError(res, "Failed to render home page");
+            return;
+        }
+        
+        html(res, renderedHtml);
+        LOG_DEBUG("HomeController::index - Successfully served localized home page (size: " + std::to_string(renderedHtml.size()) + " bytes)");
+        
+    } catch (const nlohmann::json::exception& e) {
+        LOG_ERROR("HomeController::index - JSON parsing error: " + std::string(e.what()));
+        serverError(res, "Failed to load home page");
+    } catch (const std::exception& e) {
+        LOG_ERROR("HomeController::index - Error serving home page: " + std::string(e.what()));
+        serverError(res, "Failed to load home page");
     }
-
-    LOG_DEBUG("HomeController::index - Serving coming soon page (size: " + std::to_string(comingSoonHtml.size()) + " bytes)");
-    html(res, comingSoonHtml);
-    LOG_TRACE("HomeController::index - Response sent successfully");
 }
 
 void HomeController::searchPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
@@ -189,24 +273,24 @@ void HomeController::sponsorPage(uWS::HttpResponse<false>* res, uWS::HttpRequest
     try {
         LOG_DEBUG("HomeController::sponsorPage - Loading default locale configuration");
         std::string defaultLang = getDefaultLocale();
-        // Load language metadata (code/dir) from root locale file
-        std::string metaData = loadFile("locales/" + defaultLang + ".json");
-        if (metaData.empty()) {
-            LOG_ERROR("HomeController::sponsorPage - Failed to load localization metadata for language: " + defaultLang);
-            serverError(res, "Failed to load localization metadata");
-            return;
+        
+        // Load language metadata from languages.json
+        std::string languagesStr = loadFile("locales/languages.json");
+        if (languagesStr.empty()) { 
+            LOG_ERROR("HomeController::sponsorPage - Failed to load languages metadata");
+            serverError(res, "Failed to load languages metadata"); 
+            return; 
         }
-
-        LOG_DEBUG("HomeController::sponsorPage - Parsing metadata JSON for language: " + defaultLang);
-        nlohmann::json metaJson = nlohmann::json::parse(metaData);
+        nlohmann::json languagesJson = nlohmann::json::parse(languagesStr);
+        nlohmann::json metaJson = languagesJson[defaultLang];
 
         LOG_DEBUG("HomeController::sponsorPage - Loading sponsor page translations");
-        // Load sponsor page translations (primary=default for base route)
+        // Load sponsor page translations with common fallback
         std::string sponsorPrimaryStr = loadFile("locales/" + defaultLang + "/sponsor.json");
-        std::string sponsorFallbackStr = loadFile("locales/" + getDefaultLocale() + "/sponsor.json");
+        std::string commonStr = loadFile("locales/" + defaultLang + "/common.json");
         nlohmann::json sponsorPrimary = sponsorPrimaryStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorPrimaryStr);
-        nlohmann::json sponsorFallback = sponsorFallbackStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorFallbackStr);
-        jsonDeepMergeMissing(sponsorPrimary, sponsorFallback);
+        nlohmann::json common = commonStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(commonStr);
+        jsonDeepMergeMissing(sponsorPrimary, common);
 
         LOG_DEBUG("HomeController::sponsorPage - Merged sponsor translations successfully");
 
@@ -230,7 +314,7 @@ void HomeController::sponsorPage(uWS::HttpResponse<false>* res, uWS::HttpRequest
         } catch (...) { /* ignore formatting errors */ }
 
         nlohmann::json t;
-        if (metaJson.contains("language")) t["language"] = metaJson["language"];
+        t["language"] = metaJson;
         t["sponsor"] = sponsorPrimary;
 
         // Get the host from the request headers
@@ -270,24 +354,50 @@ void HomeController::sponsorPageWithLang(uWS::HttpResponse<false>* res, uWS::Htt
         if (lastSlash != std::string::npos && lastSlash < url.length() - 1) {
             langCode = url.substr(lastSlash + 1);
         }
-        std::string metaFile = "locales/" + langCode + ".json";
-        if (!std::filesystem::exists(metaFile)) {
+        // Load languages metadata
+        std::string languagesStr = loadFile("locales/languages.json");
+        if (languagesStr.empty()) { serverError(res, "Failed to load languages metadata"); return; }
+        nlohmann::json languagesJson = nlohmann::json::parse(languagesStr);
+        
+        // Check if requested language exists, fallback to default if not
+        if (languagesJson.find(langCode) == languagesJson.end()) {
+            LOG_WARNING("Language not supported: " + langCode + ", falling back to default");
             langCode = getDefaultLocale();
-            metaFile = "locales/" + langCode + ".json";
         }
-        std::string metaData = loadFile(metaFile);
-        if (metaData.empty()) {
-            serverError(res, "Failed to load localization metadata for language: " + langCode);
-            return;
-        }
-        nlohmann::json metaJson = nlohmann::json::parse(metaData);
+        
+        // Get language metadata
+        nlohmann::json metaJson = languagesJson[langCode];
 
-        // Load sponsor translations for requested lang with fallback to default
+        // Load sponsor translations with fallback: sponsor(lang) <- common(lang) <- sponsor(default) <- common(default)
         std::string sponsorPrimaryStr = loadFile("locales/" + langCode + "/sponsor.json");
-        std::string sponsorFallbackStr = loadFile("locales/" + getDefaultLocale() + "/sponsor.json");
-        nlohmann::json sponsorPrimary = sponsorPrimaryStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorPrimaryStr);
-        nlohmann::json sponsorFallback = sponsorFallbackStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(sponsorFallbackStr);
-        jsonDeepMergeMissing(sponsorPrimary, sponsorFallback);
+        std::string commonLangStr = loadFile("locales/" + langCode + "/common.json");
+        std::string sponsorDefaultStr = loadFile("locales/" + getDefaultLocale() + "/sponsor.json");
+        std::string commonDefaultStr = loadFile("locales/" + getDefaultLocale() + "/common.json");
+        
+        nlohmann::json j = nlohmann::json::object();
+        if (!commonDefaultStr.empty()) j = nlohmann::json::parse(commonDefaultStr);
+        if (!sponsorDefaultStr.empty()) {
+            nlohmann::json sponsorDefault = nlohmann::json::parse(sponsorDefaultStr);
+            jsonDeepMergeMissing(j, sponsorDefault);
+        }
+        
+        // Override with requested language (higher priority)
+        if (!commonLangStr.empty()) {
+            nlohmann::json commonLang = nlohmann::json::parse(commonLangStr);
+            // Use merge that overwrites existing keys
+            for (auto& [key, value] : commonLang.items()) {
+                j[key] = value;
+            }
+        }
+        if (!sponsorPrimaryStr.empty()) {
+            nlohmann::json sponsorPrimary = nlohmann::json::parse(sponsorPrimaryStr);
+            // Use merge that overwrites existing keys
+            for (auto& [key, value] : sponsorPrimary.items()) {
+                j[key] = value;
+            }
+        }
+        
+        nlohmann::json sponsorPrimary = j;
 
         // Pre-format tier prices with thousands separators
         try {
@@ -308,7 +418,7 @@ void HomeController::sponsorPageWithLang(uWS::HttpResponse<false>* res, uWS::Htt
         } catch (...) { /* ignore formatting errors */ }
 
         nlohmann::json t;
-        if (metaJson.contains("language")) t["language"] = metaJson["language"];
+        t["language"] = metaJson;
         t["sponsor"] = sponsorPrimary;
 
         // Get the host from the request headers
@@ -343,22 +453,34 @@ void HomeController::crawlRequestPage(uWS::HttpResponse<false>* res, uWS::HttpRe
     LOG_INFO("HomeController::crawlRequestPage called");
     
     try {
-        // Load default language metadata
+        // Load default language metadata from languages.json
         std::string defaultLang = getDefaultLocale();
-        std::string metaStr = loadFile("locales/" + defaultLang + ".json");
-        if (metaStr.empty()) { serverError(res, "Failed to load localization metadata"); return; }
-        nlohmann::json metaJson = nlohmann::json::parse(metaStr);
+        std::string languagesStr = loadFile("locales/languages.json");
+        if (languagesStr.empty()) { serverError(res, "Failed to load languages metadata"); return; }
+        nlohmann::json languagesJson = nlohmann::json::parse(languagesStr);
+        
+        // Get language metadata for default language
+        nlohmann::json metaJson = languagesJson[defaultLang];
 
-        // Load page-specific translations for default lang with fallback to default root (for compatibility)
+        // Load page-specific translations for default lang
         std::string pagePrimaryStr = loadFile("locales/" + defaultLang + "/crawl-request.json");
-        std::string pageFallbackStr = loadFile("locales/" + defaultLang + ".json");
+        std::string commonStr = loadFile("locales/" + defaultLang + "/common.json");
         nlohmann::json pagePrimary = pagePrimaryStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(pagePrimaryStr);
-        nlohmann::json pageFallback = pageFallbackStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(pageFallbackStr);
-        jsonDeepMergeMissing(pagePrimary, pageFallback);
+        nlohmann::json common = commonStr.empty() ? nlohmann::json::object() : nlohmann::json::parse(commonStr);
+        jsonDeepMergeMissing(pagePrimary, common);
 
         // Compose template data
         nlohmann::json t = pagePrimary;
-        if (metaJson.contains("language")) t["language"] = metaJson["language"];
+        // Merge language metadata without overriding existing language translations
+        if (t.contains("language") && t["language"].is_object()) {
+            // Merge metadata into existing language object
+            for (auto& [key, value] : metaJson.items()) {
+                t["language"][key] = value;
+            }
+        } else {
+            // If no existing language object, use metadata directly
+            t["language"] = metaJson;
+        }
         
         // Get the host from the request headers
         std::string host = std::string(req->getHeader("host"));
@@ -410,32 +532,63 @@ void HomeController::crawlRequestPageWithLang(uWS::HttpResponse<false>* res, uWS
         
         LOG_INFO("Extracted language code: " + langCode);
         
-        // Check if language meta file exists, fallback to default if not
-        std::string metaFile = "locales/" + langCode + ".json";
-        if (!std::filesystem::exists(metaFile)) {
-            LOG_WARNING("Language file not found: " + metaFile + ", falling back to default");
+        // Load languages metadata
+        std::string languagesStr = loadFile("locales/languages.json");
+        if (languagesStr.empty()) { serverError(res, "Failed to load languages metadata"); return; }
+        nlohmann::json languagesJson = nlohmann::json::parse(languagesStr);
+        
+        // Check if requested language exists, fallback to default if not
+        if (languagesJson.find(langCode) == languagesJson.end()) {
+            LOG_WARNING("Language not supported: " + langCode + ", falling back to default");
             langCode = getDefaultLocale();
-            metaFile = "locales/" + langCode + ".json";
+        }
+        
+        // Get language metadata
+        nlohmann::json metaJson = languagesJson[langCode];
+
+        // Load page-specific translations with fallback: page(lang) <- common(lang) <- page(default) <- common(default)
+        std::string pagePrimaryStr = loadFile("locales/" + langCode + "/crawl-request.json");
+        std::string commonLangStr = loadFile("locales/" + langCode + "/common.json");
+        std::string pageDefaultStr = loadFile("locales/" + getDefaultLocale() + "/crawl-request.json");
+        std::string commonDefaultStr = loadFile("locales/" + getDefaultLocale() + "/common.json");
+        
+        // Build translation hierarchy: requested language takes priority, fallback to default
+        nlohmann::json j = nlohmann::json::object();
+        
+        // Start with default language as base (fallback)
+        if (!commonDefaultStr.empty()) j = nlohmann::json::parse(commonDefaultStr);
+        if (!pageDefaultStr.empty()) {
+            nlohmann::json pageDefault = nlohmann::json::parse(pageDefaultStr);
+            jsonDeepMergeMissing(j, pageDefault);
+        }
+        
+        // Override with requested language (higher priority)
+        if (!commonLangStr.empty()) {
+            nlohmann::json commonLang = nlohmann::json::parse(commonLangStr);
+            // Use merge that overwrites existing keys
+            for (auto& [key, value] : commonLang.items()) {
+                j[key] = value;
+            }
+        }
+        if (!pagePrimaryStr.empty()) {
+            nlohmann::json pagePrimary = nlohmann::json::parse(pagePrimaryStr);
+            // Use merge that overwrites existing keys
+            for (auto& [key, value] : pagePrimary.items()) {
+                j[key] = value;
+            }
         }
 
-        // Load language metadata
-        std::string metaStr = loadFile(metaFile);
-        if (metaStr.empty()) { serverError(res, "Failed to load localization metadata for language: " + langCode); return; }
-        nlohmann::json metaJson = nlohmann::json::parse(metaStr);
-
-        // Load page-specific translations with layered fallback: page(lang) <- root(lang) <- page(default) <- root(default)
-        std::string pagePrimaryStr = loadFile("locales/" + langCode + "/crawl-request.json");
-        std::string rootLangStr    = loadFile("locales/" + langCode + ".json");
-        std::string pageDefaultStr = loadFile("locales/" + getDefaultLocale() + "/crawl-request.json");
-        std::string rootDefaultStr = loadFile("locales/" + getDefaultLocale() + ".json");
-        nlohmann::json j = nlohmann::json::object();
-        if (!rootDefaultStr.empty()) j = nlohmann::json::parse(rootDefaultStr);
-        if (!pageDefaultStr.empty()) jsonDeepMergeMissing(j, nlohmann::json::parse(pageDefaultStr));
-        if (!rootLangStr.empty())    jsonDeepMergeMissing(j, nlohmann::json::parse(rootLangStr));
-        if (!pagePrimaryStr.empty()) jsonDeepMergeMissing(j, nlohmann::json::parse(pagePrimaryStr));
-
         nlohmann::json t = j;
-        if (metaJson.contains("language")) t["language"] = metaJson["language"];
+        // Merge language metadata without overriding existing language translations
+        if (t.contains("language") && t["language"].is_object()) {
+            // Merge metadata into existing language object
+            for (auto& [key, value] : metaJson.items()) {
+                t["language"][key] = value;
+            }
+        } else {
+            // If no existing language object, use metadata directly
+            t["language"] = metaJson;
+        }
         
         // Get the host from the request headers
         std::string host = std::string(req->getHeader("host"));
@@ -1156,4 +1309,22 @@ void HomeController::crawlingNotificationPageWithLang(uWS::HttpResponse<false>* 
         LOG_ERROR("HomeController::crawlingNotificationPageWithLang - Exception: " + std::string(e.what()));
         serverError(res, "Failed to load crawling notification page");
     }
+}
+
+void HomeController::aboutPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("HomeController::aboutPage - Serving about page (coming soon content)");
+    LOG_DEBUG("HomeController::aboutPage called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
+
+    // Load and serve the coming soon page as about page
+    static std::string comingSoonHtml = loadFile("public/coming-soon.html");
+
+    if (comingSoonHtml.empty()) {
+        LOG_ERROR("HomeController::aboutPage - Failed to load coming soon page");
+        serverError(res, "Failed to load about page");
+        return;
+    }
+
+    LOG_DEBUG("HomeController::aboutPage - Serving coming soon content as about page (size: " + std::to_string(comingSoonHtml.size()) + " bytes)");
+    html(res, comingSoonHtml);
+    LOG_TRACE("HomeController::aboutPage - Response sent successfully");
 } 
