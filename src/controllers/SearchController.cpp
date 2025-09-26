@@ -46,6 +46,29 @@ std::string urlDecode(const std::string& encoded) {
     return decoded;
 }
 
+// Helper function to truncate text to a maximum length
+std::string truncateDescription(const std::string& text, size_t maxLength = 300) {
+    if (text.length() <= maxLength) {
+        return text;
+    }
+
+    // Find the last space within the limit to avoid cutting words
+    size_t truncatePos = maxLength;
+    while (truncatePos > maxLength * 0.8 && truncatePos > 0) {
+        if (text[truncatePos] == ' ' || text[truncatePos] == '\n' || text[truncatePos] == '\t') {
+            break;
+        }
+        truncatePos--;
+    }
+
+    // If no suitable break point found, use the max length
+    if (truncatePos <= maxLength * 0.8) {
+        truncatePos = maxLength;
+    }
+
+    return text.substr(0, truncatePos) + "...";
+}
+
 // Static SearchClient instance
 static std::unique_ptr<SearchClient> g_searchClient;
 static std::once_flag g_initFlag;
@@ -1225,9 +1248,11 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
                 {"domain", profile.domain}
             };
             
-            // Add description if available
+            // Add description if available (truncated for long descriptions)
             if (profile.description) {
-                profileJson["description"] = *profile.description;
+                std::string description = *profile.description;
+                // Truncate descriptions longer than 300 characters
+                profileJson["description"] = truncateDescription(description, 300);
             } else {
                 profileJson["description"] = "";
             }
@@ -1492,9 +1517,11 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 				formattedResult["title"] = std::string(profile.title);
 				formattedResult["displayurl"] = std::string(displayUrl);
 
-				// Handle optional description
+				// Handle optional description with truncation for long descriptions
 				if (profile.description.has_value()) {
-					formattedResult["desc"] = std::string(*profile.description);
+					std::string description = std::string(*profile.description);
+					// Truncate descriptions longer than 300 characters
+					formattedResult["desc"] = truncateDescription(description, 300);
 				} else {
 					formattedResult["desc"] = std::string("");
 				}
