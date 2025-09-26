@@ -1,0 +1,39 @@
+{
+  "language": {
+    "code": "fa",
+    "direction": "rtl"
+  },
+  "meta": {
+    "title": "موتور جستجوی هاتف",
+    "description": "نتایج جستجو برای",
+    "description_with_query": "نتایج جستجو برای \"{{ search_query }}\" - موتور جستجوی هاتف"
+  },
+  "header": {
+    "logo_text": "هاتف",
+    "theme_toggle_label": "تغییر تم"
+  },
+  "search": {
+    "search_label": "جستجو",
+    "search_placeholder": "جستجوی شما...",
+    "search_submit_label": "جستجو کن",
+    "results_info_prefix": "",
+    "results_info_suffix": "نتیجه در",
+    "timing_prefix": "",
+    "timing_suffix": "ثانیه برای «",
+    "results_suffix": "» یافت شد",
+    "no_results_title": "نتیجه‌ای یافت نشد",
+    "no_results_description": "متأسفانه نتوانستیم نتیجه‌ای برای جستجوی شما پیدا کنیم. لطفاً کلمات کلیدی دیگری امتحان کنید یا املای خود را بررسی کنید.",
+    "no_description": "توضیحی برای این نتیجه موجود نیست.",
+    "try_new_search": "جستجوی جدید",
+    "language_switch_text": "View this page in ",
+    "language_switch_link": "English",
+    "language_switch_dot": "."
+  },
+  "footer": {
+    "about": "درباره ما",
+    "crawl_request": "درخواست خزش",
+    "github": "گیت‌هاب",
+    "privacy": "حریم خصوصی",
+    "copyright": "© ۲۰۲۵ سیستم‌های هاتف. تمامی حقوق محفوظ است."
+  }
+}

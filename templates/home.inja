@@ -135,6 +135,8 @@
         <a href="{{ base_url }}/about">{{ t.footer.about }}</a>
         <span aria-hidden="true">•</span>
         <a href="https://github.com/HatefSystems" rel="noopener">{{ t.footer.github }}</a>
+        <span aria-hidden="true">•</span>
+        <a href="{{ base_url }}/crawl-request">{{ t.footer.crawl_request }}</a>
         <!-- <span aria-hidden="true">•</span>
         <a href="{{ base_url }}/privacy">{{ t.footer.privacy }}</a> -->
       </nav>

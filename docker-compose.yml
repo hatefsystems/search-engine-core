@@ -91,7 +91,7 @@ services:
       dockerfile: Dockerfile
     container_name: js-minifier
     restart: unless-stopped
-    pull_policy: never
+    pull_policy: if_not_present
     ports:
       - "3002:3002"
     environment:

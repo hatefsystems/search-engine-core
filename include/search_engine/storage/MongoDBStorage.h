@@ -74,6 +74,7 @@ public:
         int limit = 100,
         int skip = 0
     );
+    Result<int64_t> countSearchResults(const std::string& query);
     
     // Statistics and maintenance
     Result<int64_t> getTotalSiteCount();

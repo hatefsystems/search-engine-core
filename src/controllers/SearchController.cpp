@@ -5,7 +5,12 @@
 #include "../../include/search_engine/crawler/PageFetcher.h"
 #include "../../include/search_engine/crawler/models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
+#include "../../include/search_engine/storage/MongoDBStorage.h"
 #include "../../include/search_engine/storage/ApiRequestLog.h"
+#include "../../include/inja/inja.hpp"
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <cstdlib>
 #include <chrono>
 #include <iomanip>
@@ -13,8 +18,33 @@
 #include <mutex>
 #include <numeric>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <cctype>
 
 using namespace hatef::search;
+
+// URL decoding function for handling UTF-8 encoded query parameters
+std::string urlDecode(const std::string& encoded) {
+    std::string decoded;
+    std::size_t len = encoded.length();
+    
+    for (std::size_t i = 0; i < len; ++i) {
+        if (encoded[i] == '%' && (i + 2) < len) {
+            // Convert hex to char
+            std::string hex = encoded.substr(i + 1, 2);
+            char ch = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
+            decoded.push_back(ch);
+            i += 2;
+        } else if (encoded[i] == '+') {
+            decoded.push_back(' ');
+        } else {
+            decoded.push_back(encoded[i]);
+        }
+    }
+    
+    return decoded;
+}
 
 // Static SearchClient instance
 static std::unique_ptr<SearchClient> g_searchClient;
@@ -23,6 +53,10 @@ static std::once_flag g_initFlag;
 // Static CrawlerManager instance
 static std::unique_ptr<CrawlerManager> g_crawlerManager;
 static std::once_flag g_crawlerManagerInitFlag;
+
+// Static MongoDBStorage instance for search operations
+static std::unique_ptr<search_engine::storage::MongoDBStorage> g_mongoStorage;
+static std::once_flag g_mongoStorageInitFlag;
 
 SearchController::SearchController() {
     // Initialize SearchClient once
@@ -85,6 +119,28 @@ SearchController::SearchController() {
             LOG_INFO("CrawlerManager initialized successfully with database storage");
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to initialize CrawlerManager: " + std::string(e.what()));
+            throw;
+        }
+    });
+    
+    // Initialize MongoDBStorage once
+    std::call_once(g_mongoStorageInitFlag, []() {
+        try {
+            // Get MongoDB connection string from environment or use default
+            const char* mongoUri = std::getenv("MONGODB_URI");
+            std::string mongoConnectionString = mongoUri ? mongoUri : "mongodb://admin:password123@mongodb:27017";
+            
+            LOG_INFO("Initializing MongoDBStorage for search with connection: " + mongoConnectionString);
+            
+            // Create MongoDBStorage for search operations
+            g_mongoStorage = std::make_unique<search_engine::storage::MongoDBStorage>(
+                mongoConnectionString,
+                "search-engine"
+            );
+            
+            LOG_INFO("MongoDBStorage for search initialized successfully");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to initialize MongoDBStorage for search: " + std::string(e.what()));
             throw;
         }
     });
@@ -1046,6 +1102,165 @@ nlohmann::json SearchController::parseRedisSearchResponse(const std::string& raw
     return response;
 }
 
+void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::searchSiteProfiles called");
+    
+    // Start timing for response time tracking
+    auto searchStartTime = std::chrono::high_resolution_clock::now();
+    
+    // Parse query parameters
+    auto params = parseQuery(req);
+    
+    // Check for required 'q' parameter
+    auto qIt = params.find("q");
+    if (qIt == params.end() || qIt->second.empty()) {
+        nlohmann::json error = {
+            {"success", false},
+            {"message", "Query parameter 'q' is required"},
+            {"error", "INVALID_REQUEST"}
+        };
+        
+        json(res, error, "400 Bad Request");
+        LOG_WARNING("Site profiles search request rejected: missing 'q' parameter");
+        return;
+    }
+    
+    std::string query = urlDecode(qIt->second);
+    LOG_DEBUG("Decoded search query: " + query);
+    
+    // Parse pagination parameters
+    int page = 1;
+    int limit = 10;
+    
+    auto pageIt = params.find("page");
+    if (pageIt != params.end()) {
+        try {
+            page = std::stoi(pageIt->second);
+            if (page < 1 || page > 1000) {
+                badRequest(res, "Page must be between 1 and 1000");
+                return;
+            }
+        } catch (...) {
+            badRequest(res, "Invalid page parameter");
+            return;
+        }
+    }
+    
+    auto limitIt = params.find("limit");
+    if (limitIt != params.end()) {
+        try {
+            limit = std::stoi(limitIt->second);
+            if (limit < 1 || limit > 100) {
+                badRequest(res, "Limit must be between 1 and 100");
+                return;
+            }
+        } catch (...) {
+            badRequest(res, "Invalid limit parameter");
+            return;
+        }
+    }
+    
+    try {
+        // Check if MongoDBStorage is available
+        if (!g_mongoStorage) {
+            serverError(res, "Search service not available");
+            LOG_ERROR("MongoDBStorage not initialized for site profiles search");
+            return;
+        }
+        
+        // Calculate skip for pagination
+        int skip = (page - 1) * limit;
+        
+        LOG_DEBUG("Searching site profiles with query: '" + query + "', page: " + std::to_string(page) + 
+                  ", limit: " + std::to_string(limit) + ", skip: " + std::to_string(skip));
+        
+        // Get total count first
+        auto countResult = g_mongoStorage->countSearchResults(query);
+        if (!countResult.success) {
+            LOG_ERROR("Failed to count search results: " + countResult.message);
+            serverError(res, "Search operation failed");
+            return;
+        }
+        
+        int64_t totalResults = countResult.value;
+        
+        // Perform the search
+        auto searchResult = g_mongoStorage->searchSiteProfiles(query, limit, skip);
+        if (!searchResult.success) {
+            LOG_ERROR("Site profiles search failed: " + searchResult.message);
+            serverError(res, "Search operation failed");
+            return;
+        }
+        
+        // Calculate search time
+        auto searchEndTime = std::chrono::high_resolution_clock::now();
+        auto searchDuration = std::chrono::duration_cast<std::chrono::milliseconds>(searchEndTime - searchStartTime);
+        
+        // Build response
+        nlohmann::json response = {
+            {"success", true},
+            {"message", "Search completed successfully"},
+            {"data", {
+                {"query", query},
+                {"results", nlohmann::json::array()},
+                {"pagination", {
+                    {"page", page},
+                    {"limit", limit},
+                    {"totalResults", totalResults},
+                    {"totalPages", (totalResults + limit - 1) / limit}
+                }},
+                {"searchTime", {
+                    {"milliseconds", searchDuration.count()},
+                    {"seconds", static_cast<double>(searchDuration.count()) / 1000.0}
+                }}
+            }}
+        };
+        
+        // Add search results
+        auto& resultsArray = response["data"]["results"];
+        for (const auto& profile : searchResult.value) {
+            nlohmann::json profileJson = {
+                {"url", profile.url},
+                {"title", profile.title},
+                {"domain", profile.domain}
+            };
+            
+            // Add description if available
+            if (profile.description) {
+                profileJson["description"] = *profile.description;
+            } else {
+                profileJson["description"] = "";
+            }
+            
+            // Add optional fields if available
+            if (profile.pageRank) {
+                profileJson["pageRank"] = *profile.pageRank;
+            }
+            
+            if (profile.contentQuality) {
+                profileJson["contentQuality"] = *profile.contentQuality;
+            }
+            
+            if (profile.wordCount) {
+                profileJson["wordCount"] = *profile.wordCount;
+            }
+            
+            resultsArray.push_back(profileJson);
+        }
+        
+        LOG_INFO("Site profiles search completed successfully: query='" + query + 
+                 "', results=" + std::to_string(searchResult.value.size()) + 
+                 "/" + std::to_string(totalResults) + 
+                 ", time=" + std::to_string(searchDuration.count()) + "ms");
+        
+        json(res, response);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Unexpected error in searchSiteProfiles: " + std::string(e.what()));
+        serverError(res, "An unexpected error occurred during search");
+    }
+}
+
 void SearchController::logApiRequestError(const std::string& endpoint, const std::string& method, 
                                         const std::string& ipAddress, const std::string& userAgent,
                                         const std::chrono::system_clock::time_point& requestStartTime,
@@ -1079,6 +1294,296 @@ void SearchController::logApiRequestError(const std::string& endpoint, const std
         }
     } catch (const std::exception& e) {
         LOG_WARNING("Failed to log API request error: " + std::string(e.what()));
+    }
+}
+
+// Helper methods for template rendering
+std::string SearchController::loadFile(const std::string& path) {
+    LOG_DEBUG("Attempting to load file: " + path);
+    
+    if (!std::filesystem::exists(path) || !std::filesystem::is_regular_file(path)) {
+        LOG_ERROR("Error: File does not exist or is not a regular file: " + path);
+        return "";
+    }
+    
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        LOG_ERROR("Error: Could not open file: " + path);
+        return "";
+    }
+    
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+    
+    if (content.empty()) {
+        LOG_WARNING("Warning: File is empty: " + path);
+    } else {
+        LOG_INFO("Successfully loaded file: " + path + " (size: " + std::to_string(content.length()) + " bytes)");
+    }
+    
+    return content;
+}
+
+std::string SearchController::renderTemplate(const std::string& templateName, const nlohmann::json& data) {
+    try {
+        // Initialize Inja environment with absolute path and check if templates directory exists
+        std::string templateDir = "/app/templates/";
+        if (!std::filesystem::exists(templateDir)) {
+            LOG_ERROR("Template directory does not exist: " + templateDir);
+            throw std::runtime_error("Template directory not found");
+        }
+        LOG_DEBUG("Using template directory: " + templateDir);
+        inja::Environment env(templateDir);
+        
+        // URL encoding is now done in C++ code and passed as search_query_encoded
+        
+        // Render the template with data
+        std::string result = env.render_file(templateName, data);
+        LOG_DEBUG("Successfully rendered template: " + templateName + " (size: " + std::to_string(result.size()) + " bytes)");
+        return result;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to render template " + templateName + ": " + std::string(e.what()));
+        return "";
+    }
+}
+
+std::string SearchController::getDefaultLocale() {
+    return "fa"; // Persian as default
+}
+
+// Deep merge helper for JSON objects
+static void jsonDeepMergeMissing(nlohmann::json &dst, const nlohmann::json &src) {
+    if (!dst.is_object() || !src.is_object()) return;
+    for (auto it = src.begin(); it != src.end(); ++it) {
+        const std::string &key = it.key();
+        if (dst.contains(key)) {
+            if (dst[key].is_object() && it.value().is_object()) {
+                jsonDeepMergeMissing(dst[key], it.value());
+            }
+        } else {
+            dst[key] = it.value();
+        }
+    }
+}
+
+void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::searchResultsPage - Serving search results page");
+
+    // Start timing
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    try {
+        // Parse query parameters
+        auto params = parseQuery(req);
+        
+        // Get search query
+        auto qIt = params.find("q");
+        if (qIt == params.end() || qIt->second.empty()) {
+            // Redirect to home page if no query provided
+            res->writeStatus("302 Found");
+            res->writeHeader("Location", "/");
+            res->end();
+            return;
+        }
+        
+		std::string searchQuery = urlDecode(qIt->second);
+        LOG_DEBUG("Search query: " + searchQuery);
+        
+        // Extract language parameter (default to Persian)
+        std::string langCode = getDefaultLocale();
+        auto langIt = params.find("lang");
+        if (langIt != params.end() && !langIt->second.empty()) {
+            std::string requestedLang = langIt->second;
+            std::string metaFile = "locales/" + requestedLang + "/search.json";
+            if (std::filesystem::exists(metaFile)) {
+                langCode = requestedLang;
+                LOG_DEBUG("Using requested language: " + langCode);
+            } else {
+                LOG_WARNING("Requested language not found: " + requestedLang + ", using default: " + langCode);
+            }
+        }
+        
+        // Load localization files
+        std::string commonPath = "locales/" + langCode + "/common.json";
+        std::string searchPath = "locales/" + langCode + "/search.json";
+        
+        std::string commonContent = loadFile(commonPath);
+        std::string searchContent = loadFile(searchPath);
+        
+        if (commonContent.empty() || searchContent.empty()) {
+            LOG_ERROR("Failed to load localization files for language: " + langCode);
+            // Fallback to default language
+            if (langCode != getDefaultLocale()) {
+                langCode = getDefaultLocale();
+                commonPath = "locales/" + langCode + "/common.json";
+                searchPath = "locales/" + langCode + "/search.json";
+                commonContent = loadFile(commonPath);
+                searchContent = loadFile(searchPath);
+            }
+            
+            if (commonContent.empty() || searchContent.empty()) {
+                serverError(res, "Failed to load localization files");
+                return;
+            }
+        }
+        
+        // Parse JSON files
+        nlohmann::json commonJson = nlohmann::json::parse(commonContent);
+        nlohmann::json searchJson = nlohmann::json::parse(searchContent);
+        
+        // Merge search localization into common
+        jsonDeepMergeMissing(commonJson, searchJson);
+        
+		// Perform search via MongoDB (same logic as /api/search/sites)
+		std::vector<nlohmann::json> searchResults;
+		int totalResults = 0;
+		
+		// Pagination
+		int page = 1;
+		int limit = 10;
+		auto pageIt = params.find("page");
+		if (pageIt != params.end()) {
+			try {
+				page = std::stoi(pageIt->second);
+				if (page < 1 || page > 1000) page = 1;
+			} catch (...) { page = 1; }
+		}
+		int skip = (page - 1) * limit;
+		
+		try {
+			if (!g_mongoStorage) {
+				LOG_ERROR("MongoDBStorage not initialized for searchResultsPage");
+				serverError(res, "Search service not available");
+				return;
+			}
+			
+			auto countResult = g_mongoStorage->countSearchResults(searchQuery);
+			if (!countResult.success) {
+				LOG_ERROR("Failed to count search results: " + countResult.message);
+				serverError(res, "Search operation failed");
+				return;
+			}
+			totalResults = static_cast<int>(countResult.value);
+			
+			auto searchResult = g_mongoStorage->searchSiteProfiles(searchQuery, limit, skip);
+			if (!searchResult.success) {
+				LOG_ERROR("Site profiles search failed: " + searchResult.message);
+				serverError(res, "Search operation failed");
+				return;
+			}
+			
+			for (const auto& profile : searchResult.value) {
+				std::string displayUrl = profile.url;
+
+				// Clean up display URL (remove protocol and www)
+				if (displayUrl.rfind("https://", 0) == 0) {
+					displayUrl = displayUrl.substr(8);
+				} else if (displayUrl.rfind("http://", 0) == 0) {
+					displayUrl = displayUrl.substr(7);
+				}
+				if (displayUrl.rfind("www.", 0) == 0) {
+					displayUrl = displayUrl.substr(4);
+				}
+
+				nlohmann::json formattedResult;
+				formattedResult["url"] = std::string(profile.url);
+				formattedResult["title"] = std::string(profile.title);
+				formattedResult["displayurl"] = std::string(displayUrl);
+
+				// Handle optional description
+				if (profile.description.has_value()) {
+					formattedResult["desc"] = std::string(*profile.description);
+				} else {
+					formattedResult["desc"] = std::string("");
+				}
+
+				searchResults.push_back(formattedResult);
+			}
+		} catch (const std::exception& e) {
+			LOG_ERROR("MongoDB search error in searchResultsPage: " + std::string(e.what()));
+			// Continue with empty results to still render page
+		}
+        
+        // Get the host from the request headers for base_url
+        std::string host = std::string(req->getHeader("host"));
+        std::string protocol = "http://";
+        
+        // Check if we're behind a proxy (X-Forwarded-Proto header)
+        std::string forwardedProto = std::string(req->getHeader("x-forwarded-proto"));
+        if (!forwardedProto.empty()) {
+            protocol = forwardedProto + "://";
+        }
+        
+        std::string baseUrl = protocol + host;
+        
+        // URL encode the search query for use in URLs
+        std::string encodedSearchQuery = searchQuery;
+        // Simple URL encoding for the search query
+        std::string encoded;
+        for (char c : searchQuery) {
+            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+                encoded += c;
+            } else {
+                std::ostringstream oss;
+                oss << '%' << std::hex << std::uppercase << (unsigned char)c;
+                encoded += oss.str();
+            }
+        }
+        encodedSearchQuery = encoded;
+
+        // Calculate elapsed time
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+        double elapsedSeconds = duration.count() / 1000000.0;
+
+        // Format elapsed time with appropriate precision
+        std::stringstream timeStream;
+        if (elapsedSeconds < 0.01) {
+            timeStream << std::fixed << std::setprecision(3) << elapsedSeconds;
+        } else if (elapsedSeconds < 0.1) {
+            timeStream << std::fixed << std::setprecision(2) << elapsedSeconds;
+        } else if (elapsedSeconds < 1.0) {
+            timeStream << std::fixed << std::setprecision(2) << elapsedSeconds;
+        } else {
+            timeStream << std::fixed << std::setprecision(1) << elapsedSeconds;
+        }
+        std::string elapsedTimeStr = timeStream.str();
+
+        // Prepare template data
+        nlohmann::json templateData = {
+            {"t", commonJson},
+            {"base_url", baseUrl},
+            {"search_query", searchQuery},
+            {"search_query_encoded", encodedSearchQuery},
+            {"current_lang", langCode},
+            {"total_results", std::to_string(totalResults)},
+            {"elapsed_time", elapsedTimeStr},
+            {"results", searchResults}
+        };
+
+        LOG_DEBUG("Rendering search results template with " + std::to_string(searchResults.size()) + " results");
+        
+        // Render template
+        std::string renderedHtml = renderTemplate("search.inja", templateData);
+        
+        if (renderedHtml.empty()) {
+            LOG_ERROR("Failed to render search results template");
+            serverError(res, "Failed to render search results page");
+            return;
+        }
+        
+        html(res, renderedHtml);
+        LOG_INFO("Successfully served search results page for query: " + searchQuery + 
+                 " (results: " + std::to_string(searchResults.size()) + ", lang: " + langCode + ")");
+        
+    } catch (const nlohmann::json::exception& e) {
+        LOG_ERROR("JSON parsing error in search results: " + std::string(e.what()));
+        serverError(res, "Failed to load search results page");
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error serving search results page: " + std::string(e.what()));
+        serverError(res, "Failed to load search results page");
     }
 }
 

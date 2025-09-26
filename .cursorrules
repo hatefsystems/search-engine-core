@@ -837,6 +837,35 @@ Before adding new JavaScript:
 - [ ] Use event delegation for dynamic elements
 - [ ] Implement proper error handling
 
+### ⚠️ CRITICAL: Link Management - Base URL Usage
+**NEVER use hardcoded URLs for internal links - ALWAYS use `{{ base_url }}` for proper environment handling:**
+
+```html
+<!-- ❌ WRONG - Hardcoded localhost URLs (breaks in different environments) -->
+<a href="http://localhost:3000/crawl-request">Crawl Request</a>
+<a href="http://localhost:3000/about">About</a>
+
+<!-- ✅ CORRECT - Use base_url variable for environment flexibility -->
+<a href="{{ base_url }}/crawl-request">Crawl Request</a>
+<a href="{{ base_url }}/about">About</a>
+```
+
+#### Link URL Best Practices
+
+1. **ALWAYS** use `{{ base_url }}` for internal application links
+2. **ALWAYS** use `{{ base_url }}` for API endpoints, search forms, and navigation
+3. **NEVER** hardcode localhost URLs, port numbers, or absolute paths in templates
+4. **EXCEPTIONS**: External links (GitHub, social media) remain absolute URLs
+5. **ALWAYS** test links work across development, staging, and production environments
+
+#### Link URL Checklist
+When adding new links to templates:
+- [ ] Use `{{ base_url }}` prefix for all internal links
+- [ ] Never hardcode localhost URLs or port numbers
+- [ ] Verify links work in different environments
+- [ ] Keep external links as absolute URLs (GitHub, social media, etc.)
+- [ ] Ensure link accessibility with proper `aria-label` or text content
+
 ## Security Best Practices
 
 1. Always validate input data

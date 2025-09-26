@@ -1,0 +1,39 @@
+{
+  "language": {
+    "code": "en",
+    "direction": "ltr"
+  },
+  "meta": {
+    "title": "Hatef Search Engine",
+    "description": "Search results for",
+    "description_with_query": "Search results for \"{{ search_query }}\" - Hatef Search Engine"
+  },
+  "header": {
+    "logo_text": "Hatef",
+    "theme_toggle_label": "Toggle theme"
+  },
+  "search": {
+    "search_label": "Search",
+    "search_placeholder": "Your search...",
+    "search_submit_label": "Search",
+    "results_info_prefix": "",
+    "results_info_suffix": "results in",
+    "timing_prefix": "",
+    "timing_suffix": "seconds for \"",
+    "results_suffix": "\"",
+    "no_results_title": "No results found",
+    "no_results_description": "We couldn't find any results for your search. Please try different keywords or check your spelling.",
+    "no_description": "No description available for this result.",
+    "try_new_search": "Try New Search",
+    "language_switch_text": "مشاهده این صفحه به ",
+    "language_switch_link": "فارسی",
+    "language_switch_dot": "."
+  },
+  "footer": {
+    "about": "About",
+    "crawl_request": "Crawl Request",
+    "github": "GitHub",
+    "privacy": "Privacy",
+    "copyright": "© 2025 Hatef Systems. All rights reserved."
+  }
+}

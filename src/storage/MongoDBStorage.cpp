@@ -476,6 +476,25 @@ Result<bool> MongoDBStorage::ensureIndexes() {
         siteProfilesCollection_.create_index(domainIndex.view());
         siteProfilesCollection_.create_index(statusIndex.view());
         siteProfilesCollection_.create_index(lastModifiedIndex.view());
+        
+        // Create text index for full-text search with UTF-8/Unicode support
+        try {
+            auto textIndex = document{} 
+                << "title" << "text" 
+                << "description" << "text" 
+                << "textContent" << "text" 
+                << "url" << "text" 
+            << finalize;
+            
+            mongocxx::options::index textIndexOptions;
+            // Set language to 'none' for better multilingual support including Persian/Farsi
+            textIndexOptions.default_language("none");
+            
+            siteProfilesCollection_.create_index(textIndex.view(), textIndexOptions);
+            LOG_INFO("Text search index created successfully with multilingual support");
+        } catch (const mongocxx::exception& e) {
+            LOG_WARNING("Text index may already exist or failed to create: " + std::string(e.what()));
+        }
 
         // Frontier tasks indexes
         auto frontier = database_["frontier_tasks"];
@@ -804,5 +823,117 @@ Result<std::vector<ApiRequestLog>> MongoDBStorage::getApiRequestLogsByIp(const s
     } catch (const mongocxx::exception& e) {
         LOG_ERROR("MongoDB error retrieving API request logs for IP: " + ipAddress + " - " + std::string(e.what()));
         return Result<std::vector<ApiRequestLog>>::Failure("MongoDB error: " + std::string(e.what()));
+    }
+}
+
+Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::string& query, int limit, int skip) {
+    LOG_DEBUG("MongoDBStorage::searchSiteProfiles called with query: " + query + ", limit: " + std::to_string(limit) + ", skip: " + std::to_string(skip));
+    
+    try {
+        using namespace bsoncxx::builder::stream;
+        
+        // Try MongoDB text search first (better for Unicode/UTF-8), with fallback to regex
+        bsoncxx::document::value filter = document{} << finalize; // Initialize with empty document
+        bsoncxx::document::value sortDoc = document{} << finalize; // Initialize with empty document
+        
+        bool useTextSearch = false;
+        
+        try {
+            // First, try to create text search filter
+            filter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
+            // Sort by text score (relevance) first, then by last modified
+            sortDoc = document{} << "score" << open_document << "$meta" << "textScore" << close_document << "lastModified" << -1 << finalize;
+            
+            LOG_DEBUG("Using MongoDB text search for query: " + query);
+            useTextSearch = true;
+        } catch (const std::exception& e) {
+            LOG_DEBUG("Text search not available, using regex search: " + std::string(e.what()));
+            useTextSearch = false;
+        }
+        
+        if (!useTextSearch) {
+            // Fallback to regex search with better Unicode support
+            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize; // 'u' for Unicode support
+            
+            filter = document{} 
+                << "$or" << open_array
+                    << open_document << "title" << searchRegex.view() << close_document
+                    << open_document << "url" << searchRegex.view() << close_document
+                    << open_document << "description" << searchRegex.view() << close_document
+                    << open_document << "textContent" << searchRegex.view() << close_document
+                << close_array
+            << finalize;
+            
+            sortDoc = document{} << "lastModified" << -1 << finalize;
+        }
+        
+        // Set up query options
+        mongocxx::options::find opts;
+        opts.limit(limit);
+        opts.skip(skip);
+        opts.sort(sortDoc.view());
+        
+        auto cursor = siteProfilesCollection_.find(filter.view(), opts);
+        
+        std::vector<SiteProfile> profiles;
+        for (const auto& doc : cursor) {
+            profiles.push_back(bsonToSiteProfile(doc));
+        }
+        
+        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " site profiles for search query: " + query);
+        return Result<std::vector<SiteProfile>>::Success(
+            std::move(profiles),
+            "Site profiles search completed successfully"
+        );
+        
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error searching site profiles for query: " + query + " - " + std::string(e.what()));
+        return Result<std::vector<SiteProfile>>::Failure("MongoDB error: " + std::string(e.what()));
+    }
+}
+
+Result<int64_t> MongoDBStorage::countSearchResults(const std::string& query) {
+    LOG_DEBUG("MongoDBStorage::countSearchResults called with query: " + query);
+    
+    try {
+        using namespace bsoncxx::builder::stream;
+        
+        // Use the same search logic as searchSiteProfiles
+        bsoncxx::document::value filter = document{} << finalize; // Initialize with empty document
+        
+        bool useTextSearch = false;
+        
+        try {
+            // Try MongoDB text search first
+            filter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
+            LOG_DEBUG("Using MongoDB text search for count query: " + query);
+            useTextSearch = true;
+        } catch (const std::exception& e) {
+            LOG_DEBUG("Text search for count not available, using regex search: " + std::string(e.what()));
+            useTextSearch = false;
+        }
+        
+        if (!useTextSearch) {
+            // Fallback to regex search with Unicode support
+            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize; // 'u' for Unicode support
+            
+            filter = document{} 
+                << "$or" << open_array
+                    << open_document << "title" << searchRegex.view() << close_document
+                    << open_document << "url" << searchRegex.view() << close_document
+                    << open_document << "description" << searchRegex.view() << close_document
+                    << open_document << "textContent" << searchRegex.view() << close_document
+                << close_array
+            << finalize;
+        }
+        
+        auto count = siteProfilesCollection_.count_documents(filter.view());
+        
+        LOG_INFO("Found " + std::to_string(count) + " total results for search query: " + query);
+        return Result<int64_t>::Success(count, "Search result count retrieved successfully");
+        
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error counting search results for query: " + query + " - " + std::string(e.what()));
+        return Result<int64_t>::Failure("MongoDB error: " + std::string(e.what()));
     }
 } 
