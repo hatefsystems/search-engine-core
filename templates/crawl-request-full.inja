@@ -148,7 +148,6 @@
                     </div>
                 </div>
                 
-                <!-- Temporarily hidden email section
                 <div class="form-section">
                     <div class="email-section">
                         <label for="email-input">
@@ -161,7 +160,6 @@
                         </small>
                     </div>
                 </div>
-                -->
                 
                 <button class="submit-btn" id="start-crawl-btn">
                     {{ t.form.submit_button }}

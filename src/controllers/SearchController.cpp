@@ -7,6 +7,8 @@
 #include "../../include/search_engine/storage/ContentStorage.h"
 #include "../../include/search_engine/storage/MongoDBStorage.h"
 #include "../../include/search_engine/storage/ApiRequestLog.h"
+#include "../../include/search_engine/storage/EmailService.h"
+#include "../../include/search_engine/storage/EmailLogsStorage.h"
 #include "../../include/inja/inja.hpp"
 #include <filesystem>
 #include <fstream>
@@ -18,6 +20,7 @@
 #include <mutex>
 #include <numeric>
 #include <regex>
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <cctype>
@@ -212,6 +215,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 std::string url = jsonBody["url"];
                 
                 // Optional parameters
+                std::string email = jsonBody.value("email", "");  // Email for completion notification
                 int maxPages = jsonBody.value("maxPages", 1000);
                 int maxDepth = jsonBody.value("maxDepth", 3);
                 bool restrictToSeedDomain = jsonBody.value("restrictToSeedDomain", true);
@@ -253,6 +257,15 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     return;
                 }
                 
+                // Validate email if provided
+                if (!email.empty()) {
+                    // Simple email validation
+                    if (email.find('@') == std::string::npos || email.find('.') == std::string::npos) {
+                        badRequest(res, "Invalid email format");
+                        return;
+                    }
+                }
+                
                 // Start new crawl session
                 if (g_crawlerManager) {
                     // Stop previous sessions if requested
@@ -290,8 +303,19 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     config.includeFullContent = includeFullContent;
                     config.browserlessUrl = browserlessUrl;
                     
-                    // Start new crawl session
-                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force);
+                    // Create completion callback for email notification if email is provided
+                    CrawlCompletionCallback emailCallback = nullptr;
+                    if (!email.empty()) {
+                        LOG_INFO("Setting up email notification callback for: " + email);
+                        emailCallback = [this, email, url](const std::string& sessionId, 
+                                                         const std::vector<CrawlResult>& results, 
+                                                         CrawlerManager* manager) {
+                            this->sendCrawlCompletionEmail(sessionId, email, url, results);
+                        };
+                    }
+                    
+                    // Start new crawl session with completion callback
+                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback);
                     
                     LOG_INFO("Started new crawl session: " + sessionId + " for URL: " + url + 
                              " (maxPages: " + std::to_string(maxPages) + 
@@ -1323,7 +1347,7 @@ void SearchController::logApiRequestError(const std::string& endpoint, const std
 }
 
 // Helper methods for template rendering
-std::string SearchController::loadFile(const std::string& path) {
+std::string SearchController::loadFile(const std::string& path) const {
     LOG_DEBUG("Attempting to load file: " + path);
     
     if (!std::filesystem::exists(path) || !std::filesystem::is_regular_file(path)) {
@@ -1350,7 +1374,7 @@ std::string SearchController::loadFile(const std::string& path) {
     return content;
 }
 
-std::string SearchController::renderTemplate(const std::string& templateName, const nlohmann::json& data) {
+std::string SearchController::renderTemplate(const std::string& templateName, const nlohmann::json& data) const {
     try {
         // Initialize Inja environment with absolute path and check if templates directory exists
         std::string templateDir = "/app/templates/";
@@ -1374,7 +1398,7 @@ std::string SearchController::renderTemplate(const std::string& templateName, co
     }
 }
 
-std::string SearchController::getDefaultLocale() {
+std::string SearchController::getDefaultLocale() const {
     return "fa"; // Persian as default
 }
 
@@ -1631,4 +1655,188 @@ namespace {
         }
     };
     static RenderPageRouteRegister _renderPageRouteRegisterInstance;
+}
+
+void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, const std::string& email, 
+                                               const std::string& url, const std::vector<CrawlResult>& results) {
+    try {
+        LOG_INFO("Sending crawl completion email for session: " + sessionId + " to: " + email);
+        
+        // Get email service using lazy initialization
+        auto emailService = getEmailService();
+        if (!emailService) {
+            LOG_ERROR("Failed to get email service for crawl completion notification");
+            return;
+        }
+        
+        // Extract domain from URL for display
+        std::string domainName = url;
+        try {
+            auto parsedUrl = std::string(url);
+            size_t protocolEnd = parsedUrl.find("://");
+            if (protocolEnd != std::string::npos) {
+                size_t domainStart = protocolEnd + 3;
+                size_t domainEnd = parsedUrl.find('/', domainStart);
+                if (domainEnd != std::string::npos) {
+                    domainName = parsedUrl.substr(domainStart, domainEnd - domainStart);
+                } else {
+                    domainName = parsedUrl.substr(domainStart);
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_WARNING("Failed to extract domain from URL: " + url + ", using full URL");
+        }
+        
+        // Count successful results
+        int crawledPagesCount = 0;
+        for (const auto& result : results) {
+            if (result.success && result.crawlStatus == "downloaded") {
+                crawledPagesCount++;
+            }
+        }
+        
+        // Load localized sender name
+        std::string senderName = loadLocalizedSenderName("fa"); // Default to Persian for now
+        
+        // Prepare notification data
+        search_engine::storage::EmailService::NotificationData data;
+        data.recipientEmail = email;
+        data.recipientName = email.substr(0, email.find('@')); // Use email prefix as name
+        data.domainName = domainName;
+        data.crawledPagesCount = crawledPagesCount;
+        data.crawlSessionId = sessionId;
+        data.crawlCompletedAt = std::chrono::system_clock::now();
+        data.language = "fa"; // Default to Persian for now
+        
+        // Send email asynchronously with localized sender name
+        bool success = emailService->sendCrawlingNotificationAsync(data, senderName, "");
+        
+        if (success) {
+            LOG_INFO("Crawl completion email queued successfully for session: " + sessionId + 
+                     " to: " + email + " (pages: " + std::to_string(crawledPagesCount) + ")");
+        } else {
+            LOG_ERROR("Failed to queue crawl completion email for session: " + sessionId + 
+                      " to: " + email + ", error: " + emailService->getLastError());
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception in sendCrawlCompletionEmail for session " + sessionId + 
+                  " to " + email + ": " + e.what());
+    }
+}
+
+search_engine::storage::EmailService* SearchController::getEmailService() const {
+    if (!emailService_) {
+        try {
+            LOG_INFO("Lazy initializing EmailService in SearchController");
+            auto config = loadSMTPConfig();
+            emailService_ = std::make_unique<search_engine::storage::EmailService>(config);
+            LOG_INFO("EmailService initialized successfully in SearchController");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to initialize EmailService in SearchController: " + std::string(e.what()));
+            return nullptr;
+        }
+    }
+    return emailService_.get();
+}
+
+search_engine::storage::EmailService::SMTPConfig SearchController::loadSMTPConfig() const {
+    search_engine::storage::EmailService::SMTPConfig config;
+    
+    // Load from environment variables (works with Docker Compose and .env files)
+    const char* smtpHost = std::getenv("SMTP_HOST");
+    config.smtpHost = smtpHost ? smtpHost : "smtp.gmail.com";
+    
+    const char* smtpPort = std::getenv("SMTP_PORT");
+    config.smtpPort = smtpPort ? std::stoi(smtpPort) : 587;
+    
+    const char* smtpUsername = std::getenv("SMTP_USERNAME");
+    config.username = smtpUsername ? smtpUsername : "";
+    
+    const char* smtpPassword = std::getenv("SMTP_PASSWORD");
+    config.password = smtpPassword ? smtpPassword : "";
+    
+    const char* fromEmail = std::getenv("FROM_EMAIL");
+    config.fromEmail = fromEmail ? fromEmail : "noreply@hatef.ir";
+    
+    const char* fromName = std::getenv("FROM_NAME");
+    config.fromName = fromName ? fromName : "Search Engine";
+    
+    const char* useTLS = std::getenv("SMTP_USE_TLS");
+    if (useTLS) {
+        std::string tlsStr = std::string(useTLS);
+        std::transform(tlsStr.begin(), tlsStr.end(), tlsStr.begin(), ::tolower);
+        config.useTLS = (tlsStr == "true" || tlsStr == "1" || tlsStr == "yes");
+    } else {
+        config.useTLS = true; // Default value
+    }
+    
+    // Load timeout configuration
+    const char* timeoutSeconds = std::getenv("SMTP_TIMEOUT");
+    if (timeoutSeconds) {
+        try {
+            config.timeoutSeconds = std::stoi(timeoutSeconds);
+        } catch (const std::exception& e) {
+            LOG_WARNING("Invalid SMTP_TIMEOUT value, using default: 30 seconds");
+            config.timeoutSeconds = 30;
+        }
+    } else {
+        config.timeoutSeconds = 30; // Default value
+    }
+    
+    const char* connectionTimeoutSeconds = std::getenv("SMTP_CONNECTION_TIMEOUT");
+    if (connectionTimeoutSeconds) {
+        try {
+            config.connectionTimeoutSeconds = std::stoi(connectionTimeoutSeconds);
+        } catch (const std::exception& e) {
+            LOG_WARNING("Invalid SMTP_CONNECTION_TIMEOUT value, using auto-calculate");
+            config.connectionTimeoutSeconds = 0; // Auto-calculate
+        }
+    } else {
+        config.connectionTimeoutSeconds = 0; // Auto-calculate
+    }
+    
+    LOG_DEBUG("SMTP Config loaded - Host: " + config.smtpHost + 
+              ", Port: " + std::to_string(config.smtpPort) + 
+              ", From: " + config.fromEmail + 
+              ", TLS: " + (config.useTLS ? "true" : "false") +
+              ", Timeout: " + std::to_string(config.timeoutSeconds) + "s" +
+              ", Connection Timeout: " + std::to_string(config.connectionTimeoutSeconds) + "s");
+    
+    return config;
+}
+
+std::string SearchController::loadLocalizedSenderName(const std::string& language) const {
+    try {
+        // Load localization file
+        std::string localesPath = "locales/" + language + "/crawling-notification.json";
+        std::string localeContent = loadFile(localesPath);
+        
+        if (localeContent.empty() && language != "en") {
+            LOG_WARNING("SearchController: Failed to load locale file: " + localesPath + ", falling back to English");
+            localesPath = "locales/en/crawling-notification.json";
+            localeContent = loadFile(localesPath);
+        }
+        
+        if (localeContent.empty()) {
+            LOG_WARNING("SearchController: Failed to load any localization file, using default sender name");
+            return "Hatef Search Engine"; // Default fallback
+        }
+        
+        // Parse JSON and extract sender name
+        nlohmann::json localeData = nlohmann::json::parse(localeContent);
+        
+        if (localeData.contains("email") && localeData["email"].contains("sender_name")) {
+            std::string senderName = localeData["email"]["sender_name"];
+            LOG_DEBUG("SearchController: Loaded localized sender name: " + senderName + " for language: " + language);
+            return senderName;
+        } else {
+            LOG_WARNING("SearchController: sender_name not found in locale file, using default");
+            return "Hatef Search Engine"; // Default fallback
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("SearchController: Exception loading localized sender name for language " + language + ": " + e.what());
+        return "Hatef Search Engine"; // Default fallback
+    }
 } 

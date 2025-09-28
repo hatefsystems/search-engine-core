@@ -35,6 +35,21 @@ search_engine::storage::EmailService* EmailController::getEmailService() const {
     return emailService_.get();
 }
 
+search_engine::storage::EmailLogsStorage* EmailController::getEmailLogsStorage() const {
+    if (!emailLogsStorage_) {
+        try {
+            LOG_INFO("Lazy initializing EmailLogsStorage");
+            emailLogsStorage_ = std::make_unique<search_engine::storage::EmailLogsStorage>();
+            LOG_INFO("EmailLogsStorage lazy initialization completed successfully");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize EmailLogsStorage: " + std::string(e.what()));
+            emailLogsStorage_.reset();
+            return nullptr;
+        }
+    }
+    return emailLogsStorage_.get();
+}
+
 search_engine::storage::EmailService::SMTPConfig EmailController::loadSMTPConfig() const {
     search_engine::storage::EmailService::SMTPConfig config;
     
@@ -77,6 +92,9 @@ search_engine::storage::EmailService::SMTPConfig EmailController::loadSMTPConfig
     
     const char* timeout = std::getenv("SMTP_TIMEOUT");
     config.timeoutSeconds = timeout ? std::stoi(timeout) : 30;
+    
+    const char* connectionTimeout = std::getenv("SMTP_CONNECTION_TIMEOUT");
+    config.connectionTimeoutSeconds = connectionTimeout ? std::stoi(connectionTimeout) : 0; // 0 means auto-calculate
     
     LOG_DEBUG("SMTP Config loaded from environment - Host: " + config.smtpHost + 
               ", Port: " + std::to_string(config.smtpPort) + 
@@ -222,8 +240,9 @@ void EmailController::processCrawlingNotificationRequest(const nlohmann::json& j
               ", domain: " + domainName + 
               ", pages: " + std::to_string(crawledPagesCount));
     
-    // Get email service
+    // Get email service and logs storage
     auto service = getEmailService();
+    auto logsStorage = getEmailLogsStorage();
     if (!service) {
         serverError(res, "Email service unavailable");
         return;
@@ -238,6 +257,29 @@ void EmailController::processCrawlingNotificationRequest(const nlohmann::json& j
     data.crawlSessionId = crawlSessionId;
     data.language = language;
     data.crawlCompletedAt = std::chrono::system_clock::now();
+    
+    // Create email log entry (QUEUED status)
+    std::string logId;
+    if (logsStorage) {
+        search_engine::storage::EmailLogsStorage::EmailLog emailLog;
+        emailLog.toEmail = recipientEmail;
+        emailLog.fromEmail = service->getFromEmail();
+        emailLog.recipientName = recipientName;
+        emailLog.domainName = domainName;
+        emailLog.language = language;
+        emailLog.emailType = "crawling_notification";
+        emailLog.crawlSessionId = crawlSessionId;
+        emailLog.crawledPagesCount = crawledPagesCount;
+        emailLog.status = search_engine::storage::EmailLogsStorage::EmailStatus::QUEUED;
+        emailLog.queuedAt = std::chrono::system_clock::now();
+        
+        logId = logsStorage->createEmailLog(emailLog);
+        if (!logId.empty()) {
+            LOG_DEBUG("Created email log entry with ID: " + logId);
+        } else {
+            LOG_WARNING("Failed to create email log entry: " + logsStorage->getLastError());
+        }
+    }
     
     // Load localized subject
     try {
@@ -310,18 +352,90 @@ void EmailController::processCrawlingNotificationRequest(const nlohmann::json& j
         LOG_ERROR("Exception while loading localized subject: " + std::string(e.what()));
     }
     
-    // Send notification
-    bool success = service->sendCrawlingNotification(data);
+    // Check if async email sending is requested
+    bool asyncMode = jsonBody.value("async", false);
+    
+    // Send notification with error handling
+    bool success = false;
+    std::string errorMessage = "Unknown error";
+    
+    try {
+        if (asyncMode) {
+            LOG_DEBUG("EmailController: Attempting to send crawling notification asynchronously...");
+            success = service->sendCrawlingNotificationAsync(data, "", logId);
+            
+            if (success) {
+                LOG_INFO("EmailController: Crawling notification queued for async processing");
+            } else {
+                errorMessage = service->getLastError();
+                LOG_ERROR("EmailController: Failed to queue crawling notification: " + errorMessage);
+            }
+        } else {
+            LOG_DEBUG("EmailController: Attempting to send crawling notification synchronously...");
+            success = service->sendCrawlingNotification(data);
+            
+            if (success) {
+                LOG_INFO("EmailController: Crawling notification sent successfully");
+            } else {
+                errorMessage = service->getLastError();
+                LOG_ERROR("EmailController: Failed to send crawling notification: " + errorMessage);
+            }
+        }
+    } catch (const std::exception& e) {
+        success = false;
+        errorMessage = "Exception during email sending: " + std::string(e.what());
+        LOG_ERROR("EmailController: " + errorMessage);
+    } catch (...) {
+        success = false;
+        errorMessage = "Unknown exception during email sending";
+        LOG_ERROR("EmailController: " + errorMessage);
+    }
+    
+    // Update email log status with error handling
+    if (logsStorage && !logId.empty()) {
+        try {
+            if (success) {
+                if (asyncMode) {
+                    // For async mode, we don't update the log status here since the email is still being processed
+                    LOG_DEBUG("EmailController: Email queued for async processing, log status will be updated by worker thread");
+                } else {
+                    // For sync mode, update to SENT immediately
+                    if (logsStorage->updateEmailLogSent(logId)) {
+                        LOG_DEBUG("EmailController: Updated email log status to SENT for ID: " + logId);
+                    } else {
+                        LOG_WARNING("EmailController: Failed to update email log status to SENT for ID: " + logId + 
+                                   ", error: " + logsStorage->getLastError());
+                    }
+                }
+            } else {
+                // For both async and sync modes, update to FAILED if queuing/sending failed
+                if (logsStorage->updateEmailLogFailed(logId, errorMessage)) {
+                    LOG_DEBUG("EmailController: Updated email log status to FAILED for ID: " + logId);
+                } else {
+                    LOG_WARNING("EmailController: Failed to update email log status to FAILED for ID: " + logId + 
+                               ", error: " + logsStorage->getLastError());
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("EmailController: Exception updating email log status: " + std::string(e.what()));
+        }
+    }
     
     nlohmann::json response;
     response["success"] = success;
     
     if (success) {
-        response["message"] = "Crawling notification sent successfully";
+        if (asyncMode) {
+            response["message"] = "Crawling notification queued for processing";
+        } else {
+            response["message"] = "Crawling notification sent successfully";
+        }
         response["data"] = {
             {"recipientEmail", recipientEmail},
             {"domainName", domainName},
             {"crawledPagesCount", crawledPagesCount},
+            {"logId", logId},
+            {"async", asyncMode},
             {"sentAt", std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count()}
         };
@@ -330,11 +444,14 @@ void EmailController::processCrawlingNotificationRequest(const nlohmann::json& j
         json(res, response);
     } else {
         response["message"] = "Failed to send crawling notification";
-        response["error"] = service->getLastError();
+        response["error"] = errorMessage;
+        response["data"] = {
+            {"logId", logId}
+        };
         
-        LOG_ERROR("Failed to send crawling notification to: " + recipientEmail + 
-                  ", error: " + service->getLastError());
-        serverError(res, response);
+        LOG_ERROR("EmailController: Failed to send crawling notification to: " + recipientEmail + 
+                  ", error: " + errorMessage);
+        json(res, response);
     }
 }
 
@@ -364,24 +481,119 @@ void EmailController::processEmailRequest(const nlohmann::json& jsonBody, uWS::H
     
     LOG_DEBUG("Processing email request to: " + to + ", subject: " + subject);
     
-    // Get email service
+    // Get email service and logs storage
     auto service = getEmailService();
+    auto logsStorage = getEmailLogsStorage();
     if (!service) {
         serverError(res, "Email service unavailable");
         return;
     }
     
-    // Send email
-    bool success = service->sendHtmlEmail(to, subject, htmlContent, textContent);
+    // Create email log entry (QUEUED status)
+    std::string logId;
+    if (logsStorage) {
+        search_engine::storage::EmailLogsStorage::EmailLog emailLog;
+        emailLog.toEmail = to;
+        emailLog.fromEmail = service->getFromEmail();
+        emailLog.recipientName = ""; // Not provided in generic email
+        emailLog.domainName = ""; // Not applicable for generic emails
+        emailLog.subject = subject;
+        emailLog.language = "en"; // Default for generic emails
+        emailLog.emailType = "generic";
+        emailLog.status = search_engine::storage::EmailLogsStorage::EmailStatus::QUEUED;
+        emailLog.queuedAt = std::chrono::system_clock::now();
+        
+        logId = logsStorage->createEmailLog(emailLog);
+        if (!logId.empty()) {
+            LOG_DEBUG("Created email log entry with ID: " + logId);
+        } else {
+            LOG_WARNING("Failed to create email log entry: " + logsStorage->getLastError());
+        }
+    }
+    
+    // Check if async email sending is requested
+    bool asyncMode = jsonBody.value("async", false);
+    
+    // Send email with error handling
+    bool success = false;
+    std::string errorMessage = "Unknown error";
+    
+    try {
+        if (asyncMode) {
+            LOG_DEBUG("EmailController: Attempting to send generic email asynchronously...");
+            success = service->sendHtmlEmailAsync(to, subject, htmlContent, textContent, logId);
+            
+            if (success) {
+                LOG_INFO("EmailController: Generic email queued for async processing");
+            } else {
+                errorMessage = service->getLastError();
+                LOG_ERROR("EmailController: Failed to queue generic email: " + errorMessage);
+            }
+        } else {
+            LOG_DEBUG("EmailController: Attempting to send generic email synchronously...");
+            success = service->sendHtmlEmail(to, subject, htmlContent, textContent);
+            
+            if (success) {
+                LOG_INFO("EmailController: Generic email sent successfully");
+            } else {
+                errorMessage = service->getLastError();
+                LOG_ERROR("EmailController: Failed to send generic email: " + errorMessage);
+            }
+        }
+    } catch (const std::exception& e) {
+        success = false;
+        errorMessage = "Exception during email sending: " + std::string(e.what());
+        LOG_ERROR("EmailController: " + errorMessage);
+    } catch (...) {
+        success = false;
+        errorMessage = "Unknown exception during email sending";
+        LOG_ERROR("EmailController: " + errorMessage);
+    }
+    
+    // Update email log status with error handling
+    if (logsStorage && !logId.empty()) {
+        try {
+            if (success) {
+                if (asyncMode) {
+                    // For async mode, we don't update the log status here since the email is still being processed
+                    LOG_DEBUG("EmailController: Email queued for async processing, log status will be updated by worker thread");
+                } else {
+                    // For sync mode, update to SENT immediately
+                    if (logsStorage->updateEmailLogSent(logId)) {
+                        LOG_DEBUG("EmailController: Updated email log status to SENT for ID: " + logId);
+                    } else {
+                        LOG_WARNING("EmailController: Failed to update email log status to SENT for ID: " + logId + 
+                                   ", error: " + logsStorage->getLastError());
+                    }
+                }
+            } else {
+                // For both async and sync modes, update to FAILED if queuing/sending failed
+                if (logsStorage->updateEmailLogFailed(logId, errorMessage)) {
+                    LOG_DEBUG("EmailController: Updated email log status to FAILED for ID: " + logId);
+                } else {
+                    LOG_WARNING("EmailController: Failed to update email log status to FAILED for ID: " + logId + 
+                               ", error: " + logsStorage->getLastError());
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("EmailController: Exception updating email log status: " + std::string(e.what()));
+        }
+    }
     
     nlohmann::json response;
     response["success"] = success;
     
     if (success) {
-        response["message"] = "Email sent successfully";
+        if (asyncMode) {
+            response["message"] = "Email queued for processing";
+        } else {
+            response["message"] = "Email sent successfully";
+        }
         response["data"] = {
             {"to", to},
             {"subject", subject},
+            {"logId", logId},
+            {"async", asyncMode},
             {"sentAt", std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count()}
         };
@@ -390,10 +602,13 @@ void EmailController::processEmailRequest(const nlohmann::json& jsonBody, uWS::H
         json(res, response);
     } else {
         response["message"] = "Failed to send email";
-        response["error"] = service->getLastError();
+        response["error"] = errorMessage;
+        response["data"] = {
+            {"logId", logId}
+        };
         
-        LOG_ERROR("Failed to send email to: " + to + ", error: " + service->getLastError());
-        serverError(res, response);
+        LOG_ERROR("EmailController: Failed to send email to: " + to + ", error: " + errorMessage);
+        json(res, response);
     }
 }
 

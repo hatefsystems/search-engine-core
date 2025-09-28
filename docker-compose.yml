@@ -67,12 +67,14 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
       - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
-      - SMTP_TIMEOUT=${SMTP_TIMEOUT:-30}
+      - SMTP_TIMEOUT=${SMTP_TIMEOUT:-60}
+      - SMTP_CONNECTION_TIMEOUT=${SMTP_CONNECTION_TIMEOUT:-20}
       - SMTP_USERNAME=${SMTP_USERNAME}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
       - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
       - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
+      - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
     depends_on:
       - redis
       - mongodb

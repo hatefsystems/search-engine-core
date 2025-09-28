@@ -1,5 +1,6 @@
 #include "../../include/search_engine/storage/EmailService.h"
 #include "../../include/search_engine/storage/UnsubscribeService.h"
+#include "../../include/search_engine/storage/EmailLogsStorage.h"
 #include "../../include/Logger.h"
 #include <sstream>
 #include <iomanip>
@@ -13,20 +14,45 @@
 namespace search_engine { namespace storage {
 
 EmailService::EmailService(const SMTPConfig& config) 
-    : config_(config), curlHandle_(nullptr) {
+    : config_(config), curlHandle_(nullptr), shouldStop_(false), asyncEnabled_(false) {
     
     // Initialize CURL
     curlHandle_ = curl_easy_init();
     if (!curlHandle_) {
-        lastError_ = "Failed to initialize CURL";
+        setLastError("Failed to initialize CURL");
         LOG_ERROR("EmailService: Failed to initialize CURL");
         return;
+    }
+    
+    // Check if async email processing is enabled
+    const char* asyncEnabled = std::getenv("EMAIL_ASYNC_ENABLED");
+    LOG_DEBUG("EmailService: EMAIL_ASYNC_ENABLED env var: " + (asyncEnabled ? std::string(asyncEnabled) : "null"));
+    if (asyncEnabled) {
+        std::string asyncStr = std::string(asyncEnabled);
+        std::transform(asyncStr.begin(), asyncStr.end(), asyncStr.begin(), ::tolower);
+        asyncEnabled_ = (asyncStr == "true" || asyncStr == "1" || asyncStr == "yes");
+        LOG_DEBUG("EmailService: Parsed async enabled value: " + std::to_string(asyncEnabled_));
+    } else {
+        asyncEnabled_ = false;
+        LOG_DEBUG("EmailService: EMAIL_ASYNC_ENABLED not set, defaulting to false");
+    }
+    
+    if (asyncEnabled_) {
+        LOG_INFO("EmailService: Asynchronous email processing enabled");
+        startAsyncWorker();
+    } else {
+        LOG_INFO("EmailService: Synchronous email processing (async disabled)");
     }
     
     LOG_INFO("EmailService initialized with SMTP host: " + config_.smtpHost + ":" + std::to_string(config_.smtpPort));
 }
 
 EmailService::~EmailService() {
+    // Stop async worker if running
+    if (asyncEnabled_) {
+        stopAsyncWorker();
+    }
+    
     if (curlHandle_) {
         curl_easy_cleanup(curlHandle_);
         curlHandle_ = nullptr;
@@ -107,53 +133,169 @@ bool EmailService::sendHtmlEmail(const std::string& to,
 }
 
 bool EmailService::testConnection() {
-    LOG_INFO("Testing SMTP connection to: " + config_.smtpHost + ":" + std::to_string(config_.smtpPort));
+    LOG_INFO("EmailService: Testing SMTP connection to: " + config_.smtpHost + ":" + std::to_string(config_.smtpPort));
     
     if (!curlHandle_) {
         lastError_ = "CURL not initialized";
-        return false;
-    }
-    
-    // Reset CURL handle
-    curl_easy_reset(curlHandle_);
-    
-    // Configure CURL for connection test
-    std::string smtpUrl = "smtps://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
-    if (!config_.useSSL) {
-        smtpUrl = "smtp://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
-    }
-    
-    curl_easy_setopt(curlHandle_, CURLOPT_URL, smtpUrl.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_USERNAME, config_.username.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_PASSWORD, config_.password.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_TIMEOUT, config_.timeoutSeconds);
-    
-    if (config_.useSSL) {
-        // For SSL connections (port 465), use CURLUSESSL_ALL
-        curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_ALL);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
-    } else if (config_.useTLS) {
-        // For STARTTLS connections (port 587), use CURLUSESSL_TRY
-        curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_TRY);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
-        // Additional options for STARTTLS
-        curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPALIVE, 1L);
-        curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPIDLE, 10L);
-        curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPINTVL, 10L);
-    }
-    
-    // Perform connection test (just connect, don't send)
-    CURLcode res = curl_easy_perform(curlHandle_);
-    
-    if (res != CURLE_OK) {
-        lastError_ = "SMTP connection failed: " + std::string(curl_easy_strerror(res));
         LOG_ERROR("EmailService: " + lastError_);
         return false;
     }
     
-    LOG_INFO("SMTP connection test successful");
+    // Reset CURL handle to ensure clean state
+    curl_easy_reset(curlHandle_);
+    
+    // Configure CURL for connection test
+    std::string smtpUrl;
+    if (config_.useSSL) {
+        smtpUrl = "smtps://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
+        LOG_DEBUG("EmailService: Testing SSL connection (smtps://)");
+    } else {
+        smtpUrl = "smtp://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
+        LOG_DEBUG("EmailService: Testing plain SMTP connection (smtp://)");
+    }
+    
+    // Set basic connection options with error checking
+    CURLcode curlRes;
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_URL, smtpUrl.c_str());
+    if (curlRes != CURLE_OK) {
+        lastError_ = "Failed to set CURLOPT_URL for connection test: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USERNAME, config_.username.c_str());
+    if (curlRes != CURLE_OK) {
+        lastError_ = "Failed to set CURLOPT_USERNAME for connection test: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_PASSWORD, config_.password.c_str());
+    if (curlRes != CURLE_OK) {
+        lastError_ = "Failed to set CURLOPT_PASSWORD for connection test: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_TIMEOUT, config_.timeoutSeconds);
+    if (curlRes != CURLE_OK) {
+        lastError_ = "Failed to set CURLOPT_TIMEOUT for connection test: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    // Set connection timeout to prevent hanging
+    long connectionTimeout;
+    if (config_.connectionTimeoutSeconds > 0) {
+        connectionTimeout = config_.connectionTimeoutSeconds;
+    } else {
+        // Auto-calculate: at least 10 seconds, but 1/3 of total timeout
+        connectionTimeout = std::max(10L, config_.timeoutSeconds / 3L);
+    }
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_CONNECTTIMEOUT, connectionTimeout);
+    if (curlRes != CURLE_OK) {
+        lastError_ = "Failed to set CURLOPT_CONNECTTIMEOUT for connection test: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    LOG_DEBUG("EmailService: Connection timeout set to: " + std::to_string(connectionTimeout) + " seconds");
+    
+    // TLS/SSL configuration with error checking
+    if (config_.useSSL) {
+        LOG_DEBUG("EmailService: Configuring SSL connection for test");
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_USE_SSL for test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYPEER for test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYHOST for test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+    } else if (config_.useTLS) {
+        LOG_DEBUG("EmailService: Configuring STARTTLS connection for test");
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_TRY);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_USE_SSL for STARTTLS test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYPEER for STARTTLS test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
+        if (curlRes != CURLE_OK) {
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYHOST for STARTTLS test: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        // Additional options for STARTTLS
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPALIVE, 1L);
+        if (curlRes != CURLE_OK) {
+            LOG_WARNING("EmailService: Failed to set CURLOPT_TCP_KEEPALIVE for STARTTLS test: " + std::string(curl_easy_strerror(curlRes)));
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPIDLE, 10L);
+        if (curlRes != CURLE_OK) {
+            LOG_WARNING("EmailService: Failed to set CURLOPT_TCP_KEEPIDLE for STARTTLS test: " + std::string(curl_easy_strerror(curlRes)));
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_TCP_KEEPINTVL, 10L);
+        if (curlRes != CURLE_OK) {
+            LOG_WARNING("EmailService: Failed to set CURLOPT_TCP_KEEPINTVL for STARTTLS test: " + std::string(curl_easy_strerror(curlRes)));
+        }
+    }
+    
+    LOG_DEBUG("EmailService: All CURL options set for connection test, attempting connection...");
+    
+    // Perform connection test with proper error handling
+    CURLcode res;
+    try {
+        res = curl_easy_perform(curlHandle_);
+        LOG_DEBUG("EmailService: Connection test completed with code: " + std::to_string(res));
+    } catch (const std::exception& e) {
+        lastError_ = "Exception during connection test: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    if (res != CURLE_OK) {
+        std::string errorMsg = curl_easy_strerror(res);
+        lastError_ = "SMTP connection test failed: " + errorMsg;
+        LOG_ERROR("EmailService: " + lastError_);
+        
+        // Log additional debugging information
+        if (res == CURLE_COULDNT_CONNECT) {
+            LOG_ERROR("EmailService: Connection test failed - check if SMTP server is running and accessible");
+            LOG_ERROR("EmailService: SMTP URL: " + smtpUrl);
+        } else if (res == CURLE_OPERATION_TIMEDOUT) {
+            LOG_ERROR("EmailService: Connection test timed out - check network connectivity and firewall settings");
+        } else if (res == CURLE_LOGIN_DENIED) {
+            LOG_ERROR("EmailService: Authentication failed during connection test - check username and password");
+        }
+        
+        return false;
+    }
+    
+    LOG_INFO("EmailService: SMTP connection test successful");
     return true;
 }
 
@@ -238,70 +380,244 @@ std::string EmailService::generateBoundary() {
 }
 
 bool EmailService::performSMTPRequest(const std::string& to, const std::string& emailData) {
-    // Reset CURL handle
+    LOG_DEBUG("EmailService: Starting SMTP request to: " + to);
+    LOG_DEBUG("EmailService: SMTP host: " + config_.smtpHost + ":" + std::to_string(config_.smtpPort));
+    
+    // Reset CURL handle to ensure clean state
     curl_easy_reset(curlHandle_);
     
     // Prepare SMTP URL
     std::string smtpUrl;
     if (config_.useSSL) {
         smtpUrl = "smtps://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
+        LOG_DEBUG("EmailService: Using SSL connection (smtps://)");
     } else {
         smtpUrl = "smtp://" + config_.smtpHost + ":" + std::to_string(config_.smtpPort);
+        LOG_DEBUG("EmailService: Using plain SMTP connection (smtp://)");
     }
     
     // Prepare recipients list
     struct curl_slist* recipients = nullptr;
-    recipients = curl_slist_append(recipients, to.c_str());
-    
-    // Prepare email buffer
-    EmailBuffer buffer;
-    buffer.data = emailData;
-    buffer.position = 0;
-    
-    // Configure CURL options
-    curl_easy_setopt(curlHandle_, CURLOPT_URL, smtpUrl.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_USERNAME, config_.username.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_PASSWORD, config_.password.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_MAIL_FROM, config_.fromEmail.c_str());
-    curl_easy_setopt(curlHandle_, CURLOPT_MAIL_RCPT, recipients);
-    curl_easy_setopt(curlHandle_, CURLOPT_READFUNCTION, readCallback);
-    curl_easy_setopt(curlHandle_, CURLOPT_READDATA, &buffer);
-    curl_easy_setopt(curlHandle_, CURLOPT_UPLOAD, 1L);
-    curl_easy_setopt(curlHandle_, CURLOPT_TIMEOUT, config_.timeoutSeconds);
-    
-    // TLS/SSL configuration
-    if (config_.useSSL) {
-        // For SSL connections (port 465), use CURLUSESSL_ALL
-        curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_ALL);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
-    } else if (config_.useTLS) {
-        // For STARTTLS connections (port 587), use CURLUSESSL_TRY
-        curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_TRY);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
-    }
-    
-    // Perform the request
-    CURLcode res = curl_easy_perform(curlHandle_);
-    
-    // Clean up
-    curl_slist_free_all(recipients);
-    
-    if (res != CURLE_OK) {
-        lastError_ = "SMTP request failed: " + std::string(curl_easy_strerror(res));
+    try {
+        recipients = curl_slist_append(recipients, to.c_str());
+        if (!recipients) {
+            lastError_ = "Failed to create recipient list";
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        LOG_DEBUG("EmailService: Recipient list created successfully");
+    } catch (const std::exception& e) {
+        lastError_ = "Exception creating recipient list: " + std::string(e.what());
         LOG_ERROR("EmailService: " + lastError_);
         return false;
     }
     
-    // Get response code
-    long responseCode = 0;
-    curl_easy_getinfo(curlHandle_, CURLINFO_RESPONSE_CODE, &responseCode);
+    // Prepare email buffer with proper initialization
+    EmailBuffer buffer;
+    try {
+        buffer.data = emailData;
+        buffer.position = 0;
+        LOG_DEBUG("EmailService: Email buffer prepared, size: " + std::to_string(buffer.data.size()) + " bytes");
+    } catch (const std::exception& e) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Exception preparing email buffer: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
     
-    LOG_DEBUG("SMTP response code: " + std::to_string(responseCode));
+    // Configure CURL options with error checking
+    CURLcode curlRes;
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_URL, smtpUrl.c_str());
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_URL: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USERNAME, config_.username.c_str());
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_USERNAME: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_PASSWORD, config_.password.c_str());
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_PASSWORD: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_MAIL_FROM, config_.fromEmail.c_str());
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_MAIL_FROM: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_MAIL_RCPT, recipients);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_MAIL_RCPT: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_READFUNCTION, readCallback);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_READFUNCTION: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_READDATA, &buffer);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_READDATA: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_UPLOAD, 1L);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_UPLOAD: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_TIMEOUT, config_.timeoutSeconds);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_TIMEOUT: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    // TLS/SSL configuration with error checking
+    if (config_.useSSL) {
+        LOG_DEBUG("EmailService: Configuring SSL connection");
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_USE_SSL: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYPEER: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYHOST: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+    } else if (config_.useTLS) {
+        LOG_DEBUG("EmailService: Configuring STARTTLS connection");
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_USE_SSL, CURLUSESSL_TRY);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_USE_SSL for STARTTLS: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYPEER, 0L);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYPEER for STARTTLS: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+        
+        curlRes = curl_easy_setopt(curlHandle_, CURLOPT_SSL_VERIFYHOST, 0L);
+        if (curlRes != CURLE_OK) {
+            curl_slist_free_all(recipients);
+            lastError_ = "Failed to set CURLOPT_SSL_VERIFYHOST for STARTTLS: " + std::string(curl_easy_strerror(curlRes));
+            LOG_ERROR("EmailService: " + lastError_);
+            return false;
+        }
+    }
+    
+    // Add connection timeout to prevent hanging
+    long connectionTimeout;
+    if (config_.connectionTimeoutSeconds > 0) {
+        connectionTimeout = config_.connectionTimeoutSeconds;
+    } else {
+        // Auto-calculate: at least 10 seconds, but 1/3 of total timeout
+        connectionTimeout = std::max(10L, config_.timeoutSeconds / 3L);
+    }
+    curlRes = curl_easy_setopt(curlHandle_, CURLOPT_CONNECTTIMEOUT, connectionTimeout);
+    if (curlRes != CURLE_OK) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Failed to set CURLOPT_CONNECTTIMEOUT: " + std::string(curl_easy_strerror(curlRes));
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    LOG_DEBUG("EmailService: Connection timeout set to: " + std::to_string(connectionTimeout) + " seconds");
+    
+    LOG_DEBUG("EmailService: All CURL options set successfully, attempting connection...");
+    
+    // Perform the request with proper error handling
+    CURLcode res;
+    try {
+        res = curl_easy_perform(curlHandle_);
+        LOG_DEBUG("EmailService: CURL operation completed with code: " + std::to_string(res));
+    } catch (const std::exception& e) {
+        curl_slist_free_all(recipients);
+        lastError_ = "Exception during CURL operation: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+    
+    // Clean up recipients list immediately after use
+    curl_slist_free_all(recipients);
+    recipients = nullptr;
+    
+    if (res != CURLE_OK) {
+        std::string errorMsg = curl_easy_strerror(res);
+        lastError_ = "SMTP request failed: " + errorMsg;
+        LOG_ERROR("EmailService: " + lastError_);
+        
+        // Log additional debugging information
+        if (res == CURLE_COULDNT_CONNECT) {
+            LOG_ERROR("EmailService: Connection failed - check if SMTP server is running and accessible");
+            LOG_ERROR("EmailService: SMTP URL: " + smtpUrl);
+        } else if (res == CURLE_OPERATION_TIMEDOUT) {
+            LOG_ERROR("EmailService: Connection timed out - check network connectivity and firewall settings");
+        } else if (res == CURLE_LOGIN_DENIED) {
+            LOG_ERROR("EmailService: Authentication failed - check username and password");
+        }
+        
+        return false;
+    }
+    
+    // Get response code with error checking
+    long responseCode = 0;
+    CURLcode infoRes = curl_easy_getinfo(curlHandle_, CURLINFO_RESPONSE_CODE, &responseCode);
+    if (infoRes == CURLE_OK) {
+        LOG_DEBUG("EmailService: SMTP response code: " + std::to_string(responseCode));
+    } else {
+        LOG_WARNING("EmailService: Could not get SMTP response code: " + std::string(curl_easy_strerror(infoRes)));
+        responseCode = 0; // Default to failure if we can't get the code
+    }
     
     if (responseCode >= 200 && responseCode < 300) {
-        LOG_INFO("Email sent successfully to: " + to);
+        LOG_INFO("EmailService: Email sent successfully to: " + to + " (response code: " + std::to_string(responseCode) + ")");
         return true;
     } else {
         lastError_ = "SMTP server returned error code: " + std::to_string(responseCode);
@@ -405,18 +721,25 @@ std::string EmailService::renderEmailTemplate(const std::string& templateName, c
         // Parse localization data
         nlohmann::json localeData = nlohmann::json::parse(localeContent);
         
-        // Prepare template data
+        // Prepare template data - copy the entire locale structure
         nlohmann::json templateData = localeData;
-        // Don't overwrite the language object, just add the current language as a separate field
-        templateData["currentLanguage"] = data.language;
         templateData["recipientName"] = data.recipientName;
         templateData["domainName"] = data.domainName;
         templateData["crawledPagesCount"] = data.crawledPagesCount;
         templateData["crawlSessionId"] = data.crawlSessionId;
         
-        // Format completion time
-        auto time_t = std::chrono::system_clock::to_time_t(data.crawlCompletedAt);
-        templateData["completionTime"] = static_cast<long long>(time_t);
+        // Format completion time based on language
+        templateData["completionTime"] = formatCompletionTime(data.crawlCompletedAt, data.language);
+        
+        // Extract sender name from locale data
+        if (localeData.contains("email") && localeData["email"].contains("sender_name")) {
+            templateData["senderName"] = localeData["email"]["sender_name"];
+            LOG_DEBUG("EmailService: Using localized sender name: " + std::string(localeData["email"]["sender_name"]));
+        } else {
+            // Fallback to default sender name
+            templateData["senderName"] = "Hatef Search Engine";
+            LOG_WARNING("EmailService: sender_name not found in locale file, using default");
+        }
         
         // Generate unsubscribe token
         auto unsubscribeService = getUnsubscribeService();
@@ -506,6 +829,342 @@ UnsubscribeService* EmailService::getUnsubscribeService() const {
         }
     }
     return unsubscribeService_.get();
+}
+
+EmailLogsStorage* EmailService::getEmailLogsStorage() const {
+    if (!emailLogsStorage_) {
+        try {
+            LOG_INFO("EmailService: Lazy initializing EmailLogsStorage for async processing");
+            emailLogsStorage_ = std::make_unique<EmailLogsStorage>();
+            LOG_INFO("EmailService: EmailLogsStorage lazy initialization completed successfully");
+        } catch (const std::exception& e) {
+            LOG_ERROR("EmailService: Failed to lazy initialize EmailLogsStorage: " + std::string(e.what()));
+            return nullptr;
+        }
+    }
+    return emailLogsStorage_.get();
+}
+
+// Asynchronous email sending methods
+
+bool EmailService::sendCrawlingNotificationAsync(const NotificationData& data, const std::string& logId) {
+    if (!asyncEnabled_) {
+        LOG_WARNING("EmailService: Async email processing is disabled, falling back to synchronous sending");
+        return sendCrawlingNotification(data);
+    }
+    
+    LOG_INFO("EmailService: Queuing crawling notification for async processing to: " + data.recipientEmail);
+    
+    try {
+        std::lock_guard<std::mutex> lock(taskQueueMutex_);
+        emailTaskQueue_.emplace(EmailTask::CRAWLING_NOTIFICATION, data, logId);
+        taskQueueCondition_.notify_one();
+        
+        LOG_DEBUG("EmailService: Crawling notification queued successfully");
+        return true;
+    } catch (const std::exception& e) {
+        lastError_ = "Failed to queue crawling notification: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+}
+
+bool EmailService::sendCrawlingNotificationAsync(const NotificationData& data, const std::string& senderName, const std::string& logId) {
+    if (!asyncEnabled_) {
+        LOG_WARNING("EmailService: Async email processing is disabled, falling back to synchronous sending");
+        // For synchronous sending, we need to temporarily update the sender name
+        std::string originalFromName = config_.fromName;
+        config_.fromName = senderName;
+        bool result = sendCrawlingNotification(data);
+        config_.fromName = originalFromName; // Restore original name
+        return result;
+    }
+    
+    LOG_INFO("EmailService: Queuing crawling notification with localized sender name '" + senderName + 
+             "' for async processing to: " + data.recipientEmail);
+    
+    try {
+        std::lock_guard<std::mutex> lock(taskQueueMutex_);
+        // Create a copy of data with sender name
+        NotificationData dataWithSender = data;
+        dataWithSender.senderName = senderName; // Add sender name to data
+        emailTaskQueue_.emplace(EmailTask::CRAWLING_NOTIFICATION, dataWithSender, logId);
+        taskQueueCondition_.notify_one();
+        
+        LOG_DEBUG("EmailService: Crawling notification with localized sender name queued successfully");
+        return true;
+    } catch (const std::exception& e) {
+        lastError_ = "Failed to queue crawling notification with sender name: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+}
+
+bool EmailService::sendHtmlEmailAsync(const std::string& to, 
+                                     const std::string& subject, 
+                                     const std::string& htmlContent, 
+                                     const std::string& textContent,
+                                     const std::string& logId) {
+    if (!asyncEnabled_) {
+        LOG_WARNING("EmailService: Async email processing is disabled, falling back to synchronous sending");
+        return sendHtmlEmail(to, subject, htmlContent, textContent);
+    }
+    
+    LOG_INFO("EmailService: Queuing generic email for async processing to: " + to);
+    
+    try {
+        std::lock_guard<std::mutex> lock(taskQueueMutex_);
+        emailTaskQueue_.emplace(EmailTask::GENERIC_EMAIL, to, subject, htmlContent, textContent, logId);
+        taskQueueCondition_.notify_one();
+        
+        LOG_DEBUG("EmailService: Generic email queued successfully");
+        return true;
+    } catch (const std::exception& e) {
+        lastError_ = "Failed to queue generic email: " + std::string(e.what());
+        LOG_ERROR("EmailService: " + lastError_);
+        return false;
+    }
+}
+
+void EmailService::startAsyncWorker() {
+    shouldStop_ = false;
+    workerThread_ = std::thread(&EmailService::processEmailTasks, this);
+    LOG_INFO("EmailService: Async worker thread started");
+}
+
+void EmailService::stopAsyncWorker() {
+    if (workerThread_.joinable()) {
+        shouldStop_ = true;
+        taskQueueCondition_.notify_all();
+        workerThread_.join();
+        LOG_INFO("EmailService: Async worker thread stopped");
+    }
+}
+
+void EmailService::processEmailTasks() {
+    LOG_INFO("EmailService: Async email worker thread started");
+    
+    while (!shouldStop_) {
+        std::unique_lock<std::mutex> lock(taskQueueMutex_);
+        
+        // Wait for tasks or stop signal
+        taskQueueCondition_.wait(lock, [this] { return !emailTaskQueue_.empty() || shouldStop_; });
+        
+        // Process all available tasks
+        while (!emailTaskQueue_.empty() && !shouldStop_) {
+            EmailTask task = std::move(emailTaskQueue_.front());
+            emailTaskQueue_.pop();
+            lock.unlock();
+            
+            // Process the task
+            bool success = processEmailTask(task);
+            
+            if (success) {
+                LOG_DEBUG("EmailService: Async email task processed successfully");
+            } else {
+                LOG_ERROR("EmailService: Async email task failed: " + lastError_);
+            }
+            
+            lock.lock();
+        }
+    }
+    
+    LOG_INFO("EmailService: Async email worker thread exiting");
+}
+
+bool EmailService::processEmailTask(const EmailTask& task) {
+    try {
+        bool success = false;
+        
+        switch (task.type) {
+            case EmailTask::CRAWLING_NOTIFICATION:
+                LOG_DEBUG("EmailService: Processing async crawling notification for: " + task.notificationData.recipientEmail);
+                // Use localized sender name if provided
+                if (!task.notificationData.senderName.empty()) {
+                    std::string originalFromName = config_.fromName;
+                    config_.fromName = task.notificationData.senderName;
+                    success = sendCrawlingNotification(task.notificationData);
+                    config_.fromName = originalFromName; // Restore original name
+                } else {
+                    success = sendCrawlingNotification(task.notificationData);
+                }
+                break;
+                
+            case EmailTask::GENERIC_EMAIL:
+                LOG_DEBUG("EmailService: Processing async generic email for: " + task.to);
+                success = sendHtmlEmail(task.to, task.subject, task.htmlContent, task.textContent);
+                break;
+                
+            default:
+                LOG_ERROR("EmailService: Unknown email task type: " + std::to_string(static_cast<int>(task.type)));
+                return false;
+        }
+        
+        // Update email log if logId is provided
+        if (!task.logId.empty()) {
+            auto logsStorage = getEmailLogsStorage();
+            if (logsStorage) {
+                try {
+                    if (success) {
+                        if (logsStorage->updateEmailLogSent(task.logId)) {
+                            LOG_DEBUG("EmailService: Updated email log status to SENT for async task, logId: " + task.logId);
+                        } else {
+                            LOG_WARNING("EmailService: Failed to update email log status to SENT for async task, logId: " + task.logId + 
+                                       ", error: " + logsStorage->getLastError());
+                        }
+                    } else {
+                        if (logsStorage->updateEmailLogFailed(task.logId, lastError_)) {
+                            LOG_DEBUG("EmailService: Updated email log status to FAILED for async task, logId: " + task.logId);
+                        } else {
+                            LOG_WARNING("EmailService: Failed to update email log status to FAILED for async task, logId: " + task.logId + 
+                                       ", error: " + logsStorage->getLastError());
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    LOG_ERROR("EmailService: Exception updating email log status for async task: " + std::string(e.what()));
+                }
+            } else {
+                LOG_ERROR("EmailService: EmailLogsStorage unavailable for async task log update, logId: " + task.logId);
+            }
+        }
+        
+        return success;
+        
+    } catch (const std::exception& e) {
+        setLastError("Exception in processEmailTask: " + std::string(e.what()));
+        LOG_ERROR("EmailService: " + getLastError());
+        return false;
+    }
+}
+
+std::string EmailService::formatCompletionTime(const std::chrono::system_clock::time_point& timePoint, const std::string& language) {
+    try {
+        // Convert to time_t
+        auto time_t = std::chrono::system_clock::to_time_t(timePoint);
+        
+        // Convert UTC to Tehran time (UTC+3:30) manually
+        std::tm* utcTime = std::gmtime(&time_t);
+        if (!utcTime) {
+            LOG_WARNING("EmailService: Failed to convert time to UTC");
+            return "Unknown time";
+        }
+        
+        // Create Tehran time by adding 3 hours 30 minutes
+        std::tm tehranTime = *utcTime;
+        tehranTime.tm_hour += 3;
+        tehranTime.tm_min += 30;
+        
+        // Handle minute overflow
+        if (tehranTime.tm_min >= 60) {
+            tehranTime.tm_min -= 60;
+            tehranTime.tm_hour++;
+        }
+        
+        // Handle hour overflow
+        if (tehranTime.tm_hour >= 24) {
+            tehranTime.tm_hour -= 24;
+            tehranTime.tm_mday++;
+            
+            // Handle day overflow (simplified - doesn't handle month/year boundaries perfectly)
+            if (tehranTime.tm_mday > 31) {
+                tehranTime.tm_mday = 1;
+                tehranTime.tm_mon++;
+                if (tehranTime.tm_mon >= 12) {
+                    tehranTime.tm_mon = 0;
+                    tehranTime.tm_year++;
+                }
+            }
+        }
+        
+        // Format based on language
+        if (language == "fa" || language == "fa-IR") {
+            // Persian (Shamsi) date formatting
+            return convertToPersianDate(tehranTime);
+            
+        } else {
+            // English (Gregorian) date formatting
+            char buffer[100];
+            std::strftime(buffer, sizeof(buffer), "%B %d, %Y at %H:%M:%S", &tehranTime);
+            
+            // Add timezone info
+            return std::string(buffer) + " (Tehran time)";
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("EmailService: Exception in formatCompletionTime: " + std::string(e.what()));
+        return "Unknown time";
+    }
+}
+
+// Helper function to convert Gregorian date to Persian (Shamsi) date
+std::string EmailService::convertToPersianDate(const std::tm& gregorianDate) {
+    try {
+        int gYear = gregorianDate.tm_year + 1900;
+        int gMonth = gregorianDate.tm_mon + 1;
+        int gDay = gregorianDate.tm_mday;
+        
+        // Calculate days since March 21, 2024 (reference point: 1 Farvardin 1403)
+        int daysSinceMarch21 = 0;
+        
+        // Days in each month (from March to current month)
+        int monthDays[] = {31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28}; // March to February
+        
+        if (gMonth >= 3) {
+            // Current year - calculate days from March 21
+            for (int i = 3; i < gMonth; i++) {
+                daysSinceMarch21 += monthDays[i - 3];
+            }
+            daysSinceMarch21 += gDay - 21; // March 21 is day 0
+        } else {
+            // Previous year - calculate from March 21 of previous year
+            daysSinceMarch21 += 31 - 21 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 + 31 + 28; // March 21 to Dec 31
+            for (int i = 1; i < gMonth; i++) {
+                daysSinceMarch21 += monthDays[i - 1 + 9]; // Offset for month array
+            }
+            daysSinceMarch21 += gDay - 1;
+        }
+        
+        // Convert to Persian date
+        int persianYear = 1403; // Base year for 2024
+        int persianDayOfYear = daysSinceMarch21 + 1;
+        
+        // Persian months: 31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29/30
+        int persianMonthDays[] = {31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29};
+        
+        int persianMonth = 1;
+        int persianDay = persianDayOfYear;
+        
+        for (int i = 0; i < 12; i++) {
+            if (persianDay <= persianMonthDays[i]) {
+                persianMonth = i + 1;
+                break;
+            }
+            persianDay -= persianMonthDays[i];
+        }
+        
+        // Persian month names
+        const std::vector<std::string> persianMonths = {
+            "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+            "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+        };
+        
+        // Format time
+        char timeBuffer[20];
+        std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &gregorianDate);
+        
+        // Format Persian date
+        std::string persianDate = std::to_string(persianYear) + "/" + 
+                                 std::to_string(persianMonth) + "/" + 
+                                 std::to_string(persianDay) + 
+                                 " (" + persianMonths[persianMonth - 1] + ") " +
+                                 "ساعت " + std::string(timeBuffer) + " (تهران)";
+        
+        return persianDate;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("EmailService: Exception in convertToPersianDate: " + std::string(e.what()));
+        return "تاریخ نامشخص";
+    }
 }
 
 } } // namespace search_engine::storage

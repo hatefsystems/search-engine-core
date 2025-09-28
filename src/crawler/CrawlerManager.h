@@ -7,10 +7,24 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include "Crawler.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
+
+// Forward declaration for completion callback
+class CrawlerManager;
+
+/**
+ * @brief Completion callback function type for crawl sessions
+ * @param sessionId The session ID that completed
+ * @param results The crawl results
+ * @param manager Pointer to the CrawlerManager for additional operations
+ */
+using CrawlCompletionCallback = std::function<void(const std::string& sessionId, 
+                                                   const std::vector<CrawlResult>& results, 
+                                                   CrawlerManager* manager)>;
 
 struct CrawlSession {
     std::string id;
@@ -18,19 +32,21 @@ struct CrawlSession {
     std::chrono::system_clock::time_point createdAt;
     std::atomic<bool> isCompleted{false};
     std::thread crawlThread;
+    CrawlCompletionCallback completionCallback;
     
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance)
-        : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()) {}
+    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
+                 CrawlCompletionCallback callback = nullptr)
+        : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
+          completionCallback(std::move(callback)) {}
     
-    // Move constructor
     CrawlSession(CrawlSession&& other) noexcept
         : id(std::move(other.id))
         , crawler(std::move(other.crawler))
         , createdAt(other.createdAt)
         , isCompleted(other.isCompleted.load())
-        , crawlThread(std::move(other.crawlThread)) {}
+        , crawlThread(std::move(other.crawlThread))
+        , completionCallback(std::move(other.completionCallback)) {}
     
-    // Disable copy constructor and assignment
     CrawlSession(const CrawlSession&) = delete;
     CrawlSession& operator=(const CrawlSession&) = delete;
     CrawlSession& operator=(CrawlSession&&) = delete;
@@ -41,8 +57,16 @@ public:
     CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage);
     ~CrawlerManager();
     
-    // Start a new crawl session
-    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false);
+    /**
+     * @brief Start a new crawl session
+     * @param url The URL to crawl
+     * @param config Crawl configuration
+     * @param force Whether to force crawling (ignore robots.txt)
+     * @param completionCallback Optional callback to execute when crawl completes
+     * @return Session ID of the started crawl
+     */
+    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false, 
+                          CrawlCompletionCallback completionCallback = nullptr);
     
     // Get crawl results by session ID
     std::vector<CrawlResult> getCrawlResults(const std::string& sessionId);

@@ -273,6 +273,18 @@ label {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.url-input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+    transition: color 0.3s ease;
+}
+
+/* Dark mode specific placeholder styling */
+[data-theme="dark"] .url-input::placeholder {
+    color: #a0aec0;
+    opacity: 1;
+}
+
 .presets {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -401,19 +413,41 @@ label {
 }
 
 .email-section {
-    background-color: #e8f4fd;
-    border: 1px solid #bee5eb;
+    background-color: var(--preset-bg);
+    border: 1px solid var(--preset-border);
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 20px;
+    transition: all 0.3s ease;
 }
 
 .email-input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--input-border);
     border-radius: 6px;
     margin-top: 8px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.email-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.email-input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+    transition: color 0.3s ease;
+}
+
+/* Dark mode specific placeholder styling */
+[data-theme="dark"] .email-input::placeholder {
+    color: #a0aec0;
+    opacity: 1;
 }
 
 .submit-btn {
@@ -594,10 +628,11 @@ label {
 
 /* Privacy note styling */
 .privacy-note {
-    color: #6c757d;
+    color: var(--text-muted);
     margin-top: 5px;
     display: block;
     font-size: 0.9em;
+    transition: color 0.3s ease;
 }
 
 /* Download section title */

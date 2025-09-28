@@ -6,6 +6,7 @@
     "choose_language": "Choose language" 
   },
   "email": {
+    "sender_name": "Hatef Search Engine",
     "subject": "Crawling Complete - {pages} pages indexed",
     "title": "Crawling Complete - Hatef Search Engine",
     "header": {

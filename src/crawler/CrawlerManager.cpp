@@ -41,7 +41,7 @@ CrawlerManager::~CrawlerManager() {
     LOG_INFO("CrawlerManager shutdown complete");
 }
 
-std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force) {
+std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback) {
     std::string sessionId = generateSessionId();
     
     LOG_INFO("Starting new crawl session: " + sessionId + " for URL: " + url);
@@ -51,8 +51,8 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
         // Create new crawler instance with the provided configuration
         auto crawler = createCrawler(config, sessionId);
         
-        // Create crawl session
-        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler));
+        // Create crawl session with completion callback
+        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback));
         
         // Add seed URL to the crawler
         session->crawler->addSeedURL(url, force);
@@ -121,11 +121,24 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
                 CrawlLogger::broadcastLog("Error in crawl thread for session " + sessionId + ": " + e.what(), "error");
             }
             
-            // Mark session as completed
+            // Mark session as completed and execute completion callback
             lock.lock();
             auto sessionIt = sessions_.find(sessionId);
             if (sessionIt != sessions_.end()) {
-                sessionIt->second->isCompleted = true;
+                auto& completedSession = sessionIt->second;
+                completedSession->isCompleted = true;
+                
+                // Execute completion callback if provided
+                if (completedSession->completionCallback) {
+                    LOG_INFO("Executing completion callback for session: " + sessionId);
+                    try {
+                        auto results = completedSession->crawler->getResults();
+                        completedSession->completionCallback(sessionId, results, this);
+                        LOG_INFO("Completion callback executed successfully for session: " + sessionId);
+                    } catch (const std::exception& e) {
+                        LOG_ERROR("Error executing completion callback for session " + sessionId + ": " + e.what());
+                    }
+                }
             }
             lock.unlock();
         });

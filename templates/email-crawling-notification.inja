@@ -103,7 +103,7 @@
             {% if unsubscribeToken %}
             <p>
                 <a href="https://hatef.ir/u/{{ unsubscribeToken }}" style="color: #666; text-decoration: underline; font-size: 12px;">
-                    {{ email.footer.unsubscribe_text|default("Unsubscribe from these emails") }}
+                    {{ email.footer.unsubscribe_text }}
                 </a>
             </p>
             {% endif %}

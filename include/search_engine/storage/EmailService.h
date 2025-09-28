@@ -4,12 +4,18 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <thread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 #include <curl/curl.h>
 
 namespace search_engine { namespace storage {
 
-// Forward declaration
+// Forward declarations
 class UnsubscribeService;
+class EmailLogsStorage;
 
 /**
  * @brief Email notification service for sending crawling notifications
@@ -29,6 +35,7 @@ public:
         std::string htmlContent;
         std::string textContent;
         std::string language = "en"; // Default to English
+        std::string senderName; // Localized sender name
         
         // Crawling specific data
         int crawledPagesCount = 0;
@@ -50,6 +57,7 @@ public:
         bool useTLS = true;
         bool useSSL = false;
         int timeoutSeconds = 30;
+        int connectionTimeoutSeconds = 0; // 0 means auto-calculate (timeoutSeconds / 3)
     };
 
 public:
@@ -72,6 +80,23 @@ public:
     bool sendCrawlingNotification(const NotificationData& data);
     
     /**
+     * @brief Send crawling completion notification asynchronously
+     * @param data Notification data including recipient and crawling results
+     * @param logId Email log ID for tracking (optional)
+     * @return true if email queued successfully, false otherwise
+     */
+    bool sendCrawlingNotificationAsync(const NotificationData& data, const std::string& logId = "");
+    
+    /**
+     * @brief Send crawling completion notification asynchronously with localized sender name
+     * @param data Notification data including recipient and crawling results
+     * @param senderName Localized sender name based on language
+     * @param logId Email log ID for tracking (optional)
+     * @return true if email queued successfully, false otherwise
+     */
+    bool sendCrawlingNotificationAsync(const NotificationData& data, const std::string& senderName, const std::string& logId = "");
+    
+    /**
      * @brief Send generic HTML email
      * @param to Recipient email address
      * @param subject Email subject
@@ -85,6 +110,21 @@ public:
                        const std::string& textContent = "");
 
     /**
+     * @brief Send generic HTML email asynchronously
+     * @param to Recipient email address
+     * @param subject Email subject
+     * @param htmlContent HTML content
+     * @param textContent Plain text fallback (optional)
+     * @param logId Email log ID for tracking (optional)
+     * @return true if email queued successfully, false otherwise
+     */
+    bool sendHtmlEmailAsync(const std::string& to, 
+                           const std::string& subject, 
+                           const std::string& htmlContent, 
+                           const std::string& textContent = "",
+                           const std::string& logId = "");
+
+    /**
      * @brief Test SMTP connection
      * @return true if connection is successful, false otherwise
      */
@@ -94,7 +134,21 @@ public:
      * @brief Get last error message
      * @return Last error message
      */
-    std::string getLastError() const { return lastError_; }
+    std::string getLastError() const { 
+        std::lock_guard<std::mutex> lock(lastErrorMutex_);
+        return lastError_; 
+    }
+    
+    void setLastError(const std::string& error) {
+        std::lock_guard<std::mutex> lock(lastErrorMutex_);
+        lastError_ = error;
+    }
+    
+    /**
+     * @brief Get configured from email address
+     * @return From email address
+     */
+    std::string getFromEmail() const { return config_.fromEmail; }
 
 private:
     // CURL callback for reading email data
@@ -114,8 +168,13 @@ private:
     std::string generateDefaultNotificationHTML(const NotificationData& data);
     std::string generateDefaultNotificationText(const NotificationData& data);
     
+    // Date formatting helpers
+    std::string formatCompletionTime(const std::chrono::system_clock::time_point& timePoint, const std::string& language);
+    std::string convertToPersianDate(const std::tm& gregorianDate);
+    
     // Configuration and state
     SMTPConfig config_;
+    mutable std::mutex lastErrorMutex_;
     std::string lastError_;
     
     // CURL handle for connection reuse
@@ -135,6 +194,51 @@ private:
         std::string data;
         size_t position;
     };
+    
+    // Email task for asynchronous processing
+    struct EmailTask {
+        enum Type {
+            CRAWLING_NOTIFICATION,
+            GENERIC_EMAIL
+        };
+        
+        Type type;
+        NotificationData notificationData;
+        std::string to;
+        std::string subject;
+        std::string htmlContent;
+        std::string textContent;
+        std::string logId;
+        std::chrono::system_clock::time_point queuedAt;
+        
+        EmailTask() = default;
+        
+        EmailTask(Type t, const NotificationData& data, const std::string& id = "")
+            : type(t), notificationData(data), logId(id), queuedAt(std::chrono::system_clock::now()) {}
+            
+        EmailTask(Type t, const std::string& recipient, const std::string& subj, 
+                 const std::string& html, const std::string& text = "", const std::string& id = "")
+            : type(t), to(recipient), subject(subj), htmlContent(html), textContent(text), 
+              logId(id), queuedAt(std::chrono::system_clock::now()) {}
+    };
+    
+    // Asynchronous email processing
+    std::queue<EmailTask> emailTaskQueue_;
+    std::mutex taskQueueMutex_;
+    std::condition_variable taskQueueCondition_;
+    std::thread workerThread_;
+    std::atomic<bool> shouldStop_;
+    std::atomic<bool> asyncEnabled_;
+    
+    // Async processing methods
+    void startAsyncWorker();
+    void stopAsyncWorker();
+    void processEmailTasks();
+    bool processEmailTask(const EmailTask& task);
+    
+    // EmailLogsStorage access for async processing
+    mutable std::unique_ptr<EmailLogsStorage> emailLogsStorage_;
+    EmailLogsStorage* getEmailLogsStorage() const;
 };
 
 } } // namespace search_engine::storage

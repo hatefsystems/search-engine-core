@@ -1,6 +1,7 @@
 #pragma once
 #include "../../include/routing/Controller.h"
 #include "../../include/search_engine/storage/EmailService.h"
+#include "../../include/search_engine/storage/EmailLogsStorage.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -56,12 +57,19 @@ public:
 private:
     // Lazy initialization pattern - CRITICAL for avoiding static initialization order fiasco
     mutable std::unique_ptr<search_engine::storage::EmailService> emailService_;
+    mutable std::unique_ptr<search_engine::storage::EmailLogsStorage> emailLogsStorage_;
     
     /**
      * @brief Get or create EmailService instance (lazy initialization)
      * @return EmailService instance or nullptr if initialization fails
      */
     search_engine::storage::EmailService* getEmailService() const;
+    
+    /**
+     * @brief Get or create EmailLogsStorage instance (lazy initialization)
+     * @return EmailLogsStorage instance or nullptr if initialization fails
+     */
+    search_engine::storage::EmailLogsStorage* getEmailLogsStorage() const;
     
     /**
      * @brief Load SMTP configuration from environment variables
