@@ -13,6 +13,8 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
+#include <thread>
+#include <chrono>
 
 using namespace bsoncxx::builder::stream;
 using namespace search_engine::storage;
@@ -766,22 +768,42 @@ ApiRequestLog MongoDBStorage::bsonToApiRequestLog(const bsoncxx::document::view&
 
 Result<std::string> MongoDBStorage::storeApiRequestLog(const ApiRequestLog& log) {
     LOG_DEBUG("MongoDBStorage::storeApiRequestLog called for endpoint: " + log.endpoint);
-    try {
-        auto doc = apiRequestLogToBson(log);
-        auto apiRequestLogsCollection = database_["api_request_logs"];
-        auto result = apiRequestLogsCollection.insert_one(doc.view());
-        if (result) {
-            std::string id = result->inserted_id().get_oid().value.to_string();
-            LOG_INFO("API request log stored successfully with ID: " + id + " for endpoint: " + log.endpoint);
-            return Result<std::string>::Success(id, "API request log stored successfully");
-        } else {
-            LOG_ERROR("Failed to insert API request log for endpoint: " + log.endpoint);
-            return Result<std::string>::Failure("Failed to insert API request log");
+    
+    // Retry logic for connection issues
+    int maxRetries = 3;
+    int retryDelay = 100; // milliseconds
+    
+    for (int attempt = 0; attempt < maxRetries; ++attempt) {
+        try {
+            auto doc = apiRequestLogToBson(log);
+            auto apiRequestLogsCollection = database_["api_request_logs"];
+            auto result = apiRequestLogsCollection.insert_one(doc.view());
+            if (result) {
+                std::string id = result->inserted_id().get_oid().value.to_string();
+                LOG_INFO("API request log stored successfully with ID: " + id + " for endpoint: " + log.endpoint);
+                return Result<std::string>::Success(id, "API request log stored successfully");
+            } else {
+                LOG_ERROR("Failed to insert API request log for endpoint: " + log.endpoint);
+                return Result<std::string>::Failure("Failed to insert API request log");
+            }
+        } catch (const mongocxx::exception& e) {
+            LOG_ERROR("MongoDB error storing API request log for endpoint: " + log.endpoint + " (attempt " + std::to_string(attempt + 1) + "/" + std::to_string(maxRetries) + ") - " + std::string(e.what()));
+            
+            // If this is the last attempt, return failure
+            if (attempt == maxRetries - 1) {
+                return Result<std::string>::Failure("MongoDB error after " + std::to_string(maxRetries) + " attempts: " + std::string(e.what()));
+            }
+            
+            // Wait before retrying
+            std::this_thread::sleep_for(std::chrono::milliseconds(retryDelay));
+            retryDelay *= 2; // Exponential backoff
+        } catch (const std::exception& e) {
+            LOG_ERROR("Unexpected error storing API request log for endpoint: " + log.endpoint + " - " + std::string(e.what()));
+            return Result<std::string>::Failure("Unexpected error: " + std::string(e.what()));
         }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error storing API request log for endpoint: " + log.endpoint + " - " + std::string(e.what()));
-        return Result<std::string>::Failure("MongoDB error: " + std::string(e.what()));
     }
+    
+    return Result<std::string>::Failure("Failed to store API request log after all retries");
 }
 
 Result<std::vector<ApiRequestLog>> MongoDBStorage::getApiRequestLogsByEndpoint(const std::string& endpoint, int limit, int skip) {

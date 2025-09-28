@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/ContentStorage.h"
 #include "../../include/search_engine/storage/ApiRequestLog.h"
 #include "../../include/Logger.h"
+#include <mongocxx/exception/exception.hpp>
 #include <regex>
 #include <algorithm>
 #include <sstream>
@@ -115,20 +116,28 @@ void ContentStorage::ensureMongoConnection() {
     if (!mongoConnected_ || !mongoStorage_) {
         try {
             LOG_DEBUG("Initializing MongoDB connection...");
+            
+            // Create MongoDBStorage with proper error handling
             mongoStorage_ = std::make_unique<MongoDBStorage>(mongoConnectionString_, mongoDatabaseName_);
             
-            // Test connection without blocking startup
+            // Test connection with timeout and retry logic
             auto mongoTest = mongoStorage_->testConnection();
             if (mongoTest.success) {
                 mongoConnected_ = true;
                 LOG_INFO("MongoDB connection established successfully");
             } else {
                 LOG_WARNING("MongoDB connection test failed: " + mongoTest.message);
-                // Don't throw - allow the service to start without DB
+                mongoConnected_ = false;
+                mongoStorage_.reset(); // Clean up failed connection
             }
+        } catch (const mongocxx::exception& e) {
+            LOG_ERROR("MongoDB connection error: " + std::string(e.what()));
+            mongoConnected_ = false;
+            mongoStorage_.reset(); // Clean up failed connection
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to initialize MongoDB connection: " + std::string(e.what()));
-            // Don't throw - allow the service to start without DB
+            mongoConnected_ = false;
+            mongoStorage_.reset(); // Clean up failed connection
         }
     }
 }

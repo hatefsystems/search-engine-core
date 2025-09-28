@@ -24,6 +24,7 @@
 #include <sstream>
 #include <string>
 #include <cctype>
+#include <thread>
 
 using namespace hatef::search;
 
@@ -353,48 +354,50 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     
                     json(res, response);
                     
-                    // Log API request to database
-                    try {
-                        LOG_INFO("Starting API request logging...");
-                        
-                        // Calculate response time
-                        auto responseEndTime = std::chrono::system_clock::now();
-                        auto responseTime = std::chrono::duration_cast<std::chrono::milliseconds>(responseEndTime - requestStartTime);
-                        
-                        // Create API request log
-                        search_engine::storage::ApiRequestLog apiLog;
-                        apiLog.endpoint = "/api/crawl/add-site";
-                        apiLog.method = "POST";
-                        apiLog.ipAddress = ipAddress;
-                        apiLog.userAgent = userAgent;
-                        apiLog.createdAt = std::chrono::system_clock::now();
-                        apiLog.requestBody = buffer;
-                        apiLog.sessionId = sessionId;
-                        apiLog.status = "success";
-                        apiLog.responseTimeMs = static_cast<int>(responseTime.count());
-                        
-                        LOG_INFO("API request log created - endpoint: " + apiLog.endpoint + ", IP: " + apiLog.ipAddress + ", sessionId: " + sessionId);
-                        
-                        // Store in database if we have access to storage
-                        if (g_crawlerManager) {
-                            LOG_INFO("CrawlerManager is available");
-                            if (g_crawlerManager->getStorage()) {
-                                LOG_INFO("Storage is available, storing API request log...");
-                                auto result = g_crawlerManager->getStorage()->storeApiRequestLog(apiLog);
-                                if (result.success) {
-                                    LOG_INFO("API request logged successfully with ID: " + result.value);
+                    // Log API request to database asynchronously to avoid blocking the response
+                    std::thread([this, ipAddress, userAgent, requestStartTime, buffer, sessionId]() {
+                        try {
+                            LOG_INFO("Starting API request logging...");
+                            
+                            // Calculate response time
+                            auto responseEndTime = std::chrono::system_clock::now();
+                            auto responseTime = std::chrono::duration_cast<std::chrono::milliseconds>(responseEndTime - requestStartTime);
+                            
+                            // Create API request log
+                            search_engine::storage::ApiRequestLog apiLog;
+                            apiLog.endpoint = "/api/crawl/add-site";
+                            apiLog.method = "POST";
+                            apiLog.ipAddress = ipAddress;
+                            apiLog.userAgent = userAgent;
+                            apiLog.createdAt = std::chrono::system_clock::now();
+                            apiLog.requestBody = buffer;
+                            apiLog.sessionId = sessionId;
+                            apiLog.status = "success";
+                            apiLog.responseTimeMs = static_cast<int>(responseTime.count());
+                            
+                            LOG_INFO("API request log created - endpoint: " + apiLog.endpoint + ", IP: " + apiLog.ipAddress + ", sessionId: " + sessionId);
+                            
+                            // Store in database if we have access to storage
+                            if (g_crawlerManager) {
+                                LOG_INFO("CrawlerManager is available");
+                                if (g_crawlerManager->getStorage()) {
+                                    LOG_INFO("Storage is available, storing API request log...");
+                                    auto result = g_crawlerManager->getStorage()->storeApiRequestLog(apiLog);
+                                    if (result.success) {
+                                        LOG_INFO("API request logged successfully with ID: " + result.value);
+                                    } else {
+                                        LOG_WARNING("Failed to log API request: " + result.message);
+                                    }
                                 } else {
-                                    LOG_WARNING("Failed to log API request: " + result.message);
+                                    LOG_WARNING("Storage is not available from CrawlerManager");
                                 }
                             } else {
-                                LOG_WARNING("Storage is not available from CrawlerManager");
+                                LOG_WARNING("CrawlerManager is not available");
                             }
-                        } else {
-                            LOG_WARNING("CrawlerManager is not available");
+                        } catch (const std::exception& e) {
+                            LOG_WARNING("Failed to log API request: " + std::string(e.what()));
                         }
-                    } catch (const std::exception& e) {
-                        LOG_WARNING("Failed to log API request: " + std::string(e.what()));
-                    }
+                    }).detach(); // Detach the thread to avoid blocking
                 } else {
                     serverError(res, "CrawlerManager not initialized");
                 }
@@ -1315,35 +1318,38 @@ void SearchController::logApiRequestError(const std::string& endpoint, const std
                                         const std::chrono::system_clock::time_point& requestStartTime,
                                         const std::string& requestBody, const std::string& status, 
                                         const std::string& errorMessage) {
-    try {
-        // Calculate response time
-        auto responseEndTime = std::chrono::system_clock::now();
-        auto responseTime = std::chrono::duration_cast<std::chrono::milliseconds>(responseEndTime - requestStartTime);
-        
-        // Create API request log
-        search_engine::storage::ApiRequestLog apiLog;
-        apiLog.endpoint = endpoint;
-        apiLog.method = method;
-        apiLog.ipAddress = ipAddress;
-        apiLog.userAgent = userAgent;
-        apiLog.createdAt = std::chrono::system_clock::now();
-        apiLog.requestBody = requestBody;
-        apiLog.status = status;
-        apiLog.errorMessage = errorMessage;
-        apiLog.responseTimeMs = static_cast<int>(responseTime.count());
-        
-        // Store in database if we have access to storage
-        if (g_crawlerManager && g_crawlerManager->getStorage()) {
-            auto result = g_crawlerManager->getStorage()->storeApiRequestLog(apiLog);
-            if (result.success) {
-                LOG_INFO("API request error logged successfully with ID: " + result.value);
-            } else {
-                LOG_WARNING("Failed to log API request error: " + result.message);
+    // Log API request error asynchronously to avoid blocking the response
+    std::thread([this, endpoint, method, ipAddress, userAgent, requestStartTime, requestBody, status, errorMessage]() {
+        try {
+            // Calculate response time
+            auto responseEndTime = std::chrono::system_clock::now();
+            auto responseTime = std::chrono::duration_cast<std::chrono::milliseconds>(responseEndTime - requestStartTime);
+            
+            // Create API request log
+            search_engine::storage::ApiRequestLog apiLog;
+            apiLog.endpoint = endpoint;
+            apiLog.method = method;
+            apiLog.ipAddress = ipAddress;
+            apiLog.userAgent = userAgent;
+            apiLog.createdAt = std::chrono::system_clock::now();
+            apiLog.requestBody = requestBody;
+            apiLog.status = status;
+            apiLog.errorMessage = errorMessage;
+            apiLog.responseTimeMs = static_cast<int>(responseTime.count());
+            
+            // Store in database if we have access to storage
+            if (g_crawlerManager && g_crawlerManager->getStorage()) {
+                auto result = g_crawlerManager->getStorage()->storeApiRequestLog(apiLog);
+                if (result.success) {
+                    LOG_INFO("API request error logged successfully with ID: " + result.value);
+                } else {
+                    LOG_WARNING("Failed to log API request error: " + result.message);
+                }
             }
+        } catch (const std::exception& e) {
+            LOG_WARNING("Failed to log API request error: " + std::string(e.what()));
         }
-    } catch (const std::exception& e) {
-        LOG_WARNING("Failed to log API request error: " + std::string(e.what()));
-    }
+    }).detach(); // Detach the thread to avoid blocking
 }
 
 // Helper methods for template rendering
