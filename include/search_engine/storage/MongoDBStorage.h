@@ -19,7 +19,7 @@ namespace storage {
 
 class MongoDBStorage {
 private:
-    std::unique_ptr<mongocxx::client> client_;
+    mongocxx::client* client_;  // Shared client pointer
     mongocxx::database database_;
     mongocxx::collection siteProfilesCollection_;
     

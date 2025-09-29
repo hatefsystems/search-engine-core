@@ -111,8 +111,8 @@ ContentStorage::ContentStorage(
 #endif
 }
 
-// Private method to ensure MongoDB connection
-void ContentStorage::ensureMongoConnection() {
+// Private method to ensure MongoDB connection (without locking - caller must lock)
+void ContentStorage::ensureMongoConnectionUnsafe() {
     if (!mongoConnected_ || !mongoStorage_) {
         try {
             LOG_DEBUG("Initializing MongoDB connection...");
@@ -140,6 +140,12 @@ void ContentStorage::ensureMongoConnection() {
             mongoStorage_.reset(); // Clean up failed connection
         }
     }
+}
+
+// Public method to ensure MongoDB connection (with locking)
+void ContentStorage::ensureMongoConnection() {
+    std::lock_guard<std::mutex> lock(mongoMutex_);
+    ensureMongoConnectionUnsafe();
 }
 
 #ifdef REDIS_AVAILABLE
@@ -241,8 +247,13 @@ std::string ContentStorage::extractSearchableContent(const CrawlResult& crawlRes
 Result<std::string> ContentStorage::storeCrawlResult(const CrawlResult& crawlResult) {
     LOG_DEBUG("ContentStorage::storeCrawlResult called for URL: " + crawlResult.url);
     try {
+        // Lock mutex for entire operation
+        std::lock_guard<std::mutex> lock(mongoMutex_);
+        
         // Ensure MongoDB connection before proceeding
-        ensureMongoConnection();
+        ensureMongoConnectionUnsafe();
+        
+        // Check connection state
         if (!mongoConnected_ || !mongoStorage_) {
             return Result<std::string>::Failure("MongoDB not available");
         }

@@ -19,6 +19,9 @@
 using namespace bsoncxx::builder::stream;
 using namespace search_engine::storage;
 
+// Global mutex to serialize all MongoDB operations to prevent socket conflicts
+static std::mutex g_mongoOperationMutex;
+
 namespace {
     
     // Helper function to convert time_point to BSON date
@@ -43,12 +46,28 @@ MongoDBStorage::MongoDBStorage(const std::string& connectionString, const std::s
         MongoDBInstance::getInstance();
         LOG_DEBUG("MongoDB instance initialized");
         
-        // Create client and connect to database
-        mongocxx::uri uri{connectionString};
-        client_ = std::make_unique<mongocxx::client>(uri);
+        // Use shared client to prevent connection pool exhaustion
+        static std::mutex clientMutex;
+        static std::unique_ptr<mongocxx::client> sharedClient;
+        static std::string lastConnectionString;
+        
+        std::lock_guard<std::mutex> lock(clientMutex);
+        
+        // Create shared client if not exists or connection string changed
+        if (!sharedClient || lastConnectionString != connectionString) {
+            LOG_DEBUG("Creating shared MongoDB client for connection: " + connectionString);
+            mongocxx::uri uri{connectionString};
+            sharedClient = std::make_unique<mongocxx::client>(uri);
+            lastConnectionString = connectionString;
+            LOG_INFO("Shared MongoDB client created successfully");
+        }
+        
+        // Use shared client
+        client_ = sharedClient.get();
         database_ = (*client_)[databaseName];
         siteProfilesCollection_ = database_["site_profiles"];
         LOG_INFO("Connected to MongoDB database: " + databaseName);
+        LOG_DEBUG("MongoDBStorage instance created - using shared client: " + connectionString);
         
         // Ensure indexes are created
         ensureIndexes();
@@ -306,6 +325,9 @@ Result<std::string> MongoDBStorage::storeSiteProfile(const SiteProfile& profile)
 Result<SiteProfile> MongoDBStorage::getSiteProfile(const std::string& url) {
     LOG_DEBUG("MongoDBStorage::getSiteProfile called for URL: " + url);
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto filter = document{} << "url" << url << finalize;
         LOG_TRACE("MongoDB query filter created for URL: " + url);
         
@@ -329,6 +351,9 @@ Result<SiteProfile> MongoDBStorage::getSiteProfile(const std::string& url) {
 
 Result<SiteProfile> MongoDBStorage::getSiteProfileById(const std::string& id) {
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
         auto result = siteProfilesCollection_.find_one(filter.view());
         
@@ -353,6 +378,9 @@ Result<bool> MongoDBStorage::updateSiteProfile(const SiteProfile& profile) {
             return Result<bool>::Failure("Cannot update site profile without ID");
         }
         
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         LOG_TRACE("Updating site profile with ID: " + *profile.id);
         auto filter = document{} << "_id" << bsoncxx::oid{*profile.id} << finalize;
         auto update = document{} << "$set" << siteProfileToBson(profile) << finalize;
@@ -375,6 +403,9 @@ Result<bool> MongoDBStorage::updateSiteProfile(const SiteProfile& profile) {
 Result<bool> MongoDBStorage::deleteSiteProfile(const std::string& url) {
     LOG_DEBUG("MongoDBStorage::deleteSiteProfile called for URL: " + url);
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto filter = document{} << "url" << url << finalize;
         LOG_TRACE("Delete filter created for URL: " + url);
         
@@ -455,6 +486,10 @@ Result<int64_t> MongoDBStorage::getSiteCountByStatus(CrawlStatus status) {
 
 Result<bool> MongoDBStorage::testConnection() {
     LOG_DEBUG("MongoDBStorage::testConnection called");
+    
+    // Serialize all MongoDB operations to prevent socket conflicts
+    std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+    
     try {
         // Simple ping to test connection
         auto result = database_.run_command(document{} << "ping" << 1 << finalize);
@@ -537,6 +572,9 @@ Result<bool> MongoDBStorage::frontierUpsertTask(const std::string& sessionId,
                                     const std::chrono::system_clock::time_point& readyAt,
                                     int retryCount) {
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto frontier = database_["frontier_tasks"];
         auto filter = document{} << "sessionId" << sessionId << "normalizedUrl" << normalizedUrl << finalize;
         auto update = document{}
@@ -568,6 +606,9 @@ Result<bool> MongoDBStorage::frontierUpsertTask(const std::string& sessionId,
 Result<bool> MongoDBStorage::frontierMarkCompleted(const std::string& sessionId,
                                        const std::string& normalizedUrl) {
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto frontier = database_["frontier_tasks"];
         auto filter = document{} << "sessionId" << sessionId << "normalizedUrl" << normalizedUrl << finalize;
         auto update = document{} << "$set" << open_document
@@ -586,6 +627,9 @@ Result<bool> MongoDBStorage::frontierUpdateRetry(const std::string& sessionId,
                                      int retryCount,
                                      const std::chrono::system_clock::time_point& nextReadyAt) {
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto frontier = database_["frontier_tasks"];
         auto filter = document{} << "sessionId" << sessionId << "normalizedUrl" << normalizedUrl << finalize;
         auto update = document{} << "$set" << open_document
@@ -603,25 +647,60 @@ Result<bool> MongoDBStorage::frontierUpdateRetry(const std::string& sessionId,
 
 Result<std::vector<std::pair<std::string,int>>> MongoDBStorage::frontierLoadPending(const std::string& sessionId,
                                                                         size_t limit) {
-    try {
-        auto frontier = database_["frontier_tasks"];
-        using namespace bsoncxx::builder::stream;
-        auto now = timePointToBsonDate(std::chrono::system_clock::now());
-        auto filter = document{} << "sessionId" << sessionId << "status" << "queued" << "readyAt" << open_document << "$lte" << now << close_document << finalize;
-        mongocxx::options::find opts;
-        opts.limit(static_cast<int64_t>(limit));
-        opts.sort(document{} << "priority" << -1 << "readyAt" << 1 << finalize);
-        auto cursor = frontier.find(filter.view(), opts);
-        std::vector<std::pair<std::string,int>> items;
-        for (const auto& doc : cursor) {
-            std::string url = std::string(doc["url"].get_string().value);
-            int depth = doc["depth"].get_int32().value;
-            items.emplace_back(url, depth);
+    LOG_DEBUG("MongoDBStorage::frontierLoadPending called for sessionId: " + sessionId + ", limit: " + std::to_string(limit));
+    
+    // Serialize all MongoDB operations to prevent socket conflicts
+    std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+    
+    // Retry logic for connection issues
+    int maxRetries = 3;
+    int retryDelay = 100; // milliseconds
+    
+    for (int attempt = 0; attempt < maxRetries; ++attempt) {
+        try {
+            LOG_DEBUG("MongoDBStorage::frontierLoadPending - Attempt " + std::to_string(attempt + 1) + "/" + std::to_string(maxRetries));
+            
+            auto frontier = database_["frontier_tasks"];
+            using namespace bsoncxx::builder::stream;
+            auto now = timePointToBsonDate(std::chrono::system_clock::now());
+            auto filter = document{} << "sessionId" << sessionId << "status" << "queued" << "readyAt" << open_document << "$lte" << now << close_document << finalize;
+            mongocxx::options::find opts;
+            opts.limit(static_cast<int64_t>(limit));
+            opts.sort(document{} << "priority" << -1 << "readyAt" << 1 << finalize);
+            
+            LOG_DEBUG("MongoDBStorage::frontierLoadPending - Executing find query");
+            auto cursor = frontier.find(filter.view(), opts);
+            
+            std::vector<std::pair<std::string,int>> items;
+            size_t count = 0;
+            for (const auto& doc : cursor) {
+                std::string url = std::string(doc["url"].get_string().value);
+                int depth = doc["depth"].get_int32().value;
+                items.emplace_back(url, depth);
+                count++;
+            }
+            
+            LOG_DEBUG("MongoDBStorage::frontierLoadPending - Successfully loaded " + std::to_string(count) + " pending tasks");
+            return Result<std::vector<std::pair<std::string,int>>>::Success(std::move(items), "Loaded pending tasks");
+            
+        } catch (const mongocxx::exception& e) {
+            LOG_ERROR("MongoDB frontierLoadPending error (attempt " + std::to_string(attempt + 1) + "/" + std::to_string(maxRetries) + "): " + std::string(e.what()));
+            
+            // If this is the last attempt, return failure
+            if (attempt == maxRetries - 1) {
+                return Result<std::vector<std::pair<std::string,int>>>::Failure("MongoDB frontierLoadPending error after " + std::to_string(maxRetries) + " attempts: " + std::string(e.what()));
+            }
+            
+            // Wait before retrying
+            std::this_thread::sleep_for(std::chrono::milliseconds(retryDelay));
+            retryDelay *= 2; // Exponential backoff
+        } catch (const std::exception& e) {
+            LOG_ERROR("Unexpected error in frontierLoadPending: " + std::string(e.what()));
+            return Result<std::vector<std::pair<std::string,int>>>::Failure("Unexpected error: " + std::string(e.what()));
         }
-        return Result<std::vector<std::pair<std::string,int>>>::Success(std::move(items), "Loaded pending tasks");
-    } catch (const mongocxx::exception& e) {
-        return Result<std::vector<std::pair<std::string,int>>>::Failure("MongoDB frontierLoadPending error: " + std::string(e.what()));
     }
+    
+    return Result<std::vector<std::pair<std::string,int>>>::Failure("Failed to load pending tasks after all retries");
 }
 
 // CrawlLog BSON helpers
@@ -671,6 +750,9 @@ CrawlLog MongoDBStorage::bsonToCrawlLog(const bsoncxx::document::view& doc) cons
 Result<std::string> MongoDBStorage::storeCrawlLog(const CrawlLog& log) {
     LOG_DEBUG("MongoDBStorage::storeCrawlLog called for URL: " + log.url);
     try {
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
+        
         auto doc = crawlLogToBson(log);
         auto crawlLogsCollection = database_["crawl_logs"];
         auto result = crawlLogsCollection.insert_one(doc.view());
@@ -768,6 +850,9 @@ ApiRequestLog MongoDBStorage::bsonToApiRequestLog(const bsoncxx::document::view&
 
 Result<std::string> MongoDBStorage::storeApiRequestLog(const ApiRequestLog& log) {
     LOG_DEBUG("MongoDBStorage::storeApiRequestLog called for endpoint: " + log.endpoint);
+    
+    // Serialize all MongoDB operations to prevent socket conflicts
+    std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
     
     // Retry logic for connection issues
     int maxRetries = 3;

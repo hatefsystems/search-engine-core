@@ -410,6 +410,36 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                                  buffer, "Invalid JSON format", std::string(e.what()));
                 
                 badRequest(res, "Invalid JSON format");
+            } catch (const std::runtime_error& e) {
+                std::string errorMessage = std::string(e.what());
+                LOG_ERROR("Runtime error in addSiteToCrawl: " + errorMessage);
+                
+                // Check if this is a session limit error
+                if (errorMessage.find("Maximum concurrent sessions limit reached") != std::string::npos) {
+                    // Return a specific error for session limit
+                    nlohmann::json errorResponse = {
+                        {"error", {
+                            {"code", "TOO_MANY_REQUESTS"},
+                            {"message", "Server is currently busy processing other crawl requests. Please try again in a few moments."},
+                            {"details", "Maximum concurrent crawl sessions limit reached. Please wait for current crawls to complete."}
+                        }},
+                        {"success", false}
+                    };
+                    
+                    // Log API request error to database
+                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
+                                     buffer, "TOO_MANY_REQUESTS", errorMessage);
+                    
+                    res->writeStatus("429 Too Many Requests");
+                    res->writeHeader("Content-Type", "application/json");
+                    res->writeHeader("Retry-After", "30"); // Suggest retry after 30 seconds
+                    res->end(errorResponse.dump());
+                } else {
+                    // Other runtime errors
+                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
+                                     buffer, "Runtime error", errorMessage);
+                    serverError(res, "A runtime error occurred: " + errorMessage);
+                }
             } catch (const std::exception& e) {
                 LOG_ERROR("Unexpected error in addSiteToCrawl: " + std::string(e.what()));
                 
@@ -669,27 +699,16 @@ void SearchController::getCrawlDetails(uWS::HttpResponse<false>* res, uWS::HttpR
     }
 
     nlohmann::json response;
-    // Access ContentStorage from the crawler manager
-    // We'll need to access storage through a different approach since we have multiple crawlers
-    // For now, we'll create a direct storage connection similar to the crawler manager
+    // Use the singleton ContentStorage from crawler manager to prevent connection pool exhaustion
     std::shared_ptr<search_engine::storage::ContentStorage> storage;
     
-    try {
-        const char* mongoUri = std::getenv("MONGODB_URI");
-        std::string mongoConnectionString = mongoUri ? mongoUri : "mongodb://localhost:27017";
-        
-        const char* redisUri = std::getenv("SEARCH_REDIS_URI");
-        std::string redisConnectionString = redisUri ? redisUri : "tcp://127.0.0.1:6379";
-        
-        storage = std::make_shared<search_engine::storage::ContentStorage>(
-            mongoConnectionString,
-            "search-engine",
-            redisConnectionString,
-            "search_index"
-        );
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to create storage connection: " + std::string(e.what()));
-        serverError(res, "Database storage not available");
+    if (g_crawlerManager) {
+        // Use the existing singleton storage from crawler manager
+        storage = g_crawlerManager->getStorage();
+        LOG_DEBUG("Using singleton ContentStorage from crawler manager");
+    } else {
+        LOG_ERROR("CrawlerManager not initialized - cannot access storage");
+        serverError(res, "Crawler service not available");
         return;
     }
 

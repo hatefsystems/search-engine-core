@@ -77,6 +77,10 @@ public:
     
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
+    
+    
+    // Limit concurrent sessions to prevent MongoDB connection issues
+    static constexpr size_t MAX_CONCURRENT_SESSIONS = 5;
 
 private:
     std::shared_ptr<search_engine::storage::ContentStorage> storage_;

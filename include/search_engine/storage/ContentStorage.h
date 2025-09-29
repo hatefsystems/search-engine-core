@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace search_engine {
 namespace storage {
@@ -36,12 +37,16 @@ private:
     bool redisConnected_;
 #endif
     
+    // Mutex for thread-safe MongoDB operations
+    mutable std::mutex mongoMutex_;
+    
     // Helper methods
     SiteProfile crawlResultToSiteProfile(const CrawlResult& crawlResult) const;
     std::string extractSearchableContent(const CrawlResult& crawlResult) const;
     
     // Lazy connection methods
     void ensureMongoConnection();
+    void ensureMongoConnectionUnsafe(); // Internal method without locking
 #ifdef REDIS_AVAILABLE
     void ensureRedisConnection();
 #endif

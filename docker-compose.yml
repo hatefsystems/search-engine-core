@@ -134,7 +134,7 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password123
-    command: mongod --bind_ip_all
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0", "--maxConns", "100"]
     networks:
       - search-network
 
