@@ -124,12 +124,16 @@ private:
     // Track URLs currently in queues to prevent duplicates
     std::unordered_set<std::string> queuedURLs;
     
+    // Track retry counts separately since priority_queue doesn't allow iteration
+    std::unordered_map<std::string, int> retryCountMap;
+    
     // Mutexes for thread safety
     mutable std::mutex mainQueueMutex;
     mutable std::mutex retryQueueMutex;
     mutable std::mutex visitedMutex;
     mutable std::mutex domainMutex;
     mutable std::mutex queuedMutex;
+    mutable std::mutex retryCountMutex;
 
     // Persistence hooks
     search_engine::crawler::FrontierPersistence* persistence_ = nullptr;

@@ -207,9 +207,14 @@ void URLFrontier::scheduleRetry(const std::string& url,
     {
         std::lock_guard<std::mutex> retryLock(retryQueueMutex);
         std::lock_guard<std::mutex> queuedLock(queuedMutex);
+        std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
         
         retryQueue.push(retryUrl);
         queuedURLs.insert(normalizedURL);
+        
+        // Update retry count in tracking map
+        retryCountMap[normalizedURL] = retryCount;
+        
         if (persistence_) {
             persistence_->updateRetry(sessionId_, normalizedURL, retryCount, nextRetryTime);
         }
@@ -298,6 +303,11 @@ void URLFrontier::markVisited(const std::string& url) {
     std::lock_guard<std::mutex> domainLock(domainMutex);
     domainLastVisit[domain] = std::chrono::system_clock::now();
     LOG_DEBUG("Updated last visit time for domain: " + domain);
+    
+    // Clean up retry count for this URL since it's been processed
+    std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
+    retryCountMap.erase(normalizedURL);
+    LOG_DEBUG("Cleaned up retry count for URL: " + normalizedURL);
 }
 
 bool URLFrontier::isVisited(const std::string& url) const {
@@ -334,19 +344,18 @@ std::string URLFrontier::extractDomain(const std::string& url) const {
 QueuedURL URLFrontier::getQueuedURLInfo(const std::string& url) const {
     std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
     
-    // Check retry queue first
-    {
-        std::lock_guard<std::mutex> retryLock(retryQueueMutex);
-        // Note: priority_queue doesn't allow iteration, so we can't easily find specific URLs
-        // For now, return a default QueuedURL if not found
-    }
-    
-    // Return default QueuedURL
     QueuedURL result;
     result.url = normalizedURL;
-    result.retryCount = 0;
     result.priority = CrawlPriority::NORMAL;
     result.lastFailureType = FailureType::UNKNOWN;
+    
+    // Get retry count from our tracking map
+    {
+        std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
+        auto it = retryCountMap.find(normalizedURL);
+        result.retryCount = (it != retryCountMap.end()) ? it->second : 0;
+    }
+    
     return result;
 }
 
