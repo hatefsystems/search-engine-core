@@ -458,6 +458,8 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
 }
 
 void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Start timing from the very beginning of the request
+    auto requestStartTime = std::chrono::high_resolution_clock::now();
     LOG_INFO("SearchController::search called");
     
     // Parse query parameters
@@ -535,15 +537,26 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         searchArgs.push_back("content");
         searchArgs.push_back("score");
         
-        // Execute search
-        std::string rawResult = g_searchClient->search(searchIndex, qIt->second, searchArgs);
+        // Execute search (URL decode the query first)
+        std::string decodedQuery = urlDecode(qIt->second);
+        std::string rawResult = g_searchClient->search(searchIndex, decodedQuery, searchArgs);
         
         // Parse and format response
         nlohmann::json response = parseRedisSearchResponse(rawResult, page, limit);
         
+        // Calculate total request time from start to finish
+        auto requestEndTime = std::chrono::high_resolution_clock::now();
+        auto totalDuration = std::chrono::duration_cast<std::chrono::microseconds>(requestEndTime - requestStartTime);
+        double totalSeconds = totalDuration.count() / 1000000.0;
+        
+        // Add timing information to response
+        response["meta"]["queryTime"] = totalSeconds;
+        response["meta"]["queryTimeMs"] = totalDuration.count() / 1000.0;
+        
         LOG_INFO("Search request successful: q=" + qIt->second + 
                  ", page=" + std::to_string(page) + 
-                 ", limit=" + std::to_string(limit));
+                 ", limit=" + std::to_string(limit) +
+                 ", totalTime=" + std::to_string(totalSeconds) + "s");
         
         json(res, response);
         

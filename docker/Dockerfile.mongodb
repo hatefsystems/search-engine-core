@@ -25,21 +25,21 @@ RUN apt-get install -y \
 WORKDIR /mongodb
 
 # Download and install MongoDB C Driver
-RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.30.3/mongo-c-driver-1.30.3.tar.gz \
-    && tar xzf mongo-c-driver-1.30.3.tar.gz \
-    && cd mongo-c-driver-1.30.3 \
+RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/2.1.1/mongo-c-driver-2.1.1.tar.gz \
+    && tar xzf mongo-c-driver-2.1.1.tar.gz \
+    && cd mongo-c-driver-2.1.1 \
     && mkdir cmake-build \
     && cd cmake-build \
-    && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF .. \
+    && cmake .. \
     && cmake --build . \
     && cmake --build . --target install \
     && cd ../.. \
-    && rm -rf mongo-c-driver-1.30.3.tar.gz mongo-c-driver-1.30.3
+    && rm -rf mongo-c-driver-2.1.1.tar.gz mongo-c-driver-2.1.1
 
 # Download and install MongoDB C++ Driver
-RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r4.0.0/mongo-cxx-driver-r4.0.0.tar.gz \
-    && tar xzf mongo-cxx-driver-r4.0.0.tar.gz \
-    && cd mongo-cxx-driver-r4.0.0 \
+RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r4.1.2/mongo-cxx-driver-r4.1.2.tar.gz \
+    && tar xzf mongo-cxx-driver-r4.1.2.tar.gz \
+    && cd mongo-cxx-driver-r4.1.2 \
     && mkdir cmake-build \
     && cd cmake-build \
     && cmake .. \
@@ -51,7 +51,7 @@ RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r4.0.0/mo
     && cmake --build . \
     && cmake --build . --target install \
     && cd ../.. \
-    && rm -rf mongo-cxx-driver-r4.0.0.tar.gz mongo-cxx-driver-r4.0.0
+    && rm -rf mongo-cxx-driver-r4.1.2.tar.gz mongo-cxx-driver-r4.1.2
 
 # Clean up build directories
 RUN rm -rf /mongodb

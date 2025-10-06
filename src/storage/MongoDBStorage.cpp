@@ -150,48 +150,48 @@ CrawlMetadata MongoDBStorage::bsonToCrawlMetadata(const bsoncxx::document::view&
 bsoncxx::document::value MongoDBStorage::siteProfileToBson(const SiteProfile& profile) const {
     auto builder = document{};
     
+    // === SYSTEM IDENTIFIERS ===
     if (profile.id) {
         builder << "_id" << bsoncxx::oid{*profile.id};
     }
     
     builder << "domain" << profile.domain
-            << "url" << profile.url
-            << "title" << profile.title
-            << "isIndexed" << profile.isIndexed
-            << "lastModified" << timePointToBsonDate(profile.lastModified)
-            << "indexedAt" << timePointToBsonDate(profile.indexedAt);
+            << "url" << profile.url;
     
-    // Optional fields
+    // Canonical URL fields
+    if (!profile.canonicalUrl.empty()) {
+        builder << "canonicalUrl" << profile.canonicalUrl;
+    }
+    if (!profile.canonicalHost.empty()) {
+        builder << "canonicalHost" << profile.canonicalHost;
+    }
+    if (!profile.canonicalPath.empty()) {
+        builder << "canonicalPath" << profile.canonicalPath;
+    }
+    if (!profile.canonicalQuery.empty()) {
+        builder << "canonicalQuery" << profile.canonicalQuery;
+    }
+    
+    // === CONTENT INFORMATION ===
+    builder << "title" << profile.title;
+    
     if (profile.description) {
         builder << "description" << *profile.description;
     }
     if (profile.textContent) {
         builder << "textContent" << *profile.textContent;
     }
-    if (profile.language) {
-        builder << "language" << *profile.language;
+    if (profile.wordCount) {
+        builder << "wordCount" << *profile.wordCount;
     }
     if (profile.category) {
         builder << "category" << *profile.category;
     }
-    if (profile.pageRank) {
-        builder << "pageRank" << *profile.pageRank;
+    if (profile.language) {
+        builder << "language" << *profile.language;
     }
-    if (profile.contentQuality) {
-        builder << "contentQuality" << *profile.contentQuality;
-    }
-    if (profile.wordCount) {
-        builder << "wordCount" << *profile.wordCount;
-    }
-    if (profile.isMobile) {
-        builder << "isMobile" << *profile.isMobile;
-    }
-    if (profile.hasSSL) {
-        builder << "hasSSL" << *profile.hasSSL;
-    }
-    if (profile.inboundLinkCount) {
-        builder << "inboundLinkCount" << *profile.inboundLinkCount;
-    }
+    
+    // === AUTHORSHIP & PUBLISHING ===
     if (profile.author) {
         builder << "author" << *profile.author;
     }
@@ -201,8 +201,30 @@ bsoncxx::document::value MongoDBStorage::siteProfileToBson(const SiteProfile& pr
     if (profile.publishDate) {
         builder << "publishDate" << timePointToBsonDate(*profile.publishDate);
     }
+    builder << "lastModified" << timePointToBsonDate(profile.lastModified);
     
-    // Arrays
+    // === TECHNICAL METADATA ===
+    if (profile.hasSSL) {
+        builder << "hasSSL" << *profile.hasSSL;
+    }
+    if (profile.isMobile) {
+        builder << "isMobile" << *profile.isMobile;
+    }
+    if (profile.contentQuality) {
+        builder << "contentQuality" << *profile.contentQuality;
+    }
+    if (profile.pageRank) {
+        builder << "pageRank" << *profile.pageRank;
+    }
+    if (profile.inboundLinkCount) {
+        builder << "inboundLinkCount" << *profile.inboundLinkCount;
+    }
+    
+    // === SEARCH & INDEXING ===
+    builder << "isIndexed" << profile.isIndexed
+            << "indexedAt" << timePointToBsonDate(profile.indexedAt);
+    
+    // Arrays (keywords and outbound links)
     auto keywordsArray = bsoncxx::builder::stream::array{};
     for (const auto& keyword : profile.keywords) {
         keywordsArray << keyword;
@@ -215,7 +237,7 @@ bsoncxx::document::value MongoDBStorage::siteProfileToBson(const SiteProfile& pr
     }
     builder << "outboundLinks" << outboundLinksArray;
     
-    // Crawl metadata
+    // === CRAWL METADATA ===
     builder << "crawlMetadata" << crawlMetadataToBson(profile.crawlMetadata);
     
     return builder << finalize;
@@ -230,6 +252,29 @@ SiteProfile MongoDBStorage::bsonToSiteProfile(const bsoncxx::document::view& doc
     
     profile.domain = std::string(doc["domain"].get_string().value);
     profile.url = std::string(doc["url"].get_string().value);
+    
+    // Canonical URL fields
+    if (doc["canonicalUrl"]) {
+        profile.canonicalUrl = std::string(doc["canonicalUrl"].get_string().value);
+    } else {
+        profile.canonicalUrl = profile.url; // Fallback to original URL
+    }
+    if (doc["canonicalHost"]) {
+        profile.canonicalHost = std::string(doc["canonicalHost"].get_string().value);
+    } else {
+        profile.canonicalHost = profile.domain; // Fallback to domain
+    }
+    if (doc["canonicalPath"]) {
+        profile.canonicalPath = std::string(doc["canonicalPath"].get_string().value);
+    } else {
+        profile.canonicalPath = "/"; // Default path
+    }
+    if (doc["canonicalQuery"]) {
+        profile.canonicalQuery = std::string(doc["canonicalQuery"].get_string().value);
+    } else {
+        profile.canonicalQuery = ""; // Empty query
+    }
+    
     profile.title = std::string(doc["title"].get_string().value);
     profile.isIndexed = doc["isIndexed"].get_bool().value;
     profile.lastModified = bsonDateToTimePoint(doc["lastModified"].get_date());
@@ -299,25 +344,96 @@ SiteProfile MongoDBStorage::bsonToSiteProfile(const bsoncxx::document::view& doc
 
 Result<std::string> MongoDBStorage::storeSiteProfile(const SiteProfile& profile) {
     LOG_DEBUG("MongoDBStorage::storeSiteProfile called for URL: " + profile.url);
+    
     try {
-        auto doc = siteProfileToBson(profile);
-        LOG_TRACE("Site profile converted to BSON document");
+        // Serialize all MongoDB operations to prevent socket conflicts
+        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
         
-        auto result = siteProfilesCollection_.insert_one(doc.view());
+        // Use canonical URL for upsert to prevent duplicates
+        auto filter = document{} << "canonicalUrl" << profile.canonicalUrl << finalize;
+        
+        // Build the document to insert/update with improved field ordering
+        auto now = std::chrono::system_clock::now();
+        auto documentToUpsert = document{}
+            // === SYSTEM IDENTIFIERS ===
+            << "domain" << profile.domain
+            << "url" << profile.url
+            << "canonicalUrl" << profile.canonicalUrl
+            << "canonicalHost" << profile.canonicalHost
+            << "canonicalPath" << profile.canonicalPath
+            << "canonicalQuery" << profile.canonicalQuery
+            
+            // === CONTENT INFORMATION ===
+            << "title" << profile.title
+            << "description" << (profile.description ? *profile.description : "")
+            << "textContent" << (profile.textContent ? *profile.textContent : "")
+            << "wordCount" << (profile.wordCount ? *profile.wordCount : 0)
+            << "category" << (profile.category ? *profile.category : "")
+            
+            // === AUTHORSHIP & PUBLISHING ===
+            << "author" << (profile.author ? *profile.author : "")
+            << "publisher" << (profile.publisher ? *profile.publisher : "")
+            << "publishDate" << (profile.publishDate ? timePointToBsonDate(*profile.publishDate) : timePointToBsonDate(now))
+            << "lastModified" << timePointToBsonDate(profile.lastModified)
+            
+            // === TECHNICAL METADATA ===
+            << "hasSSL" << (profile.hasSSL ? *profile.hasSSL : false)
+            << "isMobile" << (profile.isMobile ? *profile.isMobile : false)
+            << "contentQuality" << (profile.contentQuality ? *profile.contentQuality : 0.0)
+            << "pageRank" << (profile.pageRank ? *profile.pageRank : 0)
+            << "inboundLinkCount" << (profile.inboundLinkCount ? *profile.inboundLinkCount : 0)
+            
+            // === SEARCH & INDEXING ===
+            << "isIndexed" << profile.isIndexed
+            << "indexedAt" << timePointToBsonDate(profile.indexedAt)
+            
+            // === CRAWL METADATA ===
+            << "crawlMetadata" << open_document
+                << "firstCrawlTime" << timePointToBsonDate(profile.crawlMetadata.firstCrawlTime)
+                << "lastCrawlTime" << timePointToBsonDate(profile.crawlMetadata.lastCrawlTime)
+                << "lastCrawlStatus" << crawlStatusToString(profile.crawlMetadata.lastCrawlStatus)
+                << "lastErrorMessage" << (profile.crawlMetadata.lastErrorMessage ? *profile.crawlMetadata.lastErrorMessage : "")
+                << "crawlCount" << profile.crawlMetadata.crawlCount
+                << "crawlIntervalHours" << profile.crawlMetadata.crawlIntervalHours
+                << "userAgent" << profile.crawlMetadata.userAgent
+                << "httpStatusCode" << profile.crawlMetadata.httpStatusCode
+                << "contentSize" << static_cast<int64_t>(profile.crawlMetadata.contentSize)
+                << "contentType" << profile.crawlMetadata.contentType
+                << "crawlDurationMs" << profile.crawlMetadata.crawlDurationMs
+            << close_document
+            
+            // === SYSTEM TIMESTAMPS ===
+            << "updatedAt" << timePointToBsonDate(now)
+        << finalize;
+        
+        // Create the upsert operation with $setOnInsert for fields that should only be set on insert
+        auto upsertDoc = document{}
+            << "$set" << documentToUpsert.view()
+            << "$setOnInsert" << open_document
+                << "createdAt" << timePointToBsonDate(now)
+            << close_document
+        << finalize;
+        
+        // Perform atomic upsert operation - this handles both insert and update in one command
+        auto result = siteProfilesCollection_.find_one_and_update(
+            filter.view(),
+            upsertDoc.view(),
+            mongocxx::options::find_one_and_update{}
+                .upsert(true)
+                .return_document(mongocxx::options::return_document::k_after)
+        );
         
         if (result) {
-            std::string id = result->inserted_id().get_oid().value.to_string();
-            LOG_INFO("Site profile stored successfully with ID: " + id + " for URL: " + profile.url);
-            return Result<std::string>::Success(
-                id,
-                "Site profile stored successfully"
-            );
+            std::string id = result->view()["_id"].get_oid().value.to_string();
+            LOG_INFO("Site profile upserted successfully with ID: " + id + " for canonical URL: " + profile.canonicalUrl);
+            return Result<std::string>::Success(id, "Site profile upserted successfully");
         } else {
-            LOG_ERROR("Failed to insert site profile for URL: " + profile.url);
-            return Result<std::string>::Failure("Failed to insert site profile");
+            LOG_ERROR("Failed to upsert site profile for canonical URL: " + profile.canonicalUrl);
+            return Result<std::string>::Failure("Failed to upsert site profile");
         }
+        
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error storing site profile for URL: " + profile.url + " - " + std::string(e.what()));
+        LOG_ERROR("MongoDB error upserting site profile for canonical URL: " + profile.canonicalUrl + " - " + std::string(e.what()));
         return Result<std::string>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
@@ -513,6 +629,26 @@ Result<bool> MongoDBStorage::ensureIndexes() {
         siteProfilesCollection_.create_index(domainIndex.view());
         siteProfilesCollection_.create_index(statusIndex.view());
         siteProfilesCollection_.create_index(lastModifiedIndex.view());
+        
+        // Create unique index for canonical URL to prevent duplicates
+        try {
+            auto canonicalUrlIndex = document{} << "canonicalUrl" << 1 << finalize;
+            mongocxx::options::index canonicalUrlIndexOptions;
+            canonicalUrlIndexOptions.unique(true);
+            siteProfilesCollection_.create_index(canonicalUrlIndex.view(), canonicalUrlIndexOptions);
+            LOG_INFO("Unique canonical URL index created successfully");
+        } catch (const mongocxx::exception& e) {
+            LOG_WARNING("Canonical URL index may already exist or failed to create: " + std::string(e.what()));
+        }
+        
+        // Create compound index for canonical host + path for efficient domain-based queries
+        try {
+            auto canonicalHostPathIndex = document{} << "canonicalHost" << 1 << "canonicalPath" << 1 << finalize;
+            siteProfilesCollection_.create_index(canonicalHostPathIndex.view());
+            LOG_INFO("Canonical host+path index created successfully");
+        } catch (const mongocxx::exception& e) {
+            LOG_WARNING("Canonical host+path index may already exist or failed to create: " + std::string(e.what()));
+        }
         
         // Create text index for full-text search with UTF-8/Unicode support
         try {
@@ -939,18 +1075,16 @@ Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::s
     try {
         using namespace bsoncxx::builder::stream;
         
-        // Try MongoDB text search first (better for Unicode/UTF-8), with fallback to regex
-        bsoncxx::document::value filter = document{} << finalize; // Initialize with empty document
-        bsoncxx::document::value sortDoc = document{} << finalize; // Initialize with empty document
+        // Use aggregation pipeline for deduplication by canonical URL
+        mongocxx::pipeline pipeline;
         
+        // Stage 1: Match documents based on search criteria
+        bsoncxx::document::value matchFilter = document{} << finalize;
         bool useTextSearch = false;
         
         try {
-            // First, try to create text search filter
-            filter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
-            // Sort by text score (relevance) first, then by last modified
-            sortDoc = document{} << "score" << open_document << "$meta" << "textScore" << close_document << "lastModified" << -1 << finalize;
-            
+            // Try MongoDB text search first
+            matchFilter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
             LOG_DEBUG("Using MongoDB text search for query: " + query);
             useTextSearch = true;
         } catch (const std::exception& e) {
@@ -960,9 +1094,9 @@ Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::s
         
         if (!useTextSearch) {
             // Fallback to regex search with better Unicode support
-            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize; // 'u' for Unicode support
+            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize;
             
-            filter = document{} 
+            matchFilter = document{} 
                 << "$or" << open_array
                     << open_document << "title" << searchRegex.view() << close_document
                     << open_document << "url" << searchRegex.view() << close_document
@@ -970,27 +1104,66 @@ Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::s
                     << open_document << "textContent" << searchRegex.view() << close_document
                 << close_array
             << finalize;
-            
-            sortDoc = document{} << "lastModified" << -1 << finalize;
         }
         
-        // Set up query options
-        mongocxx::options::find opts;
-        opts.limit(limit);
-        opts.skip(skip);
-        opts.sort(sortDoc.view());
+        pipeline.match(matchFilter.view());
         
-        auto cursor = siteProfilesCollection_.find(filter.view(), opts);
+        // Stage 2: Sort by relevance and freshness
+        if (useTextSearch) {
+            // Sort by text score first, then by last modified
+            auto sortDoc = document{} 
+                << "score" << open_document << "$meta" << "textScore" << close_document 
+                << "lastModified" << -1 
+            << finalize;
+            pipeline.sort(sortDoc.view());
+        } else {
+            // Sort by last modified
+            auto sortDoc = document{} << "lastModified" << -1 << finalize;
+            pipeline.sort(sortDoc.view());
+        }
+        
+        // Stage 3: Group by canonical URL to deduplicate, keeping the best document
+        auto groupDoc = document{}
+            << "_id" << "$canonicalUrl"
+            << "bestDoc" << open_document
+                << "$first" << "$$ROOT"
+            << close_document
+        << finalize;
+        pipeline.group(groupDoc.view());
+        
+        // Stage 4: Replace root with the best document
+        auto replaceRootDoc = document{}
+            << "newRoot" << "$bestDoc"
+        << finalize;
+        pipeline.replace_root(replaceRootDoc.view());
+        
+        // Stage 5: Sort again after deduplication
+        if (useTextSearch) {
+            auto sortDoc = document{} 
+                << "score" << open_document << "$meta" << "textScore" << close_document 
+                << "lastModified" << -1 
+            << finalize;
+            pipeline.sort(sortDoc.view());
+        } else {
+            auto sortDoc = document{} << "lastModified" << -1 << finalize;
+            pipeline.sort(sortDoc.view());
+        }
+        
+        // Stage 6: Skip and limit for pagination
+        pipeline.skip(skip);
+        pipeline.limit(limit);
+        
+        auto cursor = siteProfilesCollection_.aggregate(pipeline);
         
         std::vector<SiteProfile> profiles;
         for (const auto& doc : cursor) {
             profiles.push_back(bsonToSiteProfile(doc));
         }
         
-        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " site profiles for search query: " + query);
+        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " deduplicated site profiles for search query: " + query);
         return Result<std::vector<SiteProfile>>::Success(
             std::move(profiles),
-            "Site profiles search completed successfully"
+            "Site profiles search completed successfully with deduplication"
         );
         
     } catch (const mongocxx::exception& e) {
@@ -1005,14 +1178,16 @@ Result<int64_t> MongoDBStorage::countSearchResults(const std::string& query) {
     try {
         using namespace bsoncxx::builder::stream;
         
-        // Use the same search logic as searchSiteProfiles
-        bsoncxx::document::value filter = document{} << finalize; // Initialize with empty document
+        // Use aggregation pipeline for deduplicated count
+        mongocxx::pipeline pipeline;
         
+        // Stage 1: Match documents based on search criteria (same as searchSiteProfiles)
+        bsoncxx::document::value matchFilter = document{} << finalize;
         bool useTextSearch = false;
         
         try {
             // Try MongoDB text search first
-            filter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
+            matchFilter = document{} << "$text" << open_document << "$search" << query << close_document << finalize;
             LOG_DEBUG("Using MongoDB text search for count query: " + query);
             useTextSearch = true;
         } catch (const std::exception& e) {
@@ -1022,9 +1197,9 @@ Result<int64_t> MongoDBStorage::countSearchResults(const std::string& query) {
         
         if (!useTextSearch) {
             // Fallback to regex search with Unicode support
-            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize; // 'u' for Unicode support
+            auto searchRegex = document{} << "$regex" << query << "$options" << "iu" << finalize;
             
-            filter = document{} 
+            matchFilter = document{} 
                 << "$or" << open_array
                     << open_document << "title" << searchRegex.view() << close_document
                     << open_document << "url" << searchRegex.view() << close_document
@@ -1034,10 +1209,39 @@ Result<int64_t> MongoDBStorage::countSearchResults(const std::string& query) {
             << finalize;
         }
         
-        auto count = siteProfilesCollection_.count_documents(filter.view());
+        pipeline.match(matchFilter.view());
         
-        LOG_INFO("Found " + std::to_string(count) + " total results for search query: " + query);
-        return Result<int64_t>::Success(count, "Search result count retrieved successfully");
+        // Stage 2: Group by canonical URL to deduplicate
+        auto groupDoc = document{}
+            << "_id" << "$canonicalUrl"
+        << finalize;
+        pipeline.group(groupDoc.view());
+        
+        // Stage 3: Count the deduplicated results
+        auto countDoc = document{}
+            << "_id" << bsoncxx::types::b_null{}
+            << "count" << open_document << "$sum" << 1 << close_document
+        << finalize;
+        pipeline.group(countDoc.view());
+        
+        auto cursor = siteProfilesCollection_.aggregate(pipeline);
+        
+        int64_t count = 0;
+        for (const auto& doc : cursor) {
+            if (doc["count"]) {
+                auto countElement = doc["count"];
+                if (countElement.type() == bsoncxx::type::k_int32) {
+                    count = countElement.get_int32().value;
+                } else if (countElement.type() == bsoncxx::type::k_int64) {
+                    count = countElement.get_int64().value;
+                } else if (countElement.type() == bsoncxx::type::k_double) {
+                    count = static_cast<int64_t>(countElement.get_double().value);
+                }
+            }
+        }
+        
+        LOG_INFO("Found " + std::to_string(count) + " deduplicated results for search query: " + query);
+        return Result<int64_t>::Success(count, "Deduplicated search result count retrieved successfully");
         
     } catch (const mongocxx::exception& e) {
         LOG_ERROR("MongoDB error counting search results for query: " + query + " - " + std::string(e.what()));

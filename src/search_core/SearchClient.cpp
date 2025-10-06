@@ -88,14 +88,19 @@ std::string SearchClient::search(std::string_view index,
 
         LOG_DEBUG("SearchClient::search - Executing FT.SEARCH with " +
                   std::to_string(cmd_args.size()) + " arguments");
+        std::string cmdStr;
+        for (const auto& arg : cmd_args) {
+            cmdStr += arg + " ";
+        }
+        LOG_DEBUG("SearchClient::search - Command: " + cmdStr);
 
         // Execute the command and get the result
         auto reply = redis.command(cmd_args.begin(), cmd_args.end());
 
         LOG_DEBUG("✅ SearchClient::search - Redis command executed successfully");
+        LOG_DEBUG("SearchClient::search - Reply type: " + std::to_string(reply->type) + ", elements: " + std::to_string(reply->elements));
         
-        // Convert raw Redis reply to a simple string representation
-        // This is a basic implementation - in production you'd want more robust parsing
+        // Convert raw Redis reply to JSON string representation
         std::ostringstream oss;
         
         if (reply && reply->type == REDIS_REPLY_ARRAY) {
@@ -107,6 +112,21 @@ std::string SearchClient::search(std::string_view index,
                     oss << "\"" << std::string(element->str, element->len) << "\"";
                 } else if (element && element->type == REDIS_REPLY_INTEGER) {
                     oss << element->integer;
+                } else if (element && element->type == REDIS_REPLY_ARRAY) {
+                    // Handle nested arrays (document fields)
+                    oss << "[";
+                    for (size_t j = 0; j < element->elements; ++j) {
+                        if (j > 0) oss << ",";
+                        auto subElement = element->element[j];
+                        if (subElement && subElement->type == REDIS_REPLY_STRING) {
+                            oss << "\"" << std::string(subElement->str, subElement->len) << "\"";
+                        } else if (subElement && subElement->type == REDIS_REPLY_INTEGER) {
+                            oss << subElement->integer;
+                        } else {
+                            oss << "null";
+                        }
+                    }
+                    oss << "]";
                 } else {
                     oss << "null";
                 }
@@ -120,7 +140,9 @@ std::string SearchClient::search(std::string_view index,
             oss << "null";
         }
         
-        return oss.str();
+        std::string result = oss.str();
+        LOG_DEBUG("SearchClient::search - Generated JSON response: " + result);
+        return result;
     } catch (const sw::redis::Error& e) {
         throw SearchError("Search failed: " + std::string(e.what()));
     }

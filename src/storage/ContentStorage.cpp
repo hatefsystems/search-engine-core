@@ -1,5 +1,6 @@
 #include "../../include/search_engine/storage/ContentStorage.h"
 #include "../../include/search_engine/storage/ApiRequestLog.h"
+#include "../../include/search_engine/common/UrlCanonicalizer.h"
 #include "../../include/Logger.h"
 #include <mongocxx/exception/exception.hpp>
 #include <regex>
@@ -179,6 +180,13 @@ SiteProfile ContentStorage::crawlResultToSiteProfile(const CrawlResult& crawlRes
     // Basic information
     profile.url = crawlResult.url;
     profile.domain = extractDomain(crawlResult.url);
+    
+    // Canonicalize URL for deduplication
+    profile.canonicalUrl = search_engine::common::UrlCanonicalizer::canonicalize(crawlResult.url);
+    profile.canonicalHost = search_engine::common::UrlCanonicalizer::extractCanonicalHost(crawlResult.url);
+    profile.canonicalPath = search_engine::common::UrlCanonicalizer::extractCanonicalPath(crawlResult.url);
+    profile.canonicalQuery = search_engine::common::UrlCanonicalizer::extractCanonicalQuery(crawlResult.url);
+    
     profile.title = crawlResult.title.value_or("");
     profile.description = crawlResult.metaDescription;
     profile.textContent = crawlResult.textContent;

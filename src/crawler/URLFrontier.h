@@ -100,8 +100,7 @@ public:
     RetryStats getRetryStats() const;
     
 private:
-    // Normalize URL
-    std::string normalizeURL(const std::string& url) const;
+    // Note: normalizeURL method removed - now using UrlCanonicalizer::canonicalize() for consistent URL normalization
     
     // Remove a URL from the main queue (used during retry scheduling)
     void removeFromMainQueue(const std::string& url);

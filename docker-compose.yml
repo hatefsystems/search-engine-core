@@ -76,9 +76,12 @@ services:
       - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
       - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
     depends_on:
-      - redis
-      - mongodb
-      - js-minifier
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      js-minifier:
+        condition: service_healthy
       # - kafka
     networks:
       - search-network
@@ -109,17 +112,24 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:7.2.0-v7
     container_name: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+      - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     environment:
       - REDIS_MAXMEMORY=268435456  # 256MB in bytes
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - search-network
 
@@ -135,6 +145,12 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password123
     command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0", "--maxConns", "100"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - search-network
 

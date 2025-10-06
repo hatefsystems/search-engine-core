@@ -9,8 +9,8 @@ add_definitions(-DUWS_HTTPRESPONSE_NO_WRITEMARK)
 
 # Add MongoDB specific paths
 include_directories(/usr/local/include/mongocxx/v_noabi /usr/local/include/bsoncxx/v_noabi)
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/cmake/mongocxx-4.0.0")
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/cmake/bsoncxx-4.0.0")
+# Use newer MongoDB libraries
+set(CMAKE_PREFIX_PATH "/usr/local/lib/cmake/mongocxx-4.1.2;/usr/local/lib/cmake/bsoncxx-4.1.2;/usr/local/lib/cmake/bson-2.1.1;/usr/local/lib/cmake/mongoc-2.1.1")
 
 # Find required packages
 find_package(mongocxx REQUIRED CONFIG)
@@ -89,6 +89,7 @@ add_library(common STATIC
     src/common/Logger.cpp
     src/common/JsMinifierClient.cpp
     src/common/UrlSanitizer.cpp
+    src/common/UrlCanonicalizer.cpp
 )
 target_include_directories(common 
     PUBLIC 
@@ -209,6 +210,7 @@ install(EXPORT MongoDBInstanceTargets
     NAMESPACE SearchEngine::
     DESTINATION lib/cmake/SearchEngine
 )
+
 
 # Enable testing and add tests
 option(BUILD_TESTS "Build tests" OFF)

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(common)
 
 # Add common library
-add_library(common STATIC JsMinifierClient.cpp Logger.cpp UrlSanitizer.cpp)
+add_library(common STATIC JsMinifierClient.cpp Logger.cpp UrlSanitizer.cpp UrlCanonicalizer.cpp)
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
