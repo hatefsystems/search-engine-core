@@ -321,3 +321,38 @@ services:
 - **After Optimization**: 1-2 minutes for 5 pages
 - **Render Time**: 8-12 seconds per page (vs 22-24 seconds)
 - **Success Rate**: Maintained at 95%+
+
+## Content Validation & Quality Control
+
+The crawler implements comprehensive validation to ensure only high-quality, searchable content is stored:
+
+### Content Type Validation
+
+Only pages with text-based content types are saved:
+- ✅ **Allowed**: `text/html`, `text/plain`, `application/json`, `application/xml`, `text/xml`, `application/rss+xml`, `application/atom+xml`
+- ❌ **Blocked**: `image/*`, `video/*`, `audio/*`, `application/pdf`, `application/zip`, binary files
+
+### Content Quality Validation
+
+Pages must have both meaningful content:
+- ✅ **Required**: Non-empty title AND text content
+- ❌ **Skipped**: Empty pages, redirect-only pages, error pages without content
+
+### URL Validation
+
+Only valid web URLs are processed:
+- ✅ **Allowed**: HTTP and HTTPS URLs
+- ❌ **Blocked**: `mailto:`, `tel:`, `javascript:`, `data:`, `ftp:`, `file:`, browser extensions
+
+### Redirect Handling
+
+- **Automatic Following**: HTTP redirects are followed to final destination
+- **Final URL Storage**: Stores the final redirected URL, not the original
+- **Canonical URLs**: Uses canonical URLs for deduplication
+
+### Validation Benefits
+
+- **Storage Efficiency**: Prevents storing binary files and media content
+- **Search Quality**: Only text-based content is indexed for search
+- **Performance**: Reduces database size and improves search speed
+- **Resource Management**: Avoids wasting storage on non-searchable content

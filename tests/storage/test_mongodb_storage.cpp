@@ -8,51 +8,51 @@ using namespace search_engine::storage;
 
 // Test data helpers
 namespace {
-    SiteProfile createTestSiteProfile(const std::string& url = "https://example.com") {
-        SiteProfile profile;
-        profile.domain = "example.com";
-        profile.url = url;
-        profile.title = "Test Site";
-        profile.description = "A test website for unit testing";
-        profile.keywords = {"test", "example", "website"};
-        profile.language = "en";
-        profile.category = "technology";
+    IndexedPage createTestSiteProfile(const std::string& url = "https://example.com") {
+        IndexedPage page;
+        page.domain = "example.com";
+        page.url = url;
+        page.title = "Test Site";
+        page.description = "A test website for unit testing";
+        page.keywords = {"test", "example", "website"};
+        page.language = "en";
+        page.category = "technology";
         
         // Crawl metadata
         auto now = std::chrono::system_clock::now();
-        profile.crawlMetadata.lastCrawlTime = now;
-        profile.crawlMetadata.firstCrawlTime = now;
-        profile.crawlMetadata.lastCrawlStatus = CrawlStatus::SUCCESS;
-        profile.crawlMetadata.crawlCount = 1;
-        profile.crawlMetadata.crawlIntervalHours = 24.0;
-        profile.crawlMetadata.userAgent = "TestBot/1.0";
-        profile.crawlMetadata.httpStatusCode = 200;
-        profile.crawlMetadata.contentSize = 5000;
-        profile.crawlMetadata.contentType = "text/html";
-        profile.crawlMetadata.crawlDurationMs = 250.5;
+        page.crawlMetadata.lastCrawlTime = now;
+        page.crawlMetadata.firstCrawlTime = now;
+        page.crawlMetadata.lastCrawlStatus = CrawlStatus::SUCCESS;
+        page.crawlMetadata.crawlCount = 1;
+        page.crawlMetadata.crawlIntervalHours = 24.0;
+        page.crawlMetadata.userAgent = "TestBot/1.0";
+        page.crawlMetadata.httpStatusCode = 200;
+        page.crawlMetadata.contentSize = 5000;
+        page.crawlMetadata.contentType = "text/html";
+        page.crawlMetadata.crawlDurationMs = 250.5;
         
         // SEO metrics
-        profile.pageRank = 5;
-        profile.contentQuality = 0.8;
-        profile.wordCount = 500;
-        profile.isMobile = true;
-        profile.hasSSL = true;
+        page.pageRank = 5;
+        page.contentQuality = 0.8;
+        page.wordCount = 500;
+        page.isMobile = true;
+        page.hasSSL = true;
         
         // Links
-        profile.outboundLinks = {"https://example.org", "https://test.com"};
-        profile.inboundLinkCount = 10;
+        page.outboundLinks = {"https://example.org", "https://test.com"};
+        page.inboundLinkCount = 10;
         
         // Search relevance
-        profile.isIndexed = true;
-        profile.lastModified = now;
-        profile.indexedAt = now;
+        page.isIndexed = true;
+        page.lastModified = now;
+        page.indexedAt = now;
         
         // Additional metadata
-        profile.author = "John Doe";
-        profile.publisher = "Example Corp";
-        profile.publishDate = now - std::chrono::hours(24);
+        page.author = "John Doe";
+        page.publisher = "Example Corp";
+        page.publishDate = now - std::chrono::hours(24);
         
-        return profile;
+        return page;
     }
 }
 
@@ -80,7 +80,7 @@ TEST_CASE("MongoDB Storage - Connection and Initialization", "[mongodb][storage]
     }
 }
 
-TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][crud]") {
+TEST_CASE("MongoDB Storage - indexed page CRUD Operations", "[mongodb][storage][crud]") {
     MongoDBStorage storage("mongodb://localhost:27017", "test-search-engine");
     
     // Skip tests if MongoDB is not available
@@ -90,11 +90,11 @@ TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][
         return;
     }
     
-    SECTION("Store and retrieve site profile") {
-        SiteProfile testProfile = createTestSiteProfile("https://hatef.ir");
+    SECTION("Store and retrieve indexed page") {
+        IndexedPage testProfile = createTestSiteProfile("https://hatef.ir");
         
-        // Store the profile
-        auto storeResult = storage.storeSiteProfile(testProfile);
+        // Store the page
+        auto storeResult = storage.storeIndexedPage(testProfile);
         REQUIRE(storeResult.success);
         REQUIRE(!storeResult.value.empty());
         
@@ -104,7 +104,7 @@ TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][
         auto retrieveResult = storage.getSiteProfile("https://hatef.ir");
         REQUIRE(retrieveResult.success);
         
-        SiteProfile retrieved = retrieveResult.value;
+        IndexedPage retrieved = retrieveResult.value;
         REQUIRE(retrieved.url == testProfile.url);
         REQUIRE(retrieved.domain == testProfile.domain);
         REQUIRE(retrieved.title == testProfile.title);
@@ -122,31 +122,31 @@ TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][
         storage.deleteSiteProfile("https://hatef.ir");
     }
     
-    SECTION("Update site profile") {
-        SiteProfile testProfile = createTestSiteProfile("https://hatef.ir");
+    SECTION("Update indexed page") {
+        IndexedPage testProfile = createTestSiteProfile("https://hatef.ir");
         
-        // Store the profile
-        auto storeResult = storage.storeSiteProfile(testProfile);
+        // Store the page
+        auto storeResult = storage.storeIndexedPage(testProfile);
         REQUIRE(storeResult.success);
         
         // Retrieve and modify
         auto retrieveResult = storage.getSiteProfile("https://hatef.ir");
         REQUIRE(retrieveResult.success);
         
-        SiteProfile retrieved = retrieveResult.value;
+        IndexedPage retrieved = retrieveResult.value;
         retrieved.title = "Updated Title";
         retrieved.crawlMetadata.crawlCount = 2;
         retrieved.contentQuality = 0.9;
         
         // Update
-        auto updateResult = storage.updateSiteProfile(retrieved);
+        auto updateResult = storage.storeIndexedPage(retrieved);
         REQUIRE(updateResult.success);
         
         // Retrieve again and verify changes
         auto verifyResult = storage.getSiteProfile("https://hatef.ir");
         REQUIRE(verifyResult.success);
         
-        SiteProfile verified = verifyResult.value;
+        IndexedPage verified = verifyResult.value;
         REQUIRE(verified.title == "Updated Title");
         REQUIRE(verified.crawlMetadata.crawlCount == 2);
         REQUIRE(verified.contentQuality == 0.9);
@@ -155,11 +155,11 @@ TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][
         storage.deleteSiteProfile("https://hatef.ir");
     }
     
-    SECTION("Delete site profile") {
-        SiteProfile testProfile = createTestSiteProfile("https://test-delete.com");
+    SECTION("Delete indexed page") {
+        IndexedPage testProfile = createTestSiteProfile("https://test-delete.com");
         
-        // Store the profile
-        auto storeResult = storage.storeSiteProfile(testProfile);
+        // Store the page
+        auto storeResult = storage.storeIndexedPage(testProfile);
         REQUIRE(storeResult.success);
         
         // Verify it exists
@@ -175,7 +175,7 @@ TEST_CASE("MongoDB Storage - Site Profile CRUD Operations", "[mongodb][storage][
         REQUIRE(!verifyResult.success);
     }
     
-    SECTION("Non-existent profile retrieval") {
+    SECTION("Non-existent page retrieval") {
         auto result = storage.getSiteProfile("https://non-existent.com");
         REQUIRE(!result.success);
         REQUIRE(result.message.find("not found") != std::string::npos);

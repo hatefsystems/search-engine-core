@@ -87,6 +87,9 @@ public:
     // Extract domain from URL
     std::string extractDomain(const std::string& url) const;
     
+    // Validate that URL is a valid HTTP/HTTPS URL
+    bool isValidHttpUrl(const std::string& url) const;
+    
     // Mark completion in persistence (if configured)
     void markCompleted(const std::string& url);
     

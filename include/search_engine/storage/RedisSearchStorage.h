@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SiteProfile.h"
+#include "IndexedPage.h"
 #include "../../infrastructure.h"
 #include <sw/redis++/redis++.h>
 #include <string>
@@ -86,7 +86,7 @@ public:
     
     // Document indexing operations
     Result<bool> indexDocument(const SearchDocument& document);
-    Result<bool> indexSiteProfile(const SiteProfile& profile, const std::string& content);
+    Result<bool> indexSiteProfile(const IndexedPage& page, const std::string& content);
     Result<bool> updateDocument(const SearchDocument& document);
     Result<bool> deleteDocument(const std::string& url);
     
@@ -115,7 +115,7 @@ public:
     
     // Utility methods
     static SearchDocument siteProfileToSearchDocument(
-        const SiteProfile& profile, 
+        const IndexedPage& page, 
         const std::string& content
     );
 };

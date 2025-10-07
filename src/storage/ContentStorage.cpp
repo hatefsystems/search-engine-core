@@ -83,33 +83,25 @@ namespace {
 
 ContentStorage::ContentStorage(
     const std::string& mongoConnectionString,
-    const std::string& mongoDatabaseName
-#ifdef REDIS_AVAILABLE
-    ,const std::string& redisConnectionString,
+    const std::string& mongoDatabaseName,
+    const std::string& redisConnectionString,
     const std::string& redisIndexName
-#endif
 ) {
     LOG_DEBUG("ContentStorage constructor called");
     
     // Store connection parameters for lazy initialization
     mongoConnectionString_ = mongoConnectionString;
     mongoDatabaseName_ = mongoDatabaseName;
-#ifdef REDIS_AVAILABLE
     redisConnectionString_ = redisConnectionString;
     redisIndexName_ = redisIndexName;
-#endif
     
     // Initialize connection state
     mongoConnected_ = false;
-#ifdef REDIS_AVAILABLE
     redisConnected_ = false;
-#endif
     
     LOG_INFO("ContentStorage initialized with lazy connection handling");
     LOG_INFO("MongoDB will connect at: " + mongoConnectionString);
-#ifdef REDIS_AVAILABLE
     LOG_INFO("Redis will connect at: " + redisConnectionString);
-#endif
 }
 
 // Private method to ensure MongoDB connection (without locking - caller must lock)
@@ -149,7 +141,6 @@ void ContentStorage::ensureMongoConnection() {
     ensureMongoConnectionUnsafe();
 }
 
-#ifdef REDIS_AVAILABLE
 // Private method to ensure Redis connection
 void ContentStorage::ensureRedisConnection() {
     if (!redisConnected_ || !redisStorage_) {
@@ -172,62 +163,73 @@ void ContentStorage::ensureRedisConnection() {
         }
     }
 }
-#endif
 
-SiteProfile ContentStorage::crawlResultToSiteProfile(const CrawlResult& crawlResult) const {
-    SiteProfile profile;
+IndexedPage ContentStorage::crawlResultToSiteProfile(const CrawlResult& crawlResult) const {
+    IndexedPage page;
+    
+    // Use final URL after redirects if available, otherwise use original URL
+    std::string effectiveUrl = (!crawlResult.finalUrl.empty()) ? crawlResult.finalUrl : crawlResult.url;
     
     // Basic information
-    profile.url = crawlResult.url;
-    profile.domain = extractDomain(crawlResult.url);
+    page.url = effectiveUrl;
+    page.domain = extractDomain(effectiveUrl);
     
-    // Canonicalize URL for deduplication
-    profile.canonicalUrl = search_engine::common::UrlCanonicalizer::canonicalize(crawlResult.url);
-    profile.canonicalHost = search_engine::common::UrlCanonicalizer::extractCanonicalHost(crawlResult.url);
-    profile.canonicalPath = search_engine::common::UrlCanonicalizer::extractCanonicalPath(crawlResult.url);
-    profile.canonicalQuery = search_engine::common::UrlCanonicalizer::extractCanonicalQuery(crawlResult.url);
+    // Canonicalize URL for deduplication using the effective URL
+    page.canonicalUrl = search_engine::common::UrlCanonicalizer::canonicalize(effectiveUrl);
+    page.canonicalHost = search_engine::common::UrlCanonicalizer::extractCanonicalHost(effectiveUrl);
+    page.canonicalPath = search_engine::common::UrlCanonicalizer::extractCanonicalPath(effectiveUrl);
+    page.canonicalQuery = search_engine::common::UrlCanonicalizer::extractCanonicalQuery(effectiveUrl);
     
-    profile.title = crawlResult.title.value_or("");
-    profile.description = crawlResult.metaDescription;
-    profile.textContent = crawlResult.textContent;
+    LOG_INFO("=== CANONICALIZATION DEBUG ===");
+    LOG_INFO("Original URL: " + crawlResult.url);
+    LOG_INFO("Final URL: " + crawlResult.finalUrl);
+    LOG_INFO("Effective URL (used for storage): " + effectiveUrl);
+    LOG_INFO("Canonical URL: " + page.canonicalUrl);
+    LOG_INFO("Canonical Host: " + page.canonicalHost);
+    LOG_INFO("Canonical Path: " + page.canonicalPath);
+    LOG_INFO("Canonical Query: " + page.canonicalQuery);
+    
+    page.title = crawlResult.title.value_or("");
+    page.description = crawlResult.metaDescription;
+    page.textContent = crawlResult.textContent;
     
     // Technical metadata
-    profile.crawlMetadata.lastCrawlTime = crawlResult.crawlTime;
-    profile.crawlMetadata.firstCrawlTime = crawlResult.crawlTime; // Will be updated if exists
-    profile.crawlMetadata.lastCrawlStatus = crawlResult.success ? CrawlStatus::SUCCESS : CrawlStatus::FAILED;
-    profile.crawlMetadata.lastErrorMessage = crawlResult.errorMessage;
-    profile.crawlMetadata.crawlCount = 1; // Will be updated if exists
-    profile.crawlMetadata.crawlIntervalHours = 24.0; // Default interval
-    profile.crawlMetadata.userAgent = "Hatefbot/1.0";
-    profile.crawlMetadata.httpStatusCode = crawlResult.statusCode;
-    profile.crawlMetadata.contentSize = crawlResult.contentSize;
-    profile.crawlMetadata.contentType = crawlResult.contentType;
-    profile.crawlMetadata.crawlDurationMs = 0.0; // Not available in CrawlResult
+    page.crawlMetadata.lastCrawlTime = crawlResult.crawlTime;
+    page.crawlMetadata.firstCrawlTime = crawlResult.crawlTime; // Will be updated if exists
+    page.crawlMetadata.lastCrawlStatus = crawlResult.success ? CrawlStatus::SUCCESS : CrawlStatus::FAILED;
+    page.crawlMetadata.lastErrorMessage = crawlResult.errorMessage;
+    page.crawlMetadata.crawlCount = 1; // Will be updated if exists
+    page.crawlMetadata.crawlIntervalHours = 24.0; // Default interval
+    page.crawlMetadata.userAgent = "Hatefbot/1.0";
+    page.crawlMetadata.httpStatusCode = crawlResult.statusCode;
+    page.crawlMetadata.contentSize = crawlResult.contentSize;
+    page.crawlMetadata.contentType = crawlResult.contentType;
+    page.crawlMetadata.crawlDurationMs = 0.0; // Not available in CrawlResult
     
     // Extract keywords from content
     if (crawlResult.textContent) {
-        profile.keywords = extractKeywords(*crawlResult.textContent);
-        profile.wordCount = countWords(*crawlResult.textContent);
+        page.keywords = extractKeywords(*crawlResult.textContent);
+        page.wordCount = countWords(*crawlResult.textContent);
     }
     
     // Set technical flags
-    profile.hasSSL = hasSSL(crawlResult.url);
-    profile.isIndexed = crawlResult.success;
-    profile.lastModified = crawlResult.crawlTime;
-    profile.indexedAt = crawlResult.crawlTime;
+    page.hasSSL = hasSSL(crawlResult.url);
+    page.isIndexed = crawlResult.success;
+    page.lastModified = crawlResult.crawlTime;
+    page.indexedAt = crawlResult.crawlTime;
     
     // Extract outbound links
-    profile.outboundLinks = crawlResult.links;
+    page.outboundLinks = crawlResult.links;
     
     // Set default quality score based on content length and status
     if (crawlResult.success && crawlResult.textContent && !crawlResult.textContent->empty()) {
         double contentLength = static_cast<double>(crawlResult.textContent->length());
-        profile.contentQuality = std::min(1.0, contentLength / 10000.0); // Normalize to 0-1
+        page.contentQuality = std::min(1.0, contentLength / 10000.0); // Normalize to 0-1
     } else {
-        profile.contentQuality = 0.0;
+        page.contentQuality = 0.0;
     }
     
-    return profile;
+    return page;
 }
 
 std::string ContentStorage::extractSearchableContent(const CrawlResult& crawlResult) const {
@@ -266,52 +268,51 @@ Result<std::string> ContentStorage::storeCrawlResult(const CrawlResult& crawlRes
             return Result<std::string>::Failure("MongoDB not available");
         }
         
-        // Convert CrawlResult to SiteProfile
-        SiteProfile profile = crawlResultToSiteProfile(crawlResult);
-        LOG_TRACE("CrawlResult converted to SiteProfile for URL: " + crawlResult.url);
+        // Convert CrawlResult to IndexedPage
+        IndexedPage page = crawlResultToSiteProfile(crawlResult);
+        LOG_TRACE("CrawlResult converted to IndexedPage for URL: " + crawlResult.url);
         
-        // Check if site profile already exists
+        // Check if indexed page already exists
         auto existingProfile = mongoStorage_->getSiteProfile(crawlResult.url);
         if (existingProfile.success) {
-            LOG_INFO("Updating existing site profile for URL: " + crawlResult.url);
-            // Update existing profile
+            LOG_INFO("Updating existing indexed page for URL: " + crawlResult.url);
+            // Update existing page
             auto existing = existingProfile.value;
             
             // Update crawl metadata
-            profile.id = existing.id;
-            profile.crawlMetadata.firstCrawlTime = existing.crawlMetadata.firstCrawlTime;
-            profile.crawlMetadata.crawlCount = existing.crawlMetadata.crawlCount + 1;
+            page.id = existing.id;
+            page.crawlMetadata.firstCrawlTime = existing.crawlMetadata.firstCrawlTime;
+            page.crawlMetadata.crawlCount = existing.crawlMetadata.crawlCount + 1;
             
             // Keep existing fields that might have been manually set
-            if (!existing.category.has_value() && profile.category.has_value()) {
-                profile.category = existing.category;
+            if (!existing.category.has_value() && page.category.has_value()) {
+                page.category = existing.category;
             }
             if (existing.pageRank.has_value()) {
-                profile.pageRank = existing.pageRank;
+                page.pageRank = existing.pageRank;
             }
             if (existing.inboundLinkCount.has_value()) {
-                profile.inboundLinkCount = existing.inboundLinkCount;
+                page.inboundLinkCount = existing.inboundLinkCount;
             }
             
-            // Update the profile in MongoDB
-            auto mongoResult = mongoStorage_->updateSiteProfile(profile);
+            // Update the page in MongoDB
+            auto mongoResult = mongoStorage_->storeIndexedPage(page);
             if (!mongoResult.success) {
-                LOG_ERROR("Failed to update site profile in MongoDB for URL: " + crawlResult.url + " - " + mongoResult.message);
+                LOG_ERROR("Failed to update indexed page in MongoDB for URL: " + crawlResult.url + " - " + mongoResult.message);
                 return Result<std::string>::Failure("Failed to update in MongoDB: " + mongoResult.message);
             }
         } else {
-            LOG_INFO("Storing new site profile for URL: " + crawlResult.url);
-            // Store new profile in MongoDB
-            auto mongoResult = mongoStorage_->storeSiteProfile(profile);
+            LOG_INFO("Storing new indexed page for URL: " + crawlResult.url);
+            // Store new page in MongoDB
+            auto mongoResult = mongoStorage_->storeIndexedPage(page);
             if (!mongoResult.success) {
-                LOG_ERROR("Failed to store site profile in MongoDB for URL: " + crawlResult.url + " - " + mongoResult.message);
+                LOG_ERROR("Failed to store indexed page in MongoDB for URL: " + crawlResult.url + " - " + mongoResult.message);
                 return Result<std::string>::Failure("Failed to store in MongoDB: " + mongoResult.message);
             }
-            profile.id = mongoResult.value;
+            page.id = mongoResult.value;
         }
         
         // Index in Redis if successful and has content
-#ifdef REDIS_AVAILABLE
         if (crawlResult.success && crawlResult.textContent) {
             LOG_DEBUG("Indexing content in Redis for URL: " + crawlResult.url);
             
@@ -319,7 +320,7 @@ Result<std::string> ContentStorage::storeCrawlResult(const CrawlResult& crawlRes
             ensureRedisConnection();
             if (redisConnected_ && redisStorage_) {
                 std::string searchableContent = extractSearchableContent(crawlResult);
-                auto redisResult = redisStorage_->indexSiteProfile(profile, searchableContent);
+                auto redisResult = redisStorage_->indexSiteProfile(page, searchableContent);
                 if (!redisResult.success) {
                     LOG_WARNING("Failed to index in Redis for URL: " + crawlResult.url + " - " + redisResult.message);
                     // Log warning but don't fail the operation
@@ -329,11 +330,10 @@ Result<std::string> ContentStorage::storeCrawlResult(const CrawlResult& crawlRes
                 LOG_WARNING("Redis not available for indexing URL: " + crawlResult.url);
             }
         }
-#endif
         
-        LOG_INFO("Crawl result stored successfully for URL: " + crawlResult.url + " (ID: " + profile.id.value_or("") + ")");
+        LOG_INFO("Crawl result stored successfully for URL: " + crawlResult.url + " (ID: " + page.id.value_or("") + ")");
         return Result<std::string>::Success(
-            profile.id.value_or(""),
+            page.id.value_or(""),
             "Crawl result stored successfully"
         );
         
@@ -349,26 +349,26 @@ Result<bool> ContentStorage::updateCrawlResult(const CrawlResult& crawlResult) {
     return Result<bool>::Success(result.success, result.message);
 }
 
-Result<SiteProfile> ContentStorage::getSiteProfile(const std::string& url) {
+Result<IndexedPage> ContentStorage::getSiteProfile(const std::string& url) {
     ensureMongoConnection();
     if (!mongoConnected_ || !mongoStorage_) {
-        return Result<SiteProfile>::Failure("MongoDB not available");
+        return Result<IndexedPage>::Failure("MongoDB not available");
     }
     return mongoStorage_->getSiteProfile(url);
 }
 
-Result<std::vector<SiteProfile>> ContentStorage::getSiteProfilesByDomain(const std::string& domain) {
+Result<std::vector<IndexedPage>> ContentStorage::getSiteProfilesByDomain(const std::string& domain) {
     ensureMongoConnection();
     if (!mongoConnected_ || !mongoStorage_) {
-        return Result<std::vector<SiteProfile>>::Failure("MongoDB not available");
+        return Result<std::vector<IndexedPage>>::Failure("MongoDB not available");
     }
     return mongoStorage_->getSiteProfilesByDomain(domain);
 }
 
-Result<std::vector<SiteProfile>> ContentStorage::getSiteProfilesByCrawlStatus(CrawlStatus status) {
+Result<std::vector<IndexedPage>> ContentStorage::getSiteProfilesByCrawlStatus(CrawlStatus status) {
     ensureMongoConnection();
     if (!mongoConnected_ || !mongoStorage_) {
-        return Result<std::vector<SiteProfile>>::Failure("MongoDB not available");
+        return Result<std::vector<IndexedPage>>::Failure("MongoDB not available");
     }
     return mongoStorage_->getSiteProfilesByCrawlStatus(status);
 }
@@ -381,7 +381,7 @@ Result<int64_t> ContentStorage::getTotalSiteCount() {
     return mongoStorage_->getTotalSiteCount();
 }
 
-#ifdef REDIS_AVAILABLE
+
 Result<SearchResponse> ContentStorage::search(const SearchQuery& query) {
     ensureRedisConnection();
     if (!redisConnected_ || !redisStorage_) {
@@ -405,7 +405,6 @@ Result<std::vector<std::string>> ContentStorage::suggest(const std::string& pref
     }
     return redisStorage_->suggest(prefix, limit);
 }
-#endif
 
 Result<std::vector<std::string>> ContentStorage::storeCrawlResults(const std::vector<CrawlResult>& crawlResults) {
     LOG_DEBUG("ContentStorage::storeCrawlResults called with " + std::to_string(crawlResults.size()) + " results");
@@ -438,13 +437,11 @@ Result<bool> ContentStorage::initializeIndexes() {
             return Result<bool>::Failure("Failed to initialize MongoDB indexes: " + mongoResult.message);
         }
         
-#ifdef REDIS_AVAILABLE
         // Initialize Redis search index
         auto redisResult = redisStorage_->initializeIndex();
         if (!redisResult.success) {
             return Result<bool>::Failure("Failed to initialize Redis index: " + redisResult.message);
         }
-#endif
         
         return Result<bool>::Success(true, "All indexes initialized successfully");
         
@@ -453,7 +450,6 @@ Result<bool> ContentStorage::initializeIndexes() {
     }
 }
 
-#ifdef REDIS_AVAILABLE
 Result<bool> ContentStorage::reindexAll() {
     return redisStorage_->reindexAll();
 }
@@ -461,7 +457,6 @@ Result<bool> ContentStorage::reindexAll() {
 Result<bool> ContentStorage::dropIndexes() {
     return redisStorage_->dropIndex();
 }
-#endif
 
 Result<bool> ContentStorage::testConnections() {
     try {
@@ -471,13 +466,11 @@ Result<bool> ContentStorage::testConnections() {
             return Result<bool>::Failure("MongoDB connection failed: " + mongoResult.message);
         }
         
-#ifdef REDIS_AVAILABLE
         // Test Redis connection
         auto redisResult = redisStorage_->testConnection();
         if (!redisResult.success) {
             return Result<bool>::Failure("Redis connection failed: " + redisResult.message);
         }
-#endif
         
         return Result<bool>::Success(true, "All connections are healthy");
         
@@ -516,7 +509,6 @@ Result<std::unordered_map<std::string, std::string>> ContentStorage::getStorageS
             LOG_DEBUG("ContentStorage::getStorageStats() - Failed to get MongoDB successful crawls count: " + mongoSuccessCount.message);
         }
         
-#ifdef REDIS_AVAILABLE
         LOG_DEBUG("ContentStorage::getStorageStats() - Redis is available, getting Redis stats");
         // Get Redis stats
         LOG_DEBUG("ContentStorage::getStorageStats() - Attempting to get Redis document count");
@@ -550,9 +542,6 @@ Result<std::unordered_map<std::string, std::string>> ContentStorage::getStorageS
             stats["redis_info_error"] = redisInfo.message;
             LOG_DEBUG("ContentStorage::getStorageStats() - Added redis_info_error to stats");
         }
-#else
-        LOG_DEBUG("ContentStorage::getStorageStats() - Redis is not available (REDIS_AVAILABLE not defined)");
-#endif
         
         LOG_DEBUG("ContentStorage::getStorageStats() - Preparing to return success result with " + std::to_string(stats.size()) + " stats entries");
         return Result<std::unordered_map<std::string, std::string>>::Success(
@@ -573,10 +562,8 @@ Result<bool> ContentStorage::deleteSiteData(const std::string& url) {
         // Delete from MongoDB
         auto mongoResult = mongoStorage_->deleteSiteProfile(url);
         
-#ifdef REDIS_AVAILABLE
         // Delete from Redis (ignore if not found)
         auto redisResult = redisStorage_->deleteDocument(url);
-#endif
         
         if (mongoResult.success) {
             return Result<bool>::Success(true, "Site data deleted successfully");
@@ -597,18 +584,16 @@ Result<bool> ContentStorage::deleteDomainData(const std::string& domain) {
             return Result<bool>::Failure("Failed to get profiles for domain: " + profiles.message);
         }
         
-        // Delete each profile
-        for (const auto& profile : profiles.value) {
-            auto deleteResult = deleteSiteData(profile.url);
+        // Delete each page
+        for (const auto& page : profiles.value) {
+            auto deleteResult = deleteSiteData(page.url);
             if (!deleteResult.success) {
-                return Result<bool>::Failure("Failed to delete site data for " + profile.url);
+                return Result<bool>::Failure("Failed to delete site data for " + page.url);
             }
         }
         
-#ifdef REDIS_AVAILABLE
         // Delete from Redis by domain
         auto redisResult = redisStorage_->deleteDocumentsByDomain(domain);
-#endif
         
         return Result<bool>::Success(true, "Domain data deleted successfully");
         

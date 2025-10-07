@@ -1203,7 +1203,7 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
         };
         
         json(res, error, "400 Bad Request");
-        LOG_WARNING("Site profiles search request rejected: missing 'q' parameter");
+        LOG_WARNING("indexed pages search request rejected: missing 'q' parameter");
         return;
     }
     
@@ -1246,14 +1246,14 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
         // Check if MongoDBStorage is available
         if (!g_mongoStorage) {
             serverError(res, "Search service not available");
-            LOG_ERROR("MongoDBStorage not initialized for site profiles search");
+            LOG_ERROR("MongoDBStorage not initialized for indexed pages search");
             return;
         }
         
         // Calculate skip for pagination
         int skip = (page - 1) * limit;
         
-        LOG_DEBUG("Searching site profiles with query: '" + query + "', page: " + std::to_string(page) + 
+        LOG_DEBUG("Searching indexed pages with query: '" + query + "', page: " + std::to_string(page) + 
                   ", limit: " + std::to_string(limit) + ", skip: " + std::to_string(skip));
         
         // Get total count first
@@ -1269,7 +1269,7 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
         // Perform the search
         auto searchResult = g_mongoStorage->searchSiteProfiles(query, limit, skip);
         if (!searchResult.success) {
-            LOG_ERROR("Site profiles search failed: " + searchResult.message);
+            LOG_ERROR("indexed pages search failed: " + searchResult.message);
             serverError(res, "Search operation failed");
             return;
         }
@@ -1300,16 +1300,16 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
         
         // Add search results
         auto& resultsArray = response["data"]["results"];
-        for (const auto& profile : searchResult.value) {
+        for (const auto& page : searchResult.value) {
             nlohmann::json profileJson = {
-                {"url", profile.url},
-                {"title", profile.title},
-                {"domain", profile.domain}
+                {"url", page.url},
+                {"title", page.title},
+                {"domain", page.domain}
             };
             
             // Add description if available (truncated for long descriptions)
-            if (profile.description) {
-                std::string description = *profile.description;
+            if (page.description) {
+                std::string description = *page.description;
                 // Truncate descriptions longer than 300 characters
                 profileJson["description"] = truncateDescription(description, 300);
             } else {
@@ -1317,22 +1317,22 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
             }
             
             // Add optional fields if available
-            if (profile.pageRank) {
-                profileJson["pageRank"] = *profile.pageRank;
+            if (page.pageRank) {
+                profileJson["pageRank"] = *page.pageRank;
             }
             
-            if (profile.contentQuality) {
-                profileJson["contentQuality"] = *profile.contentQuality;
+            if (page.contentQuality) {
+                profileJson["contentQuality"] = *page.contentQuality;
             }
             
-            if (profile.wordCount) {
-                profileJson["wordCount"] = *profile.wordCount;
+            if (page.wordCount) {
+                profileJson["wordCount"] = *page.wordCount;
             }
             
             resultsArray.push_back(profileJson);
         }
         
-        LOG_INFO("Site profiles search completed successfully: query='" + query + 
+        LOG_INFO("indexed pages search completed successfully: query='" + query + 
                  "', results=" + std::to_string(searchResult.value.size()) + 
                  "/" + std::to_string(totalResults) + 
                  ", time=" + std::to_string(searchDuration.count()) + "ms");
@@ -1556,13 +1556,13 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 			
 			auto searchResult = g_mongoStorage->searchSiteProfiles(searchQuery, limit, skip);
 			if (!searchResult.success) {
-				LOG_ERROR("Site profiles search failed: " + searchResult.message);
+				LOG_ERROR("indexed pages search failed: " + searchResult.message);
 				serverError(res, "Search operation failed");
 				return;
 			}
 			
-			for (const auto& profile : searchResult.value) {
-				std::string displayUrl = profile.url;
+			for (const auto& page : searchResult.value) {
+				std::string displayUrl = page.url;
 
 				// Clean up display URL (remove protocol and www)
 				if (displayUrl.rfind("https://", 0) == 0) {
@@ -1575,13 +1575,13 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 				}
 
 				nlohmann::json formattedResult;
-				formattedResult["url"] = std::string(profile.url);
-				formattedResult["title"] = std::string(profile.title);
+				formattedResult["url"] = std::string(page.url);
+				formattedResult["title"] = std::string(page.title);
 				formattedResult["displayurl"] = std::string(displayUrl);
 
 				// Handle optional description with truncation for long descriptions
-				if (profile.description.has_value()) {
-					std::string description = std::string(*profile.description);
+				if (page.description.has_value()) {
+					std::string description = std::string(*page.description);
 					// Truncate descriptions longer than 300 characters
 					formattedResult["desc"] = truncateDescription(description, 300);
 				} else {

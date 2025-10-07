@@ -74,7 +74,7 @@ endif()
 
 # Define header files
 set(STORAGE_HEADERS
-    ../../include/search_engine/storage/SiteProfile.h
+    ../../include/search_engine/storage/IndexedPage.h
     ../../include/search_engine/storage/SponsorProfile.h
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h

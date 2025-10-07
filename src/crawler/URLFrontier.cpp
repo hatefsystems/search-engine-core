@@ -28,6 +28,12 @@ void URLFrontier::addURL(const std::string& url, bool force, CrawlPriority prior
               ", priority: " + std::to_string(static_cast<int>(priority)) + 
               ", depth: " + std::to_string(depth));
     
+    // Validate URL before processing (additional safety check)
+    if (!isValidHttpUrl(url)) {
+        LOG_DEBUG("Rejected URL in URLFrontier - invalid HTTP URL: " + url);
+        return;
+    }
+    
     std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     
     if (force) {
@@ -405,4 +411,37 @@ void URLFrontier::markCompleted(const std::string& url) {
     persistence_->markCompleted(sessionId_, normalized);
 }
 
-// Note: normalizeURL method removed - now using UrlCanonicalizer::canonicalize() for consistent URL normalization 
+// Note: normalizeURL method removed - now using UrlCanonicalizer::canonicalize() for consistent URL normalization
+
+bool URLFrontier::isValidHttpUrl(const std::string& url) const {
+    if (url.empty()) {
+        return false;
+    }
+    
+    // Check for invalid schemes that should not be crawled
+    std::string lowerUrl = url;
+    std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+    
+    // List of schemes that should not be crawled
+    std::vector<std::string> invalidSchemes = {
+        "mailto:", "tel:", "javascript:", "data:", "ftp:", "file:", "about:", 
+        "chrome:", "edge:", "safari:", "opera:", "moz-extension:", "chrome-extension:"
+    };
+    
+    // Check if URL starts with any invalid scheme
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find(scheme) == 0) {
+            return false;
+        }
+    }
+    
+    // Check for malformed URLs that might have invalid schemes embedded
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find("/" + scheme) != std::string::npos) {
+            return false;
+        }
+    }
+    
+    // Basic HTTP/HTTPS URL validation
+    return (url.find("http://") == 0 || url.find("https://") == 0);
+} 

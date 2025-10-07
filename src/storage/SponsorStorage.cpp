@@ -76,122 +76,122 @@ SponsorStatus SponsorStorage::stringToSponsorStatus(const std::string& status) {
     return SponsorStatus::PENDING; // Default
 }
 
-bsoncxx::document::value SponsorStorage::sponsorProfileToBson(const SponsorProfile& profile) const {
+bsoncxx::document::value SponsorStorage::sponsorProfileToBson(const SponsorProfile& page) const {
     auto builder = document{};
     
     // Add ID if it exists
-    if (profile.id) {
-        builder << "_id" << bsoncxx::oid{profile.id.value()};
+    if (page.id) {
+        builder << "_id" << bsoncxx::oid{page.id.value()};
     }
     
     // Required fields
-    builder << "fullName" << profile.fullName
-            << "email" << profile.email
-            << "mobile" << profile.mobile
-            << "plan" << profile.plan
-            << "amount" << profile.amount;
+    builder << "fullName" << page.fullName
+            << "email" << page.email
+            << "mobile" << page.mobile
+            << "plan" << page.plan
+            << "amount" << page.amount;
     
     // Optional company field
-    if (profile.company) {
-        builder << "company" << profile.company.value();
+    if (page.company) {
+        builder << "company" << page.company.value();
     }
     
     // Backend tracking data
-    builder << "ipAddress" << profile.ipAddress
-            << "userAgent" << profile.userAgent
-            << "submissionTime" << timePointToDate(profile.submissionTime)
-            << "lastModified" << timePointToDate(profile.lastModified);
+    builder << "ipAddress" << page.ipAddress
+            << "userAgent" << page.userAgent
+            << "submissionTime" << timePointToDate(page.submissionTime)
+            << "lastModified" << timePointToDate(page.lastModified);
     
     // Status and processing
-    builder << "status" << sponsorStatusToString(profile.status);
+    builder << "status" << sponsorStatusToString(page.status);
     
-    if (profile.notes) {
-        builder << "notes" << profile.notes.value();
+    if (page.notes) {
+        builder << "notes" << page.notes.value();
     }
     
-    if (profile.paymentReference) {
-        builder << "paymentReference" << profile.paymentReference.value();
+    if (page.paymentReference) {
+        builder << "paymentReference" << page.paymentReference.value();
     }
     
-    if (profile.paymentDate) {
-        builder << "paymentDate" << timePointToDate(profile.paymentDate.value());
+    if (page.paymentDate) {
+        builder << "paymentDate" << timePointToDate(page.paymentDate.value());
     }
     
     // Financial tracking
-    builder << "currency" << profile.currency;
+    builder << "currency" << page.currency;
     
-    if (profile.bankAccountInfo) {
-        builder << "bankAccountInfo" << profile.bankAccountInfo.value();
+    if (page.bankAccountInfo) {
+        builder << "bankAccountInfo" << page.bankAccountInfo.value();
     }
     
-    if (profile.transactionId) {
-        builder << "transactionId" << profile.transactionId.value();
+    if (page.transactionId) {
+        builder << "transactionId" << page.transactionId.value();
     }
     
     return builder << finalize;
 }
 
 SponsorProfile SponsorStorage::bsonToSponsorProfile(const bsoncxx::document::view& doc) const {
-    SponsorProfile profile;
+    SponsorProfile page;
     
     // ID
     if (doc["_id"]) {
-        profile.id = doc["_id"].get_oid().value.to_string();
+        page.id = doc["_id"].get_oid().value.to_string();
     }
     
     // Required fields
-    profile.fullName = std::string(doc["fullName"].get_string().value);
-    profile.email = std::string(doc["email"].get_string().value);
-    profile.mobile = std::string(doc["mobile"].get_string().value);
-    profile.plan = std::string(doc["plan"].get_string().value);
+    page.fullName = std::string(doc["fullName"].get_string().value);
+    page.email = std::string(doc["email"].get_string().value);
+    page.mobile = std::string(doc["mobile"].get_string().value);
+    page.plan = std::string(doc["plan"].get_string().value);
     
     if (doc["amount"].type() == bsoncxx::type::k_double) {
-        profile.amount = doc["amount"].get_double().value;
+        page.amount = doc["amount"].get_double().value;
     } else if (doc["amount"].type() == bsoncxx::type::k_int32) {
-        profile.amount = static_cast<double>(doc["amount"].get_int32().value);
+        page.amount = static_cast<double>(doc["amount"].get_int32().value);
     } else if (doc["amount"].type() == bsoncxx::type::k_int64) {
-        profile.amount = static_cast<double>(doc["amount"].get_int64().value);
+        page.amount = static_cast<double>(doc["amount"].get_int64().value);
     }
     
     // Optional company field
     if (doc["company"]) {
-        profile.company = std::string(doc["company"].get_string().value);
+        page.company = std::string(doc["company"].get_string().value);
     }
     
     // Backend tracking data
-    profile.ipAddress = std::string(doc["ipAddress"].get_string().value);
-    profile.userAgent = std::string(doc["userAgent"].get_string().value);
-    profile.submissionTime = dateToTimePoint(doc["submissionTime"].get_date());
-    profile.lastModified = dateToTimePoint(doc["lastModified"].get_date());
+    page.ipAddress = std::string(doc["ipAddress"].get_string().value);
+    page.userAgent = std::string(doc["userAgent"].get_string().value);
+    page.submissionTime = dateToTimePoint(doc["submissionTime"].get_date());
+    page.lastModified = dateToTimePoint(doc["lastModified"].get_date());
     
     // Status
-    profile.status = stringToSponsorStatus(std::string(doc["status"].get_string().value));
+    page.status = stringToSponsorStatus(std::string(doc["status"].get_string().value));
     
     // Optional fields
     if (doc["notes"]) {
-        profile.notes = std::string(doc["notes"].get_string().value);
+        page.notes = std::string(doc["notes"].get_string().value);
     }
     
     if (doc["paymentReference"]) {
-        profile.paymentReference = std::string(doc["paymentReference"].get_string().value);
+        page.paymentReference = std::string(doc["paymentReference"].get_string().value);
     }
     
     if (doc["paymentDate"]) {
-        profile.paymentDate = dateToTimePoint(doc["paymentDate"].get_date());
+        page.paymentDate = dateToTimePoint(doc["paymentDate"].get_date());
     }
     
     // Financial tracking
-    profile.currency = std::string(doc["currency"].get_string().value);
+    page.currency = std::string(doc["currency"].get_string().value);
     
     if (doc["bankAccountInfo"]) {
-        profile.bankAccountInfo = std::string(doc["bankAccountInfo"].get_string().value);
+        page.bankAccountInfo = std::string(doc["bankAccountInfo"].get_string().value);
     }
     
     if (doc["transactionId"]) {
-        profile.transactionId = std::string(doc["transactionId"].get_string().value);
+        page.transactionId = std::string(doc["transactionId"].get_string().value);
     }
     
-    return profile;
+    return page;
 }
 
 void SponsorStorage::ensureIndexes() {
@@ -214,21 +214,21 @@ void SponsorStorage::ensureIndexes() {
     }
 }
 
-Result<std::string> SponsorStorage::store(const SponsorProfile& profile) {
+Result<std::string> SponsorStorage::store(const SponsorProfile& page) {
     try {
-        auto doc = sponsorProfileToBson(profile);
+        auto doc = sponsorProfileToBson(page);
         auto result = sponsorCollection_.insert_one(doc.view());
         
         if (result) {
             std::string id = result->inserted_id().get_oid().value.to_string();
-            LOG_INFO("Stored sponsor profile with ID: " + id);
-            return Result<std::string>::Success(id, "Sponsor profile stored successfully");
+            LOG_INFO("Stored sponsor page with ID: " + id);
+            return Result<std::string>::Success(id, "Sponsor page stored successfully");
         } else {
-            LOG_ERROR("Failed to store sponsor profile");
-            return Result<std::string>::Failure("Failed to store sponsor profile");
+            LOG_ERROR("Failed to store sponsor page");
+            return Result<std::string>::Failure("Failed to store sponsor page");
         }
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error storing sponsor profile: " + std::string(e.what()));
+        LOG_ERROR("MongoDB error storing sponsor page: " + std::string(e.what()));
         return Result<std::string>::Failure("Database error: " + std::string(e.what()));
     }
 }
@@ -239,12 +239,12 @@ Result<SponsorProfile> SponsorStorage::findById(const std::string& id) {
         auto result = sponsorCollection_.find_one(filter.view());
         
         if (result) {
-            return Result<SponsorProfile>::Success(bsonToSponsorProfile(result->view()), "Sponsor profile found");
+            return Result<SponsorProfile>::Success(bsonToSponsorProfile(result->view()), "Sponsor page found");
         } else {
-            return Result<SponsorProfile>::Failure("Sponsor profile not found");
+            return Result<SponsorProfile>::Failure("Sponsor page not found");
         }
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error finding sponsor profile: " + std::string(e.what()));
+        LOG_ERROR("MongoDB error finding sponsor page: " + std::string(e.what()));
         return Result<SponsorProfile>::Failure("Database error: " + std::string(e.what()));
     }
 }
@@ -255,7 +255,7 @@ Result<std::optional<SponsorProfile>> SponsorStorage::findByEmail(const std::str
         auto result = sponsorCollection_.find_one(filter.view());
         
         if (result) {
-            return Result<std::optional<SponsorProfile>>::Success(bsonToSponsorProfile(result->view()), "Sponsor profile found");
+            return Result<std::optional<SponsorProfile>>::Success(bsonToSponsorProfile(result->view()), "Sponsor page found");
         } else {
             return Result<std::optional<SponsorProfile>>::Success(std::nullopt, "No sponsor found with this email");
         }

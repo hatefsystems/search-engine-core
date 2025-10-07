@@ -1,10 +1,8 @@
 #pragma once
 
 #include "MongoDBStorage.h"
-#ifdef REDIS_AVAILABLE
 #include "RedisSearchStorage.h"
-#endif
-#include "SiteProfile.h"
+#include "IndexedPage.h"
 #include "CrawlLog.h"
 #include "../../infrastructure.h"
 #include "../crawler/models/CrawlResult.h"
@@ -19,47 +17,37 @@ namespace storage {
 class ContentStorage {
 private:
     std::unique_ptr<MongoDBStorage> mongoStorage_;
-#ifdef REDIS_AVAILABLE
     std::unique_ptr<RedisSearchStorage> redisStorage_;
-#endif
     
     // Connection parameters for lazy initialization
     std::string mongoConnectionString_;
     std::string mongoDatabaseName_;
-#ifdef REDIS_AVAILABLE
     std::string redisConnectionString_;
     std::string redisIndexName_;
-#endif
     
     // Connection state tracking
     bool mongoConnected_;
-#ifdef REDIS_AVAILABLE
     bool redisConnected_;
-#endif
     
     // Mutex for thread-safe MongoDB operations
     mutable std::mutex mongoMutex_;
     
     // Helper methods
-    SiteProfile crawlResultToSiteProfile(const CrawlResult& crawlResult) const;
+    IndexedPage crawlResultToSiteProfile(const CrawlResult& crawlResult) const;
     std::string extractSearchableContent(const CrawlResult& crawlResult) const;
     
     // Lazy connection methods
     void ensureMongoConnection();
     void ensureMongoConnectionUnsafe(); // Internal method without locking
-#ifdef REDIS_AVAILABLE
     void ensureRedisConnection();
-#endif
     
 public:
     // Constructor
     explicit ContentStorage(
         const std::string& mongoConnectionString = "mongodb://localhost:27017",
-        const std::string& mongoDatabaseName = "search-engine"
-#ifdef REDIS_AVAILABLE
-        ,const std::string& redisConnectionString = "tcp://127.0.0.1:6379",
+        const std::string& mongoDatabaseName = "search-engine",
+        const std::string& redisConnectionString = "tcp://127.0.0.1:6379",
         const std::string& redisIndexName = "search_index"
-#endif
     );
     
     // Destructor
@@ -75,28 +63,24 @@ public:
     Result<std::string> storeCrawlResult(const CrawlResult& crawlResult);
     Result<bool> updateCrawlResult(const CrawlResult& crawlResult);
     
-    // Site profile operations (MongoDB)
-    Result<SiteProfile> getSiteProfile(const std::string& url);
-    Result<std::vector<SiteProfile>> getSiteProfilesByDomain(const std::string& domain);
-    Result<std::vector<SiteProfile>> getSiteProfilesByCrawlStatus(CrawlStatus status);
+    // indexed page operations (MongoDB)
+    Result<IndexedPage> getSiteProfile(const std::string& url);
+    Result<std::vector<IndexedPage>> getSiteProfilesByDomain(const std::string& domain);
+    Result<std::vector<IndexedPage>> getSiteProfilesByCrawlStatus(CrawlStatus status);
     Result<int64_t> getTotalSiteCount();
     
-#ifdef REDIS_AVAILABLE
     // Search operations (RedisSearch)
     Result<SearchResponse> search(const SearchQuery& query);
     Result<SearchResponse> searchSimple(const std::string& query, int limit = 10);
     Result<std::vector<std::string>> suggest(const std::string& prefix, int limit = 5);
-#endif
     
     // Batch operations
     Result<std::vector<std::string>> storeCrawlResults(const std::vector<CrawlResult>& crawlResults);
     
     // Index management
     Result<bool> initializeIndexes();
-#ifdef REDIS_AVAILABLE
     Result<bool> reindexAll();
     Result<bool> dropIndexes();
-#endif
     
     // Statistics and health checks
     Result<bool> testConnections();
@@ -118,9 +102,7 @@ public:
     
     // Get direct access to storage layers (for advanced operations)
     MongoDBStorage* getMongoStorage() const { return mongoStorage_.get(); }
-#ifdef REDIS_AVAILABLE
     RedisSearchStorage* getRedisStorage() const { return redisStorage_.get(); }
-#endif
 };
 
 } // namespace storage

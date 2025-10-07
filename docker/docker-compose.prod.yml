@@ -35,14 +35,18 @@ services:
       - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
       - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
       - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
-      - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
+      - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-true}
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
-      - redis
-      - mongodb
-      - browserless
-      - js-minifier
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      browserless:
+        condition: service_healthy
+      js-minifier:
+        condition: service_healthy
     stop_grace_period: 30s
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:

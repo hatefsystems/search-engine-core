@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SiteProfile.h"
+#include "IndexedPage.h"
 #include "CrawlLog.h"
 #include "ApiRequestLog.h"
 #include "../../infrastructure.h"
@@ -23,9 +23,9 @@ private:
     mongocxx::database database_;
     mongocxx::collection siteProfilesCollection_;
     
-    // Conversion methods between SiteProfile and BSON
-    bsoncxx::document::value siteProfileToBson(const SiteProfile& profile) const;
-    SiteProfile bsonToSiteProfile(const bsoncxx::document::view& doc) const;
+    // Conversion methods between IndexedPage and BSON
+    bsoncxx::document::value siteProfileToBson(const IndexedPage& page) const;
+    IndexedPage bsonToSiteProfile(const bsoncxx::document::view& doc) const;
     
     // Helper methods for BSON conversion
     bsoncxx::document::value crawlMetadataToBson(const CrawlMetadata& metadata) const;
@@ -57,19 +57,18 @@ public:
     MongoDBStorage& operator=(const MongoDBStorage&) = delete;
     
     // Core storage operations
-    Result<std::string> storeSiteProfile(const SiteProfile& profile);
-    Result<SiteProfile> getSiteProfile(const std::string& url);
-    Result<SiteProfile> getSiteProfileById(const std::string& id);
-    Result<bool> updateSiteProfile(const SiteProfile& profile);
+    Result<std::string> storeIndexedPage(const IndexedPage& page);
+    Result<IndexedPage> getSiteProfile(const std::string& url);
+    Result<IndexedPage> getSiteProfileById(const std::string& id);
     Result<bool> deleteSiteProfile(const std::string& url);
     
     // Batch operations
-    Result<std::vector<std::string>> storeSiteProfiles(const std::vector<SiteProfile>& profiles);
-    Result<std::vector<SiteProfile>> getSiteProfilesByDomain(const std::string& domain);
-    Result<std::vector<SiteProfile>> getSiteProfilesByCrawlStatus(CrawlStatus status);
+    Result<std::vector<std::string>> storeSiteProfiles(const std::vector<IndexedPage>& profiles);
+    Result<std::vector<IndexedPage>> getSiteProfilesByDomain(const std::string& domain);
+    Result<std::vector<IndexedPage>> getSiteProfilesByCrawlStatus(CrawlStatus status);
     
     // Search and filtering
-    Result<std::vector<SiteProfile>> searchSiteProfiles(
+    Result<std::vector<IndexedPage>> searchSiteProfiles(
         const std::string& query,
         int limit = 100,
         int skip = 0

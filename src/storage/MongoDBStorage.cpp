@@ -13,6 +13,7 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
+#include <algorithm>
 #include <thread>
 #include <chrono>
 
@@ -65,7 +66,7 @@ MongoDBStorage::MongoDBStorage(const std::string& connectionString, const std::s
         // Use shared client
         client_ = sharedClient.get();
         database_ = (*client_)[databaseName];
-        siteProfilesCollection_ = database_["site_profiles"];
+        siteProfilesCollection_ = database_["indexed_pages"];
         LOG_INFO("Connected to MongoDB database: " + databaseName);
         LOG_DEBUG("MongoDBStorage instance created - using shared client: " + connectionString);
         
@@ -147,259 +148,292 @@ CrawlMetadata MongoDBStorage::bsonToCrawlMetadata(const bsoncxx::document::view&
     return metadata;
 }
 
-bsoncxx::document::value MongoDBStorage::siteProfileToBson(const SiteProfile& profile) const {
+bsoncxx::document::value MongoDBStorage::siteProfileToBson(const IndexedPage& page) const {
     auto builder = document{};
     
     // === SYSTEM IDENTIFIERS ===
-    if (profile.id) {
-        builder << "_id" << bsoncxx::oid{*profile.id};
+    if (page.id) {
+        builder << "_id" << bsoncxx::oid{*page.id};
     }
     
-    builder << "domain" << profile.domain
-            << "url" << profile.url;
+    builder << "domain" << page.domain
+            << "url" << page.url;
     
     // Canonical URL fields
-    if (!profile.canonicalUrl.empty()) {
-        builder << "canonicalUrl" << profile.canonicalUrl;
+    if (!page.canonicalUrl.empty()) {
+        builder << "canonicalUrl" << page.canonicalUrl;
     }
-    if (!profile.canonicalHost.empty()) {
-        builder << "canonicalHost" << profile.canonicalHost;
+    if (!page.canonicalHost.empty()) {
+        builder << "canonicalHost" << page.canonicalHost;
     }
-    if (!profile.canonicalPath.empty()) {
-        builder << "canonicalPath" << profile.canonicalPath;
+    if (!page.canonicalPath.empty()) {
+        builder << "canonicalPath" << page.canonicalPath;
     }
-    if (!profile.canonicalQuery.empty()) {
-        builder << "canonicalQuery" << profile.canonicalQuery;
+    if (!page.canonicalQuery.empty()) {
+        builder << "canonicalQuery" << page.canonicalQuery;
     }
     
     // === CONTENT INFORMATION ===
-    builder << "title" << profile.title;
+    builder << "title" << page.title;
     
-    if (profile.description) {
-        builder << "description" << *profile.description;
+    if (page.description) {
+        builder << "description" << *page.description;
     }
-    if (profile.textContent) {
-        builder << "textContent" << *profile.textContent;
+    if (page.textContent) {
+        builder << "textContent" << *page.textContent;
     }
-    if (profile.wordCount) {
-        builder << "wordCount" << *profile.wordCount;
+    if (page.wordCount) {
+        builder << "wordCount" << *page.wordCount;
     }
-    if (profile.category) {
-        builder << "category" << *profile.category;
+    if (page.category) {
+        builder << "category" << *page.category;
     }
-    if (profile.language) {
-        builder << "language" << *profile.language;
+    if (page.language) {
+        builder << "language" << *page.language;
     }
     
     // === AUTHORSHIP & PUBLISHING ===
-    if (profile.author) {
-        builder << "author" << *profile.author;
+    if (page.author) {
+        builder << "author" << *page.author;
     }
-    if (profile.publisher) {
-        builder << "publisher" << *profile.publisher;
+    if (page.publisher) {
+        builder << "publisher" << *page.publisher;
     }
-    if (profile.publishDate) {
-        builder << "publishDate" << timePointToBsonDate(*profile.publishDate);
+    if (page.publishDate) {
+        builder << "publishDate" << timePointToBsonDate(*page.publishDate);
     }
-    builder << "lastModified" << timePointToBsonDate(profile.lastModified);
+    builder << "lastModified" << timePointToBsonDate(page.lastModified);
     
     // === TECHNICAL METADATA ===
-    if (profile.hasSSL) {
-        builder << "hasSSL" << *profile.hasSSL;
+    if (page.hasSSL) {
+        builder << "hasSSL" << *page.hasSSL;
     }
-    if (profile.isMobile) {
-        builder << "isMobile" << *profile.isMobile;
+    if (page.isMobile) {
+        builder << "isMobile" << *page.isMobile;
     }
-    if (profile.contentQuality) {
-        builder << "contentQuality" << *profile.contentQuality;
+    if (page.contentQuality) {
+        builder << "contentQuality" << *page.contentQuality;
     }
-    if (profile.pageRank) {
-        builder << "pageRank" << *profile.pageRank;
+    if (page.pageRank) {
+        builder << "pageRank" << *page.pageRank;
     }
-    if (profile.inboundLinkCount) {
-        builder << "inboundLinkCount" << *profile.inboundLinkCount;
+    if (page.inboundLinkCount) {
+        builder << "inboundLinkCount" << *page.inboundLinkCount;
     }
     
     // === SEARCH & INDEXING ===
-    builder << "isIndexed" << profile.isIndexed
-            << "indexedAt" << timePointToBsonDate(profile.indexedAt);
+    builder << "isIndexed" << page.isIndexed
+            << "indexedAt" << timePointToBsonDate(page.indexedAt);
     
     // Arrays (keywords and outbound links)
     auto keywordsArray = bsoncxx::builder::stream::array{};
-    for (const auto& keyword : profile.keywords) {
+    for (const auto& keyword : page.keywords) {
         keywordsArray << keyword;
     }
     builder << "keywords" << keywordsArray;
     
     auto outboundLinksArray = bsoncxx::builder::stream::array{};
-    for (const auto& link : profile.outboundLinks) {
+    for (const auto& link : page.outboundLinks) {
         outboundLinksArray << link;
     }
     builder << "outboundLinks" << outboundLinksArray;
     
     // === CRAWL METADATA ===
-    builder << "crawlMetadata" << crawlMetadataToBson(profile.crawlMetadata);
+    builder << "crawlMetadata" << crawlMetadataToBson(page.crawlMetadata);
     
     return builder << finalize;
 }
 
-SiteProfile MongoDBStorage::bsonToSiteProfile(const bsoncxx::document::view& doc) const {
-    SiteProfile profile;
+IndexedPage MongoDBStorage::bsonToSiteProfile(const bsoncxx::document::view& doc) const {
+    IndexedPage page;
     
     if (doc["_id"]) {
-        profile.id = std::string(doc["_id"].get_oid().value.to_string());
+        page.id = std::string(doc["_id"].get_oid().value.to_string());
     }
     
-    profile.domain = std::string(doc["domain"].get_string().value);
-    profile.url = std::string(doc["url"].get_string().value);
+    page.domain = std::string(doc["domain"].get_string().value);
+    page.url = std::string(doc["url"].get_string().value);
     
     // Canonical URL fields
     if (doc["canonicalUrl"]) {
-        profile.canonicalUrl = std::string(doc["canonicalUrl"].get_string().value);
+        page.canonicalUrl = std::string(doc["canonicalUrl"].get_string().value);
     } else {
-        profile.canonicalUrl = profile.url; // Fallback to original URL
+        page.canonicalUrl = page.url; // Fallback to original URL
     }
     if (doc["canonicalHost"]) {
-        profile.canonicalHost = std::string(doc["canonicalHost"].get_string().value);
+        page.canonicalHost = std::string(doc["canonicalHost"].get_string().value);
     } else {
-        profile.canonicalHost = profile.domain; // Fallback to domain
+        page.canonicalHost = page.domain; // Fallback to domain
     }
     if (doc["canonicalPath"]) {
-        profile.canonicalPath = std::string(doc["canonicalPath"].get_string().value);
+        page.canonicalPath = std::string(doc["canonicalPath"].get_string().value);
     } else {
-        profile.canonicalPath = "/"; // Default path
+        page.canonicalPath = "/"; // Default path
     }
     if (doc["canonicalQuery"]) {
-        profile.canonicalQuery = std::string(doc["canonicalQuery"].get_string().value);
+        page.canonicalQuery = std::string(doc["canonicalQuery"].get_string().value);
     } else {
-        profile.canonicalQuery = ""; // Empty query
+        page.canonicalQuery = ""; // Empty query
     }
     
-    profile.title = std::string(doc["title"].get_string().value);
-    profile.isIndexed = doc["isIndexed"].get_bool().value;
-    profile.lastModified = bsonDateToTimePoint(doc["lastModified"].get_date());
-    profile.indexedAt = bsonDateToTimePoint(doc["indexedAt"].get_date());
+    page.title = std::string(doc["title"].get_string().value);
+    page.isIndexed = doc["isIndexed"].get_bool().value;
+    page.lastModified = bsonDateToTimePoint(doc["lastModified"].get_date());
+    page.indexedAt = bsonDateToTimePoint(doc["indexedAt"].get_date());
     
     // Optional fields
     if (doc["description"]) {
-        profile.description = std::string(doc["description"].get_string().value);
+        page.description = std::string(doc["description"].get_string().value);
     }
     if (doc["textContent"]) {
-        profile.textContent = std::string(doc["textContent"].get_string().value);
+        page.textContent = std::string(doc["textContent"].get_string().value);
     }
     if (doc["language"]) {
-        profile.language = std::string(doc["language"].get_string().value);
+        page.language = std::string(doc["language"].get_string().value);
     }
     if (doc["category"]) {
-        profile.category = std::string(doc["category"].get_string().value);
+        page.category = std::string(doc["category"].get_string().value);
     }
     if (doc["pageRank"]) {
-        profile.pageRank = doc["pageRank"].get_int32().value;
+        page.pageRank = doc["pageRank"].get_int32().value;
     }
     if (doc["contentQuality"]) {
-        profile.contentQuality = doc["contentQuality"].get_double().value;
+        page.contentQuality = doc["contentQuality"].get_double().value;
     }
     if (doc["wordCount"]) {
-        profile.wordCount = doc["wordCount"].get_int32().value;
+        page.wordCount = doc["wordCount"].get_int32().value;
     }
     if (doc["isMobile"]) {
-        profile.isMobile = doc["isMobile"].get_bool().value;
+        page.isMobile = doc["isMobile"].get_bool().value;
     }
     if (doc["hasSSL"]) {
-        profile.hasSSL = doc["hasSSL"].get_bool().value;
+        page.hasSSL = doc["hasSSL"].get_bool().value;
     }
     if (doc["inboundLinkCount"]) {
-        profile.inboundLinkCount = doc["inboundLinkCount"].get_int32().value;
+        page.inboundLinkCount = doc["inboundLinkCount"].get_int32().value;
     }
     if (doc["author"]) {
-        profile.author = std::string(doc["author"].get_string().value);
+        page.author = std::string(doc["author"].get_string().value);
     }
     if (doc["publisher"]) {
-        profile.publisher = std::string(doc["publisher"].get_string().value);
+        page.publisher = std::string(doc["publisher"].get_string().value);
     }
     if (doc["publishDate"]) {
-        profile.publishDate = bsonDateToTimePoint(doc["publishDate"].get_date());
+        page.publishDate = bsonDateToTimePoint(doc["publishDate"].get_date());
     }
     
     // Arrays
     if (doc["keywords"]) {
         for (const auto& keyword : doc["keywords"].get_array().value) {
-            profile.keywords.push_back(std::string(keyword.get_string().value));
+            page.keywords.push_back(std::string(keyword.get_string().value));
         }
     }
     
     if (doc["outboundLinks"]) {
         for (const auto& link : doc["outboundLinks"].get_array().value) {
-            profile.outboundLinks.push_back(std::string(link.get_string().value));
+            page.outboundLinks.push_back(std::string(link.get_string().value));
         }
     }
     
     // Crawl metadata
     if (doc["crawlMetadata"]) {
-        profile.crawlMetadata = bsonToCrawlMetadata(doc["crawlMetadata"].get_document().view());
+        page.crawlMetadata = bsonToCrawlMetadata(doc["crawlMetadata"].get_document().view());
     }
     
-    return profile;
+    return page;
 }
 
-Result<std::string> MongoDBStorage::storeSiteProfile(const SiteProfile& profile) {
-    LOG_DEBUG("MongoDBStorage::storeSiteProfile called for URL: " + profile.url);
+Result<std::string> MongoDBStorage::storeIndexedPage(const IndexedPage& page) {
+    LOG_DEBUG("MongoDBStorage::storeIndexedPage called for URL: " + page.url);
+    
+    // Validate content type - only save HTML/text content
+    std::string contentType = page.crawlMetadata.contentType;
+    std::string lowerContentType = contentType;
+    std::transform(lowerContentType.begin(), lowerContentType.end(), lowerContentType.begin(), ::tolower);
+    
+    // List of allowed content types for saving
+    bool isAllowedContentType = (
+        lowerContentType.find("text/html") == 0 ||
+        lowerContentType.find("text/plain") == 0 ||
+        lowerContentType.find("application/json") == 0 ||
+        lowerContentType.find("application/xml") == 0 ||
+        lowerContentType.find("text/xml") == 0 ||
+        lowerContentType.find("application/rss+xml") == 0 ||
+        lowerContentType.find("application/atom+xml") == 0
+    );
+    
+    if (!isAllowedContentType) {
+        LOG_INFO("Skipping page save - unsupported content type: " + contentType + " for URL: " + page.url);
+        return Result<std::string>::Failure("Page skipped - unsupported content type: " + contentType);
+    }
+    
+    // Validate that page has both title and textContent before saving
+    bool hasTitle = !page.title.empty();
+    bool hasTextContent = page.textContent.has_value() && !page.textContent->empty();
+    
+    if (!hasTitle && !hasTextContent) {
+        std::string reason = "missing both title and textContent";
+        
+        LOG_INFO("Skipping page save - " + reason + " for URL: " + page.url);
+        return Result<std::string>::Failure("Page skipped - " + reason);
+    }
     
     try {
         // Serialize all MongoDB operations to prevent socket conflicts
         std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
         
         // Use canonical URL for upsert to prevent duplicates
-        auto filter = document{} << "canonicalUrl" << profile.canonicalUrl << finalize;
+        auto filter = document{} << "canonicalUrl" << page.canonicalUrl << finalize;
+
         
         // Build the document to insert/update with improved field ordering
         auto now = std::chrono::system_clock::now();
         auto documentToUpsert = document{}
             // === SYSTEM IDENTIFIERS ===
-            << "domain" << profile.domain
-            << "url" << profile.url
-            << "canonicalUrl" << profile.canonicalUrl
-            << "canonicalHost" << profile.canonicalHost
-            << "canonicalPath" << profile.canonicalPath
-            << "canonicalQuery" << profile.canonicalQuery
+            << "domain" << page.domain
+            << "url" << page.url
+            << "canonicalUrl" << page.canonicalUrl
+            << "canonicalHost" << page.canonicalHost
+            << "canonicalPath" << page.canonicalPath
+            << "canonicalQuery" << page.canonicalQuery
             
             // === CONTENT INFORMATION ===
-            << "title" << profile.title
-            << "description" << (profile.description ? *profile.description : "")
-            << "textContent" << (profile.textContent ? *profile.textContent : "")
-            << "wordCount" << (profile.wordCount ? *profile.wordCount : 0)
-            << "category" << (profile.category ? *profile.category : "")
+            << "title" << page.title
+            << "description" << (page.description ? *page.description : "")
+            << "textContent" << (page.textContent ? *page.textContent : "")
+            << "wordCount" << (page.wordCount ? *page.wordCount : 0)
+            << "category" << (page.category ? *page.category : "")
             
             // === AUTHORSHIP & PUBLISHING ===
-            << "author" << (profile.author ? *profile.author : "")
-            << "publisher" << (profile.publisher ? *profile.publisher : "")
-            << "publishDate" << (profile.publishDate ? timePointToBsonDate(*profile.publishDate) : timePointToBsonDate(now))
-            << "lastModified" << timePointToBsonDate(profile.lastModified)
+            << "author" << (page.author ? *page.author : "")
+            << "publisher" << (page.publisher ? *page.publisher : "")
+            << "publishDate" << (page.publishDate ? timePointToBsonDate(*page.publishDate) : timePointToBsonDate(now))
+            << "lastModified" << timePointToBsonDate(page.lastModified)
             
             // === TECHNICAL METADATA ===
-            << "hasSSL" << (profile.hasSSL ? *profile.hasSSL : false)
-            << "isMobile" << (profile.isMobile ? *profile.isMobile : false)
-            << "contentQuality" << (profile.contentQuality ? *profile.contentQuality : 0.0)
-            << "pageRank" << (profile.pageRank ? *profile.pageRank : 0)
-            << "inboundLinkCount" << (profile.inboundLinkCount ? *profile.inboundLinkCount : 0)
+            << "hasSSL" << (page.hasSSL ? *page.hasSSL : false)
+            << "isMobile" << (page.isMobile ? *page.isMobile : false)
+            << "contentQuality" << (page.contentQuality ? *page.contentQuality : 0.0)
+            << "pageRank" << (page.pageRank ? *page.pageRank : 0)
+            << "inboundLinkCount" << (page.inboundLinkCount ? *page.inboundLinkCount : 0)
             
             // === SEARCH & INDEXING ===
-            << "isIndexed" << profile.isIndexed
-            << "indexedAt" << timePointToBsonDate(profile.indexedAt)
+            << "isIndexed" << page.isIndexed
+            << "indexedAt" << timePointToBsonDate(page.indexedAt)
             
             // === CRAWL METADATA ===
             << "crawlMetadata" << open_document
-                << "firstCrawlTime" << timePointToBsonDate(profile.crawlMetadata.firstCrawlTime)
-                << "lastCrawlTime" << timePointToBsonDate(profile.crawlMetadata.lastCrawlTime)
-                << "lastCrawlStatus" << crawlStatusToString(profile.crawlMetadata.lastCrawlStatus)
-                << "lastErrorMessage" << (profile.crawlMetadata.lastErrorMessage ? *profile.crawlMetadata.lastErrorMessage : "")
-                << "crawlCount" << profile.crawlMetadata.crawlCount
-                << "crawlIntervalHours" << profile.crawlMetadata.crawlIntervalHours
-                << "userAgent" << profile.crawlMetadata.userAgent
-                << "httpStatusCode" << profile.crawlMetadata.httpStatusCode
-                << "contentSize" << static_cast<int64_t>(profile.crawlMetadata.contentSize)
-                << "contentType" << profile.crawlMetadata.contentType
-                << "crawlDurationMs" << profile.crawlMetadata.crawlDurationMs
+                << "firstCrawlTime" << timePointToBsonDate(page.crawlMetadata.firstCrawlTime)
+                << "lastCrawlTime" << timePointToBsonDate(page.crawlMetadata.lastCrawlTime)
+                << "lastCrawlStatus" << crawlStatusToString(page.crawlMetadata.lastCrawlStatus)
+                << "lastErrorMessage" << (page.crawlMetadata.lastErrorMessage ? *page.crawlMetadata.lastErrorMessage : "")
+                << "crawlCount" << page.crawlMetadata.crawlCount
+                << "crawlIntervalHours" << page.crawlMetadata.crawlIntervalHours
+                << "userAgent" << page.crawlMetadata.userAgent
+                << "httpStatusCode" << page.crawlMetadata.httpStatusCode
+                << "contentSize" << static_cast<int64_t>(page.crawlMetadata.contentSize)
+                << "contentType" << page.crawlMetadata.contentType
+                << "crawlDurationMs" << page.crawlMetadata.crawlDurationMs
             << close_document
             
             // === SYSTEM TIMESTAMPS ===
@@ -425,47 +459,47 @@ Result<std::string> MongoDBStorage::storeSiteProfile(const SiteProfile& profile)
         
         if (result) {
             std::string id = result->view()["_id"].get_oid().value.to_string();
-            LOG_INFO("Site profile upserted successfully with ID: " + id + " for canonical URL: " + profile.canonicalUrl);
-            return Result<std::string>::Success(id, "Site profile upserted successfully");
+            LOG_INFO("indexed page upserted successfully with ID: " + id + " for canonical URL: " + page.canonicalUrl);
+            return Result<std::string>::Success(id, "indexed page upserted successfully");
         } else {
-            LOG_ERROR("Failed to upsert site profile for canonical URL: " + profile.canonicalUrl);
-            return Result<std::string>::Failure("Failed to upsert site profile");
+            LOG_ERROR("Failed to upsert indexed page for canonical URL: " + page.canonicalUrl);
+            return Result<std::string>::Failure("Failed to upsert indexed page");
         }
         
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error upserting site profile for canonical URL: " + profile.canonicalUrl + " - " + std::string(e.what()));
+        LOG_ERROR("MongoDB error upserting indexed page for canonical URL: " + page.canonicalUrl + " - " + std::string(e.what()));
         return Result<std::string>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
-Result<SiteProfile> MongoDBStorage::getSiteProfile(const std::string& url) {
-    LOG_DEBUG("MongoDBStorage::getSiteProfile called for URL: " + url);
+Result<IndexedPage> MongoDBStorage::getSiteProfile(const std::string& url) {
+    LOG_DEBUG("MongoDBStorage::getSiteProfile called for canonicalUrl: " + url);
     try {
         // Serialize all MongoDB operations to prevent socket conflicts
         std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
         
-        auto filter = document{} << "url" << url << finalize;
-        LOG_TRACE("MongoDB query filter created for URL: " + url);
+        auto filter = document{} << "canonicalUrl" << url << finalize;
+        LOG_TRACE("MongoDB query filter created for canonicalUrl: " + url);
         
         auto result = siteProfilesCollection_.find_one(filter.view());
         
         if (result) {
-            LOG_INFO("Site profile found and retrieved for URL: " + url);
-            return Result<SiteProfile>::Success(
+            LOG_INFO("indexed page found and retrieved for URL: " + url);
+            return Result<IndexedPage>::Success(
                 bsonToSiteProfile(result->view()),
-                "Site profile retrieved successfully"
+                "indexed page retrieved successfully"
             );
         } else {
-            LOG_WARNING("Site profile not found for URL: " + url);
-            return Result<SiteProfile>::Failure("Site profile not found for URL: " + url);
+            LOG_WARNING("indexed page not found for URL: " + url);
+            return Result<IndexedPage>::Failure("indexed page not found for URL: " + url);
         }
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error retrieving site profile for URL: " + url + " - " + std::string(e.what()));
-        return Result<SiteProfile>::Failure("MongoDB error: " + std::string(e.what()));
+        LOG_ERROR("MongoDB error retrieving indexed page for URL: " + url + " - " + std::string(e.what()));
+        return Result<IndexedPage>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
-Result<SiteProfile> MongoDBStorage::getSiteProfileById(const std::string& id) {
+Result<IndexedPage> MongoDBStorage::getSiteProfileById(const std::string& id) {
     try {
         // Serialize all MongoDB operations to prevent socket conflicts
         std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
@@ -474,47 +508,18 @@ Result<SiteProfile> MongoDBStorage::getSiteProfileById(const std::string& id) {
         auto result = siteProfilesCollection_.find_one(filter.view());
         
         if (result) {
-            return Result<SiteProfile>::Success(
+            return Result<IndexedPage>::Success(
                 bsonToSiteProfile(result->view()),
-                "Site profile retrieved successfully"
+                "indexed page retrieved successfully"
             );
         } else {
-            return Result<SiteProfile>::Failure("Site profile not found for ID: " + id);
+            return Result<IndexedPage>::Failure("indexed page not found for ID: " + id);
         }
     } catch (const mongocxx::exception& e) {
-        return Result<SiteProfile>::Failure("MongoDB error: " + std::string(e.what()));
+        return Result<IndexedPage>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
-Result<bool> MongoDBStorage::updateSiteProfile(const SiteProfile& profile) {
-    LOG_DEBUG("MongoDBStorage::updateSiteProfile called for URL: " + profile.url);
-    try {
-        if (!profile.id) {
-            LOG_ERROR("Cannot update site profile without ID for URL: " + profile.url);
-            return Result<bool>::Failure("Cannot update site profile without ID");
-        }
-        
-        // Serialize all MongoDB operations to prevent socket conflicts
-        std::lock_guard<std::mutex> lock(g_mongoOperationMutex);
-        
-        LOG_TRACE("Updating site profile with ID: " + *profile.id);
-        auto filter = document{} << "_id" << bsoncxx::oid{*profile.id} << finalize;
-        auto update = document{} << "$set" << siteProfileToBson(profile) << finalize;
-        
-        auto result = siteProfilesCollection_.update_one(filter.view(), update.view());
-        
-        if (result && result->modified_count() > 0) {
-            LOG_INFO("Site profile updated successfully for URL: " + profile.url + " (ID: " + *profile.id + ")");
-            return Result<bool>::Success(true, "Site profile updated successfully");
-        } else {
-            LOG_WARNING("Site profile not found or no changes made for URL: " + profile.url);
-            return Result<bool>::Failure("Site profile not found or no changes made");
-        }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error updating site profile for URL: " + profile.url + " - " + std::string(e.what()));
-        return Result<bool>::Failure("MongoDB error: " + std::string(e.what()));
-    }
-}
 
 Result<bool> MongoDBStorage::deleteSiteProfile(const std::string& url) {
     LOG_DEBUG("MongoDBStorage::deleteSiteProfile called for URL: " + url);
@@ -528,56 +533,56 @@ Result<bool> MongoDBStorage::deleteSiteProfile(const std::string& url) {
         auto result = siteProfilesCollection_.delete_one(filter.view());
         
         if (result && result->deleted_count() > 0) {
-            LOG_INFO("Site profile deleted successfully for URL: " + url);
-            return Result<bool>::Success(true, "Site profile deleted successfully");
+            LOG_INFO("indexed page deleted successfully for URL: " + url);
+            return Result<bool>::Success(true, "indexed page deleted successfully");
         } else {
-            LOG_WARNING("Site profile not found for deletion, URL: " + url);
-            return Result<bool>::Failure("Site profile not found for URL: " + url);
+            LOG_WARNING("indexed page not found for deletion, URL: " + url);
+            return Result<bool>::Failure("indexed page not found for URL: " + url);
         }
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error deleting site profile for URL: " + url + " - " + std::string(e.what()));
+        LOG_ERROR("MongoDB error deleting indexed page for URL: " + url + " - " + std::string(e.what()));
         return Result<bool>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
-Result<std::vector<SiteProfile>> MongoDBStorage::getSiteProfilesByDomain(const std::string& domain) {
+Result<std::vector<IndexedPage>> MongoDBStorage::getSiteProfilesByDomain(const std::string& domain) {
     LOG_DEBUG("MongoDBStorage::getSiteProfilesByDomain called for domain: " + domain);
     try {
         auto filter = document{} << "domain" << domain << finalize;
         auto cursor = siteProfilesCollection_.find(filter.view());
         
-        std::vector<SiteProfile> profiles;
+        std::vector<IndexedPage> profiles;
         for (const auto& doc : cursor) {
             profiles.push_back(bsonToSiteProfile(doc));
         }
         
-        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " site profiles for domain: " + domain);
-        return Result<std::vector<SiteProfile>>::Success(
+        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " indexed pages for domain: " + domain);
+        return Result<std::vector<IndexedPage>>::Success(
             std::move(profiles),
-            "Site profiles retrieved successfully for domain: " + domain
+            "indexed pages retrieved successfully for domain: " + domain
         );
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error retrieving site profiles for domain: " + domain + " - " + std::string(e.what()));
-        return Result<std::vector<SiteProfile>>::Failure("MongoDB error: " + std::string(e.what()));
+        LOG_ERROR("MongoDB error retrieving indexed pages for domain: " + domain + " - " + std::string(e.what()));
+        return Result<std::vector<IndexedPage>>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
-Result<std::vector<SiteProfile>> MongoDBStorage::getSiteProfilesByCrawlStatus(CrawlStatus status) {
+Result<std::vector<IndexedPage>> MongoDBStorage::getSiteProfilesByCrawlStatus(CrawlStatus status) {
     try {
         auto filter = document{} << "crawlMetadata.lastCrawlStatus" << crawlStatusToString(status) << finalize;
         auto cursor = siteProfilesCollection_.find(filter.view());
         
-        std::vector<SiteProfile> profiles;
+        std::vector<IndexedPage> profiles;
         for (const auto& doc : cursor) {
             profiles.push_back(bsonToSiteProfile(doc));
         }
         
-        return Result<std::vector<SiteProfile>>::Success(
+        return Result<std::vector<IndexedPage>>::Success(
             std::move(profiles),
-            "Site profiles retrieved successfully for status"
+            "indexed pages retrieved successfully for status"
         );
     } catch (const mongocxx::exception& e) {
-        return Result<std::vector<SiteProfile>>::Failure("MongoDB error: " + std::string(e.what()));
+        return Result<std::vector<IndexedPage>>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 
@@ -1069,7 +1074,7 @@ Result<std::vector<ApiRequestLog>> MongoDBStorage::getApiRequestLogsByIp(const s
     }
 }
 
-Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::string& query, int limit, int skip) {
+Result<std::vector<IndexedPage>> MongoDBStorage::searchSiteProfiles(const std::string& query, int limit, int skip) {
     LOG_DEBUG("MongoDBStorage::searchSiteProfiles called with query: " + query + ", limit: " + std::to_string(limit) + ", skip: " + std::to_string(skip));
     
     try {
@@ -1155,20 +1160,20 @@ Result<std::vector<SiteProfile>> MongoDBStorage::searchSiteProfiles(const std::s
         
         auto cursor = siteProfilesCollection_.aggregate(pipeline);
         
-        std::vector<SiteProfile> profiles;
+        std::vector<IndexedPage> profiles;
         for (const auto& doc : cursor) {
             profiles.push_back(bsonToSiteProfile(doc));
         }
         
-        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " deduplicated site profiles for search query: " + query);
-        return Result<std::vector<SiteProfile>>::Success(
+        LOG_INFO("Retrieved " + std::to_string(profiles.size()) + " deduplicated indexed pages for search query: " + query);
+        return Result<std::vector<IndexedPage>>::Success(
             std::move(profiles),
-            "Site profiles search completed successfully with deduplication"
+            "indexed pages search completed successfully with deduplication"
         );
         
     } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error searching site profiles for query: " + query + " - " + std::string(e.what()));
-        return Result<std::vector<SiteProfile>>::Failure("MongoDB error: " + std::string(e.what()));
+        LOG_ERROR("MongoDB error searching indexed pages for query: " + query + " - " + std::string(e.what()));
+        return Result<std::vector<IndexedPage>>::Failure("MongoDB error: " + std::string(e.what()));
     }
 }
 

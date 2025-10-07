@@ -3,11 +3,6 @@ cmake_minimum_required(VERSION 3.24)
 # Find required packages for search_core
 find_package(nlohmann_json 3.10.5 REQUIRED)
 
-# Check if Redis dependencies are available (inherited from parent)
-if(NOT REDIS_AVAILABLE)
-    message(FATAL_ERROR "Redis dependencies are required for search_core but not found")
-endif()
-
 # Define search_core library
 add_library(search_core
     SearchClient.cpp

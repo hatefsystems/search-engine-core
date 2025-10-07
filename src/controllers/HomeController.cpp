@@ -823,35 +823,35 @@ void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpReque
                 std::string userAgent = std::string(req->getHeader("user-agent"));
                 LOG_DEBUG("HomeController::sponsorSubmit - Client info: IP=" + ipAddress + ", UA=" + userAgent.substr(0, 30) + "...");
                 
-                // Create sponsor profile
-                LOG_TRACE("HomeController::sponsorSubmit - Creating sponsor profile object");
-                search_engine::storage::SponsorProfile profile;
-                profile.fullName = fullname;
-                profile.email = email;
-                profile.mobile = mobile;
-                profile.plan = plan;
-                profile.amount = amount;
+                // Create sponsor page
+                LOG_TRACE("HomeController::sponsorSubmit - Creating sponsor page object");
+                search_engine::storage::SponsorProfile page;
+                page.fullName = fullname;
+                page.email = email;
+                page.mobile = mobile;
+                page.plan = plan;
+                page.amount = amount;
 
                 if (!company.empty()) {
-                    profile.company = company;
+                    page.company = company;
                     LOG_TRACE("HomeController::sponsorSubmit - Company field set: " + company);
                 }
 
-                profile.ipAddress = ipAddress;
-                profile.userAgent = userAgent;
-                profile.submissionTime = std::chrono::system_clock::now();
-                profile.lastModified = std::chrono::system_clock::now();
-                profile.status = search_engine::storage::SponsorStatus::PENDING;
-                profile.currency = "IRR"; // Default to Iranian Rial
+                page.ipAddress = ipAddress;
+                page.userAgent = userAgent;
+                page.submissionTime = std::chrono::system_clock::now();
+                page.lastModified = std::chrono::system_clock::now();
+                page.status = search_engine::storage::SponsorStatus::PENDING;
+                page.currency = "IRR"; // Default to Iranian Rial
 
-                LOG_DEBUG("HomeController::sponsorSubmit - Sponsor profile created:");
+                LOG_DEBUG("HomeController::sponsorSubmit - Sponsor page created:");
                 LOG_DEBUG("  Name: " + fullname + ", Email: " + email + ", Mobile: " + mobile);
-                LOG_DEBUG("  Plan: " + plan + ", Amount: " + std::to_string(amount) + " " + profile.currency);
+                LOG_DEBUG("  Plan: " + plan + ", Amount: " + std::to_string(amount) + " " + page.currency);
                 LOG_DEBUG("  Status: PENDING, IP: " + ipAddress);
                 
                 // Save to database with better error handling
                 LOG_INFO("💾 Starting database save process for sponsor: " + fullname);
-                LOG_DEBUG("HomeController::sponsorSubmit - Preparing to save sponsor profile to MongoDB");
+                LOG_DEBUG("HomeController::sponsorSubmit - Preparing to save sponsor page to MongoDB");
 
                 try {
                     LOG_TRACE("HomeController::sponsorSubmit - Retrieving MongoDB connection configuration");
@@ -888,11 +888,11 @@ void HomeController::sponsorSubmit(uWS::HttpResponse<false>* res, uWS::HttpReque
                         LOG_DEBUG("HomeController::sponsorSubmit - Connection string: " + mongoConnectionString);
 
                         LOG_TRACE("HomeController::sponsorSubmit - Creating SponsorStorage instance");
-                        // Create SponsorStorage and save the profile
+                        // Create SponsorStorage and save the page
                         search_engine::storage::SponsorStorage storage(mongoConnectionString, "search-engine");
 
                         LOG_TRACE("HomeController::sponsorSubmit - Calling storage.store() method");
-                        auto result = storage.store(profile);
+                        auto result = storage.store(page);
 
                         if (result.success) {
                             actualSubmissionId = result.value;

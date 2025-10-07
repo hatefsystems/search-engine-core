@@ -34,7 +34,7 @@ struct CrawlMetadata {
     double crawlDurationMs;
 };
 
-struct SiteProfile {
+struct IndexedPage {
     // Unique identifier (MongoDB ObjectId will be auto-generated)
     std::optional<std::string> id;
     
