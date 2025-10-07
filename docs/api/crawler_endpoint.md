@@ -329,18 +329,21 @@ The crawler implements comprehensive validation to ensure only high-quality, sea
 ### Content Type Validation
 
 Only pages with text-based content types are saved:
+
 - ✅ **Allowed**: `text/html`, `text/plain`, `application/json`, `application/xml`, `text/xml`, `application/rss+xml`, `application/atom+xml`
 - ❌ **Blocked**: `image/*`, `video/*`, `audio/*`, `application/pdf`, `application/zip`, binary files
 
 ### Content Quality Validation
 
 Pages must have both meaningful content:
+
 - ✅ **Required**: Non-empty title AND text content
 - ❌ **Skipped**: Empty pages, redirect-only pages, error pages without content
 
 ### URL Validation
 
 Only valid web URLs are processed:
+
 - ✅ **Allowed**: HTTP and HTTPS URLs
 - ❌ **Blocked**: `mailto:`, `tel:`, `javascript:`, `data:`, `ftp:`, `file:`, browser extensions
 

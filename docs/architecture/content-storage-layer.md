@@ -147,26 +147,31 @@ monitoring.
 The MongoDBStorage layer implements comprehensive validation to ensure only high-quality, relevant content is stored:
 
 **Content Type Validation:**
+
 - Only saves pages with text-based content types
 - Allowed types: `text/html`, `text/plain`, `application/json`, `application/xml`, `text/xml`, `application/rss+xml`, `application/atom+xml`
 - Blocks media files: images (`image/*`), videos (`video/*`), audio (`audio/*`), PDFs (`application/pdf`), archives (`application/zip`)
 
 **Content Quality Validation:**
+
 - Requires both `title` and `textContent` to be present and non-empty
 - Skips pages without meaningful content (redirect pages, error pages, empty pages)
 - Prevents storage of incomplete or malformed content
 
 **URL Validation:**
+
 - Filters out invalid URL schemes: `mailto:`, `tel:`, `javascript:`, `data:`, `ftp:`, `file:`, browser extensions
 - Validates HTTP/HTTPS URL format using regex patterns
 - Prevents crawling of non-web resources
 
 **Redirect Handling:**
+
 - Automatically follows HTTP redirects and stores the final destination URL
 - Uses canonical URLs for deduplication to prevent duplicate content
 - Maintains redirect chains in crawl metadata
 
 **Validation Flow:**
+
 1. Content type check (HTML/text only)
 2. Title and text content validation (both required)
 3. URL scheme validation (HTTP/HTTPS only)

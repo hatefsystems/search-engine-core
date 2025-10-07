@@ -24,7 +24,7 @@
   "schema": {
     "required_fields": [
       "id",
-      "shaba_number", 
+      "shaba_number",
       "card_number",
       "account_number",
       "account_holder_name",
