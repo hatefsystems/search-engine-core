@@ -47,18 +47,18 @@ Add a new site to the crawl queue with optimized SPA rendering.
 
 #### Parameters
 
-| Parameter             | Type    | Default                   | Description                                         |
-| --------------------- | ------- | ------------------------- | --------------------------------------------------- |
-| `url`                 | string  | **required**              | Seed URL to start crawling                          |
-| `maxPages`            | integer | 1000                      | Maximum pages to crawl                              |
-| `maxDepth`            | integer | 5                         | Maximum crawl depth                                 |
-| `email`               | string  | (optional)                | Email address for completion notification           |
-| `language`            | string  | "en"                      | Language for email notifications (en, fa, etc.)     |
-| `spaRenderingEnabled` | boolean | true                      | Enable SPA rendering                                |
-| `includeFullContent`  | boolean | false                     | Store full HTML content                             |
-| `browserlessUrl`      | string  | "http://browserless:3000" | Browserless service URL                             |
-| `timeout`             | integer | 15000                     | Request timeout in milliseconds                     |
-| `politenessDelay`     | integer | 500                       | Delay between requests in milliseconds              |
+| Parameter             | Type    | Default                   | Description                                     |
+| --------------------- | ------- | ------------------------- | ----------------------------------------------- |
+| `url`                 | string  | **required**              | Seed URL to start crawling                      |
+| `maxPages`            | integer | 1000                      | Maximum pages to crawl                          |
+| `maxDepth`            | integer | 5                         | Maximum crawl depth                             |
+| `email`               | string  | (optional)                | Email address for completion notification       |
+| `language`            | string  | "en"                      | Language for email notifications (en, fa, etc.) |
+| `spaRenderingEnabled` | boolean | true                      | Enable SPA rendering                            |
+| `includeFullContent`  | boolean | false                     | Store full HTML content                         |
+| `browserlessUrl`      | string  | "http://browserless:3000" | Browserless service URL                         |
+| `timeout`             | integer | 15000                     | Request timeout in milliseconds                 |
+| `politenessDelay`     | integer | 500                       | Delay between requests in milliseconds          |
 
 #### Response
 
