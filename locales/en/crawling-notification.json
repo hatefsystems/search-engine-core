@@ -22,12 +22,12 @@
       "completed_at": "Completed At",
       "session_id": "Session ID"
     },
-    "description": "Your pages are now searchable in our search engine. If you'd like to crawl and index more pages from your site, please visit our crawl request page.",
+    "description": "Your pages are now searchable in Hatef search engine. If you'd like to crawl and index more pages from your site, please visit our crawl request page.",
     "cta": {
       "button_text": "Request More Crawling"
     },
     "footer": {
-      "thank_you": "Thank you for using our search engine service!",
+      "thank_you": "Thank you for using Hatef search engine service!",
       "automated_message": "This is an automated notification from Hatef Search Engine",
       "unsubscribe_text": "Unsubscribe from these notifications",
       "copyright": "© 2024 Hatef.ir - All rights reserved"

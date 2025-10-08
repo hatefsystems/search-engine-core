@@ -217,6 +217,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 
                 // Optional parameters
                 std::string email = jsonBody.value("email", "");  // Email for completion notification
+                std::string language = jsonBody.value("language", "en");  // Language for email notification (default: English)
                 int maxPages = jsonBody.value("maxPages", 1000);
                 int maxDepth = jsonBody.value("maxDepth", 3);
                 bool restrictToSeedDomain = jsonBody.value("restrictToSeedDomain", true);
@@ -307,11 +308,11 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     // Create completion callback for email notification if email is provided
                     CrawlCompletionCallback emailCallback = nullptr;
                     if (!email.empty()) {
-                        LOG_INFO("Setting up email notification callback for: " + email);
-                        emailCallback = [this, email, url](const std::string& sessionId, 
+                        LOG_INFO("Setting up email notification callback for: " + email + " (language: " + language + ")");
+                        emailCallback = [this, email, url, language](const std::string& sessionId, 
                                                          const std::vector<CrawlResult>& results, 
                                                          CrawlerManager* manager) {
-                            this->sendCrawlCompletionEmail(sessionId, email, url, results);
+                            this->sendCrawlCompletionEmail(sessionId, email, url, results, language);
                         };
                     }
                     
@@ -1696,9 +1697,10 @@ namespace {
 }
 
 void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, const std::string& email, 
-                                               const std::string& url, const std::vector<CrawlResult>& results) {
+                                               const std::string& url, const std::vector<CrawlResult>& results,
+                                               const std::string& language) {
     try {
-        LOG_INFO("Sending crawl completion email for session: " + sessionId + " to: " + email);
+        LOG_INFO("Sending crawl completion email for session: " + sessionId + " to: " + email + " (language: " + language + ")");
         
         // Get email service using lazy initialization
         auto emailService = getEmailService();
@@ -1733,8 +1735,9 @@ void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, co
             }
         }
         
-        // Load localized sender name
-        std::string senderName = loadLocalizedSenderName("fa"); // Default to Persian for now
+        // Load localized sender name and subject using the provided language
+        std::string senderName = loadLocalizedSenderName(language);
+        std::string localizedSubject = loadLocalizedSubject(language, crawledPagesCount);
         
         // Prepare notification data
         search_engine::storage::EmailService::NotificationData data;
@@ -1744,7 +1747,8 @@ void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, co
         data.crawledPagesCount = crawledPagesCount;
         data.crawlSessionId = sessionId;
         data.crawlCompletedAt = std::chrono::system_clock::now();
-        data.language = "fa"; // Default to Persian for now
+        data.language = language;
+        data.subject = localizedSubject; // Set localized subject
         
         // Send email asynchronously with localized sender name
         bool success = emailService->sendCrawlingNotificationAsync(data, senderName, "");
@@ -1876,5 +1880,47 @@ std::string SearchController::loadLocalizedSenderName(const std::string& languag
     } catch (const std::exception& e) {
         LOG_ERROR("SearchController: Exception loading localized sender name for language " + language + ": " + e.what());
         return "Hatef Search Engine"; // Default fallback
+    }
+}
+
+std::string SearchController::loadLocalizedSubject(const std::string& language, int pageCount) const {
+    try {
+        // Load localization file
+        std::string localesPath = "locales/" + language + "/crawling-notification.json";
+        std::string localeContent = loadFile(localesPath);
+        
+        if (localeContent.empty() && language != "en") {
+            LOG_WARNING("SearchController: Failed to load locale file: " + localesPath + ", falling back to English");
+            localesPath = "locales/en/crawling-notification.json";
+            localeContent = loadFile(localesPath);
+        }
+        
+        if (localeContent.empty()) {
+            LOG_WARNING("SearchController: Failed to load any localization file, using default subject");
+            return "Crawling Complete - " + std::to_string(pageCount) + " pages indexed"; // Default fallback
+        }
+        
+        // Parse JSON and extract subject
+        nlohmann::json localeData = nlohmann::json::parse(localeContent);
+        
+        if (localeData.contains("email") && localeData["email"].contains("subject")) {
+            std::string subject = localeData["email"]["subject"];
+            
+            // Replace {pages} placeholder with actual count
+            size_t pos = subject.find("{pages}");
+            if (pos != std::string::npos) {
+                subject.replace(pos, 7, std::to_string(pageCount));
+            }
+            
+            LOG_DEBUG("SearchController: Loaded localized subject: " + subject + " for language: " + language);
+            return subject;
+        } else {
+            LOG_WARNING("SearchController: subject not found in locale file, using default");
+            return "Crawling Complete - " + std::to_string(pageCount) + " pages indexed"; // Default fallback
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("SearchController: Exception loading localized subject for language " + language + ": " + e.what());
+        return "Crawling Complete - " + std::to_string(pageCount) + " pages indexed"; // Default fallback
     }
 } 

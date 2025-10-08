@@ -281,6 +281,7 @@
             initializeTemplateData({
                 baseUrl: "{{ base_url }}",
                 base_url: "{{ base_url }}",
+                language: "{{ t.language.code }}",
                 progressComplete: "{{ t.progress.complete }}",
                 errorMessages: {
                     emptyUrl: "{{ t.errors.empty_url }}",

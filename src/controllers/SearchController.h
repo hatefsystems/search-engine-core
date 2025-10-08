@@ -44,7 +44,8 @@ private:
     
     // Email notification for crawl completion
     void sendCrawlCompletionEmail(const std::string& sessionId, const std::string& email, 
-                                 const std::string& url, const std::vector<CrawlResult>& results);
+                                 const std::string& url, const std::vector<CrawlResult>& results,
+                                 const std::string& language);
     
     // Email service access (lazy initialization)
     search_engine::storage::EmailService* getEmailService() const;
@@ -54,6 +55,9 @@ private:
     
     // Localized sender name loading
     std::string loadLocalizedSenderName(const std::string& language) const;
+    
+    // Localized email subject loading
+    std::string loadLocalizedSubject(const std::string& language, int pageCount) const;
 
 private:
     mutable std::unique_ptr<search_engine::storage::EmailService> emailService_;

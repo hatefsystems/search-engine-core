@@ -33,8 +33,9 @@ function initializeTemplateData(data) {
     progressMessages = data.progressMessages || [];
     
     // Debug logging
-    console.log('Template data initialized:', templateData);
-    console.log('Base URL from template:', templateData.baseUrl || templateData.base_url || 'Not set');
+    console.log('🎯 Template data initialized:', templateData);
+    console.log('🌐 Base URL from template:', templateData.baseUrl || templateData.base_url || 'Not set');
+    console.log('🌍 Language from template:', templateData.language || 'Not set (will use API default)');
 }
 
 let currentSessionId = null;
@@ -196,9 +197,20 @@ async function startCrawl() {
         maxDepth: maxDepth
     };
     
+    // Add language from template data (for localized email notifications)
+    if (templateData.language) {
+        payload.language = templateData.language;
+        console.log('✅ Language set from template data:', templateData.language);
+    } else {
+        console.warn('⚠️ Template data language not found, email will use default language');
+        console.log('Template data:', templateData);
+    }
+    
     if (email) {
         payload.email = email;
     }
+    
+    console.log('📤 Sending payload:', payload);
     
     try {
         // Show progress section

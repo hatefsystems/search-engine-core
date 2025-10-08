@@ -320,6 +320,7 @@ std::string EmailService::formatEmailHeaders(const std::string& to, const std::s
     
     headers << "To: " << to << "\r\n";
     headers << "From: " << config_.fromName << " <" << config_.fromEmail << ">\r\n";
+    headers << "Reply-To: info@hatef.ir\r\n";
     headers << "Subject: " << subject << "\r\n";
     headers << "MIME-Version: 1.0\r\n";
     
@@ -627,7 +628,7 @@ bool EmailService::performSMTPRequest(const std::string& to, const std::string& 
 }
 
 std::string EmailService::generateDefaultNotificationHTML(const NotificationData& data) {
-    LOG_INFO("EmailService: Using Inja template-based email generation");
+    LOG_INFO("EmailService: Using Inja template-based email generation for language: " + data.language);
     
     // Render the email template
     std::string templateHTML = renderEmailTemplate("email-crawling-notification.inja", data);
@@ -636,6 +637,9 @@ std::string EmailService::generateDefaultNotificationHTML(const NotificationData
         LOG_ERROR("EmailService: Template rendering failed and no fallback available");
         throw std::runtime_error("Failed to render email template");
     }
+    
+    LOG_DEBUG("EmailService: Generated HTML content length: " + std::to_string(templateHTML.length()) + " bytes for language: " + data.language);
+    LOG_DEBUG("EmailService: HTML preview (first 200 chars): " + templateHTML.substr(0, std::min(size_t(200), templateHTML.length())));
     
     return templateHTML;
 }
@@ -1103,30 +1107,71 @@ std::string EmailService::convertToPersianDate(const std::tm& gregorianDate) {
         int gMonth = gregorianDate.tm_mon + 1;
         int gDay = gregorianDate.tm_mday;
         
-        // Calculate days since March 21, 2024 (reference point: 1 Farvardin 1403)
-        int daysSinceMarch21 = 0;
-        
-        // Days in each month (from March to current month)
-        int monthDays[] = {31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28}; // March to February
-        
-        if (gMonth >= 3) {
-            // Current year - calculate days from March 21
-            for (int i = 3; i < gMonth; i++) {
-                daysSinceMarch21 += monthDays[i - 3];
-            }
-            daysSinceMarch21 += gDay - 21; // March 21 is day 0
+        // Determine Persian year based on Gregorian date
+        // Persian new year (Nowruz) is around March 20/21
+        int persianYear;
+        if (gMonth < 3 || (gMonth == 3 && gDay < 20)) {
+            // Before March 20: still in previous Persian year
+            persianYear = gYear - 621;
         } else {
-            // Previous year - calculate from March 21 of previous year
-            daysSinceMarch21 += 31 - 21 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31 + 31 + 28; // March 21 to Dec 31
-            for (int i = 1; i < gMonth; i++) {
-                daysSinceMarch21 += monthDays[i - 1 + 9]; // Offset for month array
-            }
-            daysSinceMarch21 += gDay - 1;
+            // March 20 onwards: new Persian year has started
+            persianYear = gYear - 621;
         }
         
-        // Convert to Persian date
-        int persianYear = 1403; // Base year for 2024
-        int persianDayOfYear = daysSinceMarch21 + 1;
+        // Calculate day of year in Persian calendar
+        int persianDayOfYear;
+        
+        if (gMonth >= 3 && (gMonth > 3 || gDay >= 20)) {
+            // From March 20 onwards in current Gregorian year
+            int daysInGregorianMonths[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+            
+            // Check for leap year
+            if ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0)) {
+                daysInGregorianMonths[1] = 29;
+            }
+            
+            persianDayOfYear = 0;
+            // Add days from March 20 to end of March
+            if (gMonth == 3) {
+                persianDayOfYear = gDay - 20 + 1;
+            } else {
+                persianDayOfYear = daysInGregorianMonths[2] - 20 + 1; // Days left in March (12 days)
+                // Add full months between April and current month
+                for (int m = 4; m < gMonth; m++) {
+                    persianDayOfYear += daysInGregorianMonths[m - 1];
+                }
+                // Add days in current month
+                persianDayOfYear += gDay;
+            }
+        } else {
+            // Before March 20: in previous Persian year
+            persianYear--;
+            
+            int daysInGregorianMonths[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+            
+            // Check for leap year of previous Gregorian year
+            int prevGYear = gYear - 1;
+            if ((prevGYear % 4 == 0 && prevGYear % 100 != 0) || (prevGYear % 400 == 0)) {
+                daysInGregorianMonths[1] = 29;
+            }
+            
+            // Days from March 20 to Dec 31 of previous year
+            persianDayOfYear = daysInGregorianMonths[2] - 20 + 1; // Rest of March (12 days)
+            for (int m = 4; m <= 12; m++) {
+                persianDayOfYear += daysInGregorianMonths[m - 1];
+            }
+            
+            // Add days from Jan 1 to current date
+            for (int m = 1; m < gMonth; m++) {
+                // Use current year's month days for Jan-Feb
+                int currentYearMonthDays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+                if ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0)) {
+                    currentYearMonthDays[1] = 29;
+                }
+                persianDayOfYear += currentYearMonthDays[m - 1];
+            }
+            persianDayOfYear += gDay;
+        }
         
         // Persian months: 31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29/30
         int persianMonthDays[] = {31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29};
@@ -1158,6 +1203,10 @@ std::string EmailService::convertToPersianDate(const std::tm& gregorianDate) {
                                  std::to_string(persianDay) + 
                                  " (" + persianMonths[persianMonth - 1] + ") " +
                                  "ساعت " + std::string(timeBuffer) + " (تهران)";
+        
+        LOG_DEBUG("EmailService: Converted Gregorian " + std::to_string(gYear) + "/" + 
+                  std::to_string(gMonth) + "/" + std::to_string(gDay) + 
+                  " to Persian: " + persianDate);
         
         return persianDate;
         
