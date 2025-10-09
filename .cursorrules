@@ -156,14 +156,48 @@ docker compose up --build
 ## Code Style and Patterns
 
 ### Controller Registration
-All new API endpoints must be registered in the controller:
-```cpp
-// In HomeController.h
-void myNewEndpoint(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+**CRITICAL: Controllers MUST NOT use namespaces **
 
-// Register the route
-REGISTER_ROUTE(HttpMethod::POST, "/api/v2/my-endpoint", myNewEndpoint, HomeController);
+All new API endpoints must be registered in the controller header file using the `ROUTE_CONTROLLER` pattern:
+
+```cpp
+// ❌ WRONG - Controllers should NOT use namespaces
+namespace search_engine {
+namespace controllers {
+    class MyController : public routing::Controller { ... };
+} // This breaks ROUTE_CONTROLLER macro!
+}
+
+// ✅ CORRECT - Controllers are in global namespace
+// In MyController.h
+#include "../../include/routing/Controller.h"
+#include "../../include/routing/RouteRegistry.h"
+
+class MyController : public routing::Controller {
+public:
+    MyController();
+    
+    // API Endpoints
+    void myEndpoint(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void anotherEndpoint(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+};
+
+// Route registration - OUTSIDE the class, at bottom of header file
+ROUTE_CONTROLLER(MyController) {
+    using namespace routing;
+    REGISTER_ROUTE(HttpMethod::GET, "/api/v2/my-endpoint", myEndpoint, MyController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/v2/another-endpoint", anotherEndpoint, MyController);
+}
 ```
+
+**Controller Architecture Rules:**
+- ✅ **NO namespaces** for controllers 
+- ✅ Use `ROUTE_CONTROLLER(ClassName)` macro in header file
+- ✅ Place route registration at bottom of header, after class definition
+- ✅ Use `REGISTER_ROUTE` for each endpoint inside `ROUTE_CONTROLLER` block
+- ✅ Controller class name only (no namespace prefix in macros)
+- ❌ **NEVER** create separate `*_routes.cpp` files
+- ❌ **NEVER** wrap controller classes in namespaces
 
 ### Error Handling Pattern
 ```cpp

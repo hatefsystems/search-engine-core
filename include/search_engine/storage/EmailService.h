@@ -16,6 +16,7 @@ namespace search_engine { namespace storage {
 // Forward declarations
 class UnsubscribeService;
 class EmailLogsStorage;
+class EmailTrackingStorage;
 
 /**
  * @brief Email notification service for sending crawling notifications
@@ -36,6 +37,7 @@ public:
         std::string textContent;
         std::string language = "en"; // Default to English
         std::string senderName; // Localized sender name
+        bool enableTracking = true; // Enable email tracking pixel by default
         
         // Crawling specific data
         int crawledPagesCount = 0;
@@ -239,6 +241,21 @@ private:
     // EmailLogsStorage access for async processing
     mutable std::unique_ptr<EmailLogsStorage> emailLogsStorage_;
     EmailLogsStorage* getEmailLogsStorage() const;
+    
+    // EmailTrackingStorage for email tracking pixel support
+    mutable std::unique_ptr<EmailTrackingStorage> emailTrackingStorage_;
+    EmailTrackingStorage* getEmailTrackingStorage() const;
+    
+    /**
+     * @brief Create tracking record and embed tracking pixel in HTML
+     * @param htmlContent Original HTML content
+     * @param emailAddress Recipient email address
+     * @param emailType Type of email (e.g., "crawling_notification")
+     * @return HTML with embedded tracking pixel
+     */
+    std::string embedTrackingPixel(const std::string& htmlContent, 
+                                   const std::string& emailAddress, 
+                                   const std::string& emailType);
 };
 
 } } // namespace search_engine::storage

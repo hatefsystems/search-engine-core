@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/EmailService.h"
 #include "../../include/search_engine/storage/UnsubscribeService.h"
 #include "../../include/search_engine/storage/EmailLogsStorage.h"
+#include "../../include/search_engine/storage/EmailTrackingStorage.h"
 #include "../../include/Logger.h"
 #include <sstream>
 #include <iomanip>
@@ -80,6 +81,11 @@ bool EmailService::sendCrawlingNotification(const NotificationData& data) {
         
         if (textContent.empty()) {
             textContent = generateDefaultNotificationText(data);
+        }
+        
+        // Embed tracking pixel if enabled
+        if (data.enableTracking) {
+            htmlContent = embedTrackingPixel(htmlContent, data.recipientEmail, "crawling_notification");
         }
         
         return sendHtmlEmail(data.recipientEmail, subject, htmlContent, textContent);
@@ -847,6 +853,72 @@ EmailLogsStorage* EmailService::getEmailLogsStorage() const {
         }
     }
     return emailLogsStorage_.get();
+}
+
+EmailTrackingStorage* EmailService::getEmailTrackingStorage() const {
+    if (!emailTrackingStorage_) {
+        try {
+            LOG_INFO("EmailService: Lazy initializing EmailTrackingStorage for email tracking");
+            emailTrackingStorage_ = std::make_unique<EmailTrackingStorage>();
+            LOG_INFO("EmailService: EmailTrackingStorage lazy initialization completed successfully");
+        } catch (const std::exception& e) {
+            LOG_ERROR("EmailService: Failed to lazy initialize EmailTrackingStorage: " + std::string(e.what()));
+            return nullptr;
+        }
+    }
+    return emailTrackingStorage_.get();
+}
+
+std::string EmailService::embedTrackingPixel(const std::string& htmlContent, 
+                                            const std::string& emailAddress, 
+                                            const std::string& emailType) {
+    try {
+        LOG_DEBUG("EmailService: Embedding tracking pixel for email: " + emailAddress + ", type: " + emailType);
+        
+        // Get tracking storage
+        auto trackingStorage = getEmailTrackingStorage();
+        if (!trackingStorage) {
+            LOG_WARNING("EmailService: EmailTrackingStorage unavailable, skipping tracking pixel");
+            return htmlContent;
+        }
+        
+        // Create tracking record
+        auto result = trackingStorage->createTrackingRecord(emailAddress, emailType);
+        if (!result.success) {
+            LOG_WARNING("EmailService: Failed to create tracking record: " + result.message);
+            return htmlContent;
+        }
+        
+        std::string trackingId = result.value;
+        LOG_DEBUG("EmailService: Created tracking record with ID: " + trackingId);
+        
+        // Get base URL from environment or use default
+        const char* baseUrl = std::getenv("BASE_URL");
+        std::string trackingUrl = baseUrl ? std::string(baseUrl) : "https://hatef.ir";
+        trackingUrl += "/track/" + trackingId + ".png";
+        
+        // Create tracking pixel HTML
+        std::string trackingPixel = "<img src=\"" + trackingUrl + "\" width=\"1\" height=\"1\" alt=\"\" style=\"display:block; border:0; margin:0; padding:0;\" />";
+        
+        // Insert tracking pixel before closing </body> tag
+        std::string modifiedHtml = htmlContent;
+        size_t bodyEndPos = modifiedHtml.rfind("</body>");
+        
+        if (bodyEndPos != std::string::npos) {
+            modifiedHtml.insert(bodyEndPos, trackingPixel);
+            LOG_DEBUG("EmailService: Tracking pixel embedded successfully");
+        } else {
+            // If no </body> tag, append to end
+            modifiedHtml += trackingPixel;
+            LOG_WARNING("EmailService: No </body> tag found, appending tracking pixel to end");
+        }
+        
+        return modifiedHtml;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("EmailService: Exception in embedTrackingPixel: " + std::string(e.what()));
+        return htmlContent; // Return original content on error
+    }
 }
 
 // Asynchronous email sending methods

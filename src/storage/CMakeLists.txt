@@ -58,7 +58,9 @@ set(STORAGE_SOURCES
     SponsorStorage.cpp
     EmailService.cpp
     EmailLogsStorage.cpp
+    EmailTrackingStorage.cpp
     UnsubscribeService.cpp
+    WebsiteProfileStorage.cpp
     ../infrastructure.cpp
 )
 
@@ -81,6 +83,7 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/ContentStorage.h
     ../../include/search_engine/storage/EmailService.h
     ../../include/search_engine/storage/EmailLogsStorage.h
+    ../../include/search_engine/storage/EmailTrackingStorage.h
     ../../include/search_engine/storage/UnsubscribeService.h
     ../../include/infrastructure.h
 )
@@ -200,7 +203,7 @@ target_include_directories(EmailService
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(EmailService PUBLIC common CURL::libcurl UnsubscribeService)
+target_link_libraries(EmailService PUBLIC common CURL::libcurl UnsubscribeService EmailTrackingStorage)
 
 add_library(EmailLogsStorage STATIC EmailLogsStorage.cpp ../infrastructure.cpp)
 target_include_directories(EmailLogsStorage 
@@ -226,8 +229,32 @@ target_compile_definitions(UnsubscribeService PRIVATE
     MONGOCXX_STATIC
 )
 
+add_library(EmailTrackingStorage STATIC EmailTrackingStorage.cpp ../infrastructure.cpp)
+target_include_directories(EmailTrackingStorage 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(EmailTrackingStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(EmailTrackingStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+add_library(WebsiteProfileStorage STATIC WebsiteProfileStorage.cpp ../infrastructure.cpp)
+target_include_directories(WebsiteProfileStorage 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(WebsiteProfileStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(WebsiteProfileStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService EmailLogsStorage UnsubscribeService
+install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService EmailLogsStorage EmailTrackingStorage UnsubscribeService WebsiteProfileStorage
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
