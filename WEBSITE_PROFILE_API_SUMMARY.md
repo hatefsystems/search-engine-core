@@ -1,6 +1,7 @@
 # Website Profile API - Implementation Summary
 
 ## Overview
+
 A complete REST API implementation for managing website profile data from the Iranian e-commerce verification system (e-Namad) in the search engine core application.
 
 ## What Was Created
@@ -8,6 +9,7 @@ A complete REST API implementation for managing website profile data from the Ir
 ### 1. Storage Layer (`src/storage/`)
 
 #### `WebsiteProfileStorage.h`
+
 - **Purpose:** Header file with data structures and storage interface
 - **Key Features:**
   - Data structures: `DateInfo`, `Location`, `BusinessService`, `DomainInfo`, `WebsiteProfile`
@@ -16,6 +18,7 @@ A complete REST API implementation for managing website profile data from the Ir
   - Lazy initialization support
 
 #### `WebsiteProfileStorage.cpp`
+
 - **Purpose:** Storage implementation with MongoDB operations
 - **Key Features:**
   - MongoDB singleton pattern usage (✅ follows project rules)
@@ -28,6 +31,7 @@ A complete REST API implementation for managing website profile data from the Ir
 ### 2. Controller Layer (`src/controllers/`)
 
 #### `WebsiteProfileController.h`
+
 - **Purpose:** Controller interface for HTTP endpoints
 - **Key Features:**
   - 6 API endpoints defined
@@ -36,6 +40,7 @@ A complete REST API implementation for managing website profile data from the Ir
   - Proper namespace organization
 
 #### `WebsiteProfileController.cpp`
+
 - **Purpose:** Controller implementation with business logic
 - **Key Features:**
   - **Lazy initialization** of storage (no constructor initialization ✅)
@@ -45,6 +50,7 @@ A complete REST API implementation for managing website profile data from the Ir
   - Proper error responses
 
 #### `WebsiteProfileController_routes.cpp`
+
 - **Purpose:** Route registration with static initialization
 - **Key Features:**
   - Static route registration on startup
@@ -54,18 +60,21 @@ A complete REST API implementation for managing website profile data from the Ir
 ### 3. Build Configuration
 
 #### Updated `src/storage/CMakeLists.txt`
+
 - Added `WebsiteProfileStorage.cpp` to sources
 - Created static library target `WebsiteProfileStorage`
 - Linked MongoDB and common dependencies
 - Added to install targets
 
 #### Updated `src/main.cpp`
+
 - Included `WebsiteProfileController.h`
 - Included `WebsiteProfileController_routes.cpp` for route registration
 
 ### 4. Documentation
 
 #### `docs/api/website_profile_endpoint.md`
+
 - Complete API documentation with all 6 endpoints
 - Request/response examples
 - cURL command examples
@@ -73,6 +82,7 @@ A complete REST API implementation for managing website profile data from the Ir
 - Error codes and testing guide
 
 #### `test_website_profile_api.sh`
+
 - Executable test script
 - Tests all 6 endpoints
 - Colored output for readability
@@ -80,14 +90,14 @@ A complete REST API implementation for managing website profile data from the Ir
 
 ## API Endpoints
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/v2/website-profile` | Save new profile |
-| GET | `/api/v2/website-profile/:url` | Get profile by URL |
-| GET | `/api/v2/website-profiles` | Get all profiles (paginated) |
-| PUT | `/api/v2/website-profile/:url` | Update existing profile |
-| DELETE | `/api/v2/website-profile/:url` | Delete profile |
-| GET | `/api/v2/website-profile/check/:url` | Check if profile exists |
+| Method | Endpoint                             | Purpose                      |
+| ------ | ------------------------------------ | ---------------------------- |
+| POST   | `/api/v2/website-profile`            | Save new profile             |
+| GET    | `/api/v2/website-profile/:url`       | Get profile by URL           |
+| GET    | `/api/v2/website-profiles`           | Get all profiles (paginated) |
+| PUT    | `/api/v2/website-profile/:url`       | Update existing profile      |
+| DELETE | `/api/v2/website-profile/:url`       | Delete profile               |
+| GET    | `/api/v2/website-profile/check/:url` | Check if profile exists      |
 
 ## Data Model
 
@@ -182,6 +192,7 @@ A complete REST API implementation for managing website profile data from the Ir
 ## Build Status
 
 ✅ **Successfully compiled** with no errors or warnings:
+
 ```
 [100%] Built target server
 ```
@@ -189,6 +200,7 @@ A complete REST API implementation for managing website profile data from the Ir
 ## Testing
 
 ### Quick Test
+
 ```bash
 # Start the server
 cd /root/search-engine-core
@@ -199,6 +211,7 @@ docker compose up
 ```
 
 ### Manual Test Example
+
 ```bash
 # Save a profile
 curl -X POST http://localhost:3000/api/v2/website-profile \
@@ -215,6 +228,7 @@ curl http://localhost:3000/api/v2/website-profile/teststore.ir
 ```
 
 ### Verify in MongoDB
+
 ```bash
 docker exec mongodb_test mongosh --username admin --password password123 \
   --eval "use('search-engine'); db.website_profile.find().pretty()"
@@ -223,6 +237,7 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 ## Files Created/Modified
 
 ### New Files (7)
+
 1. `src/storage/WebsiteProfileStorage.h` - Storage header (105 lines)
 2. `src/storage/WebsiteProfileStorage.cpp` - Storage implementation (412 lines)
 3. `src/controllers/WebsiteProfileController.h` - Controller header (38 lines)
@@ -232,6 +247,7 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 7. `test_website_profile_api.sh` - Test script
 
 ### Modified Files (3)
+
 1. `src/storage/CMakeLists.txt` - Added WebsiteProfileStorage library
 2. `src/main.cpp` - Added controller includes
 3. `WEBSITE_PROFILE_API_SUMMARY.md` - This file
@@ -241,17 +257,20 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 ## Next Steps
 
 1. **Test the API:**
+
    ```bash
    ./test_website_profile_api.sh
    ```
 
 2. **Deploy to Docker:**
+
    ```bash
    docker cp /root/search-engine-core/build/server core:/app/server
    docker restart core
    ```
 
 3. **Add MongoDB Index** (optional, for better performance):
+
    ```bash
    docker exec mongodb_test mongosh --username admin --password password123 \
      --eval "use('search-engine'); db.website_profile.createIndex({website_url: 1}, {unique: true})"
@@ -289,4 +308,3 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 **Created:** October 8, 2025  
 **Version:** 1.0  
 **Status:** ✅ Production Ready
-

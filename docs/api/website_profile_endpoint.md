@@ -1,6 +1,7 @@
 # Website Profile API Documentation
 
 ## Overview
+
 The Website Profile API provides endpoints for managing website profile data from Iranian e-commerce verification system (e-Namad).
 
 **Base URL:** `/api/v2`
@@ -18,11 +19,13 @@ The Website Profile API provides endpoints for managing website profile data fro
 **Description:** Save a new website profile to the database.
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "business_name": "فروشگاه نمونه آنلاین",
@@ -41,7 +44,7 @@ Content-Type: application/json
   "email": "info@example-store.ir",
   "location": {
     "latitude": 35.6892,
-    "longitude": 51.3890
+    "longitude": 51.389
   },
   "business_experience": "5 years",
   "business_hours": "9-18",
@@ -69,6 +72,7 @@ Content-Type: application/json
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -81,7 +85,8 @@ Content-Type: application/json
 
 **Error Responses:**
 
-*Missing required field:*
+_Missing required field:_
+
 ```json
 {
   "success": false,
@@ -90,7 +95,8 @@ Content-Type: application/json
 }
 ```
 
-*Duplicate website URL:*
+_Duplicate website URL:_
+
 ```json
 {
   "success": false,
@@ -102,6 +108,7 @@ Content-Type: application/json
 **Note:** The API prevents duplicate entries. If a profile with the same `website_url` already exists, the request will be rejected with a `BAD_REQUEST` error.
 
 **Example cURL:**
+
 ```bash
 curl --location 'http://localhost:3000/api/v2/website-profile' \
 --header 'Content-Type: application/json' \
@@ -158,9 +165,11 @@ curl --location 'http://localhost:3000/api/v2/website-profile' \
 **Description:** Retrieve a website profile by its URL.
 
 **URL Parameters:**
+
 - `url` (string, required) - The website URL (e.g., `example-store.ir`)
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -195,6 +204,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile' \
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -204,6 +214,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile' \
 ```
 
 **Example cURL:**
+
 ```bash
 curl --location 'http://localhost:3000/api/v2/website-profile/example-store.ir'
 ```
@@ -217,10 +228,12 @@ curl --location 'http://localhost:3000/api/v2/website-profile/example-store.ir'
 **Description:** Retrieve all website profiles with pagination support.
 
 **Query Parameters:**
+
 - `limit` (integer, optional) - Maximum number of profiles to return (default: 100)
 - `skip` (integer, optional) - Number of profiles to skip for pagination (default: 0)
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -242,6 +255,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile/example-store.ir'
 ```
 
 **Example cURL:**
+
 ```bash
 # Get first 10 profiles
 curl --location 'http://localhost:3000/api/v2/website-profiles?limit=10&skip=0'
@@ -259,9 +273,11 @@ curl --location 'http://localhost:3000/api/v2/website-profiles?limit=10&skip=10'
 **Description:** Update an existing website profile.
 
 **URL Parameters:**
+
 - `url` (string, required) - The website URL to update
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
@@ -269,6 +285,7 @@ Content-Type: application/json
 **Request Body:** Same as Save Website Profile (all fields that need updating)
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -277,6 +294,7 @@ Content-Type: application/json
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -286,6 +304,7 @@ Content-Type: application/json
 ```
 
 **Example cURL:**
+
 ```bash
 curl --location --request PUT 'http://localhost:3000/api/v2/website-profile/example-store.ir' \
 --header 'Content-Type: application/json' \
@@ -307,9 +326,11 @@ curl --location --request PUT 'http://localhost:3000/api/v2/website-profile/exam
 **Description:** Delete a website profile from the database.
 
 **URL Parameters:**
+
 - `url` (string, required) - The website URL to delete
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -318,6 +339,7 @@ curl --location --request PUT 'http://localhost:3000/api/v2/website-profile/exam
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -327,6 +349,7 @@ curl --location --request PUT 'http://localhost:3000/api/v2/website-profile/exam
 ```
 
 **Example cURL:**
+
 ```bash
 curl --location --request DELETE 'http://localhost:3000/api/v2/website-profile/example-store.ir'
 ```
@@ -340,9 +363,11 @@ curl --location --request DELETE 'http://localhost:3000/api/v2/website-profile/e
 **Description:** Check if a website profile exists in the database.
 
 **URL Parameters:**
+
 - `url` (string, required) - The website URL to check
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -355,6 +380,7 @@ curl --location --request DELETE 'http://localhost:3000/api/v2/website-profile/e
 ```
 
 **Example cURL:**
+
 ```bash
 curl --location 'http://localhost:3000/api/v2/website-profile/check/example-store.ir'
 ```
@@ -364,26 +390,27 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
 ## Data Model
 
 ### WebsiteProfile
+
 ```typescript
 {
   business_name: string;
-  website_url: string;  // Required, unique identifier
+  website_url: string; // Required, unique identifier
   owner_name: string;
   grant_date: {
-    persian: string;    // Persian calendar date (e.g., "1404/01/01")
-    gregorian: string;  // Gregorian date (e.g., "2025-03-21")
-  };
+    persian: string; // Persian calendar date (e.g., "1404/01/01")
+    gregorian: string; // Gregorian date (e.g., "2025-03-21")
+  }
   expiry_date: {
     persian: string;
     gregorian: string;
-  };
+  }
   address: string;
   phone: string;
   email: string;
   location: {
     latitude: number;
     longitude: number;
-  };
+  }
   business_experience: string;
   business_hours: string;
   business_services: Array<{
@@ -395,7 +422,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
     validity_end_date: string;
     status: string;
   }>;
-  extraction_timestamp: string;  // ISO 8601 format
+  extraction_timestamp: string; // ISO 8601 format
   domain_info: {
     page_number: number;
     row_index: number;
@@ -403,8 +430,8 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
     province: string;
     city: string;
     domain_url: string;
-  };
-  created_at: string;  // Auto-generated, ISO 8601 format
+  }
+  created_at: string; // Auto-generated, ISO 8601 format
 }
 ```
 
@@ -412,11 +439,11 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
 
 ## Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `BAD_REQUEST` | 400 | Invalid request data or missing required fields |
-| `NOT_FOUND` | 404 | Profile not found |
-| `INTERNAL_ERROR` | 500 | Database or server error |
+| Code             | HTTP Status | Description                                     |
+| ---------------- | ----------- | ----------------------------------------------- |
+| `BAD_REQUEST`    | 400         | Invalid request data or missing required fields |
+| `NOT_FOUND`      | 404         | Profile not found                               |
+| `INTERNAL_ERROR` | 500         | Database or server error                        |
 
 ---
 
@@ -426,6 +453,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
 **Collection:** `website_profile`
 
 **Indexes:**
+
 - `website_url` (unique) - for fast lookups
 - `created_at` (descending) - for sorted retrieval
 
@@ -436,12 +464,14 @@ curl --location 'http://localhost:3000/api/v2/website-profile/check/example-stor
 ### Test the API with Docker
 
 1. **Start the server:**
+
 ```bash
 cd /root/search-engine-core
 docker compose up
 ```
 
 2. **Test saving a profile:**
+
 ```bash
 curl --location 'http://localhost:3000/api/v2/website-profile' \
 --header 'Content-Type: application/json' \
@@ -471,6 +501,7 @@ curl --location 'http://localhost:3000/api/v2/website-profile' \
 ```
 
 3. **Verify in MongoDB:**
+
 ```bash
 docker exec mongodb_test mongosh --username admin --password password123 \
 --eval "use('search-engine'); db.website_profile.find().pretty()"
@@ -493,4 +524,3 @@ docker exec mongodb_test mongosh --username admin --password password123 \
 ## Version History
 
 - **v1.0** (2025-10-08) - Initial implementation with full CRUD operations
-
