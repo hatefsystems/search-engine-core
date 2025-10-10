@@ -122,35 +122,39 @@ Result<bool> EmailTrackingStorage::recordEmailOpen(const std::string& trackingId
             currentOpenCount = view["open_count"].get_int32().value;
         }
         
-        // Build update document
-        document updateDoc{};
+        // Build update document using basic builder
+        using bsoncxx::builder::basic::kvp;
+        using bsoncxx::builder::basic::make_document;
         
-        // Set fields
-        updateDoc << "$set" << bsoncxx::builder::stream::open_document
-            << "is_opened" << true
-            << "open_count" << (currentOpenCount + 1)
-            << "last_opened_at" << bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}
-            << "last_ip_address" << ipAddress
-            << "last_user_agent" << userAgent;
+        // Build $set fields
+        auto setFields = bsoncxx::builder::basic::document{};
+        setFields.append(kvp("is_opened", true));
+        setFields.append(kvp("open_count", currentOpenCount + 1));
+        setFields.append(kvp("last_opened_at", bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}));
+        setFields.append(kvp("last_ip_address", ipAddress));
+        setFields.append(kvp("last_user_agent", userAgent));
         
         // If first open, also set opened_at
         if (!wasOpened) {
-            updateDoc << "opened_at" << bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}};
+            setFields.append(kvp("opened_at", bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}));
         }
         
-        updateDoc << bsoncxx::builder::stream::close_document;
+        // Build history entry
+        auto historyEntry = bsoncxx::builder::basic::document{};
+        historyEntry.append(kvp("ip_address", ipAddress));
+        historyEntry.append(kvp("user_agent", userAgent));
+        historyEntry.append(kvp("opened_at", bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}));
         
-        // Add to open history array
-        updateDoc << "$push" << bsoncxx::builder::stream::open_document
-            << "open_history" << bsoncxx::builder::stream::open_document
-                << "ip_address" << ipAddress
-                << "user_agent" << userAgent
-                << "opened_at" << bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}
-                << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document
-            << finalize;
+        // Build push operation
+        auto pushFields = bsoncxx::builder::basic::document{};
+        pushFields.append(kvp("open_history", historyEntry.extract()));
         
-        auto result = collection.update_one(filter.view(), updateDoc.view());
+        // Build final update document
+        auto updateDoc = bsoncxx::builder::basic::document{};
+        updateDoc.append(kvp("$set", setFields.extract()));
+        updateDoc.append(kvp("$push", pushFields.extract()));
+        
+        auto result = collection.update_one(filter.view(), updateDoc.extract());
         
         if (result && result->modified_count() > 0) {
             LOG_INFO("Recorded email open for tracking ID: " + trackingId + " (open #" + std::to_string(currentOpenCount + 1) + ")");

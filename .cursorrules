@@ -71,6 +71,7 @@ Before implementing any feature:
 - [ ] Use `LOG_DEBUG()` instead of `std::cout`
 - [ ] Check BSON strings with `std::string(element.get_string().value)`
 - [ ] Use `mongocxx::pipeline` for aggregations
+- [ ] Use basic builder with `.extract()` for complex MongoDB updates
 
 ### 2. Quick Build Verification
 ```bash
@@ -93,6 +94,14 @@ std::string key = std::string(element.key());
 mongocxx::pipeline pipe;
 pipe.match(filter).group(grouping);
 auto cursor = collection.aggregate(pipe);
+
+// MongoDB updates (ALWAYS use basic builder for complex updates)
+using bsoncxx::builder::basic::kvp;
+auto setFields = bsoncxx::builder::basic::document{};
+setFields.append(kvp("field", "value"));
+auto updateDoc = bsoncxx::builder::basic::document{};
+updateDoc.append(kvp("$set", setFields.extract()));
+collection.update_one(filter, updateDoc.extract());
 
 // Optional checks (ALWAYS use these patterns)
 if (findResult.has_value()) { /* found */ }
@@ -132,6 +141,199 @@ When implementing MongoDB functionality:
 3. Use consistent collection names across imports and code
 4. Add proper exception handling with try-catch blocks
 5. Test connection with simple query first
+
+## ⚠️ CRITICAL: MongoDB BSON Document Construction
+
+### MANDATORY: Use Basic Builder for Complex Documents
+**NEVER use stream builder for nested documents or update operations - it causes data corruption!**
+
+#### ❌ **WRONG - Stream Builder (Causes Field Deletion)**
+```cpp
+// ❌ This corrupts MongoDB documents - ALL FIELDS GET DELETED!
+document setDoc{};
+setDoc << "field1" << value1 << "field2" << value2;  // Not finalized!
+
+document updateDoc{};
+updateDoc << "$set" << setDoc  // ❌ Passing unfinalized document!
+         << "$push" << open_document 
+         << "array" << arrayDoc  // ❌ Mixed builder types!
+         << close_document 
+         << finalize;
+
+// Result: MongoDB document becomes { _id: ObjectId(...) } - ALL DATA LOST!
+```
+
+#### ✅ **CORRECT - Basic Builder (Safe and Reliable)**
+```cpp
+// ✅ Use basic builder for complex documents
+using bsoncxx::builder::basic::kvp;
+using bsoncxx::builder::basic::make_document;
+
+// Build $set fields with explicit extraction
+auto setFields = bsoncxx::builder::basic::document{};
+setFields.append(kvp("field1", value1));
+setFields.append(kvp("field2", value2));
+setFields.append(kvp("timestamp", bsoncxx::types::b_date{std::chrono::milliseconds{nowMs}}));
+
+// Build nested document (e.g., for array push)
+auto nestedDoc = bsoncxx::builder::basic::document{};
+nestedDoc.append(kvp("nested_field1", "value"));
+nestedDoc.append(kvp("nested_field2", 123));
+
+// Build $push operation
+auto pushFields = bsoncxx::builder::basic::document{};
+pushFields.append(kvp("history_array", nestedDoc.extract()));  // ✅ Explicit extraction!
+
+// Build final update document
+auto updateDoc = bsoncxx::builder::basic::document{};
+updateDoc.append(kvp("$set", setFields.extract()));    // ✅ Extract before adding!
+updateDoc.append(kvp("$push", pushFields.extract()));  // ✅ Extract before adding!
+
+// Perform update
+collection.update_one(filter, updateDoc.extract());  // ✅ Extract final document!
+```
+
+### Why Basic Builder vs Stream Builder
+
+#### Stream Builder Problems:
+- ❌ Complex state machine requires precise `open_document`/`close_document` pairing
+- ❌ Mixing finalized and unfinalized documents causes corruption
+- ❌ `.view()` vs `.extract()` confusion leads to use-after-free
+- ❌ Nested documents without proper finalization delete all fields
+- ❌ Error-prone with multiple MongoDB operators (`$set`, `$push`, `$pull`, etc.)
+
+#### Basic Builder Advantages:
+- ✅ **Explicit extraction** - You control document lifecycle with `.extract()`
+- ✅ **Clear ownership** - No confusion about when document is finalized
+- ✅ **Type safety** - `kvp()` provides compile-time type checking
+- ✅ **No state machine** - Each `append()` call is independent
+- ✅ **Composability** - Easy to build complex nested structures
+- ✅ **Safer** - Prevents data corruption from improper finalization
+
+### When to Use Each Builder
+
+| Use Case | Builder | Why |
+|----------|---------|-----|
+| **Complex updates** (`$set`, `$push`, etc.) | Basic Builder | Prevents data corruption |
+| **Nested documents** (arrays, subdocuments) | Basic Builder | Explicit extraction required |
+| **Multiple operators** in one update | Basic Builder | Safer composition |
+| **Simple flat queries/filters** | Stream Builder | More concise for simple cases |
+| **Production database operations** | Basic Builder | More maintainable and safer |
+
+### BSON Builder Best Practices
+
+#### ✅ **DO: Use Basic Builder Pattern**
+```cpp
+// Build each level explicitly
+auto innerDoc = bsoncxx::builder::basic::document{};
+innerDoc.append(kvp("key", "value"));
+
+auto outerDoc = bsoncxx::builder::basic::document{};
+outerDoc.append(kvp("nested", innerDoc.extract()));  // ✅ Explicit extraction
+
+collection.insert_one(outerDoc.extract());  // ✅ Final extraction
+```
+
+#### ✅ **DO: Use Stream Builder for Simple Filters**
+```cpp
+// Simple queries are OK with stream builder
+auto filter = document{} 
+    << "email" << "user@example.com" 
+    << "active" << true 
+    << finalize;
+
+collection.find_one(filter.view());  // ✅ Simple, flat document
+```
+
+#### ❌ **DON'T: Mix Builder Types**
+```cpp
+// ❌ BAD: Mixing builders
+document streamDoc{};
+basic::document basicDoc{};
+streamDoc << "$set" << basicDoc;  // ❌ Wrong! Use one type consistently
+```
+
+#### ❌ **DON'T: Nest Without Extraction**
+```cpp
+// ❌ BAD: No extraction causes data loss
+document parent{};
+document child{};
+child << "field" << "value";
+parent << "nested" << child;  // ❌ Child not extracted - DATA CORRUPTION!
+```
+
+### Real-World Example: Update with Multiple Operators
+
+```cpp
+// ✅ CORRECT: Complex update operation using basic builder
+using bsoncxx::builder::basic::kvp;
+
+// Build $set fields
+auto setFields = bsoncxx::builder::basic::document{};
+setFields.append(kvp("status", "active"));
+setFields.append(kvp("updated_at", bsoncxx::types::b_date{std::chrono::system_clock::now()}));
+setFields.append(kvp("counter", 42));
+
+// Build $push array entry
+auto historyEntry = bsoncxx::builder::basic::document{};
+historyEntry.append(kvp("action", "update"));
+historyEntry.append(kvp("timestamp", bsoncxx::types::b_date{std::chrono::system_clock::now()}));
+historyEntry.append(kvp("user", "admin"));
+
+auto pushFields = bsoncxx::builder::basic::document{};
+pushFields.append(kvp("history", historyEntry.extract()));  // ✅ Extract nested doc
+
+// Build $inc operation
+auto incFields = bsoncxx::builder::basic::document{};
+incFields.append(kvp("view_count", 1));
+
+// Combine all operations
+auto updateDoc = bsoncxx::builder::basic::document{};
+updateDoc.append(kvp("$set", setFields.extract()));
+updateDoc.append(kvp("$push", pushFields.extract()));
+updateDoc.append(kvp("$inc", incFields.extract()));
+
+// Execute update
+auto result = collection.update_one(
+    make_document(kvp("_id", documentId)),
+    updateDoc.extract()
+);
+
+// Result: All fields preserved, operations applied correctly ✅
+```
+
+### BSON Document Checklist
+When working with MongoDB documents:
+- [ ] **Use basic builder for ANY nested structures**
+- [ ] **Use basic builder for multiple operators** (`$set`, `$push`, `$pull`, etc.)
+- [ ] **Call `.extract()` on each subdocument before adding to parent**
+- [ ] **Call `.extract()` on final document before passing to MongoDB**
+- [ ] **Use `kvp()` for type-safe key-value pairs**
+- [ ] **Test update operations to verify no data loss**
+- [ ] **Stream builder ONLY for simple, flat filters/queries**
+
+### Common BSON Errors and Solutions
+
+#### Error: All Fields Deleted Except `_id`
+**Symptom:** After update, document becomes `{ _id: ObjectId(...) }`
+
+**Cause:** Stream builder used without proper finalization
+
+**Solution:** Switch to basic builder with explicit `.extract()` calls
+
+#### Error: `modified_count() == 0` but document exists
+**Symptom:** Update returns 0 modified documents
+
+**Cause:** Malformed BSON from improper builder usage
+
+**Solution:** Use basic builder and verify BSON structure
+
+#### Error: Nested arrays/objects not updating
+**Symptom:** Nested fields remain unchanged after update
+
+**Cause:** Nested documents not extracted before adding to parent
+
+**Solution:** Call `.extract()` on nested document before `append()`
 
 ## Build and Deployment Rules
 
@@ -946,6 +1148,7 @@ Before submitting code:
 - [ ] **uWebSockets: Every `onData` paired with `onAborted`**
 - [ ] **Controllers: Use lazy initialization pattern (no service init in constructor)**
 - [ ] **Debug Output: Use `LOG_DEBUG()` instead of `std::cout` (configurable via LOG_LEVEL)**
+- [ ] **MongoDB BSON: Use basic builder for complex updates (with `.extract()` calls)**
 - [ ] MongoDB instance properly initialized
 - [ ] Error handling implemented
 - [ ] Logging added for debugging
@@ -1001,3 +1204,4 @@ Remember:
 2. **CRITICAL: Every `res->onData()` MUST be paired with `res->onAborted()` to prevent crashes!**
 3. **CRITICAL: Use lazy initialization in controllers - NEVER initialize services in constructors!**
 4. **CRITICAL: Use `LOG_DEBUG()` instead of `std::cout` - configure via `LOG_LEVEL` environment variable!**
+5. **CRITICAL: Use basic builder with `.extract()` for MongoDB complex updates - stream builder causes data corruption!**

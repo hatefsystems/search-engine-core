@@ -26,8 +26,9 @@ void TrackingController::trackEmailOpen(uWS::HttpResponse<false>* res, uWS::Http
         // Extract tracking ID from URL path
         std::string path = std::string(req->getUrl());
         
-        // Remove /track/ prefix and .png suffix
-        std::regex trackingIdRegex("/track/([a-f0-9]+)(?:\\.png)?");
+        // Remove /track/ prefix and optional .png suffix
+        // Match hex characters (case insensitive) of any length
+        std::regex trackingIdRegex("/track/([a-fA-F0-9]+)(?:\\.png)?");
         std::smatch matches;
         std::string trackingId;
         
