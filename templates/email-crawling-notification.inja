@@ -80,7 +80,7 @@
             <p>{{ email.header.subtitle }}</p>
         </div>
         <div class="content">
-            <p>{{ email.greeting }} {{ recipientName }},</p>
+            <p>{{ email.greeting }} {{ recipientName }}{% if language.code == "fa" %} {{ email.honorific }}{% endif %},</p>
             
             <p>{{ email.intro }}</p>
             

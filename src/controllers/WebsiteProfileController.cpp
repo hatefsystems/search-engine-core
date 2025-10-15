@@ -2,6 +2,8 @@
 #include "../../include/Logger.h"
 #include <nlohmann/json.hpp>
 #include <string>
+#include <thread>
+#include <curl/curl.h>
 
 WebsiteProfileController::WebsiteProfileController() {
     // Empty constructor - use lazy initialization pattern
@@ -179,6 +181,9 @@ void WebsiteProfileController::saveProfile(uWS::HttpResponse<false>* res, uWS::H
                     };
                     json(res, response);
                     LOG_INFO("Website profile saved: " + profile.website_url);
+                    
+                    // Trigger crawl for the website (async, non-blocking)
+                    triggerCrawlForWebsite(profile.website_url, profile.email, profile.owner_name);
                 } else {
                     // Check if it's a duplicate error
                     if (result.message.find("already exists") != std::string::npos) {
@@ -487,5 +492,91 @@ void WebsiteProfileController::checkProfile(uWS::HttpResponse<false>* res, uWS::
         LOG_ERROR("Error in checkProfile: " + std::string(e.what()));
         serverError(res, "Internal server error");
     }
+}
+
+// Callback function for libcurl to write response data
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
+    userp->append(static_cast<char*>(contents), size * nmemb);
+    return size * nmemb;
+}
+
+void WebsiteProfileController::triggerCrawlForWebsite(const std::string& websiteUrl, const std::string& email, const std::string& ownerName) {
+    // Run async to not block the main response
+    std::thread([websiteUrl, email, ownerName]() {
+        try {
+            LOG_INFO("Triggering crawl for website: " + websiteUrl);
+            
+            // Prepare the JSON payload for /api/crawl/add-site
+            nlohmann::json payload = {
+                {"url", "https://" + websiteUrl},  // Add https:// prefix
+                {"maxPages", 5},
+                {"maxDepth", 5},
+            };
+            
+            // Add email if provided
+            if (!email.empty()) {
+                payload["email"] = email;
+                payload["recipientName"] = ownerName;
+                payload["language"] = "fa";  // Default to Persian for e-namad websites
+            }
+            
+            std::string jsonPayload = payload.dump();
+            std::string responseBuffer;
+            
+            // Initialize CURL
+            CURL* curl = curl_easy_init();
+            if (!curl) {
+                LOG_ERROR("Failed to initialize CURL for crawl trigger");
+                return;
+            }
+            
+            // Get base URL from environment variable
+            const char* baseUrlEnv = std::getenv("BASE_URL");
+            std::string baseUrl = baseUrlEnv ? baseUrlEnv : "http://localhost:3000";
+            
+            // Set up the request using base URL from environment
+            std::string url = baseUrl + "/api/crawl/add-site";
+            LOG_DEBUG("Crawl API endpoint: " + url);
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonPayload.c_str());
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(jsonPayload.size()));
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBuffer);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);  // 10 seconds timeout
+            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);  // 5 seconds connection timeout
+            
+            // Set headers
+            struct curl_slist* headers = nullptr;
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            
+            // Perform the request
+            CURLcode res = curl_easy_perform(curl);
+            
+            if (res != CURLE_OK) {
+                LOG_ERROR("CURL error when triggering crawl: " + std::string(curl_easy_strerror(res)));
+            } else {
+                // Check HTTP response code
+                long responseCode;
+                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+                
+                if (responseCode >= 200 && responseCode < 300) {
+                    LOG_INFO("Successfully triggered crawl for " + websiteUrl + " (HTTP " + std::to_string(responseCode) + ")");
+                    LOG_DEBUG("Crawl API response: " + responseBuffer);
+                } else {
+                    LOG_WARNING("Crawl trigger returned HTTP " + std::to_string(responseCode) + " for " + websiteUrl);
+                    LOG_DEBUG("Response body: " + responseBuffer);
+                }
+            }
+            
+            // Cleanup
+            curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
+            
+        } catch (const std::exception& e) {
+            LOG_ERROR("Exception in triggerCrawlForWebsite: " + std::string(e.what()));
+        }
+    }).detach();  // Detach the thread to avoid blocking
 }
 

@@ -45,7 +45,7 @@ private:
     // Email notification for crawl completion
     void sendCrawlCompletionEmail(const std::string& sessionId, const std::string& email, 
                                  const std::string& url, const std::vector<CrawlResult>& results,
-                                 const std::string& language);
+                                 const std::string& language, const std::string& recipientName = "");
     
     // Email service access (lazy initialization)
     search_engine::storage::EmailService* getEmailService() const;

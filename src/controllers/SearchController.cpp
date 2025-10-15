@@ -217,6 +217,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 
                 // Optional parameters
                 std::string email = jsonBody.value("email", "");  // Email for completion notification
+                std::string recipientName = jsonBody.value("recipientName", "");  // Recipient name for email (default: email prefix)
                 std::string language = jsonBody.value("language", "en");  // Language for email notification (default: English)
                 int maxPages = jsonBody.value("maxPages", 1000);
                 int maxDepth = jsonBody.value("maxDepth", 3);
@@ -308,11 +309,11 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     // Create completion callback for email notification if email is provided
                     CrawlCompletionCallback emailCallback = nullptr;
                     if (!email.empty()) {
-                        LOG_INFO("Setting up email notification callback for: " + email + " (language: " + language + ")");
-                        emailCallback = [this, email, url, language](const std::string& sessionId, 
+                        LOG_INFO("Setting up email notification callback for: " + email + " (language: " + language + ", recipientName: " + recipientName + ")");
+                        emailCallback = [this, email, url, language, recipientName](const std::string& sessionId, 
                                                          const std::vector<CrawlResult>& results, 
                                                          CrawlerManager* manager) {
-                            this->sendCrawlCompletionEmail(sessionId, email, url, results, language);
+                            this->sendCrawlCompletionEmail(sessionId, email, url, results, language, recipientName);
                         };
                     }
                     
@@ -1698,9 +1699,9 @@ namespace {
 
 void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, const std::string& email, 
                                                const std::string& url, const std::vector<CrawlResult>& results,
-                                               const std::string& language) {
+                                               const std::string& language, const std::string& recipientName) {
     try {
-        LOG_INFO("Sending crawl completion email for session: " + sessionId + " to: " + email + " (language: " + language + ")");
+        LOG_INFO("Sending crawl completion email for session: " + sessionId + " to: " + email + " (language: " + language + ", recipientName: " + recipientName + ")");
         
         // Get email service using lazy initialization
         auto emailService = getEmailService();
@@ -1742,7 +1743,8 @@ void SearchController::sendCrawlCompletionEmail(const std::string& sessionId, co
         // Prepare notification data
         search_engine::storage::EmailService::NotificationData data;
         data.recipientEmail = email;
-        data.recipientName = email.substr(0, email.find('@')); // Use email prefix as name
+        // Use provided recipientName if available, otherwise fallback to email prefix
+        data.recipientName = !recipientName.empty() ? recipientName : email.substr(0, email.find('@'));
         data.domainName = domainName;
         data.crawledPagesCount = crawledPagesCount;
         data.crawlSessionId = sessionId;

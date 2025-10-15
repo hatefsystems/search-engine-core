@@ -44,6 +44,7 @@ services:
     - .env
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}  # CRITICAL: Configurable logging (debug, info, warning, error, none)
+      - BASE_URL=${BASE_URL:-http://localhost:3000}  # Base URL for internal API calls
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017
       - SEARCH_REDIS_URI=tcp://redis:6379
       - SEARCH_REDIS_POOL_SIZE=4

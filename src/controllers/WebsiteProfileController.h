@@ -27,6 +27,9 @@ private:
     
     // Helper to parse JSON request body
     search_engine::storage::WebsiteProfile parseProfileFromJson(const nlohmann::json& json);
+    
+    // Helper to trigger crawl for a website URL
+    void triggerCrawlForWebsite(const std::string& websiteUrl, const std::string& email = "", const std::string& ownerName = "");
 };
 
 // Route registration
