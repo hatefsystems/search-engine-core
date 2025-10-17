@@ -4,6 +4,7 @@ from app.celery_app import app
 from app.file_processor import get_file_processor
 from app.rate_limiter import get_rate_limiter
 from app.database import get_database
+from app.config import Config
 
 # Configure logging
 logging.basicConfig(
@@ -11,6 +12,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Log timezone configuration on startup
+logger.info(f"Scheduler timezone configured: {Config.TIMEZONE}")
 
 class BaseTask(Task):
     """Base task with error handling"""

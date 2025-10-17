@@ -81,11 +81,16 @@ In Flower dashboard you'll see:
 Edit `docker-compose.yml` or create `.env` file:
 
 ```bash
+# Timezone Configuration
+SCHEDULER_TIMEZONE=America/New_York  # Optional: Override timezone (auto-detects if not set)
+# Or use TZ environment variable:
+# TZ=America/New_York
+
 # Warm-up Configuration
 WARMUP_ENABLED=true
 WARMUP_SCHEDULE=50,100,200,400,800  # Day 1: 50, Day 2: 100, etc.
-WARMUP_START_HOUR=10  # Start at 10:00 AM
-WARMUP_END_HOUR=12    # End at 12:00 PM
+WARMUP_START_HOUR=10  # Start at 10:00 AM (in configured timezone)
+WARMUP_END_HOUR=12    # End at 12:00 PM (in configured timezone)
 
 # Jitter Configuration
 JITTER_MIN_SECONDS=30  # Minimum random delay
@@ -99,6 +104,29 @@ RETRY_DELAY_SECONDS=300
 # API Configuration
 API_BASE_URL=http://core:3000
 ```
+
+### Timezone Configuration
+
+The scheduler automatically detects your system timezone. You can override it using:
+
+**Option 1: SCHEDULER_TIMEZONE environment variable**
+```bash
+SCHEDULER_TIMEZONE=Europe/London
+```
+
+**Option 2: TZ system environment variable**
+```bash
+TZ=Asia/Tokyo
+```
+
+**Timezone Detection Priority:**
+1. `SCHEDULER_TIMEZONE` environment variable (highest priority)
+2. `TZ` environment variable
+3. System timezone from `/etc/timezone`
+4. System timezone from `/etc/localtime` symlink
+5. Default to `UTC` if detection fails
+
+**Important:** All time-based settings (`WARMUP_START_HOUR`, `WARMUP_END_HOUR`) use the configured timezone. For example, if you set `SCHEDULER_TIMEZONE=America/New_York` and `WARMUP_START_HOUR=10`, the scheduler will start processing at 10:00 AM New York time.
 
 ### Warm-up Schedule Explained
 

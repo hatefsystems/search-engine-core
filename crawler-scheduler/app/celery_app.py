@@ -18,7 +18,7 @@ app.conf.update(
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
-    timezone='Asia/Tehran',
+    timezone=Config.TIMEZONE,  # Use detected system timezone or SCHEDULER_TIMEZONE env var
     enable_utc=False,
     task_track_started=True,
     task_time_limit=300,  # 5 minutes max per task

@@ -1,12 +1,51 @@
 import os
 from typing import List
 
+
+def _detect_timezone() -> str:
+    """
+    Detect timezone from environment or system configuration
+    Priority: SCHEDULER_TIMEZONE > TZ > /etc/timezone > /etc/localtime > UTC
+    """
+    # Priority 1: SCHEDULER_TIMEZONE environment variable
+    env_tz = os.getenv('SCHEDULER_TIMEZONE', '').strip()
+    if env_tz:
+        return env_tz
+    
+    # Priority 2: TZ environment variable (standard Unix way)
+    try:
+        if 'TZ' in os.environ and os.environ['TZ'].strip():
+            return os.environ['TZ'].strip()
+        
+        # Priority 3: Read from /etc/timezone (Debian/Ubuntu)
+        if os.path.exists('/etc/timezone'):
+            with open('/etc/timezone', 'r') as f:
+                tz = f.read().strip()
+                if tz:
+                    return tz
+        
+        # Priority 4: Read from /etc/localtime symlink (modern systems)
+        if os.path.islink('/etc/localtime'):
+            link = os.readlink('/etc/localtime')
+            # Extract timezone from path like /usr/share/zoneinfo/Asia/Tehran
+            if '/zoneinfo/' in link:
+                return link.split('/zoneinfo/')[-1]
+    except Exception:
+        pass
+    
+    # Default to UTC if all detection methods fail
+    return 'UTC'
+
+
 class Config:
     """Configuration for crawler scheduler"""
     
     # Celery Configuration
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/1')
     CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/1')
+    
+    # Timezone Configuration
+    TIMEZONE = _detect_timezone()
     
     # MongoDB Configuration
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://admin:password123@mongodb_test:27017')
