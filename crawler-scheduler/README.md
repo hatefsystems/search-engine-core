@@ -142,6 +142,20 @@ The scheduler implements progressive rate limiting to safely ramp up crawler act
 
 **Note**: Days are calculated from first processed file, not calendar days.
 
+### Time Window Behavior
+
+**Important**: The end hour is **inclusive** (processes through the entire hour):
+
+- `WARMUP_START_HOUR=10` and `WARMUP_END_HOUR=12` → Processes from `10:00` through `12:59` ✅
+- `WARMUP_START_HOUR=0` and `WARMUP_END_HOUR=23` → Processes full day `00:00` through `23:59` ✅
+- `WARMUP_END_HOUR=0` or `24` → Special case for end of day (`23:59`) ✅
+
+**Example**: If you want to process from 9 AM to 5 PM (inclusive of 5 PM hour):
+```bash
+WARMUP_START_HOUR=9
+WARMUP_END_HOUR=17  # Processes through 17:59
+```
+
 ### Jitter Explained
 
 Random delays (30-60 seconds) are added before each API call to:
