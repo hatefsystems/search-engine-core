@@ -230,6 +230,103 @@ services:
     networks:
       - search-network
 
+  # Crawler Scheduler - Progressive Warm-up Task Scheduler (Production)
+  crawler-scheduler:
+    image: ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest
+    container_name: crawler-scheduler-worker
+    pull_policy: if_not_present
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --beat --loglevel=warning --concurrency=2
+    volumes:
+      - crawler_data:/app/data
+    environment:
+      # Celery Configuration
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      
+      # MongoDB Configuration
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-search-engine}
+      
+      # API Configuration
+      - API_BASE_URL=${API_BASE_URL:-http://search-engine-core:3000}
+      
+      # Warm-up Configuration (Progressive Rate Limiting)
+      - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-12}
+      
+      # Jitter Configuration (Randomization)
+      - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
+      - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
+      
+      # Task Configuration
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}
+      - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
+      - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-warning}
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      search-engine:
+        condition: service_started
+  
+  # Flower Web UI - Scheduler Monitoring Dashboard (Production)
+  crawler-flower:
+    image: ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest
+    container_name: crawler-scheduler-flower
+    pull_policy: if_not_present
+    restart: unless-stopped
+    command: celery -A app.celery_app flower --port=5555 --basic_auth=${FLOWER_BASIC_AUTH}
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      crawler-scheduler:
+        condition: service_started
+
 networks:
   search-network:
     driver: bridge
@@ -237,5 +334,6 @@ networks:
 volumes:
   mongodb_data:
   redis_data:
+  crawler_data:
 
 

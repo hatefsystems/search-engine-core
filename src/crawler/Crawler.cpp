@@ -168,7 +168,8 @@ void Crawler::start() {
     // Rehydrate pending tasks from persistent frontier (Mongo) if available
     LOG_DEBUG("Crawler::start - Attempting to rehydrate pending frontier tasks from MongoDB");
     try {
-        if (storage && storage->getMongoStorage()) {
+        if (storage && storage->getMongoStorage()) 
+        {
             LOG_TRACE("Crawler::start - MongoDB storage available, loading pending tasks");
             auto pending = storage->getMongoStorage()->frontierLoadPending(sessionId, FRONTIER_REHYDRATION_LIMIT);
             if (pending.success) {

@@ -101,8 +101,17 @@ public:
     Result<std::vector<search_engine::storage::ApiRequestLog>> getApiRequestLogsByIp(const std::string& ipAddress, int limit = 100, int skip = 0) { ensureMongoConnection(); return mongoStorage_->getApiRequestLogsByIp(ipAddress, limit, skip); }
     
     // Get direct access to storage layers (for advanced operations)
-    MongoDBStorage* getMongoStorage() const { return mongoStorage_.get(); }
-    RedisSearchStorage* getRedisStorage() const { return redisStorage_.get(); }
+    MongoDBStorage* getMongoStorage() const { 
+        // Ensure MongoDB connection is established before returning pointer
+        // This prevents the "No MongoDB storage available" warning in Crawler
+        const_cast<ContentStorage*>(this)->ensureMongoConnection(); 
+        return mongoStorage_.get(); 
+    }
+    RedisSearchStorage* getRedisStorage() const { 
+        // Ensure Redis connection is established before returning pointer
+        const_cast<ContentStorage*>(this)->ensureRedisConnection(); 
+        return redisStorage_.get(); 
+    }
 };
 
 } // namespace storage

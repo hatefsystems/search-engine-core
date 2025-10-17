@@ -197,6 +197,69 @@ services:
   #   environment:
   #     - MONGODB_URI=mongodb://mongodb:27017
 
+  # Crawler Scheduler - Progressive Warm-up Task Scheduler
+  crawler-scheduler:
+    build: ./crawler-scheduler
+    container_name: crawler-scheduler-worker
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --beat --loglevel=info
+    volumes:
+      - ./crawler-scheduler/data:/app/data
+      - ./crawler-scheduler/app:/app/app  # Hot reload for development
+    environment:
+      # Celery Configuration
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      
+      # MongoDB Configuration
+      - MONGODB_URI=mongodb://admin:password123@mongodb_test:27017
+      - MONGODB_DB=search-engine
+      
+      # API Configuration
+      - API_BASE_URL=http://core:3000
+      
+      # Warm-up Configuration (Progressive Rate Limiting)
+      - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}
+      
+      # Jitter Configuration (Randomization)
+      - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
+      - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
+      
+      # Task Configuration
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}
+      - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
+      - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - mongodb
+      - search-engine
+  
+  # Flower Web UI - Scheduler Monitoring Dashboard
+  crawler-flower:
+    build: ./crawler-scheduler
+    container_name: crawler-scheduler-flower
+    restart: unless-stopped
+    command: celery -A app.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - crawler-scheduler
+
 networks:
   search-network:
     driver: bridge

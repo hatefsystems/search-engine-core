@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data directories (don't commit processed files)
+data/pending/*.json
+data/processed/
+data/failed/
+
+# Keep directory structure
+!data/pending/.gitkeep
+!data/processed/.gitkeep
+!data/failed/.gitkeep
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+

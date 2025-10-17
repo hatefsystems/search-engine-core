@@ -33,6 +33,13 @@ jobs:
       docker_image: ghcr.io/${{ github.repository }}/js-minifier
       docker_tag: latest
 
+  build-crawler-scheduler:
+    uses: ./.github/workflows/build-crawler-scheduler.yml
+    with:
+      docker_image: ghcr.io/${{ github.repository }}/crawler-scheduler
+      docker_tag: latest
+      cache_version: ${{ inputs.cache_version }}
+
   build-app:
     needs: [build-drivers, build-js-minifier]
     uses: ./.github/workflows/build-search-engine.yml
