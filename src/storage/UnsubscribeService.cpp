@@ -125,10 +125,13 @@ std::string UnsubscribeService::createUnsubscribeToken(const std::string& email,
     LOG_DEBUG("UnsubscribeService: Creating unsubscribe token for: " + email);
     
     try {
-        // Check if email already has an active unsubscribe record
+        // Check if email already has any unsubscribe record (active or inactive)
+        // Reuse existing tokens to prevent duplicates when multiple emails are sent
         auto existing = getUnsubscribeByEmail(email);
-        if (existing.has_value() && existing->isActive) {
-            LOG_DEBUG("UnsubscribeService: Email already unsubscribed, returning existing token");
+        if (existing.has_value()) {
+            LOG_DEBUG("UnsubscribeService: Email already has a token (active: " + 
+                     std::string(existing->isActive ? "true" : "false") + 
+                     "), returning existing token");
             return existing->token;
         }
         

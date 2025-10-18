@@ -66,29 +66,50 @@ bool EmailService::sendCrawlingNotification(const NotificationData& data) {
              " (pages: " + std::to_string(data.crawledPagesCount) + ")");
     
     try {
+        // Create a mutable copy to add unsubscribe token
+        NotificationData mutableData = data;
+        
+        // Generate unsubscribe token ONCE (if not already provided)
+        if (mutableData.unsubscribeToken.empty()) {
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                mutableData.unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    mutableData.recipientEmail, 
+                    "", // IP address - not available during email sending
+                    "Email Sending System" // User agent
+                );
+                if (!mutableData.unsubscribeToken.empty()) {
+                    LOG_DEBUG("EmailService: Generated unsubscribe token once for: " + mutableData.recipientEmail);
+                } else {
+                    LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + mutableData.recipientEmail);
+                }
+            }
+        }
+        
         // Generate email content
-        std::string subject = data.subject.empty() ? 
-            "Crawling Complete - " + std::to_string(data.crawledPagesCount) + " pages indexed" : 
-            data.subject;
+        std::string subject = mutableData.subject.empty() ? 
+            "Crawling Complete - " + std::to_string(mutableData.crawledPagesCount) + " pages indexed" : 
+            mutableData.subject;
             
-        std::string htmlContent = data.htmlContent;
-        std::string textContent = data.textContent;
+        std::string htmlContent = mutableData.htmlContent;
+        std::string textContent = mutableData.textContent;
         
         // If no custom content provided, use default template
         if (htmlContent.empty()) {
-            htmlContent = generateDefaultNotificationHTML(data);
+            htmlContent = generateDefaultNotificationHTML(mutableData);
         }
         
         if (textContent.empty()) {
-            textContent = generateDefaultNotificationText(data);
+            textContent = generateDefaultNotificationText(mutableData);
         }
         
         // Embed tracking pixel if enabled
-        if (data.enableTracking) {
-            htmlContent = embedTrackingPixel(htmlContent, data.recipientEmail, "crawling_notification");
+        if (mutableData.enableTracking) {
+            htmlContent = embedTrackingPixel(htmlContent, mutableData.recipientEmail, "crawling_notification");
         }
         
-        return sendHtmlEmail(data.recipientEmail, subject, htmlContent, textContent);
+        // Pass the unsubscribe token to sendHtmlEmail
+        return sendHtmlEmail(mutableData.recipientEmail, subject, htmlContent, textContent, mutableData.unsubscribeToken);
         
     } catch (const std::exception& e) {
         lastError_ = "Exception in sendCrawlingNotification: " + std::string(e.what());
@@ -100,7 +121,8 @@ bool EmailService::sendCrawlingNotification(const NotificationData& data) {
 bool EmailService::sendHtmlEmail(const std::string& to, 
                                 const std::string& subject, 
                                 const std::string& htmlContent, 
-                                const std::string& textContent) {
+                                const std::string& textContent,
+                                const std::string& unsubscribeToken) {
     
     if (!curlHandle_) {
         lastError_ = "CURL not initialized";
@@ -111,22 +133,26 @@ bool EmailService::sendHtmlEmail(const std::string& to,
     LOG_DEBUG("Preparing to send email to: " + to + " with subject: " + subject);
     
     try {
-        // Generate unsubscribe token for List-Unsubscribe headers
-        std::string unsubscribeToken = "";
-        auto unsubscribeService = getUnsubscribeService();
-        if (unsubscribeService) {
-            unsubscribeToken = unsubscribeService->createUnsubscribeToken(
-                to, 
-                "", // IP address - not available during email sending
-                "Email Sending System" // User agent
-            );
-            if (!unsubscribeToken.empty()) {
-                LOG_DEBUG("EmailService: Generated unsubscribe token for email headers: " + to);
+        // Use provided unsubscribe token or generate a new one if not provided
+        std::string finalUnsubscribeToken = unsubscribeToken;
+        if (finalUnsubscribeToken.empty()) {
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                finalUnsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    to, 
+                    "", // IP address - not available during email sending
+                    "Email Sending System" // User agent
+                );
+                if (!finalUnsubscribeToken.empty()) {
+                    LOG_DEBUG("EmailService: Generated new unsubscribe token for email headers: " + to);
+                }
             }
+        } else {
+            LOG_DEBUG("EmailService: Reusing existing unsubscribe token for email headers: " + to);
         }
         
         // Prepare email data
-        std::string emailData = formatEmailHeaders(to, subject, unsubscribeToken) + 
+        std::string emailData = formatEmailHeaders(to, subject, finalUnsubscribeToken) + 
                                formatEmailBody(htmlContent, textContent);
         
         return performSMTPRequest(to, emailData);
@@ -751,22 +777,28 @@ std::string EmailService::renderEmailTemplate(const std::string& templateName, c
             LOG_WARNING("EmailService: sender_name not found in locale file, using default");
         }
         
-        // Generate unsubscribe token
-        auto unsubscribeService = getUnsubscribeService();
-        if (unsubscribeService) {
-            std::string unsubscribeToken = unsubscribeService->createUnsubscribeToken(
-                data.recipientEmail, 
-                "", // IP address - not available during email generation
-                "Email Template System" // User agent
-            );
-            if (!unsubscribeToken.empty()) {
-                templateData["unsubscribeToken"] = unsubscribeToken;
-                LOG_DEBUG("EmailService: Generated unsubscribe token for: " + data.recipientEmail);
-            } else {
-                LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + data.recipientEmail);
-            }
+        // Use existing unsubscribe token from data or generate a new one
+        if (!data.unsubscribeToken.empty()) {
+            templateData["unsubscribeToken"] = data.unsubscribeToken;
+            LOG_DEBUG("EmailService: Using pre-generated unsubscribe token for: " + data.recipientEmail);
         } else {
-            LOG_WARNING("EmailService: UnsubscribeService unavailable, skipping token generation");
+            // Fallback: generate token if not provided (shouldn't happen in normal flow)
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                std::string unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    data.recipientEmail, 
+                    "", // IP address - not available during email generation
+                    "Email Template System" // User agent
+                );
+                if (!unsubscribeToken.empty()) {
+                    templateData["unsubscribeToken"] = unsubscribeToken;
+                    LOG_DEBUG("EmailService: Generated unsubscribe token for: " + data.recipientEmail);
+                } else {
+                    LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + data.recipientEmail);
+                }
+            } else {
+                LOG_WARNING("EmailService: UnsubscribeService unavailable, skipping token generation");
+            }
         }
         
         // Initialize Inja environment

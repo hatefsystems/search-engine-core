@@ -218,18 +218,22 @@ services:
       # API Configuration
       - API_BASE_URL=http://core:3000
       
+      # Timezone Configuration (Auto-detects system timezone by default)
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE}  # Optional: Override system timezone (e.g., America/New_York, Europe/London)
+      # - TZ=${TZ}  # Alternative: Set system TZ variable
+      
       # Warm-up Configuration (Progressive Rate Limiting)
       - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
-      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}
-      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}
-      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-0}   # Start hour in configured timezone (0-23)
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}       # End hour in configured timezone (inclusive, 0-23)
       
-      # Jitter Configuration (Randomization)
+      # Jitter Configuration (Randomization to avoid exact timing)
       - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
       - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
       
       # Task Configuration
-      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}  # Check for new files every 60 seconds
       - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
       - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
       
