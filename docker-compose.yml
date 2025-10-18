@@ -219,8 +219,8 @@ services:
       - API_BASE_URL=http://core:3000
       
       # Timezone Configuration (Auto-detects system timezone by default)
-      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE}  # Optional: Override system timezone (e.g., America/New_York, Europe/London)
-      # - TZ=${TZ}  # Alternative: Set system TZ variable
+      - TZ=Asia/Tehran  # System timezone for Celery worker
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # Optional: Override system timezone (e.g., America/New_York, Europe/London)
       
       # Warm-up Configuration (Progressive Rate Limiting)
       - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
@@ -258,6 +258,9 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/2
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+      # Timezone Configuration for Flower Dashboard
+      - TZ=Asia/Tehran
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}
     networks:
       - search-network
     depends_on:
