@@ -16,6 +16,11 @@ on:
         required: false
         default: '1'
         type: string
+      force_rebuild:
+        description: 'Force rebuild all images (ignore source hash cache)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -27,3 +32,4 @@ jobs:
     uses: ./.github/workflows/docker-build-orchestrator.yml
     with:
       cache_version: ${{ inputs.cache_version || '1' }}
+      force_rebuild: ${{ inputs.force_rebuild || false }}
