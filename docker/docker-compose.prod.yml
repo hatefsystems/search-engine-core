@@ -5,7 +5,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
-      - LOG_LEVEL=${LOG_LEVEL:-warning}  # CRITICAL: Production logging (warning, error only)
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for email diagnostics
       - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}
@@ -238,7 +238,7 @@ services:
     restart: unless-stopped
     command: celery -A app.celery_app worker --beat --loglevel=warning --concurrency=2
     volumes:
-      - crawler_data:/app/data
+      - ${CRAWLER_DATA_DIR:-/root/app/data}:/app/data  # Production host bind mount (configurable via env var)
     environment:
       # Celery Configuration
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
@@ -271,7 +271,7 @@ services:
       - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
       
       # Logging
-      - LOG_LEVEL=${LOG_LEVEL:-warning}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for diagnostics
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:
       resources:
@@ -341,6 +341,5 @@ networks:
 volumes:
   mongodb_data:
   redis_data:
-  crawler_data:
 
 
