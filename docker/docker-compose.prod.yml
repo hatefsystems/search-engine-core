@@ -18,6 +18,8 @@ services:
       - JS_CACHE_TYPE=${JS_CACHE_TYPE:-redis}
       - JS_CACHE_TTL=${JS_CACHE_TTL:-3600}
       - JS_CACHE_REDIS_DB=${JS_CACHE_REDIS_DB:-1}
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
       # SPA Rendering Configuration
       - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}

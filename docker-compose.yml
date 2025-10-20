@@ -59,6 +59,8 @@ services:
       - JS_CACHE_REDIS_DB=1
       # - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       # - KAFKA_FRONTIER_TOPIC=crawl.frontier
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
       - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
       - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}
