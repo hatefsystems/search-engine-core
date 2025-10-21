@@ -159,6 +159,7 @@ private:
     static size_t readCallback(void* ptr, size_t size, size_t nmemb, void* userp);
     
     // Helper methods
+    std::string encodeFromHeader(const std::string& name, const std::string& email);
     std::string formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken = "");
     std::string formatEmailBody(const std::string& htmlContent, const std::string& textContent);
     std::string generateBoundary();

@@ -347,11 +347,88 @@ size_t EmailService::readCallback(void* ptr, size_t size, size_t nmemb, void* us
     return toWrite;
 }
 
+std::string EmailService::encodeFromHeader(const std::string& name, const std::string& email) {
+    // RFC 5322 and RFC 2047 compliant From header encoding
+    
+    // Check if name contains only ASCII printable characters (excluding special chars that need quoting)
+    bool needsEncoding = false;
+    bool needsQuoting = false;
+    
+    for (unsigned char c : name) {
+        if (c > 127) {
+            // Non-ASCII character - needs RFC 2047 encoding
+            needsEncoding = true;
+            break;
+        }
+        // Check for special characters that require quoting per RFC 5322
+        if (c == '"' || c == '\\' || c == '(' || c == ')' || c == '<' || c == '>' || 
+            c == '[' || c == ']' || c == ':' || c == ';' || c == '@' || c == ',' || c == '.') {
+            needsQuoting = true;
+        }
+    }
+    
+    if (needsEncoding) {
+        // RFC 2047: Encode as =?UTF-8?B?base64?=
+        std::string encoded = "=?UTF-8?B?";
+        
+        // Base64 encode the name
+        static const char* base64_chars = 
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "0123456789+/";
+        
+        std::string base64;
+        int val = 0;
+        int valb = -6;
+        
+        for (unsigned char c : name) {
+            val = (val << 8) + c;
+            valb += 8;
+            while (valb >= 0) {
+                base64.push_back(base64_chars[(val >> valb) & 0x3F]);
+                valb -= 6;
+            }
+        }
+        if (valb > -6) {
+            base64.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+        }
+        while (base64.size() % 4) {
+            base64.push_back('=');
+        }
+        
+        encoded += base64 + "?= <" + email + ">";
+        return encoded;
+        
+    } else if (needsQuoting || name.find(' ') != std::string::npos) {
+        // Quote the name if it contains spaces or special characters
+        std::string quoted = "\"";
+        for (char c : name) {
+            if (c == '"' || c == '\\') {
+                quoted += '\\'; // Escape quotes and backslashes
+            }
+            quoted += c;
+        }
+        quoted += "\" <" + email + ">";
+        return quoted;
+        
+    } else if (name.empty()) {
+        // No display name, just email
+        return email;
+        
+    } else {
+        // Simple ASCII name without special chars
+        return name + " <" + email + ">";
+    }
+}
+
 std::string EmailService::formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken) {
     std::ostringstream headers;
     
     headers << "To: " << to << "\r\n";
-    headers << "From: " << config_.fromName << " <" << config_.fromEmail << ">\r\n";
+    
+    // RFC 5322 compliant From header with proper encoding
+    headers << "From: " << encodeFromHeader(config_.fromName, config_.fromEmail) << "\r\n";
+    
     headers << "Reply-To: info@hatef.ir\r\n";
     headers << "Subject: " << subject << "\r\n";
     headers << "MIME-Version: 1.0\r\n";
