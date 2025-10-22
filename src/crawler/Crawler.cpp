@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <iostream>
 #include <algorithm>
+#include <regex>
 
 Crawler::Crawler(const CrawlConfig& config, std::shared_ptr<search_engine::storage::ContentStorage> storage, const std::string& sessionId)
     : storage(storage)
@@ -686,6 +687,56 @@ CrawlResult Crawler::processURL(const std::string& url) {
             LOG_INFO("🔍 TEXTCONTENT DEBUG: ❌ NOT storing textContent - config disabled");
         }
         result.title = parsedContent.title;
+
+        // If template-driven selectors are provided, attempt simple overrides
+        auto stripHtmlTags = [](const std::string& s) {
+            static const std::regex tagRe("<[^>]*>");
+            return std::regex_replace(s, tagRe, "");
+        };
+        auto findBySimpleSelectors = [&](const std::vector<std::string>& selectors) -> std::optional<std::string> {
+            for (const auto& sel : selectors) {
+                try {
+                    if (sel.empty()) continue;
+                    if (sel[0] == '.') {
+                        // Class selector: .classname
+                        std::string cls = sel.substr(1);
+                        std::regex re("<([a-zA-Z0-9]+)[^>]*class=\"[^\"]*\\b" + cls + "\\b[^\"]*\"[^>]*>([\\s\\S]*?)</\\1>", std::regex::icase);
+                        std::smatch m;
+                        if (std::regex_search(fetchResult.content, m, re)) {
+                            return stripHtmlTags(m[2].str());
+                        }
+                    } else {
+                        // Tag selector, e.g., h1
+                        std::regex re("<" + sel + "[^>]*>([\\s\\S]*?)</" + sel + ">", std::regex::icase);
+                        std::smatch m;
+                        if (std::regex_search(fetchResult.content, m, re)) {
+                            return stripHtmlTags(m[1].str());
+                        }
+                    }
+                } catch (...) {
+                    // Ignore malformed selector
+                }
+            }
+            return std::nullopt;
+        };
+
+        // Title override
+        if (!config.titleSelectors.empty()) {
+            auto maybeTitle = findBySimpleSelectors(config.titleSelectors);
+            if (maybeTitle && !maybeTitle->empty()) {
+                result.title = *maybeTitle;
+                LOG_INFO("Template selectors: Overrode title via selector match");
+            }
+        }
+
+        // Content override (use first match's inner text)
+        if (config.extractTextContent && !config.contentSelectors.empty()) {
+            auto maybeContent = findBySimpleSelectors(config.contentSelectors);
+            if (maybeContent && !maybeContent->empty()) {
+                result.textContent = *maybeContent;
+                LOG_INFO("Template selectors: Overrode textContent via selector match");
+            }
+        }
         result.metaDescription = parsedContent.metaDescription;
         // Get current URL's depth for link extraction
         QueuedURL queuedInfo = urlFrontier->getQueuedURLInfo(url);

@@ -1,0 +1,27 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 4,
+    "maxPages": 800,
+    "politenessDelay": 800
+  },
+  "description": "Template for ecommerce product listings",
+  "name": "ecommerce-site",
+  "patterns": {
+    "articleSelectors": [
+      ".product",
+      ".product-item",
+      ".product-card"
+    ],
+    "contentSelectors": [
+      ".description",
+      ".product-description",
+      ".details"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".product-title",
+      ".title"
+    ]
+  }
+}

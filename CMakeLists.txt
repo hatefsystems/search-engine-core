@@ -174,6 +174,12 @@ target_link_libraries(server
         /usr/local/lib/libuSockets.a
 )
 
+# Install template files
+install(DIRECTORY config/templates/
+    DESTINATION config/templates
+    FILES_MATCHING PATTERN "*.json"
+)
+
 # Enable testing and add tests
 option(BUILD_TESTS "Build tests" OFF)
 if(BUILD_TESTS)

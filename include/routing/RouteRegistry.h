@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <unordered_set>
 
 namespace routing {
 
@@ -46,17 +47,8 @@ std::function<void(uWS::HttpResponse<SSL>*, uWS::HttpRequest*)> wrapHandler(
     bool trace) {
     
     return [handler, method, path, trace](uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req) {
-            res->writeHeader("Server", "HatefEngine 1.0");
-            // res->writeHeader("X-Frame-Options", "DENY");
-            // res->writeHeader("X-Content-Type-Options", "nosniff");
-            // res->writeHeader("X-XSS-Protection", "1; mode=block");
-            
-            // res->writeHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';");
-            //                                             //  default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests; block-all-mixed-content;
-
-            // res->writeHeader("X-Permitted-Cross-Domain-Policies", "none");
-            // res->writeHeader("X-Download-Options", "noopen");
-            // res->writeHeader("X-Powered-By", "X1-Search-Engine");
+            // NOTE: Do not write headers before the handler to allow handlers
+            // to set custom HTTP status codes (e.g., 202 Accepted).
         if (trace) {
             std::string_view queryString = req->getQuery();
             std::string logMessage = "[" + method + "] " + path;
@@ -75,7 +67,17 @@ template<bool SSL>
 void RouteRegistry::applyRoutes(uWS::TemplatedApp<SSL>& app) {
     std::lock_guard<std::mutex> lock(mutex);
     
+    // Deduplicate by method + path to avoid uWebSockets internal routing errors
+    std::unordered_set<std::string> registered;
+    registered.reserve(routes.size());
+
     for (const auto& route : routes) {
+        const std::string dedupeKey = methodToString(route.method) + " " + route.path;
+        if (registered.find(dedupeKey) != registered.end()) {
+            // Skip duplicate registration
+            continue;
+        }
+        registered.insert(dedupeKey);
         auto wrappedHandler = wrapHandler<SSL>(
             route.handler, 
             methodToString(route.method), 

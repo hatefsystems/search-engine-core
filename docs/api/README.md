@@ -8,8 +8,10 @@ enhanced crawler capabilities.
 - **search_endpoint.md** - REST API specification for the `/search` endpoint
 - **crawler_endpoint.md** - Comprehensive crawler API documentation with SPA
   rendering support
+- **templates_endpoint.md** - Template system API for reusable crawling patterns
 - **search_response.schema.json** - JSON Schema definition for the search
   response format
+- **templates_response.schema.json** - JSON Schema definition for template API responses
 - **examples/** - Directory containing example JSON responses for testing
 
 ## API Endpoints Overview
@@ -31,10 +33,21 @@ enhanced crawler capabilities.
 - `POST /api/spa/detect` - Analyze URLs for SPA characteristics
 - See: [crawler_endpoint.md](./crawler_endpoint.md)
 
+
+### Template System API
+
+- `GET /api/templates` - List all available crawling templates
+- `GET /api/templates/:name` - Get specific template configuration
+- `POST /api/templates` - Create new custom templates
+- `DELETE /api/templates/:name` - Delete templates
+- `POST /api/crawl/add-site-with-template` - Crawl sites using template configurations
+- See: [templates_endpoint.md](./templates_endpoint.md)
+=======
 ### Sponsor API
 
 - `POST /api/v2/sponsor-submit` - Submit sponsor applications with MongoDB storage
 - See: [sponsor_endpoint.md](./sponsor_endpoint.md)
+
 
 ## Key Features
 
@@ -59,6 +72,14 @@ enhanced crawler capabilities.
 - **Selective rendering** - only processes detected SPAs
 - **Graceful fallback** to static HTML when rendering fails
 - **Connection pooling** to browserless service
+
+### 🎯 **Template System**
+
+- **7 Pre-built Templates** for common site types (news, e-commerce, blogs, etc.)
+- **Standardized Configurations** reduce repetitive setup
+- **CSS Selector Patterns** optimized for each site type
+- **Template Management** with full CRUD operations
+- **Backward Compatibility** with existing crawl API
 
 ## Real-World Results
 
@@ -135,6 +156,44 @@ curl "http://localhost:3000/api/crawl/details?url=https://www.digikala.com" | jq
 ```
 
 Expected: `"فروشگاه اینترنتی دیجی‌کالا"`
+
+### 5. Use Template for Crawling
+
+```bash
+curl -X POST http://localhost:3000/api/crawl/add-site-with-template \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://www.bbc.com/news",
+    "template": "news-site"
+  }'
+```
+
+### 6. List Available Templates
+
+```bash
+curl http://localhost:3000/api/templates | jq '.templates[].name'
+```
+
+### 7. Create Custom Template
+
+```bash
+curl -X POST http://localhost:3000/api/templates \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-blog-template",
+    "description": "Template for my personal blog",
+    "config": {
+      "maxPages": 100,
+      "maxDepth": 2,
+      "politenessDelay": 2000
+    },
+    "patterns": {
+      "articleSelectors": [".blog-post"],
+      "titleSelectors": ["h1.blog-title"],
+      "contentSelectors": [".blog-content"]
+    }
+  }'
+```
 
 ## CI/CD
 

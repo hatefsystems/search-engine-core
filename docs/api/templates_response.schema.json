@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Templates API Response Schema",
+  "description": "JSON Schema for Templates API responses",
+  "definitions": {
+    "CrawlConfigOverrides": {
+      "type": "object",
+      "properties": {
+        "maxPages": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "Maximum number of pages to crawl"
+        },
+        "maxDepth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum crawl depth"
+        },
+        "spaRenderingEnabled": {
+          "type": "boolean",
+          "description": "Enable SPA rendering for JavaScript-heavy sites"
+        },
+        "extractTextContent": {
+          "type": "boolean",
+          "description": "Extract text content from pages"
+        },
+        "politenessDelay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "Delay between requests in milliseconds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SelectorPatterns": {
+      "type": "object",
+      "properties": {
+        "articleSelectors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "CSS selectors for article containers"
+        },
+        "titleSelectors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "CSS selectors for article titles"
+        },
+        "contentSelectors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "CSS selectors for article content"
+        }
+      },
+      "required": ["articleSelectors", "titleSelectors", "contentSelectors"],
+      "additionalProperties": false
+    },
+    "TemplateDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Template name (alphanumeric with hyphens/underscores)"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Template description"
+        },
+        "config": {
+          "$ref": "#/definitions/CrawlConfigOverrides"
+        },
+        "patterns": {
+          "$ref": "#/definitions/SelectorPatterns"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "title": "List Templates Response",
+      "type": "object",
+      "properties": {
+        "templates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TemplateDefinition"
+          }
+        }
+      },
+      "required": ["templates"],
+      "additionalProperties": false
+    },
+    {
+      "title": "Get Template Response",
+      "allOf": [
+        {
+          "$ref": "#/definitions/TemplateDefinition"
+        }
+      ]
+    },
+    {
+      "title": "Create Template Response",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["accepted"],
+          "description": "Response status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Response message"
+        },
+        "name": {
+          "type": "string",
+          "description": "Created template name"
+        }
+      },
+      "required": ["status", "message", "name"],
+      "additionalProperties": false
+    },
+    {
+      "title": "Delete Template Response",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["deleted"],
+          "description": "Response status"
+        },
+        "name": {
+          "type": "string",
+          "description": "Deleted template name"
+        }
+      },
+      "required": ["status", "name"],
+      "additionalProperties": false
+    },
+    {
+      "title": "Crawl with Template Response",
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the crawl was started successfully"
+        },
+        "message": {
+          "type": "string",
+          "description": "Response message"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Unique session identifier for the crawl"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL being crawled"
+            },
+            "template": {
+              "type": "string",
+              "description": "Template name used for crawling"
+            },
+            "appliedConfig": {
+              "type": "object",
+              "properties": {
+                "maxPages": {
+                  "type": "integer",
+                  "description": "Applied max pages setting"
+                },
+                "maxDepth": {
+                  "type": "integer",
+                  "description": "Applied max depth setting"
+                },
+                "politenessDelay": {
+                  "type": "integer",
+                  "description": "Applied politeness delay setting"
+                },
+                "spaRenderingEnabled": {
+                  "type": "boolean",
+                  "description": "Applied SPA rendering setting"
+                },
+                "extractTextContent": {
+                  "type": "boolean",
+                  "description": "Applied text extraction setting"
+                },
+                "requestTimeout": {
+                  "type": "integer",
+                  "description": "Applied request timeout setting"
+                },
+                "browserlessUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Applied browserless URL setting"
+                }
+              },
+              "required": [
+                "maxPages",
+                "maxDepth",
+                "politenessDelay",
+                "spaRenderingEnabled",
+                "extractTextContent",
+                "requestTimeout",
+                "browserlessUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["sessionId", "url", "template", "appliedConfig"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["success", "message", "data"],
+      "additionalProperties": false
+    },
+    {
+      "title": "Error Response",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Error type"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        }
+      },
+      "required": ["error", "message"],
+      "additionalProperties": false
+    }
+  ]
+}

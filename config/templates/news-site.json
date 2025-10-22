@@ -1,0 +1,28 @@
+{
+  "config": {
+    "extractTextContent": true,
+    "maxDepth": 3,
+    "maxPages": 500,
+    "politenessDelay": 1000,
+    "spaRenderingEnabled": true
+  },
+  "description": "Template for news websites",
+  "name": "news-site",
+  "patterns": {
+    "articleSelectors": [
+      "article",
+      ".post",
+      ".story"
+    ],
+    "contentSelectors": [
+      ".content",
+      ".body",
+      ".article-body"
+    ],
+    "titleSelectors": [
+      "h1",
+      ".headline",
+      ".title"
+    ]
+  }
+}

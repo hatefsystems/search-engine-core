@@ -219,3 +219,5 @@ Win32/
 # Docker
 .docker/
 docker-compose.override.yml
+
+.env

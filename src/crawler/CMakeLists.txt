@@ -30,6 +30,7 @@ set(CRAWLER_SOURCES
     FailureClassifier.cpp
     DomainManager.cpp
     CrawlMetrics.cpp
+    TemplateRegistry.cpp
 )
 
 # Always add BrowserlessClient.cpp and expose public headers under include/search_engine

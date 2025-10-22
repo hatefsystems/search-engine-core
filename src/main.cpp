@@ -11,6 +11,9 @@
 #include "controllers/HomeController.h"
 #include "controllers/SearchController.h"
 #include "controllers/StaticFileController.h"
+#include "controllers/TemplatesController.h"
+#include "../include/search_engine/crawler/templates/PrebuiltTemplates.h"
+#include "../include/search_engine/crawler/templates/TemplateStorage.h"
 
 #include <chrono>
 #include <iomanip>
@@ -93,6 +96,26 @@ int main() {
     Logger::getInstance().init(LogLevel::INFO, true, "server.log");
     std::cout << "[MAIN-DEBUG] Logger initialized successfully" << std::endl;
     
+    // Seed prebuilt templates (Phase 3)
+    try {
+        // Load persisted templates if available, then seed defaults (no-op if names exist)
+        const char* templatesPathEnv = std::getenv("TEMPLATES_PATH");
+        std::string templatesPath = templatesPathEnv ? templatesPathEnv : "/app/config/templates";
+        
+        // Check if path is a directory or file
+        if (std::filesystem::exists(templatesPath) && std::filesystem::is_directory(templatesPath)) {
+            search_engine::crawler::templates::loadTemplatesFromDirectory(templatesPath);
+        } else {
+            // Fallback to single file loading
+            search_engine::crawler::templates::loadTemplatesFromFile(templatesPath);
+        }
+        
+        search_engine::crawler::templates::seedPrebuiltTemplates();
+        LOG_INFO("Prebuilt templates seeded");
+    } catch (...) {
+        LOG_WARNING("Failed to seed prebuilt templates (non-fatal)");
+    }
+
     // Log registered routes
     std::cout << "[MAIN-DEBUG] Logging registered routes..." << std::endl;
     LOG_INFO("=== Registered Routes ===");
