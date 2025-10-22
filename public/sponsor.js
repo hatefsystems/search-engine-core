@@ -252,6 +252,8 @@ document.getElementById('year').textContent = new Date().getFullYear();
     });
 })();
 
+
+
 /* Notification system */
 function showNotification(message, type = 'info') {
     // Remove existing notifications
@@ -291,21 +293,51 @@ function showBankInfo(bankInfo, note) {
                 <span>${bankInfo.bankName}</span>
             </div>
             <div class="bank-field">
+                <label>شماره کارت:</label>
+                <div class="field-with-copy">
+                    <span class="copyable" data-copy-text="${bankInfo.cardNumber}">${bankInfo.cardNumber}</span>
+                    <button class="copy-btn" data-copy-text="${bankInfo.cardNumber}" title="کپی شماره کارت">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="bank-field">
                 <label>شماره حساب:</label>
-                <span class="copyable" onclick="copyToClipboard('${bankInfo.accountNumber}')">${bankInfo.accountNumber}</span>
+                <div class="field-with-copy">
+                    <span class="copyable" data-copy-text="${bankInfo.accountNumber}">${bankInfo.accountNumber}</span>
+                    <button class="copy-btn" data-copy-text="${bankInfo.accountNumber}" title="کپی شماره حساب">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="bank-field">
                 <label>شماره شبا:</label>
-                <span class="copyable" onclick="copyToClipboard('${bankInfo.iban}')">${bankInfo.iban}</span>
+                <div class="field-with-copy">
+                    <span class="copyable" data-copy-text="${bankInfo.iban}">${bankInfo.iban}</span>
+                    <button class="copy-btn" data-copy-text="${bankInfo.iban}" title="کپی شماره شبا">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="bank-field">
                 <label>نام صاحب حساب:</label>
                 <span>${bankInfo.accountHolder}</span>
             </div>
+            <!-- Temporarily hidden SWIFT code section
             <div class="bank-field">
                 <label>کد SWIFT:</label>
                 <span class="copyable" onclick="copyToClipboard('${bankInfo.swift}')">${bankInfo.swift}</span>
             </div>
+            -->
         </div>
         <div class="bank-note">
             <p>${note}</p>
@@ -313,6 +345,17 @@ function showBankInfo(bankInfo, note) {
     `;
     
     openModal('bank-info-modal');
+    
+    // Add event listeners for copy functionality
+    const copyElements = modal.querySelectorAll('.copyable, .copy-btn');
+    copyElements.forEach(element => {
+        element.addEventListener('click', function() {
+            const textToCopy = this.getAttribute('data-copy-text');
+            if (textToCopy) {
+                copyToClipboard(textToCopy);
+            }
+        });
+    });
 }
 
 function createBankInfoModal() {

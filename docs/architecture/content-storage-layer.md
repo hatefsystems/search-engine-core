@@ -14,7 +14,7 @@ capabilities and flexible data querying.
 
 The Content Storage Layer implements a sophisticated dual-storage architecture:
 
-1. **MongoDB**: Stores structured site profiles with detailed metadata
+1. **MongoDB**: Stores structured indexed pages with detailed metadata
 2. **RedisSearch**: Handles full-text search indexing and real-time search
    queries
 3. **ContentStorage**: Unified interface that coordinates both storage systems
@@ -40,12 +40,12 @@ The Content Storage Layer implements a sophisticated dual-storage architecture:
 
 ## Components
 
-### 1. SiteProfile Schema
+### 1. IndexedPage Schema
 
-The `SiteProfile` struct defines the MongoDB schema for website metadata:
+The `IndexedPage` struct defines the MongoDB schema for website metadata:
 
 ```cpp
-struct SiteProfile {
+struct IndexedPage {
     std::optional<std::string> id;           // MongoDB ObjectId
     std::string domain;                      // e.g., "example.com"
     std::string url;                         // Full URL
@@ -97,16 +97,16 @@ Handles structured data storage with the following features:
 #### Core Operations:
 
 ```cpp
-// Store and retrieve site profiles
-Result<std::string> storeSiteProfile(const SiteProfile& profile);
-Result<SiteProfile> getSiteProfile(const std::string& url);
-Result<SiteProfile> getSiteProfileById(const std::string& id);
-Result<bool> updateSiteProfile(const SiteProfile& profile);
+// Store and retrieve indexed pages
+Result<std::string> storeIndexedPage(const IndexedPage& page);
+Result<IndexedPage> getSiteProfile(const std::string& url);
+Result<IndexedPage> getSiteProfileById(const std::string& id);
+// Note: updateIndexedPage has been removed - use storeIndexedPage for both insert and update operations
 Result<bool> deleteSiteProfile(const std::string& url);
 
 // Batch operations
-Result<std::vector<SiteProfile>> getSiteProfilesByDomain(const std::string& domain);
-Result<std::vector<SiteProfile>> getSiteProfilesByCrawlStatus(CrawlStatus status);
+Result<std::vector<IndexedPage>> getSiteProfilesByDomain(const std::string& domain);
+Result<std::vector<IndexedPage>> getSiteProfilesByCrawlStatus(CrawlStatus status);
 
 // Statistics
 Result<int64_t> getTotalSiteCount();
@@ -142,6 +142,42 @@ monitoring.
 - `crawlMetadata.lastCrawlStatus`: Index for status filtering
 - `lastModified`: Descending index for recent content
 
+#### Data Validation and Quality Control
+
+The MongoDBStorage layer implements comprehensive validation to ensure only high-quality, relevant content is stored:
+
+**Content Type Validation:**
+
+- Only saves pages with text-based content types
+- Allowed types: `text/html`, `text/plain`, `application/json`, `application/xml`, `text/xml`, `application/rss+xml`, `application/atom+xml`
+- Blocks media files: images (`image/*`), videos (`video/*`), audio (`audio/*`), PDFs (`application/pdf`), archives (`application/zip`)
+
+**Content Quality Validation:**
+
+- Requires both `title` and `textContent` to be present and non-empty
+- Skips pages without meaningful content (redirect pages, error pages, empty pages)
+- Prevents storage of incomplete or malformed content
+
+**URL Validation:**
+
+- Filters out invalid URL schemes: `mailto:`, `tel:`, `javascript:`, `data:`, `ftp:`, `file:`, browser extensions
+- Validates HTTP/HTTPS URL format using regex patterns
+- Prevents crawling of non-web resources
+
+**Redirect Handling:**
+
+- Automatically follows HTTP redirects and stores the final destination URL
+- Uses canonical URLs for deduplication to prevent duplicate content
+- Maintains redirect chains in crawl metadata
+
+**Validation Flow:**
+
+1. Content type check (HTML/text only)
+2. Title and text content validation (both required)
+3. URL scheme validation (HTTP/HTTPS only)
+4. Canonical URL generation for deduplication
+5. Final storage with upsert logic
+
 ### 3. RedisSearchStorage
 
 Manages full-text search capabilities with RediSearch:
@@ -175,7 +211,7 @@ score         NUMERIC   -       SORTABLE
 ```cpp
 // Document management
 Result<bool> indexDocument(const SearchDocument& document);
-Result<bool> indexSiteProfile(const SiteProfile& profile, const std::string& content);
+Result<bool> indexSiteProfile(const IndexedPage& page, const std::string& content);
 Result<bool> updateDocument(const SearchDocument& document);
 Result<bool> deleteDocument(const std::string& url);
 
@@ -196,7 +232,7 @@ storage systems:
 
 #### Key Features:
 
-- **Automatic Conversion**: Converts `CrawlResult` to `SiteProfile` and
+- **Automatic Conversion**: Converts `CrawlResult` to `IndexedPage` and
   `SearchDocument`
 - **Dual Storage**: Automatically stores in both MongoDB and RedisSearch
 - **Consistency Management**: Ensures data consistency across storage systems
@@ -210,7 +246,7 @@ Result<std::string> storeCrawlResult(const CrawlResult& crawlResult);
 Result<bool> updateCrawlResult(const CrawlResult& crawlResult);
 
 // Retrieval operations
-Result<SiteProfile> getSiteProfile(const std::string& url);
+Result<IndexedPage> getSiteProfile(const std::string& url);
 Result<SearchResponse> search(const SearchQuery& query);
 Result<SearchResponse> searchSimple(const std::string& query, int limit = 10);
 
@@ -229,13 +265,13 @@ Result<std::unordered_map<std::string, std::string>> getStorageStats();
 
 ```
 CrawlResult → ContentStorage → {
-    ├─ Convert to SiteProfile → MongoDBStorage
+    ├─ Convert to IndexedPage → MongoDBStorage
     └─ Extract searchable content → RedisSearchStorage
 }
 ```
 
 1. **Input**: `CrawlResult` from crawler
-2. **Conversion**: Transform to `SiteProfile` with metadata extraction
+2. **Conversion**: Transform to `IndexedPage` with metadata extraction
 3. **MongoDB Storage**: Store structured data with indexes
 4. **Content Extraction**: Create searchable text from title, description, and
    content
@@ -258,7 +294,7 @@ Search Query → RedisSearchStorage → {
 ```
 URL → MongoDBStorage → {
     ├─ Query by URL index
-    ├─ Convert BSON to SiteProfile
+    ├─ Convert BSON to IndexedPage
     └─ Return structured data
 }
 ```

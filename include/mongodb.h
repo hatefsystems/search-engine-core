@@ -36,5 +36,5 @@ public:
 class mongodb
 {
 public:
-	Result<bool> subscribeEmail(const string& email);
+	Result<bool> subscribeEmail(const string& email, const string& ipAddress = "", const string& userAgent = "");
 };

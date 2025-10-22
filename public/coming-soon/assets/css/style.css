@@ -148,6 +148,8 @@ h1 {
   }
 }
 
+
+
 input.notify-me {
   color: #fff;
   padding: 7.5px 20px;
@@ -504,4 +506,147 @@ a.purchase {
 .res
 {
   padding-top: 20px;
+}
+
+@media only screen and (max-width: 900px) {
+
+  .counter h2 {
+    font-size: 30px;
+  }
+}
+
+
+/* Mobile-friendly styles for screens smaller than 700px */
+@media only screen and (max-width: 700px) {
+
+
+  .counter h2 {
+    font-size: 27px;
+  }
+  /* Typography adjustments for mobile */
+  body {
+    font-size: 14pt;
+    line-height: 1.4;
+  }
+  
+  h1 {
+    font-size: 42px;
+    line-height: 1.2;
+  }
+  
+  .top-part h1 {
+    font-size: 42px;
+    line-height: 1.2;
+  }
+  
+  .top-part h2 {
+    font-size: 22px;
+  }
+  
+  p {
+    font-size: 16px;
+    line-height: 2.5rem;
+  }
+  
+  /* Subscribe section mobile optimizations */
+  .subscribe-box {
+    padding-top: 5px;
+    max-width: inherit;
+    min-width: inherit;
+    width: 100%;
+  }
+  
+  .subscribe {
+    padding-top: 0px;
+    padding-bottom: 0px;
+  }
+  
+  /* Form layout improvements for mobile */
+  .input-group {
+    position: relative;
+    display: flex;
+    border-collapse: separate;
+    flex-direction: column;
+    gap: 12px;
+    align-content: space-between;
+  }
+  
+  /* Counter section mobile adjustments */
+  .counter p {
+    width: inherit;
+    padding: 20px;
+    margin-top: 15px;
+  }
+  
+ 
+  
+  /* Layout improvements for mobile */
+  .link-buttons {
+    margin-top: 0px;
+  }
+  
+  .row {
+    margin-right: 0px;
+    margin-left: 0px;
+  }
+  
+  /* Section spacing adjustments */
+  .top-part {
+    padding: 80px 0;
+  }
+  
+  .variant-part {
+    padding: 20px 0;
+  }
+  
+  .variant-part h2 {
+    font-size: 22px;
+  }
+  
+  .variant-part h3 {
+    font-size: 10px;
+    margin: 10px auto 40px;
+  }
+  
+  /* Navigation and list adjustments */
+  section ul li {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  /* Footer adjustments */
+  footer {
+    padding: 30px 0;
+  }
+  
+  /* Purchase button mobile optimization */
+  a.purchase {
+    width: 100%;
+    max-width: 300px;
+    height: 50px;
+    line-height: 50px;
+    font-size: 12px;
+    position: relative;
+    margin: 20px auto;
+    display: block;
+  }
+  
+  /* Center div mobile optimization */
+  .center-div {
+    padding: 0 15px;
+  }
+  
+  /* Alert banner mobile optimization */
+  .alert-banner p {
+    font-size: 14px;
+    line-height: 24px;
+    padding: 0 15px;
+  }
+  .input-group-addon , .input-group-addon input
+  {
+    width: 100%;
+  }
+  .link-buttons .btn {
+    margin: 0px;
+}
 }

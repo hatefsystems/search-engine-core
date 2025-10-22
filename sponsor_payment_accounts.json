@@ -1,0 +1,48 @@
+{
+  "sponsor_payment_accounts": [
+    {
+      "id": "account_001",
+      "shaba_number": "IR750570028780010618503101",
+      "card_number": "5022-2913-3025-8516",
+      "account_number": "287.8000.10618503.1",
+      "account_holder_name": "هاتف رستمخانی",
+      "bank_name": "بانک پاسارگاد",
+      "is_active": true,
+      "created_at": "2025-08-30T10:30:00Z",
+      "updated_at": "2025-08-30T10:30:00Z"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "description": "حساب‌های بانکی برای پرداخت اسپانسرها",
+    "total_accounts": 1,
+    "active_accounts": 1,
+    "last_updated": "2025-08-30T10:30:00Z",
+    "currency": "IRR",
+    "country": "Iran"
+  },
+  "schema": {
+    "required_fields": [
+      "id",
+      "shaba_number",
+      "card_number",
+      "account_number",
+      "account_holder_name",
+      "bank_name",
+      "is_active",
+      "created_at",
+      "updated_at"
+    ],
+    "field_descriptions": {
+      "id": "شناسه یکتا برای حساب",
+      "shaba_number": "شماره شبا (IBAN) حساب بانکی",
+      "card_number": "شماره کارت بانکی",
+      "account_number": "شماره حساب بانکی",
+      "account_holder_name": "نام و نام خانوادگی صاحب حساب",
+      "bank_name": "نام بانک",
+      "is_active": "وضعیت فعال بودن حساب",
+      "created_at": "تاریخ ایجاد رکورد",
+      "updated_at": "تاریخ آخرین بروزرسانی"
+    }
+  }
+}

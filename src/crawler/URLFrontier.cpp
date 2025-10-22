@@ -3,6 +3,7 @@
 #include "../../include/Logger.h"
 #include "../../include/crawler/CrawlLogger.h"
 #include "../../include/search_engine/common/UrlSanitizer.h"
+#include "../../include/search_engine/common/UrlCanonicalizer.h"
 #include <algorithm>
 #include <regex>
 #include <sstream>
@@ -27,7 +28,13 @@ void URLFrontier::addURL(const std::string& url, bool force, CrawlPriority prior
               ", priority: " + std::to_string(static_cast<int>(priority)) + 
               ", depth: " + std::to_string(depth));
     
-    std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
+    // Validate URL before processing (additional safety check)
+    if (!isValidHttpUrl(url)) {
+        LOG_DEBUG("Rejected URL in URLFrontier - invalid HTTP URL: " + url);
+        return;
+    }
+    
+    std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     
     if (force) {
         // Remove from visited set if present
@@ -112,7 +119,7 @@ std::string URLFrontier::getNextURL() {
                 LOG_INFO("Retrieved retry URL: " + queuedUrl.url + 
                         " (attempt " + std::to_string(queuedUrl.retryCount + 1) + ")");
                 if (persistence_) {
-                    persistence_->upsertTask(sessionId_, queuedUrl.url, normalizeURL(queuedUrl.url), extractDomain(queuedUrl.url), queuedUrl.depth, static_cast<int>(queuedUrl.priority), "claimed", std::chrono::system_clock::now(), queuedUrl.retryCount);
+                    persistence_->upsertTask(sessionId_, queuedUrl.url, search_engine::common::UrlCanonicalizer::canonicalize(queuedUrl.url), extractDomain(queuedUrl.url), queuedUrl.depth, static_cast<int>(queuedUrl.priority), "claimed", std::chrono::system_clock::now(), queuedUrl.retryCount);
                 }
                 CrawlLogger::broadcastLog("Retrying URL: " + queuedUrl.url + 
                                         " (attempt " + std::to_string(queuedUrl.retryCount + 1) + ")", "info");
@@ -158,7 +165,7 @@ std::string URLFrontier::getNextURL() {
             LOG_DEBUG("Retrieved URL from main queue: " + queuedUrl.url + 
                      ", remaining main queue size: " + std::to_string(mainQueue.size()));
             if (persistence_) {
-                persistence_->upsertTask(sessionId_, queuedUrl.url, normalizeURL(queuedUrl.url), extractDomain(queuedUrl.url), queuedUrl.depth, static_cast<int>(queuedUrl.priority), "claimed", std::chrono::system_clock::now(), queuedUrl.retryCount);
+                persistence_->upsertTask(sessionId_, queuedUrl.url, search_engine::common::UrlCanonicalizer::canonicalize(queuedUrl.url), extractDomain(queuedUrl.url), queuedUrl.depth, static_cast<int>(queuedUrl.priority), "claimed", std::chrono::system_clock::now(), queuedUrl.retryCount);
             }
             return queuedUrl.url;
         }
@@ -178,7 +185,7 @@ void URLFrontier::scheduleRetry(const std::string& url,
              ", delay: " + std::to_string(delay.count()) + "ms" + 
              ", error: " + error);
     
-    std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
+    std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     auto nextRetryTime = std::chrono::system_clock::now() + delay;
     
     QueuedURL retryUrl;
@@ -207,9 +214,14 @@ void URLFrontier::scheduleRetry(const std::string& url,
     {
         std::lock_guard<std::mutex> retryLock(retryQueueMutex);
         std::lock_guard<std::mutex> queuedLock(queuedMutex);
+        std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
         
         retryQueue.push(retryUrl);
         queuedURLs.insert(normalizedURL);
+        
+        // Update retry count in tracking map
+        retryCountMap[normalizedURL] = retryCount;
+        
         if (persistence_) {
             persistence_->updateRetry(sessionId_, normalizedURL, retryCount, nextRetryTime);
         }
@@ -288,7 +300,7 @@ size_t URLFrontier::pendingRetryCount() const {
 
 void URLFrontier::markVisited(const std::string& url) {
     LOG_DEBUG("URLFrontier::markVisited called with: " + url);
-    std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
+    std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     std::string domain = extractDomain(normalizedURL);
     
     std::lock_guard<std::mutex> visitedLock(visitedMutex);
@@ -298,10 +310,15 @@ void URLFrontier::markVisited(const std::string& url) {
     std::lock_guard<std::mutex> domainLock(domainMutex);
     domainLastVisit[domain] = std::chrono::system_clock::now();
     LOG_DEBUG("Updated last visit time for domain: " + domain);
+    
+    // Clean up retry count for this URL since it's been processed
+    std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
+    retryCountMap.erase(normalizedURL);
+    LOG_DEBUG("Cleaned up retry count for URL: " + normalizedURL);
 }
 
 bool URLFrontier::isVisited(const std::string& url) const {
-    std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
+    std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     std::lock_guard<std::mutex> lock(visitedMutex);
     bool visited = visitedURLs.find(normalizedURL) != visitedURLs.end();
     LOG_TRACE("URLFrontier::isVisited - URL: " + url + " is " + (visited ? "visited" : "not visited"));
@@ -332,21 +349,20 @@ std::string URLFrontier::extractDomain(const std::string& url) const {
 }
 
 QueuedURL URLFrontier::getQueuedURLInfo(const std::string& url) const {
-    std::string normalizedURL = normalizeURL(search_engine::common::sanitizeUrl(url));
+    std::string normalizedURL = search_engine::common::UrlCanonicalizer::canonicalize(search_engine::common::sanitizeUrl(url));
     
-    // Check retry queue first
-    {
-        std::lock_guard<std::mutex> retryLock(retryQueueMutex);
-        // Note: priority_queue doesn't allow iteration, so we can't easily find specific URLs
-        // For now, return a default QueuedURL if not found
-    }
-    
-    // Return default QueuedURL
     QueuedURL result;
     result.url = normalizedURL;
-    result.retryCount = 0;
     result.priority = CrawlPriority::NORMAL;
     result.lastFailureType = FailureType::UNKNOWN;
+    
+    // Get retry count from our tracking map
+    {
+        std::lock_guard<std::mutex> retryCountLock(retryCountMutex);
+        auto it = retryCountMap.find(normalizedURL);
+        result.retryCount = (it != retryCountMap.end()) ? it->second : 0;
+    }
+    
     return result;
 }
 
@@ -391,42 +407,41 @@ void URLFrontier::removeFromMainQueue(const std::string& url) {
 
 void URLFrontier::markCompleted(const std::string& url) {
     if (!persistence_) return;
-    std::string normalized = normalizeURL(url);
+    std::string normalized = search_engine::common::UrlCanonicalizer::canonicalize(url);
     persistence_->markCompleted(sessionId_, normalized);
 }
 
-std::string URLFrontier::normalizeURL(const std::string& url) const {
-    std::string normalized = search_engine::common::sanitizeUrl(url);
-    
-    // Convert to lowercase
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(), ::tolower);
-    
-    // Remove fragment
-    size_t hashPos = normalized.find('#');
-    if (hashPos != std::string::npos) {
-        normalized = normalized.substr(0, hashPos);
+// Note: normalizeURL method removed - now using UrlCanonicalizer::canonicalize() for consistent URL normalization
+
+bool URLFrontier::isValidHttpUrl(const std::string& url) const {
+    if (url.empty()) {
+        return false;
     }
     
-    // Handle trailing slash more intelligently
-    // Only remove trailing slash if it's not a root URL (has path after domain)
-    if (!normalized.empty() && normalized.back() == '/') {
-        // Check if this is a root URL (no path after domain)
-        size_t protocolEnd = normalized.find("://");
-        if (protocolEnd != std::string::npos) {
-            size_t domainEnd = normalized.find('/', protocolEnd + 3);
-            if (domainEnd != std::string::npos && domainEnd == normalized.length() - 1) {
-                // This is a root URL with trailing slash, keep it to avoid redirect loops
-                LOG_TRACE("URLFrontier::normalizeURL - Keeping trailing slash for root URL: " + normalized);
-            } else {
-                // This has a path, remove trailing slash
-                normalized.pop_back();
-            }
-        } else {
-            // No protocol found, remove trailing slash
-            normalized.pop_back();
+    // Check for invalid schemes that should not be crawled
+    std::string lowerUrl = url;
+    std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+    
+    // List of schemes that should not be crawled
+    std::vector<std::string> invalidSchemes = {
+        "mailto:", "tel:", "javascript:", "data:", "ftp:", "file:", "about:", 
+        "chrome:", "edge:", "safari:", "opera:", "moz-extension:", "chrome-extension:"
+    };
+    
+    // Check if URL starts with any invalid scheme
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find(scheme) == 0) {
+            return false;
         }
     }
     
-    LOG_TRACE("URLFrontier::normalizeURL - Original: " + url + " Normalized: " + normalized);
-    return normalized;
+    // Check for malformed URLs that might have invalid schemes embedded
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find("/" + scheme) != std::string::npos) {
+            return false;
+        }
+    }
+    
+    // Basic HTTP/HTTPS URL validation
+    return (url.find("http://") == 0 || url.find("https://") == 0);
 } 

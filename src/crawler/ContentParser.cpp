@@ -243,9 +243,47 @@ std::string ContentParser::normalizeUrl(const std::string& url, const std::strin
 }
 
 bool ContentParser::isValidUrl(const std::string& url) {
+    if (url.empty()) {
+        return false;
+    }
+    
+    // Check for invalid schemes that should not be crawled
+    std::string lowerUrl = url;
+    std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::tolower);
+    
+    // List of schemes that should not be crawled
+    std::vector<std::string> invalidSchemes = {
+        "mailto:", "tel:", "javascript:", "data:", "ftp:", "file:", "about:", 
+        "chrome:", "edge:", "safari:", "opera:", "moz-extension:", "chrome-extension:"
+    };
+    
+    // Check if URL starts with any invalid scheme
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find(scheme) == 0) {
+            LOG_DEBUG("Rejected URL with invalid scheme: " + url);
+            return false;
+        }
+    }
+    
+    // Check for malformed URLs that might have invalid schemes embedded
+    // Examples: "http://example.com/mailto:info@example.com"
+    for (const auto& scheme : invalidSchemes) {
+        if (lowerUrl.find("/" + scheme) != std::string::npos) {
+            LOG_DEBUG("Rejected URL with embedded invalid scheme: " + url);
+            return false;
+        }
+    }
+    
+    // Use regex to validate HTTP/HTTPS URL format
     static const std::regex urlRegex(
         R"(^(https?:\/\/)[^\s\/:?#]+(\.[^\s\/:?#]+)*(?::\d+)?(\/[^\s?#]*)?(\?[^\s#]*)?(#[^\s]*)?$)",
         std::regex::ECMAScript | std::regex::icase
     );
-    return std::regex_match(url, urlRegex);
+    
+    bool isValid = std::regex_match(url, urlRegex);
+    if (!isValid) {
+        LOG_DEBUG("Rejected URL - failed regex validation: " + url);
+    }
+    
+    return isValid;
 } 

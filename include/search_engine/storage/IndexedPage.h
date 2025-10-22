@@ -34,13 +34,17 @@ struct CrawlMetadata {
     double crawlDurationMs;
 };
 
-struct SiteProfile {
+struct IndexedPage {
     // Unique identifier (MongoDB ObjectId will be auto-generated)
     std::optional<std::string> id;
     
     // Core site information
     std::string domain;               // e.g., "example.com"
     std::string url;                  // Full URL that was crawled
+    std::string canonicalUrl;         // Canonicalized URL for deduplication
+    std::string canonicalHost;        // Canonicalized host (lowercase, no www)
+    std::string canonicalPath;        // Canonicalized path
+    std::string canonicalQuery;       // Canonicalized query string
     std::string title;                // Page title
     std::optional<std::string> description;  // Meta description or extracted summary
     std::optional<std::string> textContent;  // Full extracted body text from the page

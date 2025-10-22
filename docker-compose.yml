@@ -40,7 +40,11 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+    - .env
     environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}  # CRITICAL: Configurable logging (debug, info, warning, error, none)
+      - BASE_URL=${BASE_URL:-http://localhost:3000}  # Base URL for internal API calls
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017
       - SEARCH_REDIS_URI=tcp://redis:6379
       - SEARCH_REDIS_POOL_SIZE=4
@@ -55,10 +59,32 @@ services:
       - JS_CACHE_REDIS_DB=1
       # - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       # - KAFKA_FRONTIER_TOPIC=crawl.frontier
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
+      - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
+      - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
+      - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}
+      - DEFAULT_REQUEST_TIMEOUT=${DEFAULT_REQUEST_TIMEOUT:-60000}
+      # SMTP Email Configuration
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_TIMEOUT=${SMTP_TIMEOUT:-60}
+      - SMTP_CONNECTION_TIMEOUT=${SMTP_CONNECTION_TIMEOUT:-20}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
+      - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
+      - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
+      - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
     depends_on:
-      - redis
-      - mongodb
-      - js-minifier
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      js-minifier:
+        condition: service_healthy
       # - kafka
     networks:
       - search-network
@@ -73,7 +99,7 @@ services:
       dockerfile: Dockerfile
     container_name: js-minifier
     restart: unless-stopped
-    pull_policy: never
+    pull_policy: if_not_present
     ports:
       - "3002:3002"
     environment:
@@ -89,22 +115,29 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:7.2.0-v7
     container_name: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+      - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     environment:
       - REDIS_MAXMEMORY=268435456  # 256MB in bytes
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - search-network
 
   mongodb:
-    image: mongodb/mongodb-enterprise-server:latest
+    image: mongo:7
     container_name: mongodb_test
     restart: unless-stopped
     ports:
@@ -112,9 +145,15 @@ services:
     volumes:
       - mongodb_data:/data/db
     environment:
-      - MONGODB_INITDB_ROOT_USERNAME=admin
-      - MONGODB_INITDB_ROOT_PASSWORD=password123
-    command: mongod --bind_ip_all
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0", "--maxConns", "100"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - search-network
 
@@ -159,6 +198,76 @@ services:
   #     - mongodb
   #   environment:
   #     - MONGODB_URI=mongodb://mongodb:27017
+
+  # Crawler Scheduler - Progressive Warm-up Task Scheduler
+  crawler-scheduler:
+    build: ./crawler-scheduler
+    container_name: crawler-scheduler-worker
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --beat --loglevel=info
+    volumes:
+      - ./crawler-scheduler/data:/app/data
+      - ./crawler-scheduler/app:/app/app  # Hot reload for development
+    environment:
+      # Celery Configuration
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      
+      # MongoDB Configuration
+      - MONGODB_URI=mongodb://admin:password123@mongodb_test:27017
+      - MONGODB_DB=search-engine
+      
+      # API Configuration
+      - API_BASE_URL=http://core:3000
+      
+      # Timezone Configuration (Auto-detects system timezone by default)
+      - TZ=Asia/Tehran  # System timezone for Celery worker
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # Optional: Override system timezone (e.g., America/New_York, Europe/London)
+      
+      # Warm-up Configuration (Progressive Rate Limiting)
+      - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-0}   # Start hour in configured timezone (0-23)
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}       # End hour in configured timezone (inclusive, 0-23)
+      
+      # Jitter Configuration (Randomization to avoid exact timing)
+      - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
+      - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
+      
+      # Task Configuration
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}  # Check for new files every 60 seconds
+      - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
+      - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - mongodb
+      - search-engine
+  
+  # Flower Web UI - Scheduler Monitoring Dashboard
+  crawler-flower:
+    build: ./crawler-scheduler
+    container_name: crawler-scheduler-flower
+    restart: unless-stopped
+    command: celery -A app.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+      # Timezone Configuration for Flower Dashboard
+      - TZ=Asia/Tehran
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - crawler-scheduler
 
 networks:
   search-network:

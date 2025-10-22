@@ -177,6 +177,7 @@ RUN ANTICASH=6
 WORKDIR /deps
 COPY src/ /deps/src/
 COPY tests/ /deps/tests/
+COPY migrations/ /deps/migrations/
 COPY CMakeLists.txt /deps/
 COPY include/ /deps/include/
 
@@ -248,23 +249,6 @@ COPY --from=builder /usr/local/lib/libredis++.so* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libredis++.a /usr/local/lib/
 COPY --from=builder /usr/local/include/sw/ /usr/local/include/sw/
 
-
-# COPY --from=builder /usr/local/lib/libmongocxx.so* /usr/local/lib/
-# COPY --from=builder /usr/local/lib/libbsoncxx.so* /usr/local/lib/
-# COPY --from=builder /usr/local/lib/libredis++.so* /usr/local/lib/
-# COPY --from=builder /usr/local/lib/libhiredis.so* /usr/local/lib/
-# COPY --from=builder /usr/local/lib/libgumbo.so* /usr/local/lib/
-# COPY --from=builder /usr/local/lib/libuSockets.a /usr/local/lib/
-
-# # Copy headers
-# COPY --from=builder /usr/local/include/mongocxx /usr/local/include/mongocxx
-# COPY --from=builder /usr/local/include/bsoncxx /usr/local/include/bsoncxx
-# COPY --from=builder /usr/local/include/sw /usr/local/include/sw
-# COPY --from=builder /usr/local/include/hiredis /usr/local/include/hiredis
-# COPY --from=builder /usr/local/include/gumbo.h /usr/local/include/
-# COPY --from=builder /usr/local/include/uwebsockets /usr/local/include/uwebsockets
-# COPY --from=builder /usr/local/include/uSockets /usr/local/include/uSockets
-
 # Update library cache
 RUN ldconfig
 
@@ -276,7 +260,7 @@ COPY --from=builder /app/templates ./templates
 
 
 # Copy the startup script
-COPY scripts/start.sh /app/start.sh
+COPY migrations/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 RUN dir

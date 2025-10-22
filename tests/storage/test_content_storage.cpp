@@ -88,18 +88,18 @@ TEST_CASE("Content Storage - Crawl Result Processing", "[content][storage][crawl
         
         std::string profileId = storeResult.value;
         
-        // Retrieve the site profile
+        // Retrieve the indexed page
         auto profileResult = storage.getSiteProfile("https://test-content.com");
         REQUIRE(profileResult.success);
         
-        SiteProfile profile = profileResult.value;
-        REQUIRE(profile.url == testResult.url);
-        REQUIRE(profile.title == testResult.title.value_or(""));
-        REQUIRE(profile.description == testResult.metaDescription);
-        REQUIRE(profile.outboundLinks == testResult.links);
-        REQUIRE(profile.crawlMetadata.httpStatusCode == testResult.statusCode);
-        REQUIRE(profile.crawlMetadata.contentSize == testResult.contentSize);
-        REQUIRE(profile.crawlMetadata.lastCrawlStatus == CrawlStatus::SUCCESS);
+        IndexedPage page = profileResult.value;
+        REQUIRE(page.url == testResult.url);
+        REQUIRE(page.title == testResult.title.value_or(""));
+        REQUIRE(page.description == testResult.metaDescription);
+        REQUIRE(page.outboundLinks == testResult.links);
+        REQUIRE(page.crawlMetadata.httpStatusCode == testResult.statusCode);
+        REQUIRE(page.crawlMetadata.contentSize == testResult.contentSize);
+        REQUIRE(page.crawlMetadata.lastCrawlStatus == CrawlStatus::SUCCESS);
         
         // Test search functionality
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -141,9 +141,9 @@ TEST_CASE("Content Storage - Crawl Result Processing", "[content][storage][crawl
         auto profileResult = storage.getSiteProfile("https://test-update-content.com");
         REQUIRE(profileResult.success);
         
-        SiteProfile profile = profileResult.value;
-        REQUIRE(profile.title == "Updated Test Page");
-        REQUIRE(profile.crawlMetadata.crawlCount == 2); // Should be incremented
+        IndexedPage page = profileResult.value;
+        REQUIRE(page.title == "Updated Test Page");
+        REQUIRE(page.crawlMetadata.crawlCount == 2); // Should be incremented
         
         // Clean up
         storage.deleteSiteData("https://test-update-content.com");
@@ -161,15 +161,15 @@ TEST_CASE("Content Storage - Crawl Result Processing", "[content][storage][crawl
         auto storeResult = storage.storeCrawlResult(failedResult);
         REQUIRE(storeResult.success);
         
-        // Verify the profile
+        // Verify the page
         auto profileResult = storage.getSiteProfile("https://test-failed.com");
         REQUIRE(profileResult.success);
         
-        SiteProfile profile = profileResult.value;
-        REQUIRE(profile.crawlMetadata.lastCrawlStatus == CrawlStatus::FAILED);
-        REQUIRE(profile.crawlMetadata.lastErrorMessage == "Page not found");
-        REQUIRE(profile.crawlMetadata.httpStatusCode == 404);
-        REQUIRE(!profile.isIndexed);
+        IndexedPage page = profileResult.value;
+        REQUIRE(page.crawlMetadata.lastCrawlStatus == CrawlStatus::FAILED);
+        REQUIRE(page.crawlMetadata.lastErrorMessage == "Page not found");
+        REQUIRE(page.crawlMetadata.httpStatusCode == 404);
+        REQUIRE(!page.isIndexed);
         
         // Clean up
         storage.deleteSiteData("https://test-failed.com");
@@ -212,8 +212,8 @@ TEST_CASE("Content Storage - Batch Operations", "[content][storage][batch]") {
             auto profileResult = storage.getSiteProfile("https://batch" + std::to_string(i) + ".com");
             REQUIRE(profileResult.success);
             
-            SiteProfile profile = profileResult.value;
-            REQUIRE(profile.title == "Batch Test Page " + std::to_string(i));
+            IndexedPage page = profileResult.value;
+            REQUIRE(page.title == "Batch Test Page " + std::to_string(i));
         }
         
         // Test search across all documents
@@ -524,8 +524,8 @@ TEST_CASE("Content Storage - Error Handling", "[content][storage][errors]") {
         REQUIRE(!deleteResult.success);
     }
     
-    SECTION("Get non-existent site profile") {
-        auto profileResult = storage.getSiteProfile("https://non-existent-profile.com");
+    SECTION("Get non-existent indexed page") {
+        auto profileResult = storage.getSiteProfile("https://non-existent-page.com");
         REQUIRE(!profileResult.success);
     }
     

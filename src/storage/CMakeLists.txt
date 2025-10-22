@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
 find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Set CMake policy to handle imported targets properly
 cmake_policy(SET CMP0111 NEW)
@@ -54,6 +56,11 @@ set(STORAGE_SOURCES
     MongoDBStorage.cpp
     ContentStorage.cpp
     SponsorStorage.cpp
+    EmailService.cpp
+    EmailLogsStorage.cpp
+    EmailTrackingStorage.cpp
+    UnsubscribeService.cpp
+    WebsiteProfileStorage.cpp
     ../infrastructure.cpp
 )
 
@@ -69,11 +76,15 @@ endif()
 
 # Define header files
 set(STORAGE_HEADERS
-    ../../include/search_engine/storage/SiteProfile.h
+    ../../include/search_engine/storage/IndexedPage.h
     ../../include/search_engine/storage/SponsorProfile.h
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h
     ../../include/search_engine/storage/ContentStorage.h
+    ../../include/search_engine/storage/EmailService.h
+    ../../include/search_engine/storage/EmailLogsStorage.h
+    ../../include/search_engine/storage/EmailTrackingStorage.h
+    ../../include/search_engine/storage/UnsubscribeService.h
     ../../include/infrastructure.h
 )
 
@@ -103,7 +114,11 @@ target_link_libraries(storage
         common
         mongo::bsoncxx_shared
         mongo::mongocxx_shared
+        mongodb_instance
         Threads::Threads
+        CURL::libcurl
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 # Link Redis libraries if available
@@ -141,7 +156,7 @@ target_include_directories(MongoDBStorage
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(MongoDBStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared)
+target_link_libraries(MongoDBStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
 
 if(REDIS_AVAILABLE)
     add_library(RedisSearchStorage STATIC RedisSearchStorage.cpp ../infrastructure.cpp)
@@ -164,7 +179,7 @@ target_include_directories(SponsorStorage
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(SponsorStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared)
+target_link_libraries(SponsorStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
 target_compile_definitions(SponsorStorage PRIVATE
     BSONCXX_STATIC
     MONGOCXX_STATIC
@@ -182,8 +197,64 @@ if(REDIS_AVAILABLE)
     target_compile_definitions(ContentStorage PUBLIC REDIS_AVAILABLE)
 endif()
 
+add_library(EmailService STATIC EmailService.cpp ../infrastructure.cpp)
+target_include_directories(EmailService 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(EmailService PUBLIC common CURL::libcurl UnsubscribeService EmailTrackingStorage)
+
+add_library(EmailLogsStorage STATIC EmailLogsStorage.cpp ../infrastructure.cpp)
+target_include_directories(EmailLogsStorage 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(EmailLogsStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(EmailLogsStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+add_library(UnsubscribeService STATIC UnsubscribeService.cpp ../infrastructure.cpp)
+target_include_directories(UnsubscribeService 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(UnsubscribeService PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance OpenSSL::SSL OpenSSL::Crypto)
+target_compile_definitions(UnsubscribeService PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+add_library(EmailTrackingStorage STATIC EmailTrackingStorage.cpp ../infrastructure.cpp)
+target_include_directories(EmailTrackingStorage 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(EmailTrackingStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(EmailTrackingStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+add_library(WebsiteProfileStorage STATIC WebsiteProfileStorage.cpp ../infrastructure.cpp)
+target_include_directories(WebsiteProfileStorage 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(WebsiteProfileStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(WebsiteProfileStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage
+install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService EmailLogsStorage EmailTrackingStorage UnsubscribeService WebsiteProfileStorage
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

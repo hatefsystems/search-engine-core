@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="{{ language.code }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ email.title }}</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f5f5f5; 
+            direction: {{ language.direction }};
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            direction: {{ language.direction }};
+        }
+        .header { 
+            background-color:#6e65c6; /* fallback */
+            background:#6e65c6;       /* old clients */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+        }
+        .content { 
+            padding: 30px; 
+            {% if language.direction == "rtl" %}text-align: right;{% else %}text-align: left;{% endif %}
+        }
+        .stats { 
+            background: #f8f9fa; 
+            border-{% if language.direction == "rtl" %}right{% else %}left{% endif %}: 4px solid #667eea; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 4px; 
+        }
+        .stats h3 {
+            margin-top: 0;
+            {% if language.direction == "rtl" %}text-align: right;{% else %}text-align: left;{% endif %}
+        }
+        .stats p {
+            {% if language.direction == "rtl" %}text-align: right;{% else %}text-align: left;{% endif %}
+        }
+        .cta { 
+            text-align: center; 
+            margin: 30px 0; 
+        }
+        .cta a { 
+            background: #667eea; 
+            color: white; 
+            padding: 15px 30px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            display: inline-block; 
+            font-weight: bold; 
+        }
+        .footer { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 14px; 
+            color: #666; 
+        }
+        p , h1, h3 ,div, a, body {
+            font-family: {% if language.direction == "rtl" %}"Vazirmatn", "Iranian Sans", "Segoe UI", "Tahoma"{% else %}"Arial", "Helvetica", "sans-serif"{% endif %};
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ email.header.title }}</h1>
+            <p>{{ email.header.subtitle }}</p>
+        </div>
+        <div class="content">
+            <p>{{ email.greeting }} {{ recipientName }}{% if language.code == "fa" %} {{ email.honorific }}{% endif %},</p>
+            
+            <p>{{ email.intro }}</p>
+            
+            <div class="stats">
+                <h3>{{ email.stats.title }}</h3>
+                <p><strong>{{ email.stats.domain }}:</strong> {{ domainName }}</p>
+                <p><strong>{{ email.stats.pages_indexed }}:</strong> {{ crawledPagesCount }}</p>
+                <p><strong>{{ email.stats.completed_at }}:</strong> {{ completionTime }}</p>
+                <p><strong>{{ email.stats.session_id }}:</strong> {{ crawlSessionId }}</p>
+            </div>
+            
+            <p>{{ email.description }}</p>
+            
+            <div class="cta">
+                <a href="https://hatef.ir/crawl-request/{{ language.code }}">{{ email.cta.button_text }}</a>
+            </div>
+            
+            <p>{{ email.footer.thank_you }}</p>
+        </div>
+        <div class="footer">
+            <p>{{ email.footer.automated_message }}</p>
+            {% if unsubscribeToken %}
+            <p>
+                <a href="https://hatef.ir/u/{{ unsubscribeToken }}" style="color: #666; text-decoration: underline; font-size: 12px;">
+                    {{ email.footer.unsubscribe_text }}
+                </a>
+            </p>
+            {% endif %}
+            <p>{{ email.footer.copyright }}</p>
+        </div>
+    </div>
+</body>
+</html>

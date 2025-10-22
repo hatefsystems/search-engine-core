@@ -5,10 +5,11 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for email diagnostics
       - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}
-      - SEARCH_REDIS_POOL_SIZE=${SEARCH_REDIS_POOL_SIZE:-8}
+      - SEARCH_REDIS_POOL_SIZE=${SEARCH_REDIS_POOL_SIZE:-16}
       - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
       - MINIFY_JS=${MINIFY_JS:-true}
       - MINIFY_JS_LEVEL=${MINIFY_JS_LEVEL:-advanced}
@@ -17,14 +18,47 @@ services:
       - JS_CACHE_TYPE=${JS_CACHE_TYPE:-redis}
       - JS_CACHE_TTL=${JS_CACHE_TTL:-3600}
       - JS_CACHE_REDIS_DB=${JS_CACHE_REDIS_DB:-1}
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
+      # SPA Rendering Configuration
+      - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
+      - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
+      - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}
+      - DEFAULT_REQUEST_TIMEOUT=${DEFAULT_REQUEST_TIMEOUT:-60000}
+      # SMTP Email Configuration
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_TIMEOUT=${SMTP_TIMEOUT:-60}
+      - SMTP_CONNECTION_TIMEOUT=${SMTP_CONNECTION_TIMEOUT:-20}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
+      - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
+      - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
+      - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-true}
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
-      - redis
-      - mongodb
-      - browserless
-      - js-minifier
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      browserless:
+        condition: service_healthy
+      js-minifier:
+        condition: service_healthy
     stop_grace_period: 30s
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
     ulimits:
       nofile:
         soft: 65535
@@ -38,14 +72,33 @@ services:
       - search-network
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:7.2.0-v7
     container_name: redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+      - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    environment:
+      - REDIS_MAXMEMORY=536870912  # 512MB in bytes
+      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
     logging:
       driver: json-file
       options:
@@ -61,9 +114,24 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-    command: ["mongod", "--bind_ip_all"]
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.5", "--maxConns", "200"]
     volumes:
       - mongodb_data:/data/db
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.2'
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -75,8 +143,11 @@ services:
   browserless:
     image: browserless/chrome:latest
     container_name: browserless
+    pull_policy: if_not_present
     restart: unless-stopped
-    shm_size: "2g"
+    shm_size: "512m"
+    ports:
+      - "3001:3000"
     environment:
       - "MAX_CONCURRENT_SESSIONS=10"
       - "PREBOOT_CHROME=true"
@@ -91,6 +162,31 @@ services:
       - "WORKSPACE_DIR=/workspace"
       - "FUNCTION_ENABLE_INCOGNITO=false"
       - "FUNCTION_KEEP_ALIVE=true"
+      - "DEFAULT_LAUNCH_ARGS=[\"--no-sandbox\",\"--disable-setuid-sandbox\",\"--disable-dev-shm-usage\",\"--memory-pressure-off\",\"--disable-background-timer-throttling\",\"--disable-renderer-backgrounding\",\"--disable-backgrounding-occluded-windows\"]"
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: '0.5'
+    #     reservations:
+    #       memory: 256M
+    #       cpus: '0.1'
+    # Health check to verify service is running
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/pressure || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # DNS settings for better connectivity
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+      - 8.8.4.4
+    # Security options
+    security_opt:
+      - seccomp:unconfined
     logging:
       driver: json-file
       options:
@@ -102,17 +198,26 @@ services:
   js-minifier:
     image: ghcr.io/hatefsystems/search-engine-core/js-minifier:latest
     container_name: js-minifier
-    pull_policy: always
+    pull_policy: if_not_present
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3002
       - MAX_FILE_SIZE=52428800
-      - MAX_CONCURRENT_REQUESTS=50
+      - MAX_CONCURRENT_REQUESTS=100
       - CACHE_ENABLED=true
       - CACHE_TTL=3600
     ports:
       - "3002:3002"
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3002/health || exit 1"]
       interval: 30s
@@ -126,6 +231,110 @@ services:
         max-file: "3"
     networks:
       - search-network
+
+  # Crawler Scheduler - Progressive Warm-up Task Scheduler (Production)
+  crawler-scheduler:
+    image: ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest
+    container_name: crawler-scheduler-worker
+    pull_policy: if_not_present
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --beat --loglevel=warning --concurrency=2
+    volumes:
+      - ${CRAWLER_DATA_DIR:-/root/app/data}:/app/data  # Production host bind mount (configurable via env var)
+    environment:
+      # Celery Configuration
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      
+      # MongoDB Configuration
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-search-engine}
+      
+      # API Configuration
+      - API_BASE_URL=${API_BASE_URL:-http://search-engine-core:3000}
+      
+      # Timezone Configuration (Auto-detects system timezone by default)
+      - TZ=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # System timezone for Celery worker
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # Optional: Override system timezone (e.g., America/New_York, Europe/London, Asia/Tehran)
+      
+      # Warm-up Configuration (Progressive Rate Limiting)
+      - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}  # Start hour in configured timezone (0-23)
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-12}      # End hour in configured timezone (inclusive, 0-23)
+      
+      # Jitter Configuration (Randomization to avoid exact timing)
+      - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
+      - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
+      
+      # Task Configuration
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}  # Check for new files every 60 seconds
+      - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
+      - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for diagnostics
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      search-engine:
+        condition: service_started
+  
+  # Flower Web UI - Scheduler Monitoring Dashboard (Production)
+  crawler-flower:
+    image: ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest
+    container_name: crawler-scheduler-flower
+    pull_policy: if_not_present
+    restart: unless-stopped
+    command: celery -A app.celery_app flower --port=5555 --basic_auth=${FLOWER_BASIC_AUTH}
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+      # Timezone Configuration for Flower Dashboard
+      - TZ=${SCHEDULER_TIMEZONE:-Asia/Tehran}
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      crawler-scheduler:
+        condition: service_started
 
 networks:
   search-network:

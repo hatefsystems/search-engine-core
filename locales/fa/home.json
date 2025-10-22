@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "title": "هاتف — خصوصی. سریع. مستقل.",
+    "description": "هاتف یک موتور جستجو خصوصی، سریع و مستقل است."
+  },
+  "header": {
+    "logo_text": "هاتف",
+    "theme_toggle_label": "تغییر تم رنگی"
+  },
+  "main": {
+    "tagline": "خصوصی. سریع. مستقل.",
+    "search_label": "جستجو در وب",
+    "search_placeholder": "جستجو در وب...",
+    "search_submit_label": "ارسال جستجو",
+    "voice_search_label": "جستجوی صوتی (به زودی)",
+    "voice_search_title": "جستجوی صوتی (به زودی)",
+    "suggestions_label": "پیشنهادات",
+    "recent_searches_label": "جستجوهای اخیر",
+    "language_switch_text": "Hatef is here for you—in ",
+    "language_switch_link": "English",
+    "language_switch_dot": "."
+  },
+  "footer": {
+    "about": "درباره ما",
+    "crawl_request": "درخواست خزش",
+    "github": "گیت‌هاب",
+    "privacy": "حریم خصوصی",
+    "copyright": "© 1404 هاتف"
+  }
+}

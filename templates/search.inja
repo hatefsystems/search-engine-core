@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="{{ t.language.code }}" dir="{{ t.language.direction }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ search_query }} - {{ t.meta.title }}</title>
+    <meta name="description" content="{{ t.meta.description_with_query }}" />
+    <meta name="theme-color" content="#0b0f14" id="theme-color" />
+    <meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta property="og:title" content="{{ search_query }} - {{ t.meta.title }}" />
+    <meta property="og:description" content="{{ t.meta.description_with_query }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ base_url }}/search?q={{ search_query }}" />
+    
+    <!-- Language alternate links for SEO -->
+    <link rel="alternate" hreflang="en" href="{{ base_url }}/search?q={{ search_query }}&lang=en">
+    <link rel="alternate" hreflang="fa" href="{{ base_url }}/search?q={{ search_query }}&lang=fa">
+    <link rel="alternate" hreflang="x-default" href="{{ base_url }}/search?q={{ search_query }}">
+    
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111827'/%3E%3Cpath fill='%2322d3ee' d='M18 16h8v12h12V16h8v32h-8V36H26v12h-8z'/%3E%3C/svg%3E"
+    />
+    <link rel="preload" href="{{ base_url }}/styles.css" as="style" />
+    <link rel="stylesheet" href="{{ base_url }}/styles.css" />
+    
+    <style>
+      /* Search Results Specific Styles */
+      .search-header {
+        background: var(--background-primary);
+        border-bottom: 1px solid var(--border-color);
+        padding: var(--space-3) 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(8px);
+      }
+      
+      .search-header-container {
+        margin: 0 auto;
+        padding: 0 var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        justify-content: space-between;
+      }
+      
+      .header-logo {
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      
+      .header-search-form {
+        flex: 1;
+        max-width: 600px;
+      }
+      
+      .header-search-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: var(--background-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2);
+        transition: all 0.2s ease;
+      }
+      
+      .header-search-wrap:focus-within {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px var(--accent-shadow);
+      }
+      
+      .header-search-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+        color: var(--text-primary);
+        padding: var(--space-2) var(--space-3);
+      }
+      
+      .header-search-input::placeholder {
+        color: var(--text-secondary);
+      }
+      
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+      }
+      
+      /* Search Results Content */
+      .search-results {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--space-6) var(--space-4);
+      }
+      
+      .search-meta {
+        margin-bottom: var(--space-6);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--border-color);
+      }
+      
+      .search-info {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: var(--space-2);
+      }
+      
+      .search-query-display {
+        font-size: 1.25rem;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+      
+      /* Search Result Items */
+      .result-item {
+        margin-bottom: var(--space-6);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--border-light);
+      }
+      
+      .result-item:last-child {
+        border-bottom: none;
+      }
+      
+      .result-url {
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        text-decoration: none;
+        margin-bottom: var(--space-1);
+        display: block;
+      }
+      
+      .result-title {
+        color: var(--accent-color);
+        font-size: 1.25rem;
+        font-weight: 500;
+        text-decoration: none;
+        margin-bottom: var(--space-2);
+        display: block;
+        line-height: 1.4;
+      }
+      
+      .result-title:hover {
+        text-decoration: underline;
+      }
+      
+      .result-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+      
+      /* No Results */
+      .no-results {
+        text-align: center;
+        padding: var(--space-8) var(--space-4);
+      }
+      
+      .no-results-icon {
+        font-size: 4rem;
+        opacity: 0.3;
+        margin-bottom: var(--space-4);
+      }
+      
+      .no-results-title {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        margin-bottom: var(--space-2);
+      }
+      
+      .no-results-description {
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin: 0 auto var(--space-4);
+        line-height: 1.6;
+      }
+      
+      .search-suggestions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        align-items: center;
+      }
+      
+      .suggestion-link {
+        color: var(--accent-color);
+        text-decoration: none;
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--accent-color);
+        border-radius: var(--radius);
+        transition: all 0.2s ease;
+      }
+      
+      .suggestion-link:hover {
+        background: var(--accent-color);
+        color: var(--background-primary);
+      }
+      
+      /* Language Switch */
+      .language-switch {
+        text-align: center;
+        margin-top: var(--space-6);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--border-light);
+      }
+      
+      .language-switch-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.4;
+      }
+      
+      .language-switch-text[lang="en"] {
+        direction: ltr;
+        text-align: center;
+      }
+      
+      .language-switch-text[lang="fa"] {
+        direction: rtl;
+        text-align: center;
+      }
+      
+      .language-link {
+        color: var(--accent-color);
+        text-decoration: underline;
+        transition: color 0.2s ease;
+      }
+      
+      .language-link:hover {
+        color: var(--accent-hover);
+        text-decoration: none;
+      }
+      
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .search-header-container {
+          flex-direction: column;
+          gap: var(--space-3);
+          align-items: stretch;
+        }
+        
+        .header-logo {
+          text-align: center;
+        }
+        
+        .search-results {
+          padding: var(--space-4) var(--space-3);
+        }
+        
+        .result-title {
+          font-size: 1.1rem;
+        }
+      }
+      
+      /* RTL Adjustments */
+      html[dir="rtl"] .search-header-container {
+        direction: rtl;
+      }
+      
+      html[dir="rtl"] .language-switch {
+        direction: rtl;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Search Header -->
+    <header class="search-header">
+      <div class="search-header-container">
+        <a href="{{ base_url }}/" class="header-logo" aria-label="{{ t.header.logo_text }} home">
+          {{ t.header.logo_text }}
+        </a>
+        
+        <form class="header-search-form" action="{{ base_url }}/search" method="get" role="search" autocomplete="off">
+          <div class="header-search-wrap">
+            <button type="submit" class="icon-btn" aria-label="{{ t.search.search_submit_label }}">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L20 21.5 21.5 20l-6-6zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </button>
+            
+            <input
+              name="q"
+              type="search"
+              class="header-search-input"
+              value="{{ search_query }}"
+              placeholder="{{ t.search.search_placeholder }}"
+              inputmode="search"
+              spellcheck="false"
+              aria-label="{{ t.search.search_label }}"
+            />
+          </div>
+          
+          <!-- Preserve language parameter if present -->
+          {% if current_lang and current_lang != "fa" %}
+          <input type="hidden" name="lang" value="{{ current_lang }}" />
+          {% endif %}
+        </form>
+        
+        <div class="header-controls">
+          <button id="theme-toggle" class="theme-toggle" aria-label="{{ t.header.theme_toggle_label }}" aria-pressed="false">🌙</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Results Content -->
+    <main class="search-results">
+      <!-- Search Meta Information -->
+      <div class="search-meta">
+        <div class="search-info">
+          <strong>{{ total_results }}</strong> {{ t.search.results_info_suffix }} {{ elapsed_time }} {{ t.search.timing_suffix }}{{ search_query }}{{ t.search.results_suffix }}
+        </div>
+        <h1 class="search-query-display">{{ search_query }}</h1>
+      </div>
+      
+      <!-- Search Results -->
+      {% if results %}
+        {% for result in results %}
+        <article class="result-item">
+          <a href="{{ result.url }}" class="result-url" target="_blank" rel="noopener">{{ result.displayurl }}</a>
+          <a href="{{ result.url }}" class="result-title" target="_blank" rel="noopener">{{ result.title }}</a>
+          <p class="result-description">{{ result.desc }}</p>
+        </article>
+        {% endfor %}
+      {% else %}
+        <!-- No Results -->
+        <div class="no-results">
+          <div class="no-results-icon">🔍</div>
+          <h2 class="no-results-title">{{ t.search.no_results_title }}</h2>
+          <p class="no-results-description">{{ t.search.no_results_description }}</p>
+          
+          <div class="search-suggestions">
+            <a href="{{ base_url }}/" class="suggestion-link">{{ t.search.try_new_search }}</a>
+          </div>
+        </div>
+      {% endif %}
+      
+      <!-- Language Switch -->
+      <div class="language-switch">
+        <p class="language-switch-text" lang="{% if t.language.code == "fa" %}en{% else %}fa{% endif %}">
+          {{ t.search.language_switch_text }}<a href="{% if t.language.code == "fa" %}{{ base_url }}/search?q={{ search_query }}&lang=en{% else %}{{ base_url }}/search?q={{ search_query }}&lang=fa{% endif %}" class="language-link" data-action="language-switch">{{ t.search.language_switch_link }}</a>{{ t.search.language_switch_dot }}
+        </p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="{{ base_url }}/about">{{ t.footer.about }}</a>
+        <span aria-hidden="true">•</span>
+        <a href="https://github.com/HatefSystems" rel="noopener">{{ t.footer.github }}</a>
+        <span aria-hidden="true">•</span>
+        <a href="{{ base_url }}/crawl-request">{{ t.footer.crawl_request }}</a>
+      </nav>
+      <div class="copyright">{{ t.footer.copyright }}</div>
+    </footer>
+
+    <script defer src="{{ base_url }}/script.js"></script>
+  </body>
+</html>

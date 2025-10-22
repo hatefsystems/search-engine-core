@@ -105,6 +105,16 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 - **Error Handling**: Graceful fallbacks with detailed error logging
 - **Frontend Integration**: JavaScript form handling with success/error notifications
 
+### 🔍 **Intelligent Content Validation & Quality Control**
+
+- **Content Type Filtering**: Only indexes HTML/text content, blocks media files (images, videos, PDFs)
+- **Content Quality Validation**: Requires both title and text content for meaningful pages
+- **URL Scheme Validation**: Filters out invalid schemes (mailto, tel, javascript, data URIs)
+- **Redirect Handling**: Automatically follows HTTP redirects and stores final destination URLs
+- **Duplicate Prevention**: Uses canonical URLs for deduplication to prevent duplicate content
+- **Storage Optimization**: Skips empty pages, error pages, and redirect-only pages
+- **Search Quality**: Ensures only high-quality, searchable content is stored in the index
+
 ## Project Structure
 
 ```
@@ -494,7 +504,7 @@ The storage layer now provides sophisticated content handling:
 **Enhanced Storage Features:**
 
 - **SPA Content Handling**: Optimal processing of JavaScript-rendered content
-- **Text Content Field**: Dedicated `textContent` field in SiteProfile for clean
+- **Text Content Field**: Dedicated `textContent` field in IndexedPage for clean
   text storage
 - **Dual Storage Architecture**: MongoDB for metadata, RedisSearch for full-text
   indexing
@@ -727,7 +737,7 @@ REDIS_URI=tcp://localhost:6379
 
 ### 3. Improved Text Content Extraction
 
-- **Enhanced SiteProfile structure** with dedicated `textContent` field for
+- **Enhanced IndexedPage structure** with dedicated `textContent` field for
   clean text storage
 - **Implemented intelligent text extraction** from both static HTML and
   SPA-rendered content

@@ -12,6 +12,9 @@
 #include "models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
 
+// Forward declaration for PageFetchResult
+struct PageFetchResult;
+
 class URLFrontier;
 class RobotsTxtParser;
 class PageFetcher;
@@ -75,6 +78,19 @@ private:
     
     // Helper method for session-aware logging
     void logToCrawlSession(const std::string& message, const std::string& level = "info") const;
+    
+    // Private helper methods for processURL refactoring
+    bool validateUrlWithRobotsTxt(const std::string& url, CrawlResult& result);
+    void applyCrawlDelay(const std::string& domain);
+    bool handleSpaDetectionAndRendering(const std::string& url, PageFetchResult& fetchResult);
+    void processHtmlContent(const std::string& url, const PageFetchResult& fetchResult, CrawlResult& result);
+    void classifyFailureAndSetResult(const PageFetchResult& fetchResult, CURLcode curlErrorCode, CrawlResult& result);
+    
+    // Performance optimization helper methods
+    size_t getSuccessfulDownloadCount() const;
+    void updateResultWithMinimalLocking(const std::string& url, const CrawlResult& newResult);
+    void incrementSuccessfulDownloads();
+    void decrementSuccessfulDownloads();
 
     std::unique_ptr<URLFrontier> urlFrontier;
     std::unique_ptr<RobotsTxtParser> robotsParser;
@@ -87,11 +103,19 @@ private:
     CrawlConfig config;
     std::atomic<bool> isRunning;
     std::thread workerThread;
+    
+    // Separate mutexes for better performance
     mutable std::mutex resultsMutex;
+    mutable std::mutex configMutex;
+    
     std::vector<CrawlResult> results;
     std::unordered_set<std::string> visitedURLs;
     std::string seedDomain;  // Domain of the first seed URL
     std::string sessionId;   // Session ID for logging
+    
+    // Performance optimization: atomic counters to reduce mutex contention
+    std::atomic<size_t> successfulDownloadCount{0};
+    std::atomic<size_t> totalResultCount{0};
     
     // Session-level SPA detection tracking
     std::atomic<bool> sessionSpaDetected{false};  // Track if SPA was detected for this session

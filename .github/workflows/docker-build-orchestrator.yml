@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: '1'
+      force_rebuild:
+        description: 'Force rebuild all images even if unchanged'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -32,6 +37,14 @@ jobs:
     with:
       docker_image: ghcr.io/${{ github.repository }}/js-minifier
       docker_tag: latest
+
+  build-crawler-scheduler:
+    uses: ./.github/workflows/build-crawler-scheduler.yml
+    with:
+      docker_image: ghcr.io/${{ github.repository }}/crawler-scheduler
+      docker_tag: latest
+      cache_version: ${{ inputs.cache_version }}
+      force_rebuild: ${{ inputs.force_rebuild }}
 
   build-app:
     needs: [build-drivers, build-js-minifier]

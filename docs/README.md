@@ -11,56 +11,107 @@ Welcome to the Search Engine Core documentation. This directory contains compreh
 
 ### 🔧 Development Documentation
 
-#### JavaScript Minification & Caching
+#### API Documentation
 
-- **[PERFORMANCE_OPTIMIZATIONS_SUMMARY.md](./PERFORMANCE_OPTIMIZATIONS_SUMMARY.md)** - Complete performance optimization summary
+- **[api/README.md](./api/README.md)** - API documentation index
+- **[api/crawler_endpoint.md](./api/crawler_endpoint.md)** - Web crawler API endpoints
+- **[api/search_endpoint.md](./api/search_endpoint.md)** - Search API endpoints
+- **[api/sponsor_endpoint.md](./api/sponsor_endpoint.md)** - Sponsor management API
+- **[api/website_profile_endpoint.md](./api/website_profile_endpoint.md)** - Website profile API
+- **[api/WEBSITE_PROFILE_API_SUMMARY.md](./api/WEBSITE_PROFILE_API_SUMMARY.md)** - Implementation summary
+
+#### Architecture Documentation
+
+- **[architecture/content-storage-layer.md](./architecture/content-storage-layer.md)** - MongoDB and Redis storage architecture
+- **[architecture/PERFORMANCE_OPTIMIZATIONS_SUMMARY.md](./architecture/PERFORMANCE_OPTIMIZATIONS_SUMMARY.md)** - Complete performance optimization summary
   - 99.6% faster JavaScript file serving
   - Redis-based caching implementation
   - Production-grade HTTP headers
   - Comprehensive monitoring and testing
-- **[PRODUCTION_JS_MINIFICATION.md](./PRODUCTION_JS_MINIFICATION.md)** - Production deployment guide for JS minification
+- **[architecture/SCHEDULER_INTEGRATION_SUMMARY.md](./architecture/SCHEDULER_INTEGRATION_SUMMARY.md)** - Crawler scheduler integration
+- **[architecture/SCORING_AND_RANKING.md](./architecture/SCORING_AND_RANKING.md)** - Search result scoring system
+- **[architecture/SPA_RENDERING.md](./architecture/SPA_RENDERING.md)** - Single Page Application rendering
+
+#### User Guides
+
+- **[guides/PRODUCTION_JS_MINIFICATION.md](./guides/PRODUCTION_JS_MINIFICATION.md)** - Production deployment guide for JS minification
   - Pre-built Docker images from GitHub Container Registry
   - Production environment configuration
   - Monitoring, scaling, and troubleshooting
   - Security best practices and performance optimization
-- **[JS_MINIFIER_CLIENT_CHANGELOG.md](./JS_MINIFIER_CLIENT_CHANGELOG.md)** - Detailed changelog for JsMinifierClient improvements
+- **[guides/DOCKER_HEALTH_CHECK_BEST_PRACTICES.md](./guides/DOCKER_HEALTH_CHECK_BEST_PRACTICES.md)** - Docker health check implementation
+- **[guides/JS_CACHING_BEST_PRACTICES.md](./guides/JS_CACHING_BEST_PRACTICES.md)** - Production caching best practices
+- **[guides/JS_CACHING_HEADERS_BEST_PRACTICES.md](./guides/JS_CACHING_HEADERS_BEST_PRACTICES.md)** - HTTP caching headers guide
+- **[guides/README_STORAGE_TESTING.md](./guides/README_STORAGE_TESTING.md)** - Storage layer testing guide
+
+#### Development Guides
+
+- **[development/JS_MINIFIER_CLIENT_CHANGELOG.md](./development/JS_MINIFIER_CLIENT_CHANGELOG.md)** - Detailed changelog for JsMinifierClient improvements
   - Enhanced JSON parsing with robust escape sequence handling
   - Size-based method selection (JSON ≤100KB, File Upload >100KB)
   - Improved error handling and debugging output
   - Performance optimizations and bug fixes
-- **[JS_MINIFICATION_CACHING_STRATEGY.md](./development/JS_MINIFICATION_CACHING_STRATEGY.md)** - Comprehensive caching strategy analysis
-  - Redis vs File vs Memory caching comparison
-  - Hybrid caching approach implementation
-  - Performance benchmarks and recommendations
-- **[JS_CACHING_BEST_PRACTICES.md](./guides/JS_CACHING_BEST_PRACTICES.md)** - Production caching best practices
-  - Redis cache implementation guide
-  - Cache monitoring and optimization
-  - Performance testing and validation
-- **[JS_CACHING_HEADERS_BEST_PRACTICES.md](./guides/JS_CACHING_HEADERS_BEST_PRACTICES.md)** - HTTP caching headers guide
-  - Production-grade caching headers implementation
-  - Browser cache optimization strategies
-  - CDN integration and performance tuning
+- **[development/MONGODB_CPP_GUIDE.md](./development/MONGODB_CPP_GUIDE.md)** - MongoDB C++ driver usage guide
+- **[development/template-development.md](./development/template-development.md)** - Template development guide
+- **[development/cmake-version-options.md](./development/cmake-version-options.md)** - CMake configuration options
+
+#### Troubleshooting
+
+- **[troubleshooting/README.md](./troubleshooting/README.md)** - Troubleshooting guide index
+- **[troubleshooting/FIX_MONGODB_WARNING.md](./troubleshooting/FIX_MONGODB_WARNING.md)** - Fix for MongoDB storage warning
+  - Root cause analysis
+  - Implementation fix
+  - Testing and verification
+  - Deployment guide
 
 #### Project Organization
 
 - **[DOCUMENTATION_CLEANUP.md](./DOCUMENTATION_CLEANUP.md)** - Documentation organization and cleanup guidelines
+- **[DOCUMENTATION_ORGANIZATION_SUMMARY.md](./DOCUMENTATION_ORGANIZATION_SUMMARY.md)** - Documentation structure summary
 
 ### 📁 Directory Structure
 
 ```
 docs/
-├── README.md                           # This documentation index
-├── PERFORMANCE_OPTIMIZATIONS_SUMMARY.md # Complete performance optimization summary
-├── PRODUCTION_JS_MINIFICATION.md       # Production deployment guide for JS minification
-├── JS_MINIFIER_CLIENT_CHANGELOG.md     # JsMinifierClient version history
-├── DOCUMENTATION_CLEANUP.md            # Documentation organization guidelines
-├── guides/                             # User and developer guides
-│   ├── JS_CACHING_BEST_PRACTICES.md    # Production caching best practices
+├── README.md                              # This documentation index
+├── DOCUMENTATION_CLEANUP.md               # Documentation organization guidelines
+├── DOCUMENTATION_ORGANIZATION_SUMMARY.md  # Documentation organization summary
+├── api/                                   # API endpoint documentation
+│   ├── README.md                          # API documentation index
+│   ├── crawler_endpoint.md                # Crawler API documentation
+│   ├── search_endpoint.md                 # Search API documentation
+│   ├── sponsor_endpoint.md                # Sponsor API documentation
+│   ├── website_profile_endpoint.md        # Website profile API
+│   └── WEBSITE_PROFILE_API_SUMMARY.md     # Website profile implementation summary
+├── architecture/                          # System architecture documentation
+│   ├── content-storage-layer.md           # Storage layer architecture
+│   ├── lazy-connection-handling.md        # Lazy connection initialization
+│   ├── PERFORMANCE_OPTIMIZATIONS.md       # Performance architecture
+│   ├── PERFORMANCE_OPTIMIZATIONS_SUMMARY.md # Performance summary
+│   ├── RETRY_SYSTEM_SUMMARY.md            # Retry mechanism architecture
+│   ├── SCHEDULER_INTEGRATION_SUMMARY.md   # Crawler scheduler integration
+│   ├── SCORING_AND_RANKING.md             # Search scoring system
+│   └── SPA_RENDERING.md                   # SPA rendering architecture
+├── guides/                                # User and deployment guides
+│   ├── DOCKER_HEALTH_CHECK_BEST_PRACTICES.md # Docker health checks
+│   ├── JS_CACHING_BEST_PRACTICES.md       # Production caching best practices
 │   ├── JS_CACHING_HEADERS_BEST_PRACTICES.md # HTTP caching headers guide
-│   ├── JS_MINIFICATION_STRATEGY_ANALYSIS.md # Implementation strategy analysis
-│   └── README_JS_MINIFICATION.md       # JavaScript minification features
-└── development/                        # Technical development docs
-    └── JS_MINIFICATION_CACHING_STRATEGY.md # Comprehensive caching strategy
+│   ├── JS_MINIFICATION_CACHING_STRATEGY.md # Minification caching strategy
+│   ├── PRODUCTION_JS_MINIFICATION.md      # Production JS minification deployment
+│   ├── README_JS_MINIFICATION.md          # JavaScript minification features
+│   ├── README_SEARCH_CORE.md              # Search core usage guide
+│   └── README_STORAGE_TESTING.md          # Storage testing guide
+├── development/                           # Technical development documentation
+│   ├── cmake-version-options.md           # CMake configuration options
+│   ├── FILE_RECEIVING_METHODS.md          # File upload implementation
+│   ├── JS_MINIFICATION_STRATEGY_ANALYSIS.md # JS minification strategy
+│   ├── JS_MINIFIER_CLIENT_CHANGELOG.md    # JsMinifierClient version history
+│   ├── MONGODB_CPP_GUIDE.md               # MongoDB C++ driver guide
+│   └── template-development.md            # Template development guide
+└── troubleshooting/                       # Problem-solving and fix guides
+    ├── README.md                          # Troubleshooting guide index
+    ├── FIX_MONGODB_WARNING.md             # MongoDB storage warning fix
+    └── MONGODB_WARNING_ANALYSIS.md        # MongoDB initialization analysis
 ```
 
 ### 🎯 Quick Navigation
@@ -68,17 +119,22 @@ docs/
 #### For Developers
 
 - **New to the project?** Start with [../README.md](../README.md)
-- **Working on JS minification?** See [JS_MINIFIER_CLIENT_CHANGELOG.md](./JS_MINIFIER_CLIENT_CHANGELOG.md)
-- **Implementing caching?** See [JS_CACHING_BEST_PRACTICES.md](./guides/JS_CACHING_BEST_PRACTICES.md)
-- **Optimizing headers?** See [JS_CACHING_HEADERS_BEST_PRACTICES.md](./guides/JS_CACHING_HEADERS_BEST_PRACTICES.md)
+- **API endpoints?** See [api/README.md](./api/README.md)
+- **Architecture overview?** See [architecture/](./architecture/)
+- **Working on JS minification?** See [development/JS_MINIFIER_CLIENT_CHANGELOG.md](./development/JS_MINIFIER_CLIENT_CHANGELOG.md)
+- **Implementing caching?** See [guides/JS_CACHING_BEST_PRACTICES.md](./guides/JS_CACHING_BEST_PRACTICES.md)
+- **MongoDB C++ development?** See [development/MONGODB_CPP_GUIDE.md](./development/MONGODB_CPP_GUIDE.md)
+- **Troubleshooting issues?** Check [troubleshooting/](./troubleshooting/)
 - **Contributing documentation?** Check [DOCUMENTATION_CLEANUP.md](./DOCUMENTATION_CLEANUP.md)
 
 #### For Operations
 
-- **Production deployment?** See [PRODUCTION_JS_MINIFICATION.md](./PRODUCTION_JS_MINIFICATION.md)
+- **Production deployment?** See [guides/PRODUCTION_JS_MINIFICATION.md](./guides/PRODUCTION_JS_MINIFICATION.md)
+- **Docker health checks?** See [guides/DOCKER_HEALTH_CHECK_BEST_PRACTICES.md](./guides/DOCKER_HEALTH_CHECK_BEST_PRACTICES.md)
 - **Deployment guide** - See [../README.md](../README.md#deployment)
 - **Configuration** - See [../config/](../config/) directory
 - **Docker setup** - See [../docker/](../docker/) directory
+- **Troubleshooting?** See [troubleshooting/README.md](./troubleshooting/README.md)
 
 ### 🔍 Search Engine Components
 
@@ -214,6 +270,6 @@ ctest -L "integration"
 
 ---
 
-**Last Updated**: June 2024  
-**Version**: 2.0  
+**Last Updated**: October 2025  
+**Version**: 2.1  
 **Maintainer**: Search Engine Core Team

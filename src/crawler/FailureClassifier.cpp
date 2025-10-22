@@ -191,6 +191,7 @@ bool FailureClassifier::isPermanentCurlError(CURLcode curlCode) {
         case CURLE_URL_MALFORMAT:            // URL malformed
         case CURLE_NOT_BUILT_IN:             // Feature not built-in
         case CURLE_COULDNT_RESOLVE_PROXY:    // Couldn't resolve proxy
+        case CURLE_COULDNT_RESOLVE_HOST:     // Couldn't resolve host (DNS failure)
         case CURLE_FUNCTION_NOT_FOUND:       // Function not found
         case CURLE_ABORTED_BY_CALLBACK:      // Aborted by callback
         case CURLE_BAD_FUNCTION_ARGUMENT:    // Bad function argument

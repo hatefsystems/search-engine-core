@@ -52,6 +52,10 @@
     "server_error": "Server error occurred",
     "crawl_failed": "Crawl request failed",
     "network_error": "Network error - please check your connection"
+  },
+  "sponsor": {
+    "link_text": "💎 Become a Sponsor",
+    "link_description": "Support our project and get exclusive benefits"
   }
 }
 

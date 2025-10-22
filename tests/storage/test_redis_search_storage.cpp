@@ -25,35 +25,35 @@ namespace {
         return doc;
     }
     
-    SiteProfile createTestSiteProfile(const std::string& url = "https://example.com") {
-        SiteProfile profile;
-        profile.domain = "example.com";
-        profile.url = url;
-        profile.title = "Test Site";
-        profile.description = "A test website for unit testing";
-        profile.keywords = {"test", "example", "website"};
-        profile.language = "en";
-        profile.category = "technology";
+    IndexedPage createTestSiteProfile(const std::string& url = "https://example.com") {
+        IndexedPage page;
+        page.domain = "example.com";
+        page.url = url;
+        page.title = "Test Site";
+        page.description = "A test website for unit testing";
+        page.keywords = {"test", "example", "website"};
+        page.language = "en";
+        page.category = "technology";
         
         // Set required timestamps
         auto now = std::chrono::system_clock::now();
-        profile.crawlMetadata.lastCrawlTime = now;
-        profile.crawlMetadata.firstCrawlTime = now;
-        profile.crawlMetadata.lastCrawlStatus = CrawlStatus::SUCCESS;
-        profile.crawlMetadata.crawlCount = 1;
-        profile.crawlMetadata.crawlIntervalHours = 24.0;
-        profile.crawlMetadata.userAgent = "TestBot/1.0";
-        profile.crawlMetadata.httpStatusCode = 200;
-        profile.crawlMetadata.contentSize = 5000;
-        profile.crawlMetadata.contentType = "text/html";
-        profile.crawlMetadata.crawlDurationMs = 250.5;
+        page.crawlMetadata.lastCrawlTime = now;
+        page.crawlMetadata.firstCrawlTime = now;
+        page.crawlMetadata.lastCrawlStatus = CrawlStatus::SUCCESS;
+        page.crawlMetadata.crawlCount = 1;
+        page.crawlMetadata.crawlIntervalHours = 24.0;
+        page.crawlMetadata.userAgent = "TestBot/1.0";
+        page.crawlMetadata.httpStatusCode = 200;
+        page.crawlMetadata.contentSize = 5000;
+        page.crawlMetadata.contentType = "text/html";
+        page.crawlMetadata.crawlDurationMs = 250.5;
         
-        profile.isIndexed = true;
-        profile.lastModified = now;
-        profile.indexedAt = now;
-        profile.contentQuality = 0.8;
+        page.isIndexed = true;
+        page.lastModified = now;
+        page.indexedAt = now;
+        page.contentQuality = 0.8;
         
-        return profile;
+        return page;
     }
 }
 
@@ -172,21 +172,21 @@ TEST_CASE("RedisSearch Storage - Document Indexing and Retrieval", "[redis][stor
         LOG_DEBUG("Deleted document from storage");
     }
     
-    SECTION("Index site profile") {
-        SiteProfile testProfile = createTestSiteProfile("https://hatef.ir");
+    SECTION("Index indexed page") {
+        IndexedPage testProfile = createTestSiteProfile("https://hatef.ir");
         testProfile.title = "Profile Test Site";
         
-        std::string content = "This is the main content of the profile test site with searchable text.";
+        std::string content = "This is the main content of the page test site with searchable text.";
         
-        // Index the site profile
+        // Index the indexed page
         auto indexResult = storage.indexSiteProfile(testProfile, content);
         REQUIRE(indexResult.success);
         
         // Give Redis a moment to process
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
-        // Search for the profile
-        auto searchResult = storage.searchSimple("profile test", 10);
+        // Search for the page
+        auto searchResult = storage.searchSimple("page test", 10);
         REQUIRE(searchResult.success);
         
         auto response = searchResult.value;
@@ -445,23 +445,23 @@ TEST_CASE("RedisSearch Storage - Error Handling", "[redis][storage][errors]") {
 }
 
 TEST_CASE("RedisSearch Storage - Utility Functions", "[redis][storage][utils]") {
-    SECTION("SiteProfile to SearchDocument conversion") {
-        SiteProfile profile = createTestSiteProfile("https://convert-test.com");
-        profile.title = "Conversion Test Site";
-        profile.description = "Site for testing conversion";
+    SECTION("IndexedPage to SearchDocument conversion") {
+        IndexedPage page = createTestSiteProfile("https://convert-test.com");
+        page.title = "Conversion Test Site";
+        page.description = "Site for testing conversion";
         
         std::string content = "This is the main content of the site.";
         
-        SearchDocument doc = RedisSearchStorage::siteProfileToSearchDocument(profile, content);
+        SearchDocument doc = RedisSearchStorage::siteProfileToSearchDocument(page, content);
         
-        REQUIRE(doc.url == profile.url);
-        REQUIRE(doc.title == profile.title);
+        REQUIRE(doc.url == page.url);
+        REQUIRE(doc.title == page.title);
         REQUIRE(doc.content == content);
-        REQUIRE(doc.domain == profile.domain);
-        REQUIRE(doc.keywords == profile.keywords);
-        REQUIRE(doc.description == profile.description);
-        REQUIRE(doc.language == profile.language);
-        REQUIRE(doc.category == profile.category);
-        REQUIRE(doc.score == profile.contentQuality.value_or(0.0));
+        REQUIRE(doc.domain == page.domain);
+        REQUIRE(doc.keywords == page.keywords);
+        REQUIRE(doc.description == page.description);
+        REQUIRE(doc.language == page.language);
+        REQUIRE(doc.category == page.category);
+        REQUIRE(doc.score == page.contentQuality.value_or(0.0));
     }
 } 

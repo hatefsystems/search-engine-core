@@ -6,6 +6,7 @@
 #include <mutex>
 #include <sstream>
 #include <iostream>
+#include "../../include/Logger.h"
 
 namespace hatef::search {
 
@@ -15,31 +16,34 @@ struct SearchClient::Impl {
     RedisConfig config;
 
     explicit Impl(RedisConfig cfg) : config(std::move(cfg)) {
-        std::cout << "[SearchClient] Initializing with URI: " << config.uri 
-                  << ", pool_size: " << config.pool_size << std::endl;
-        
+        LOG_INFO("🔗 SearchClient::Impl - Initializing Redis client pool");
+        LOG_DEBUG("SearchClient::Impl - URI: " + config.uri + ", pool_size: " + std::to_string(config.pool_size));
+
         try {
             connections.reserve(config.pool_size);
+            LOG_DEBUG("SearchClient::Impl - Creating " + std::to_string(config.pool_size) + " Redis connections");
+
             for (std::size_t i = 0; i < config.pool_size; ++i) {
-                std::cout << "[SearchClient] Creating connection " << (i+1) 
-                          << "/" << config.pool_size << std::endl;
-                
+                LOG_DEBUG("SearchClient::Impl - Creating connection " + std::to_string(i+1) +
+                          "/" + std::to_string(config.pool_size));
+
                 auto redis = std::make_unique<sw::redis::Redis>(config.uri);
-                
+
                 // Test the connection by pinging
-                std::cout << "[SearchClient] Testing connection with PING..." << std::endl;
+                LOG_DEBUG("SearchClient::Impl - Testing connection " + std::to_string(i+1) + " with PING");
                 redis->ping();
-                std::cout << "[SearchClient] PING successful for connection " << (i+1) << std::endl;
-                
+                LOG_DEBUG("✅ SearchClient::Impl - PING successful for connection " + std::to_string(i+1));
+
                 connections.push_back(std::move(redis));
             }
-            std::cout << "[SearchClient] Successfully initialized " << connections.size() 
-                      << " connections" << std::endl;
+
+            LOG_INFO("✅ SearchClient::Impl - Successfully initialized " + std::to_string(connections.size()) +
+                     " Redis connections");
         } catch (const sw::redis::Error& e) {
-            std::cout << "[SearchClient] Redis error during initialization: " << e.what() << std::endl;
+            LOG_ERROR("💥 SearchClient::Impl - Redis error during initialization: " + std::string(e.what()));
             throw SearchError("Failed to initialize Redis connections: " + std::string(e.what()));
         } catch (const std::exception& e) {
-            std::cout << "[SearchClient] Standard exception during initialization: " << e.what() << std::endl;
+            LOG_ERROR("💥 SearchClient::Impl - Standard exception during initialization: " + std::string(e.what()));
             throw SearchError("Failed to connect to Redis: " + std::string(e.what()));
         }
     }
@@ -50,9 +54,10 @@ struct SearchClient::Impl {
     }
 };
 
-SearchClient::SearchClient(RedisConfig cfg) 
+SearchClient::SearchClient(RedisConfig cfg)
     : p_(std::make_unique<Impl>(std::move(cfg))) {
-    std::cout << "[SearchClient] Constructor completed successfully" << std::endl;
+    LOG_INFO("✅ SearchClient::SearchClient - Constructor completed successfully");
+    LOG_DEBUG("SearchClient::SearchClient - Redis client ready for search operations");
 }
 
 SearchClient::~SearchClient() = default;
@@ -60,35 +65,42 @@ SearchClient::~SearchClient() = default;
 std::string SearchClient::search(std::string_view index,
                                 std::string_view query,
                                 const std::vector<std::string>& args) {
-    std::cout << "[SearchClient::search] Starting search on index: " << index 
-              << ", query: " << query << std::endl;
-    
+    LOG_INFO("🔍 SearchClient::search - Starting search operation");
+    LOG_DEBUG("SearchClient::search - Index: " + std::string(index) +
+              ", Query: " + std::string(query) +
+              ", Args: " + std::to_string(args.size()));
+
     try {
         auto& redis = p_->getConnection();
-        std::cout << "[SearchClient::search] Got Redis connection" << std::endl;
-        
+        LOG_DEBUG("SearchClient::search - Acquired Redis connection from pool");
+
         // Build the command arguments
         std::vector<std::string> cmd_args;
         cmd_args.reserve(3 + args.size());
         cmd_args.emplace_back("FT.SEARCH");
         cmd_args.emplace_back(index);
         cmd_args.emplace_back(query);
-        
+
         // Add additional arguments
         for (const auto& arg : args) {
             cmd_args.push_back(arg);
         }
-        
-        std::cout << "[SearchClient::search] Executing FT.SEARCH with " 
-                  << cmd_args.size() << " arguments" << std::endl;
-        
+
+        LOG_DEBUG("SearchClient::search - Executing FT.SEARCH with " +
+                  std::to_string(cmd_args.size()) + " arguments");
+        std::string cmdStr;
+        for (const auto& arg : cmd_args) {
+            cmdStr += arg + " ";
+        }
+        LOG_DEBUG("SearchClient::search - Command: " + cmdStr);
+
         // Execute the command and get the result
         auto reply = redis.command(cmd_args.begin(), cmd_args.end());
+
+        LOG_DEBUG("✅ SearchClient::search - Redis command executed successfully");
+        LOG_DEBUG("SearchClient::search - Reply type: " + std::to_string(reply->type) + ", elements: " + std::to_string(reply->elements));
         
-        std::cout << "[SearchClient::search] Command executed successfully" << std::endl;
-        
-        // Convert raw Redis reply to a simple string representation
-        // This is a basic implementation - in production you'd want more robust parsing
+        // Convert raw Redis reply to JSON string representation
         std::ostringstream oss;
         
         if (reply && reply->type == REDIS_REPLY_ARRAY) {
@@ -100,6 +112,21 @@ std::string SearchClient::search(std::string_view index,
                     oss << "\"" << std::string(element->str, element->len) << "\"";
                 } else if (element && element->type == REDIS_REPLY_INTEGER) {
                     oss << element->integer;
+                } else if (element && element->type == REDIS_REPLY_ARRAY) {
+                    // Handle nested arrays (document fields)
+                    oss << "[";
+                    for (size_t j = 0; j < element->elements; ++j) {
+                        if (j > 0) oss << ",";
+                        auto subElement = element->element[j];
+                        if (subElement && subElement->type == REDIS_REPLY_STRING) {
+                            oss << "\"" << std::string(subElement->str, subElement->len) << "\"";
+                        } else if (subElement && subElement->type == REDIS_REPLY_INTEGER) {
+                            oss << subElement->integer;
+                        } else {
+                            oss << "null";
+                        }
+                    }
+                    oss << "]";
                 } else {
                     oss << "null";
                 }
@@ -113,7 +140,9 @@ std::string SearchClient::search(std::string_view index,
             oss << "null";
         }
         
-        return oss.str();
+        std::string result = oss.str();
+        LOG_DEBUG("SearchClient::search - Generated JSON response: " + result);
+        return result;
     } catch (const sw::redis::Error& e) {
         throw SearchError("Search failed: " + std::string(e.what()));
     }

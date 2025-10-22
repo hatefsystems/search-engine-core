@@ -3,6 +3,7 @@
 #include "../include/Logger.h"
 #include "../include/search_core/SearchClient.hpp"
 #include "../include/search_engine/storage/RedisSearchStorage.h"
+#include "../include/search_engine/common/UrlCanonicalizer.h"
 #include <sstream>
 #include <cstdlib>
 #include <chrono>
@@ -13,6 +14,28 @@ using namespace hatef::search;
 using namespace search_engine::storage;
 
 namespace search_api {
+
+// URL decoding function for handling UTF-8 encoded query parameters
+std::string urlDecode(const std::string& encoded) {
+    std::string decoded;
+    std::size_t len = encoded.length();
+    
+    for (std::size_t i = 0; i < len; ++i) {
+        if (encoded[i] == '%' && (i + 2) < len) {
+            // Convert hex to char
+            std::string hex = encoded.substr(i + 1, 2);
+            char ch = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
+            decoded.push_back(ch);
+            i += 2;
+        } else if (encoded[i] == '+') {
+            decoded.push_back(' ');
+        } else {
+            decoded.push_back(encoded[i]);
+        }
+    }
+    
+    return decoded;
+}
 
 // Static SearchClient instance - initialized once
 static std::unique_ptr<SearchClient> g_searchClient;
@@ -192,6 +215,8 @@ PaginationParams parsePaginationParams(const std::map<std::string, std::string>&
 }
 
 void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Start timing from the very beginning of the request
+    auto requestStartTime = std::chrono::high_resolution_clock::now();
     LOG_INFO("Handling search request");
     
     // Initialize SearchClient if not already done
@@ -304,17 +329,28 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
         searchArgs.push_back("content");
         searchArgs.push_back("score");
         
-        // Execute search
-        std::string rawResult = g_searchClient->search(searchIndex, qIt->second, searchArgs);
+        // Execute search (URL decode the query first)
+        std::string decodedQuery = urlDecode(qIt->second);
+        std::string rawResult = g_searchClient->search(searchIndex, decodedQuery, searchArgs);
         
         // Parse and format response
         json response = parseRedisSearchResponse(rawResult, paginationParams);
         
-        // Log successful request
+        // Calculate total request time from start to finish
+        auto requestEndTime = std::chrono::high_resolution_clock::now();
+        auto totalDuration = std::chrono::duration_cast<std::chrono::microseconds>(requestEndTime - requestStartTime);
+        double totalSeconds = totalDuration.count() / 1000000.0;
+        
+        // Add timing information to response
+        response["meta"]["queryTime"] = totalSeconds;
+        response["meta"]["queryTimeMs"] = totalDuration.count() / 1000.0;
+        
+        // Log successful request with timing
         LOG_INFO("Search request successful: q=" + qIt->second + 
                  ", page=" + std::to_string(paginationParams.page) + 
                  ", limit=" + std::to_string(paginationParams.limit) +
-                 ", domains=" + std::to_string(domainFilter.size()));
+                 ", domains=" + std::to_string(domainFilter.size()) +
+                 ", totalTime=" + std::to_string(totalSeconds) + "s");
         
         // Return 200 OK with the response
         res->writeStatus("200 OK")

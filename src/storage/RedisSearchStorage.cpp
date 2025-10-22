@@ -171,26 +171,26 @@ Result<bool> RedisSearchStorage::indexDocument(const SearchDocument& document) {
     }
 }
 
-Result<bool> RedisSearchStorage::indexSiteProfile(const SiteProfile& profile, const std::string& content) {
-    SearchDocument doc = siteProfileToSearchDocument(profile, content);
+Result<bool> RedisSearchStorage::indexSiteProfile(const IndexedPage& page, const std::string& content) {
+    SearchDocument doc = siteProfileToSearchDocument(page, content);
     return indexDocument(doc);
 }
 
 SearchDocument RedisSearchStorage::siteProfileToSearchDocument(
-    const SiteProfile& profile, 
+    const IndexedPage& page, 
     const std::string& content
 ) {
     SearchDocument doc;
-    doc.url = profile.url;
-    doc.title = profile.title;
+    doc.url = page.url;
+    doc.title = page.title;
     doc.content = content;
-    doc.domain = profile.domain;
-    doc.keywords = profile.keywords;
-    doc.description = profile.description;
-    doc.language = profile.language;
-    doc.category = profile.category;
-    doc.indexedAt = profile.indexedAt;
-    doc.score = profile.contentQuality.value_or(0.0);
+    doc.domain = page.domain;
+    doc.keywords = page.keywords;
+    doc.description = page.description;
+    doc.language = page.language;
+    doc.category = page.category;
+    doc.indexedAt = page.indexedAt;
+    doc.score = page.contentQuality.value_or(0.0);
     
     return doc;
 }

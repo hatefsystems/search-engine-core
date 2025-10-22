@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Celery Worker + Beat Scheduler
+  crawler-worker:
+    build: .
+    container_name: crawler-scheduler-worker
+    command: celery -A app.celery_app worker --beat --loglevel=info
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - MONGODB_URI=mongodb://admin:password123@mongodb_test:27017
+      - MONGODB_DB=search-engine
+      - API_BASE_URL=http://core:3000
+      - LOG_LEVEL=info
+      
+      # Timezone Configuration
+      # - SCHEDULER_TIMEZONE=America/New_York  # Optional: Override system timezone
+      # - TZ=America/New_York                   # Alternative: Set system TZ variable
+      # If not set, will auto-detect system timezone or default to UTC
+      
+      # Warm-up Configuration (Progressive Rate Limiting)
+      - WARMUP_ENABLED=true
+      - WARMUP_SCHEDULE=50,100,200,400,800  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=10
+      - WARMUP_END_HOUR=12
+      - JITTER_MIN_SECONDS=30
+      - JITTER_MAX_SECONDS=60
+      
+      # Task Configuration
+      - TASK_INTERVAL_SECONDS=60  # Run every 1 minute
+      - MAX_RETRIES=3
+      - RETRY_DELAY_SECONDS=300
+    networks:
+      - search-engine-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Flower Web UI
+  crawler-flower:
+    build: .
+    container_name: crawler-scheduler-flower
+    command: celery -A app.celery_app flower --port=5555 --url_prefix=flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - FLOWER_BASIC_AUTH=admin:admin123  # Change in production!
+    networks:
+      - search-engine-network
+    depends_on:
+      - redis
+      - crawler-worker
+    restart: unless-stopped
+
+networks:
+  search-engine-network:
+    external: true
+
+# Note: This assumes redis and mongodb_test are already running
+# To integrate with main docker-compose.yml, merge this configuration
+

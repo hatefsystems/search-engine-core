@@ -12,6 +12,11 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="{{ t.language.code }}">
     
+    {% if t.language.code == "fa" %}
+    <link rel="preload" href="/assets/fonts/vazirmatn/fonts/webfonts/Vazirmatn-FD-Regular.woff2" as="font"
+        type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
+    {% endif %}
     <link rel="stylesheet" href="/css/crawl-request-template.css">
     <style>
         /* Template-specific dynamic styles */
@@ -52,7 +57,20 @@
     </style>
 </head>
 <body>
-    <!-- Language Switcher -->
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode">
+            <svg class="sun-icon" viewBox="0 0 24 24">
+                <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24">
+                <path d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"/>
+            </svg>
+            <span class="theme-text">🌙</span>
+        </button>
+    </div>
+    
+    <!-- Temporarily hidden language switcher
     <div class="language-switcher">
         <label for="language-switcher" class="sr-only">{{ t.language.choose_language }}</label>
         <select id="language-switcher" aria-label="{{ t.language.choose_language }}">
@@ -60,11 +78,19 @@
             <option value="fa">🇮🇷 فارسی</option>
         </select>
     </div>
+    -->
     
     <div class="container">
         <div class="header">
             <h1>{{ t.header.title }}</h1>
             <p>{{ t.header.subtitle }}</p>
+            
+            <!-- Sponsor Link -->
+            <div class="sponsor-link-container">
+                <a href="/sponsor" class="sponsor-link" title="{{ t.sponsor.link_description }}">
+                    {{ t.sponsor.link_text }}
+                </a>
+            </div>
         </div>
         
         <div class="card">
@@ -78,7 +104,7 @@
                         <label for="url-input">{{ t.form.url_label }}</label>
                         <input type="url" id="url-input" class="url-input" 
                                placeholder="{{ t.form.url_placeholder }}" 
-                               value="https://www.irangan.com">
+                               value="https://">
                     </div>
                 </div>
                 
@@ -194,11 +220,68 @@
     <script src="/js/crawl-request-template.js"></script>
      <!-- Template data injection for JavaScript -->
     <script>
+        // Theme switching functionality
+        (function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const sunIcon = document.querySelector('.sun-icon');
+            const moonIcon = document.querySelector('.moon-icon');
+            const themeText = document.querySelector('.theme-text');
+            
+            // Get saved theme or default to system preference
+            function getInitialTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    return savedTheme;
+                }
+                
+                // Check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+            
+            // Apply theme
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                
+                // Update button appearance
+                if (theme === 'dark') {
+                    themeText.textContent = '☀️';
+                } else {
+                    themeText.textContent = '🌙';
+                }
+            }
+            
+            // Toggle theme
+            function toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                applyTheme(newTheme);
+            }
+            
+            // Initialize theme
+            const initialTheme = getInitialTheme();
+            applyTheme(initialTheme);
+            
+            // Add event listener
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) {
+                    applyTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+        })();
+        
         // Initialize template data for external JavaScript
         if (typeof initializeTemplateData === 'function') {
             initializeTemplateData({
                 baseUrl: "{{ base_url }}",
                 base_url: "{{ base_url }}",
+                language: "{{ t.language.code }}",
                 progressComplete: "{{ t.progress.complete }}",
                 errorMessages: {
                     emptyUrl: "{{ t.errors.empty_url }}",

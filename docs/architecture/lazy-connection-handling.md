@@ -123,7 +123,7 @@ class KafkaFrontier {
 **Before:**
 
 ```cpp
-Result<SiteProfile> ContentStorage::getSiteProfile(const std::string& url) {
+Result<IndexedPage> ContentStorage::getSiteProfile(const std::string& url) {
     return mongoStorage_->getSiteProfile(url); // Could fail if not connected
 }
 ```
@@ -131,10 +131,10 @@ Result<SiteProfile> ContentStorage::getSiteProfile(const std::string& url) {
 **After:**
 
 ```cpp
-Result<SiteProfile> ContentStorage::getSiteProfile(const std::string& url) {
+Result<IndexedPage> ContentStorage::getSiteProfile(const std::string& url) {
     ensureMongoConnection();
     if (!mongoConnected_ || !mongoStorage_) {
-        return Result<SiteProfile>::Failure("MongoDB not available");
+        return Result<IndexedPage>::Failure("MongoDB not available");
     }
     return mongoStorage_->getSiteProfile(url);
 }
@@ -178,7 +178,7 @@ Result<SiteProfile> ContentStorage::getSiteProfile(const std::string& url) {
 
 ```cpp
 // First operation - establishes connection
-auto profile = storage.getSiteProfile("https://example.com");
+auto page = storage.getSiteProfile("https://example.com");
 // Output: "Initializing MongoDB connection..."
 // Output: "MongoDB connection established successfully"
 
@@ -192,14 +192,14 @@ auto profiles = storage.getSiteProfilesByDomain("example.com");
 ```cpp
 // When MongoDB is down
 auto result = storage.getSiteProfile("https://example.com");
-// Returns: Result<SiteProfile>::Failure("MongoDB not available")
+// Returns: Result<IndexedPage>::Failure("MongoDB not available")
 // Service continues operating for other features
 
 // When MongoDB recovers
 auto result = storage.getSiteProfile("https://example.com");
 // Output: "Initializing MongoDB connection..."
 // Output: "MongoDB connection established successfully"
-// Returns: Success with profile data
+// Returns: Success with page data
 ```
 
 ## Configuration

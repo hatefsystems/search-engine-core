@@ -31,33 +31,51 @@ mongocxx::instance& MongoDBInstance::getInstance() {
 }
 
 // Function to subscribe email to a mailing list
-Result<bool> mongodb::subscribeEmail(const string& email)
+Result<bool> mongodb::subscribeEmail(const string& email, const string& ipAddress, const string& userAgent)
 {
     // Logic to add the email to your mailing list
     try
     {
         // Use the singleton instance instead of creating a new one
         mongocxx::instance& instance = MongoDBInstance::getInstance();
+        (void)instance; // Suppress unused variable warning
         
-        mongocxx::uri uri("mongodb://localhost:27017");
+        // Get MongoDB connection string from environment or use default
+        const char* mongoUri = std::getenv("MONGODB_URI");
+        std::string mongoConnectionString = mongoUri ? mongoUri : "mongodb://admin:password123@mongodb:27017";
+        
+        mongocxx::uri uri(mongoConnectionString);
         mongocxx::client client(uri);
         auto database = client["search-engine"];
         auto collection = database["news-subscriber"];
 
-        std::string* strPtr = new std::string(email);
-        const char* emailChars = strPtr->c_str();
-
-        auto filter = document{} << "email" << emailChars << finalize;
+        // Create filter to check if email already exists
+        auto filter = document{} << "email" << email << finalize;
         auto count = collection.count_documents(filter.view());
 
         if (count == 0)
         {
-            auto result = collection.insert_one(make_document(kvp("email", emailChars)));
-            delete strPtr;
-            return Result<bool>::Success(true, "registered");
+            // Get current timestamp
+            auto now = std::chrono::system_clock::now();
+            auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            
+            // Create document with all fields
+            auto doc = make_document(
+                kvp("email", email),
+                kvp("ip_address", ipAddress),
+                kvp("user_agent", userAgent),
+                kvp("created_at", bsoncxx::types::b_date{std::chrono::milliseconds{timestamp}})
+            );
+            
+            // Insert new email subscription
+            auto result = collection.insert_one(doc.view());
+            if (result) {
+                return Result<bool>::Success(true, "Successfully subscribed!");
+            } else {
+                return Result<bool>::Failure("Failed to insert email");
+            }
         }
         else {
-            delete strPtr;
             return Result<bool>::Failure("duplicate");
         }
     }

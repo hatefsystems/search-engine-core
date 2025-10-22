@@ -1,0 +1,46 @@
+{
+  "language": { 
+    "code": "en", 
+    "direction": "ltr", 
+    "name": "English", 
+    "choose_language": "Choose language" 
+  },
+  "meta": {
+    "title": "Crawling Notification - Hatef.ir Search Engine",
+    "description": "Your website crawling has been completed successfully. View your indexing results and request additional crawling."
+  },
+  "header": {
+    "title": "Crawling Complete!",
+    "subtitle": "Your website has been successfully indexed"
+  },
+  "notification": {
+    "title": "Crawling Completed Successfully!",
+    "subtitle": "Your website has been crawled and indexed in our search engine",
+    "stats": {
+      "pages_indexed": "Pages Indexed",
+      "completion_time": "Completed",
+      "status": "Status Complete"
+    },
+    "domain_info": {
+      "title": "Crawling Results",
+      "domain": "Domain",
+      "pages_found": "Pages Indexed",
+      "session_id": "Session ID",
+      "completed_at": "Completed At"
+    },
+    "cta": {
+      "description": "Your pages are now searchable in our search engine. If you'd like to crawl and index more pages from your site, or if you have additional domains to add, please visit our crawl request page.",
+      "button_text": "Request More Crawling"
+    },
+    "footer": {
+      "thank_you": "Thank you for using Hatef.ir Search Engine!",
+      "links": {
+        "crawl_request": "Request Crawling",
+        "search_engine": "Search Engine",
+        "sponsor": "Become a Sponsor"
+      },
+      "copyright": "© 2024 Hatef.ir - All rights reserved"
+    }
+  }
+}
+

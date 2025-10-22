@@ -87,6 +87,9 @@ public:
     // Extract domain from URL
     std::string extractDomain(const std::string& url) const;
     
+    // Validate that URL is a valid HTTP/HTTPS URL
+    bool isValidHttpUrl(const std::string& url) const;
+    
     // Mark completion in persistence (if configured)
     void markCompleted(const std::string& url);
     
@@ -100,8 +103,7 @@ public:
     RetryStats getRetryStats() const;
     
 private:
-    // Normalize URL
-    std::string normalizeURL(const std::string& url) const;
+    // Note: normalizeURL method removed - now using UrlCanonicalizer::canonicalize() for consistent URL normalization
     
     // Remove a URL from the main queue (used during retry scheduling)
     void removeFromMainQueue(const std::string& url);
@@ -124,12 +126,16 @@ private:
     // Track URLs currently in queues to prevent duplicates
     std::unordered_set<std::string> queuedURLs;
     
+    // Track retry counts separately since priority_queue doesn't allow iteration
+    std::unordered_map<std::string, int> retryCountMap;
+    
     // Mutexes for thread safety
     mutable std::mutex mainQueueMutex;
     mutable std::mutex retryQueueMutex;
     mutable std::mutex visitedMutex;
     mutable std::mutex domainMutex;
     mutable std::mutex queuedMutex;
+    mutable std::mutex retryCountMutex;
 
     // Persistence hooks
     search_engine::crawler::FrontierPersistence* persistence_ = nullptr;

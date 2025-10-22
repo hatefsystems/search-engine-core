@@ -1,0 +1,34 @@
+{
+  "language": { 
+    "code": "fa", 
+    "direction": "rtl", 
+    "name": "فارسی", 
+    "choose_language": "انتخاب زبان" 
+  },
+  "common": {
+    "site_name": "موتور جستجوی هاتف",
+    "loading": "در حال بارگذاری...",
+    "error": "خطا",
+    "success": "موفقیت",
+    "warning": "هشدار",
+    "info": "اطلاعات",
+    "close": "بستن",
+    "cancel": "انصراف",
+    "confirm": "تأیید",
+    "save": "ذخیره",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "add": "افزودن",
+    "search": "جستجو",
+    "submit": "ارسال",
+    "back": "بازگشت",
+    "next": "بعدی",
+    "previous": "قبلی",
+    "home": "خانه",
+    "contact": "تماس",
+    "about": "درباره ما",
+    "privacy": "سیاست حفظ حریم خصوصی",
+    "terms": "شرایط و ضوابط",
+    "copyright": "© ۲۰۲۴ هاتف - تمام حقوق محفوظ است"
+  }
+}

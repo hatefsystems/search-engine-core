@@ -26,15 +26,19 @@
     <a href="#main" class="skip-link">{{ t.sponsor.skip_to_content }}</a>
     <header class="site-header" id="site-header" role="banner">
         <div class="container site-header-inner">
+            <!-- Temporarily hidden brand/logo
             <a href="#about" class="brand" aria-label="Hatef home">
                 <svg class="wordmark" viewBox="0 0 80 24" aria-hidden="true" focusable="false">
                     <text x="0" y="17" fill="currentColor" font-size="16" font-weight="700"
                         font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, 'Noto Sans'">Hatef</text>
                 </svg>
             </a>
+            -->
             <nav aria-label="Primary">
                 <ul>
+                    <!-- Temporarily hidden About navigation
                     <li><a href="#about">{{ t.sponsor.nav_about }}</a></li>
+                    -->
                     <li><a href="#tiers">{{ t.sponsor.nav_tiers }}</a></li>
                     <li><a href="#payment">{{ t.sponsor.nav_payment }}</a></li>
                     <li><a href="#faq">{{ t.sponsor.nav_faq }}</a></li>
@@ -204,10 +208,12 @@
                 <h2>{{ t.sponsor.transparency_title }}</h2>
                 <div class="stack">
                     <p class="muted">{{ t.sponsor.transparency_paragraph }}</p>
+                    <!-- Temporarily hidden transparency buttons
                     <div class="cta-actions">
                         <a class="btn btn-primary" href="#">{{ t.sponsor.transparency_financial_cta }}</a>
                         <a class="btn btn-outline" href="#">{{ t.sponsor.transparency_charter_cta }}</a>
                     </div>
+                    -->
                 </div>
             </div>
         </section>
@@ -217,9 +223,11 @@
         <div class="container footer-container">
             <div>© <span id="year"></span> Hatef</div>
             <nav aria-label="Footer">
-                <a href="https://github.com/hatef-project" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/hatefsystems/search-engine-core" target="_blank" rel="noopener">GitHub</a>
+                <!-- Temporarily hidden footer links
                 · <a href="#">{{ t.sponsor.footer_terms }}</a>
                 · <a href="#">{{ t.sponsor.footer_privacy }}</a>
+                -->
                 · <a href="mailto:sponsors@hatef.ir">sponsors@hatef.ir</a>
             </nav>
         </div>
@@ -320,16 +328,7 @@
             </div>
             <div id="btc-desc" class="btc-box">
                 <div class="qr" aria-hidden="true">
-                    <svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="QR placeholder">
-                        <rect x="0" y="0" width="120" height="120" fill="currentColor" opacity=".06" />
-                        <rect x="8" y="8" width="24" height="24" fill="currentColor" />
-                        <rect x="88" y="8" width="24" height="24" fill="currentColor" />
-                        <rect x="8" y="88" width="24" height="24" fill="currentColor" />
-                        <rect x="40" y="40" width="16" height="16" fill="currentColor" />
-                        <rect x="60" y="58" width="10" height="10" fill="currentColor" />
-                        <rect x="76" y="40" width="12" height="12" fill="currentColor" />
-                        <rect x="40" y="76" width="12" height="12" fill="currentColor" />
-                    </svg>
+                    <img src="bitcoin-wallet.png" alt="Bitcoin QR Code" width="120" height="120">
                 </div>
                 <div>
                     <p class="muted">{{ t.sponsor.btc_modal_desc }}</p>

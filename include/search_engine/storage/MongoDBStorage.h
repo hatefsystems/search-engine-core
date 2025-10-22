@@ -1,7 +1,8 @@
 #pragma once
 
-#include "SiteProfile.h"
+#include "IndexedPage.h"
 #include "CrawlLog.h"
+#include "ApiRequestLog.h"
 #include "../../infrastructure.h"
 #include <mongocxx/client.hpp>
 #include <mongocxx/database.hpp>
@@ -18,13 +19,13 @@ namespace storage {
 
 class MongoDBStorage {
 private:
-    std::unique_ptr<mongocxx::client> client_;
+    mongocxx::client* client_;  // Shared client pointer
     mongocxx::database database_;
     mongocxx::collection siteProfilesCollection_;
     
-    // Conversion methods between SiteProfile and BSON
-    bsoncxx::document::value siteProfileToBson(const SiteProfile& profile) const;
-    SiteProfile bsonToSiteProfile(const bsoncxx::document::view& doc) const;
+    // Conversion methods between IndexedPage and BSON
+    bsoncxx::document::value siteProfileToBson(const IndexedPage& page) const;
+    IndexedPage bsonToSiteProfile(const bsoncxx::document::view& doc) const;
     
     // Helper methods for BSON conversion
     bsoncxx::document::value crawlMetadataToBson(const CrawlMetadata& metadata) const;
@@ -33,6 +34,10 @@ private:
     // CrawlLog BSON helpers
     bsoncxx::document::value crawlLogToBson(const CrawlLog& log) const;
     CrawlLog bsonToCrawlLog(const bsoncxx::document::view& doc) const;
+    
+    // ApiRequestLog BSON helpers
+    bsoncxx::document::value apiRequestLogToBson(const ApiRequestLog& log) const;
+    ApiRequestLog bsonToApiRequestLog(const bsoncxx::document::view& doc) const;
     
     static std::string crawlStatusToString(CrawlStatus status);
     static CrawlStatus stringToCrawlStatus(const std::string& status);
@@ -52,23 +57,23 @@ public:
     MongoDBStorage& operator=(const MongoDBStorage&) = delete;
     
     // Core storage operations
-    Result<std::string> storeSiteProfile(const SiteProfile& profile);
-    Result<SiteProfile> getSiteProfile(const std::string& url);
-    Result<SiteProfile> getSiteProfileById(const std::string& id);
-    Result<bool> updateSiteProfile(const SiteProfile& profile);
+    Result<std::string> storeIndexedPage(const IndexedPage& page);
+    Result<IndexedPage> getSiteProfile(const std::string& url);
+    Result<IndexedPage> getSiteProfileById(const std::string& id);
     Result<bool> deleteSiteProfile(const std::string& url);
     
     // Batch operations
-    Result<std::vector<std::string>> storeSiteProfiles(const std::vector<SiteProfile>& profiles);
-    Result<std::vector<SiteProfile>> getSiteProfilesByDomain(const std::string& domain);
-    Result<std::vector<SiteProfile>> getSiteProfilesByCrawlStatus(CrawlStatus status);
+    Result<std::vector<std::string>> storeSiteProfiles(const std::vector<IndexedPage>& profiles);
+    Result<std::vector<IndexedPage>> getSiteProfilesByDomain(const std::string& domain);
+    Result<std::vector<IndexedPage>> getSiteProfilesByCrawlStatus(CrawlStatus status);
     
     // Search and filtering
-    Result<std::vector<SiteProfile>> searchSiteProfiles(
+    Result<std::vector<IndexedPage>> searchSiteProfiles(
         const std::string& query,
         int limit = 100,
         int skip = 0
     );
+    Result<int64_t> countSearchResults(const std::string& query);
     
     // Statistics and maintenance
     Result<int64_t> getTotalSiteCount();
@@ -79,6 +84,11 @@ public:
     Result<std::string> storeCrawlLog(const CrawlLog& log);
     Result<std::vector<CrawlLog>> getCrawlLogsByDomain(const std::string& domain, int limit = 100, int skip = 0);
     Result<std::vector<CrawlLog>> getCrawlLogsByUrl(const std::string& url, int limit = 100, int skip = 0);
+    
+    // ApiRequestLog operations
+    Result<std::string> storeApiRequestLog(const ApiRequestLog& log);
+    Result<std::vector<ApiRequestLog>> getApiRequestLogsByEndpoint(const std::string& endpoint, int limit = 100, int skip = 0);
+    Result<std::vector<ApiRequestLog>> getApiRequestLogsByIp(const std::string& ipAddress, int limit = 100, int skip = 0);
     
     // Connection management
     Result<bool> testConnection();

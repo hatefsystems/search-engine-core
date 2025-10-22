@@ -9,8 +9,8 @@ add_definitions(-DUWS_HTTPRESPONSE_NO_WRITEMARK)
 
 # Add MongoDB specific paths
 include_directories(/usr/local/include/mongocxx/v_noabi /usr/local/include/bsoncxx/v_noabi)
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/cmake/mongocxx-4.0.0")
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/cmake/bsoncxx-4.0.0")
+# Use newer MongoDB libraries
+set(CMAKE_PREFIX_PATH "/usr/local/lib/cmake/mongocxx-4.1.2;/usr/local/lib/cmake/bsoncxx-4.1.2;/usr/local/lib/cmake/bson-2.1.1;/usr/local/lib/cmake/mongoc-2.1.1")
 
 # Find required packages
 find_package(mongocxx REQUIRED CONFIG)
@@ -89,6 +89,7 @@ add_library(common STATIC
     src/common/Logger.cpp
     src/common/JsMinifierClient.cpp
     src/common/UrlSanitizer.cpp
+    src/common/UrlCanonicalizer.cpp
 )
 target_include_directories(common 
     PUBLIC 
@@ -136,6 +137,26 @@ list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*kafka/.*\\.cpp$")
 
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
+# Create MongoDB instance library for shared use
+add_library(mongodb_instance STATIC src/mongodb.cpp)
+target_include_directories(mongodb_instance 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(mongodb_instance 
+    PUBLIC 
+        mongo::bsoncxx_shared 
+        mongo::mongocxx_shared
+)
+target_compile_definitions(mongodb_instance PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+# Filter out mongodb.cpp from MAIN_SOURCES since it's now in a separate library  
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*mongodb\\.cpp$")
+
 # Create executable
 add_executable(server ${MAIN_SOURCES} ${HEADERS})
 
@@ -148,6 +169,7 @@ target_link_libraries(server
         crawler
         search_core
         scoring
+        mongodb_instance
         /usr/local/lib/libmongocxx.so
         /usr/local/lib/libbsoncxx.so
         OpenSSL::SSL
@@ -173,6 +195,22 @@ target_link_libraries(server
     PRIVATE
         /usr/local/lib/libuSockets.a
 )
+
+# Install mongodb_instance target
+install(TARGETS mongodb_instance
+    EXPORT MongoDBInstanceTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Export mongodb_instance configuration
+install(EXPORT MongoDBInstanceTargets
+    FILE MongoDBInstanceTargets.cmake
+    NAMESPACE SearchEngine::
+    DESTINATION lib/cmake/SearchEngine
+)
+
 
 # Enable testing and add tests
 option(BUILD_TESTS "Build tests" OFF)

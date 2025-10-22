@@ -125,14 +125,14 @@ redis-cli "FT.INFO" "test_index"
 Tests the MongoDB storage layer functionality:
 
 - **Connection and Initialization**: Database connection, index creation
-- **CRUD Operations**: Create, read, update, delete site profiles
+- **CRUD Operations**: Create, read, update, delete indexed pages
 - **Batch Operations**: Bulk inserts and queries
 - **Error Handling**: Connection failures, validation errors
 - **Data Integrity**: BSON conversion, data consistency
 
 **Key Test Cases**:
 
-- Site profile storage and retrieval
+- indexed page storage and retrieval
 - Domain-based queries
 - Crawl status filtering
 - Index performance
@@ -168,7 +168,7 @@ Integration tests for the unified storage interface:
 
 **Key Test Cases**:
 
-- CrawlResult to SiteProfile conversion
+- CrawlResult to IndexedPage conversion
 - Dual storage consistency
 - Search result ranking
 - Error recovery

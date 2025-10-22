@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <chrono>
 #include <thread>
+#include <cstdlib>
 
 CrawlerManager::CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage)
     : storage_(storage) {
@@ -41,20 +42,44 @@ CrawlerManager::~CrawlerManager() {
     LOG_INFO("CrawlerManager shutdown complete");
 }
 
-std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force) {
+std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback) {
+    // Check if we've reached the maximum concurrent sessions limit
+    size_t currentSessions = getActiveSessionCount();
+    
+    // Read MAX_CONCURRENT_SESSIONS from environment variable (default: 5)
+    const char* maxSessionsEnv = std::getenv("MAX_CONCURRENT_SESSIONS");
+    size_t MAX_CONCURRENT_SESSIONS = 5; // Default value
+    if (maxSessionsEnv) {
+        try {
+            MAX_CONCURRENT_SESSIONS = std::stoull(maxSessionsEnv);
+        } catch (const std::exception& e) {
+            LOG_WARNING("Invalid MAX_CONCURRENT_SESSIONS value, using default: 5");
+            MAX_CONCURRENT_SESSIONS = 5;
+        }
+    }
+    
+    if (currentSessions >= MAX_CONCURRENT_SESSIONS) {
+        LOG_WARNING("Maximum concurrent sessions limit reached (" + std::to_string(MAX_CONCURRENT_SESSIONS) + "), rejecting new crawl request for URL: " + url);
+        throw std::runtime_error("Maximum concurrent sessions limit reached. Please try again later.");
+    }
+    
     std::string sessionId = generateSessionId();
     
     LOG_INFO("Starting new crawl session: " + sessionId + " for URL: " + url);
+    LOG_DEBUG("CrawlerManager::startCrawl - Current active sessions: " + std::to_string(currentSessions) + "/" + std::to_string(MAX_CONCURRENT_SESSIONS));
     CrawlLogger::broadcastSessionLog(sessionId, "Starting new crawl session for URL: " + url, "info");
     
     try {
         // Create new crawler instance with the provided configuration
+        LOG_DEBUG("CrawlerManager::startCrawl - Creating crawler for session: " + sessionId);
         auto crawler = createCrawler(config, sessionId);
         
-        // Create crawl session
-        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler));
+        // Create crawl session with completion callback
+        LOG_DEBUG("CrawlerManager::startCrawl - Creating crawl session for session: " + sessionId);
+        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback));
         
         // Add seed URL to the crawler
+        LOG_DEBUG("CrawlerManager::startCrawl - Adding seed URL for session: " + sessionId);
         session->crawler->addSeedURL(url, force);
         
         // Start crawling in a separate thread
@@ -121,11 +146,24 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
                 CrawlLogger::broadcastLog("Error in crawl thread for session " + sessionId + ": " + e.what(), "error");
             }
             
-            // Mark session as completed
+            // Mark session as completed and execute completion callback
             lock.lock();
             auto sessionIt = sessions_.find(sessionId);
             if (sessionIt != sessions_.end()) {
-                sessionIt->second->isCompleted = true;
+                auto& completedSession = sessionIt->second;
+                completedSession->isCompleted = true;
+                
+                // Execute completion callback if provided
+                if (completedSession->completionCallback) {
+                    LOG_INFO("Executing completion callback for session: " + sessionId);
+                    try {
+                        auto results = completedSession->crawler->getResults();
+                        completedSession->completionCallback(sessionId, results, this);
+                        LOG_INFO("Completion callback executed successfully for session: " + sessionId);
+                    } catch (const std::exception& e) {
+                        LOG_ERROR("Error executing completion callback for session " + sessionId + ": " + e.what());
+                    }
+                }
             }
             lock.unlock();
         });
@@ -133,7 +171,9 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
         // Store session
         {
             std::lock_guard<std::mutex> lock(sessionsMutex_);
+            LOG_DEBUG("CrawlerManager::startCrawl - Storing session in map: " + sessionId);
             sessions_[sessionId] = std::move(session);
+            LOG_DEBUG("CrawlerManager::startCrawl - Session stored, total active sessions: " + std::to_string(sessions_.size()));
         }
         
         LOG_INFO("Crawl session started successfully: " + sessionId);
@@ -186,20 +226,33 @@ std::string CrawlerManager::getCrawlStatus(const std::string& sessionId) {
 }
 
 bool CrawlerManager::stopCrawl(const std::string& sessionId) {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
-    
-    auto it = sessions_.find(sessionId);
-    if (it == sessions_.end()) {
-        return false;
+    std::unique_ptr<CrawlSession> sessionCopy;
+    {
+        std::lock_guard<std::mutex> lock(sessionsMutex_);
+        
+        auto it = sessions_.find(sessionId);
+        if (it == sessions_.end()) {
+            return false;
+        }
+        
+        LOG_INFO("Stopping crawl session: " + sessionId);
+        
+        if (it->second->crawler) {
+            it->second->crawler->stop();
+        }
+        
+        it->second->isCompleted = true;
+        
+        // Move session out so we can clean up without holding the lock
+        sessionCopy = std::move(it->second);
+        sessions_.erase(it);
     }
     
-    LOG_INFO("Stopping crawl session: " + sessionId);
-    
-    if (it->second->crawler) {
-        it->second->crawler->stop();
+    // Clean up the stopped session (outside the lock)
+    if (sessionCopy && sessionCopy->crawlThread.joinable()) {
+        sessionCopy->crawlThread.join();
     }
     
-    it->second->isCompleted = true;
     return true;
 }
 
@@ -219,14 +272,28 @@ std::vector<std::string> CrawlerManager::getActiveSessions() {
 void CrawlerManager::cleanupCompletedSessions() {
     // First, collect sessions to clean up without holding the lock during join
     std::vector<std::string> toCleanupIds;
+    std::vector<std::string> timedOutIds;
     auto now = std::chrono::system_clock::now();
     {
         std::lock_guard<std::mutex> lock(sessionsMutex_);
         for (const auto& [id, session] : sessions_) {
+            // Cleanup completed sessions after 5 seconds
             bool shouldCleanup = session->isCompleted &&
-                (now - session->createdAt) > std::chrono::minutes(5);
+                (now - session->createdAt) > std::chrono::seconds(5);
+            
+            // Timeout long-running sessions based on config (default: 10 minutes)
+            auto sessionDuration = now - session->createdAt;
+            bool isTimedOut = !session->isCompleted && 
+                session->crawler &&
+                sessionDuration > session->crawler->getConfig().maxSessionDuration;
+            
             if (shouldCleanup) {
                 toCleanupIds.push_back(id);
+            } else if (isTimedOut) {
+                timedOutIds.push_back(id);
+                LOG_WARNING("Session timeout detected for session: " + id + 
+                          " (running for " + std::to_string(
+                              std::chrono::duration_cast<std::chrono::minutes>(sessionDuration).count()) + " minutes)");
             }
         }
     }
@@ -254,12 +321,50 @@ void CrawlerManager::cleanupCompletedSessions() {
         }
         // sessionCopy goes out of scope and is destroyed cleanly here
     }
+    
+    // Handle timed-out sessions
+    for (const auto& id : timedOutIds) {
+        std::unique_ptr<CrawlSession> sessionCopy;
+        {
+            std::lock_guard<std::mutex> lock(sessionsMutex_);
+            auto it = sessions_.find(id);
+            if (it == sessions_.end()) continue;
+            
+            LOG_WARNING("Forcibly stopping timed-out session: " + it->second->id);
+            CrawlLogger::broadcastLog("⏰ Session timeout: Stopping session " + it->second->id + " (exceeded maximum duration)", "warning");
+            
+            // Move session out so we can operate without holding the map lock
+            sessionCopy = std::move(it->second);
+            sessions_.erase(it);
+        }
+
+        // Force stop crawler
+        if (sessionCopy && sessionCopy->crawler) {
+            sessionCopy->crawler->stop();
+        }
+
+        // Join thread outside of the sessions mutex
+        if (sessionCopy && sessionCopy->crawlThread.joinable()) {
+            sessionCopy->crawlThread.join();
+        }
+        // sessionCopy goes out of scope and is destroyed cleanly here
+    }
 }
 
 size_t CrawlerManager::getActiveSessionCount() {
     std::lock_guard<std::mutex> lock(sessionsMutex_);
-    return sessions_.size();
+    
+    // Count only truly active sessions (not completed ones)
+    size_t activeCount = 0;
+    for (const auto& [id, session] : sessions_) {
+        if (!session->isCompleted) {
+            activeCount++;
+        }
+    }
+    
+    return activeCount;
 }
+
 
 std::string CrawlerManager::generateSessionId() {
     auto now = std::chrono::system_clock::now();

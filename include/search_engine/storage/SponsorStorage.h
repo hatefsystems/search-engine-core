@@ -21,7 +21,7 @@ private:
     mongocxx::collection sponsorCollection_;
     
     // Conversion methods between SponsorProfile and BSON
-    bsoncxx::document::value sponsorProfileToBson(const SponsorProfile& profile) const;
+    bsoncxx::document::value sponsorProfileToBson(const SponsorProfile& page) const;
     SponsorProfile bsonToSponsorProfile(const bsoncxx::document::view& doc) const;
     
     // Helper methods for BSON conversion
@@ -46,7 +46,7 @@ public:
     SponsorStorage& operator=(const SponsorStorage&) = delete;
     
     // Core storage operations
-    Result<std::string> store(const SponsorProfile& profile);
+    Result<std::string> store(const SponsorProfile& page);
     Result<SponsorProfile> findById(const std::string& id);
     Result<std::optional<SponsorProfile>> findByEmail(const std::string& email);
     Result<std::vector<SponsorProfile>> findByStatus(SponsorStatus status);
