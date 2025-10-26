@@ -164,14 +164,14 @@ void ContentStorage::ensureRedisConnection() {
     }
 }
 
-IndexedPage ContentStorage::crawlResultToSiteProfile(const CrawlResult& crawlResult) const {
+IndexedPage ContentStorage::crawlResultToIndexedPage(const CrawlResult& crawlResult) const {
     IndexedPage page;
     
     // Use final URL after redirects if available, otherwise use original URL
     std::string effectiveUrl = (!crawlResult.finalUrl.empty()) ? crawlResult.finalUrl : crawlResult.url;
-    
-    // Basic information
-    page.url = effectiveUrl;
+
+    // Basic information - decode URL to handle Unicode characters
+    page.url = search_engine::common::UrlCanonicalizer::urlDecode(effectiveUrl);
     page.domain = extractDomain(effectiveUrl);
     
     // Canonicalize URL for deduplication using the effective URL
@@ -269,7 +269,7 @@ Result<std::string> ContentStorage::storeCrawlResult(const CrawlResult& crawlRes
         }
         
         // Convert CrawlResult to IndexedPage
-        IndexedPage page = crawlResultToSiteProfile(crawlResult);
+        IndexedPage page = crawlResultToIndexedPage(crawlResult);
         LOG_TRACE("CrawlResult converted to IndexedPage for URL: " + crawlResult.url);
         
         // Check if indexed page already exists

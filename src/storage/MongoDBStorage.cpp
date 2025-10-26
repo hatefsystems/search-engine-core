@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/MongoDBStorage.h"
 #include "../../include/Logger.h"
 #include "../../include/mongodb.h"
+#include "../../include/search_engine/common/UrlCanonicalizer.h"
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
@@ -157,7 +158,7 @@ bsoncxx::document::value MongoDBStorage::siteProfileToBson(const IndexedPage& pa
     }
     
     builder << "domain" << page.domain
-            << "url" << page.url;
+            << "url" << search_engine::common::UrlCanonicalizer::urlDecode(page.url);
     
     // Canonical URL fields
     if (!page.canonicalUrl.empty()) {

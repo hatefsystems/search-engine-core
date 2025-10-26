@@ -33,7 +33,7 @@ private:
     mutable std::mutex mongoMutex_;
     
     // Helper methods
-    IndexedPage crawlResultToSiteProfile(const CrawlResult& crawlResult) const;
+    IndexedPage crawlResultToIndexedPage(const CrawlResult& crawlResult) const;
     std::string extractSearchableContent(const CrawlResult& crawlResult) const;
     
     // Lazy connection methods

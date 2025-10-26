@@ -71,10 +71,18 @@ public:
     
     /**
      * @brief Get the list of known tracking parameters
-     * 
+     *
      * @return Set of tracking parameter names
      */
     static const std::unordered_set<std::string>& getTrackingParameters();
+
+    /**
+     * @brief URL decode a string (handles percent-encoded characters and + to space conversion)
+     *
+     * @param str The string to decode
+     * @return The decoded string with Unicode characters properly decoded
+     */
+    static std::string urlDecode(const std::string& str);
 
 private:
     /**
@@ -140,15 +148,7 @@ private:
      * @return The path with collapsed slashes
      */
     static std::string collapseSlashes(const std::string& path);
-    
-    /**
-     * @brief URL decode a string
-     * 
-     * @param str The string to decode
-     * @return The decoded string
-     */
-    static std::string urlDecode(const std::string& str);
-    
+
     /**
      * @brief URL encode a string
      * 
