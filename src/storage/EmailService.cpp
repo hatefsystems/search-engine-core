@@ -9,6 +9,7 @@
 #include <regex>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
 #include <inja/inja.hpp>
 #include <nlohmann/json.hpp>
 
@@ -423,27 +424,57 @@ std::string EmailService::encodeFromHeader(const std::string& name, const std::s
 
 std::string EmailService::formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken) {
     std::ostringstream headers;
-    
+
+    // Generate unique Message-ID (RFC 5322 requirement)
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    // Generate random component for uniqueness
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(100000, 999999);
+    std::string randomPart = std::to_string(dis(gen));
+
+    // Extract domain from sender email for Message-ID
+    std::string domain = "notify.hatef.ir"; // Default fallback
+    size_t atPos = config_.fromEmail.find('@');
+    if (atPos != std::string::npos) {
+        domain = config_.fromEmail.substr(atPos + 1);
+    }
+
+    std::string messageId = "<" + std::to_string(timestamp) + "." + randomPart + "@" + domain + ">";
+
+    // RFC 5322 compliant Date header
+    auto timeT = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::gmtime(&timeT);
+    char dateBuffer[100];
+    std::strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S +0000", &tm);
+
+    headers << "Message-ID: " << messageId << "\r\n";
+    headers << "Date: " << dateBuffer << "\r\n";
+    headers << "Return-Path: " << config_.fromEmail << "\r\n";
     headers << "To: " << to << "\r\n";
-    
+
     // RFC 5322 compliant From header with proper encoding
     headers << "From: " << encodeFromHeader(config_.fromName, config_.fromEmail) << "\r\n";
-    
+
     headers << "Reply-To: info@hatef.ir\r\n";
     headers << "Subject: " << subject << "\r\n";
     headers << "MIME-Version: 1.0\r\n";
-    
+
     // Add List-Unsubscribe headers if unsubscribe token is provided
     if (!unsubscribeToken.empty()) {
         // RFC 8058 compliant List-Unsubscribe header
         headers << "List-Unsubscribe: <https://notify.hatef.ir/u/" << unsubscribeToken << ">, <mailto:unsubscribe+" << unsubscribeToken << "@notify.hatef.ir>\r\n";
-        
+
         // RFC 8058 List-Unsubscribe-Post header for one-click unsubscribe
         headers << "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
-        
+
         LOG_DEBUG("EmailService: Added List-Unsubscribe headers with token: " + unsubscribeToken.substr(0, 8) + "...");
     }
-    
+
+    LOG_DEBUG("EmailService: Generated Message-ID: " + messageId);
+
     return headers.str();
 }
 
