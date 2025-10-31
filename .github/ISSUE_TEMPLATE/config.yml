@@ -1,8 +1,11 @@
 blank_issues_enabled: true
 contact_links:
-  - name: 📋 Job Manager Epic Overview
-    url: https://github.com/hatefsystems/search-engine-core/blob/master/.github/ISSUE_TEMPLATE/universal-job-manager-epic.md
-    about: Read the complete epic overview before creating phase-specific issues
-  - name: 🔧 Implementation Guide  
-    url: https://github.com/hatefsystems/search-engine-core/blob/master/.github/ISSUE_TEMPLATE/README-issue-breakdown.md
-    about: Development guidelines and phase breakdown explanation
+  - name: 🌍 Universal Multilingual Search Epic Overview
+    url: https://github.com/hatefsystems/search-engine-core/blob/master/.github/ISSUE_TEMPLATE/automated_multilingual_ranking_pipeline_epic_git_hub_task_breakdown.md
+    about: Read the complete universal multilingual ranking epic before creating implementation issues
+  - name: 📋 Subtask Breakdown (14 Components)
+    url: https://github.com/hatefsystems/search-engine-core/blob/master/.github/ISSUE_TEMPLATE/README-subtasks.md
+    about: Detailed breakdown of all 14 universal multilingual components with implementation guides
+  - name: 🔧 Development Guidelines
+    url: https://github.com/hatefsystems/search-engine-core/blob/master/.github/ISSUE_TEMPLATE/README-development.md
+    about: C++/Python integration patterns, API standards, and deployment practices
