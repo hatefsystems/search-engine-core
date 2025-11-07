@@ -148,6 +148,8 @@ docs/
 #### Microservices
 
 - **JS Minifier** - Node.js microservice for JavaScript minification
+- **Redis Sync** - Python microservice for syncing MongoDB indexed_pages to Redis
+- **Crawler Scheduler** - Celery-based task scheduler for progressive warm-up crawling
 - **Browserless** - Headless Chrome for dynamic content rendering
 - **MongoDB** - Document database for content storage
 - **Redis** - In-memory database for search indexing
@@ -174,6 +176,15 @@ docs/
 │     MongoDB     │    │      Redis       │
 │   (Content)     │    │   (Search Index) │
 └─────────────────┘    └──────────────────┘
+         │                       ▲
+         │                       │
+         └───────────────────────┘
+                    │
+                    ▼
+         ┌──────────────────────┐
+         │   Redis Sync        │
+         │   (Background Sync) │
+         └──────────────────────┘
 ```
 
 ### 🛠️ Development Workflow

@@ -198,7 +198,7 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 ├── examples/                   # Usage examples
 │   └── spa_crawler_example.cpp # SPA crawling example
 ├── docker-compose.yml          # Development multi-service orchestration
-└── docker-compose.prod.yml     # Production deployment (uses GHCR images)
+└── docker/docker-compose.prod.yml     # Production deployment (uses GHCR images)
 ```
 
 ## Enhanced Crawler API
@@ -836,8 +836,8 @@ MONGODB_URI=mongodb://admin:your_secure_password_here@mongodb:27017
 EOF
 
 # Deploy
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml pull
+docker compose -f docker/docker-compose.prod.yml up -d
 ```
 
 2. **Start a crawl session**:
@@ -879,7 +879,7 @@ Expected output: `"فروشگاه اینترنتی دیجی‌کالا"` (Digika
 
 ### Using Pre-built Images (Recommended)
 
-The production setup uses `docker-compose.prod.yml` which pulls pre-built images from GitHub Container Registry instead of building from source.
+The production setup uses `docker/docker-compose.prod.yml` which pulls pre-built images from GitHub Container Registry instead of building from source.
 
 #### Required Environment Variables
 
@@ -899,6 +899,12 @@ JS_CACHE_TYPE=redis
 JS_CACHE_TTL=3600
 JS_CACHE_REDIS_DB=1
 
+# Redis Sync Service Configuration (Optional)
+REDIS_SYNC_MODE=incremental  # full or incremental
+REDIS_SYNC_INTERVAL=3600  # Sync interval in seconds (default: 1 hour)
+REDIS_INCREMENTAL_WINDOW=24  # Time window for incremental sync in hours
+REDIS_SYNC_BATCH_SIZE=100  # Batch size for processing
+
 # Optional Configuration
 PORT=3000
 SEARCH_REDIS_URI=tcp://redis:6379
@@ -913,14 +919,17 @@ SEARCH_INDEX_NAME=search_index
 docker login ghcr.io -u your_username -p your_token
 
 # Pull latest images and start services
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml pull
+docker compose -f docker/docker-compose.prod.yml up -d
 
 # Check status
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker/docker-compose.prod.yml ps
 
 # View logs
-docker compose -f docker-compose.prod.yml logs -f search-engine
+docker compose -f docker/docker-compose.prod.yml logs -f search-engine
+
+# View redis-sync logs
+docker compose -f docker/docker-compose.prod.yml logs -f redis-sync
 ```
 
 #### Security Best Practices
@@ -935,6 +944,8 @@ docker compose -f docker-compose.prod.yml logs -f search-engine
 
 - **search-engine-core**: Main application (from GHCR)
 - **js-minifier**: JavaScript minification microservice (from GHCR)
+- **redis-sync**: MongoDB to Redis synchronization service (from GHCR)
+- **crawler-scheduler**: Progressive warm-up task scheduler (from GHCR)
 - **mongodb**: Document database with persistent storage
 - **redis**: Cache and search index with persistent storage
 - **browserless**: Headless Chrome for SPA rendering
@@ -945,7 +956,7 @@ For high-traffic deployments:
 
 ```bash
 # Scale browserless instances
-docker compose -f docker-compose.prod.yml up -d --scale browserless=3
+docker compose -f docker/docker-compose.prod.yml up -d --scale browserless=3
 
 # Use external managed databases
 # Remove mongodb/redis services and point to managed instances via env vars

@@ -66,6 +66,9 @@ private:
     // Helper methods for Redis commands
     std::vector<std::string> buildSearchCommand(const SearchQuery& query) const;
     SearchResult parseSearchResult(const std::vector<std::string>& result) const;
+    Result<SearchResponse> executeSingleSearch(const std::string& queryString, 
+                                               const SearchQuery& originalQuery, 
+                                               int limit) const;
     
 public:
     // Constructor

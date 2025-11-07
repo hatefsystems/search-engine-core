@@ -5,10 +5,22 @@
 #include <iomanip>
 #include <regex>
 #include <chrono>
+#include <unordered_set>
 
 using namespace search_engine::storage;
 
 namespace {
+    // Persian and English stopwords
+    const std::unordered_set<std::string> STOPWORDS = {
+        // Persian stopwords
+        "و", "در", "به", "از", "که", "این", "را", "با", "برای", "آن", "یک", "شود", "شده", 
+        "خود", "ای", "یا", "تا", "کرد", "بر", "هم", "نیز", "می", "شد", "ها", "است", 
+        "گفت", "می‌شود", "وی", "کرده", "دارد", "ما", "کند", "نیست", "باشد", "دیگر",
+        // English stopwords (common ones)
+        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", 
+        "of", "with", "by", "from", "as", "is", "was", "are", "were", "be", "been"
+    };
+    
     // Helper function to escape Redis string values
     std::string escapeRedisString(const std::string& str) {
         std::string escaped = str;
@@ -28,6 +40,82 @@ namespace {
     // Helper function to convert time_point to Unix timestamp
     int64_t timePointToUnixTimestamp(const std::chrono::system_clock::time_point& tp) {
         return std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch()).count();
+    }
+    
+    // Tokenize query into words (simple whitespace split)
+    std::vector<std::string> tokenizeQuery(const std::string& query) {
+        std::vector<std::string> tokens;
+        std::istringstream iss(query);
+        std::string token;
+        
+        while (iss >> token) {
+            // Remove common punctuation
+            token.erase(std::remove_if(token.begin(), token.end(), 
+                [](char c) { return std::ispunct(c) && c != '-' && c != '_'; }), 
+                token.end());
+            
+            if (!token.empty()) {
+                tokens.push_back(token);
+            }
+        }
+        
+        return tokens;
+    }
+    
+    // Filter stopwords from tokens
+    std::vector<std::string> filterStopwords(const std::vector<std::string>& tokens) {
+        std::vector<std::string> filtered;
+        
+        for (const auto& token : tokens) {
+            // Convert to lowercase for comparison
+            std::string lowerToken = token;
+            std::transform(lowerToken.begin(), lowerToken.end(), lowerToken.begin(), ::tolower);
+            
+            // Keep token if it's not a stopword and has minimum length
+            if (STOPWORDS.find(lowerToken) == STOPWORDS.end() && token.length() >= 2) {
+                filtered.push_back(token);
+            }
+        }
+        
+        return filtered;
+    }
+    
+    // Build Redis query string for all terms in a specific field
+    std::string buildFieldQuery(const std::vector<std::string>& terms, const std::string& field) {
+        if (terms.empty()) return "";
+        
+        std::ostringstream oss;
+        oss << "@" << field << ":(";
+        
+        for (size_t i = 0; i < terms.size(); ++i) {
+            if (i > 0) oss << " ";
+            oss << terms[i];
+        }
+        
+        oss << ")";
+        return oss.str();
+    }
+    
+    // Build Redis query for all terms across multiple fields (OR)
+    std::string buildMultiFieldQuery(const std::vector<std::string>& terms, 
+                                     const std::vector<std::string>& fields) {
+        if (terms.empty() || fields.empty()) return "";
+        
+        std::ostringstream oss;
+        oss << "(";
+        
+        for (size_t i = 0; i < fields.size(); ++i) {
+            if (i > 0) oss << "|";
+            oss << "@" << fields[i] << ":(";
+            for (size_t j = 0; j < terms.size(); ++j) {
+                if (j > 0) oss << " ";
+                oss << terms[j];
+            }
+            oss << ")";
+        }
+        
+        oss << ")";
+        return oss.str();
     }
 }
 
@@ -95,7 +183,7 @@ Result<bool> RedisSearchStorage::createSearchIndex() {
             "ON", "HASH",
             "PREFIX", "1", keyPrefix_,
             "SCHEMA",
-            "url", "TEXT", "SORTABLE", "NOINDEX",
+            "url", "TEXT", "WEIGHT", "0.5", "SORTABLE",  // Searchable with low weight
             "title", "TEXT", "WEIGHT", "5.0",
             "content", "TEXT", "WEIGHT", "1.0",
             "domain", "TAG", "SORTABLE",
@@ -300,21 +388,46 @@ SearchResult RedisSearchStorage::parseSearchResult(const std::vector<std::string
     return searchResult;
 }
 
-Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
+Result<SearchResponse> RedisSearchStorage::executeSingleSearch(
+    const std::string& queryString,
+    const SearchQuery& originalQuery,
+    int limit
+) const {
     try {
-        auto startTime = std::chrono::high_resolution_clock::now();
+        // Build command for this specific query
+        std::vector<std::string> cmd = {"FT.SEARCH", indexName_};
         
-        auto cmd = buildSearchCommand(query);
+        std::string finalQuery = queryString;
+        
+        // Add language filter if specified
+        if (originalQuery.language) {
+            finalQuery += " @language:{" + *originalQuery.language + "}";
+        }
+        
+        // Add category filter if specified
+        if (originalQuery.category) {
+            finalQuery += " @category:{" + *originalQuery.category + "}";
+        }
+        
+        cmd.push_back(finalQuery);
+        
+        // Add LIMIT
+        cmd.push_back("LIMIT");
+        cmd.push_back("0");
+        cmd.push_back(std::to_string(limit));
+        
+        // Add sorting (by score descending)
+        cmd.push_back("SORTBY");
+        cmd.push_back("score");
+        cmd.push_back("DESC");
+        
+        // Execute search
         auto reply = redis_->command(cmd.begin(), cmd.end());
         
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        
         SearchResponse response;
-        response.queryTime = duration.count();
         response.indexName = indexName_;
         
-        // Parse reply - access raw redis reply
+        // Parse reply
         if (reply && reply->type == REDIS_REPLY_ARRAY) {
             auto replyArray = reply.get();
             if (replyArray->elements > 0) {
@@ -354,7 +467,137 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
         
         return Result<SearchResponse>::Success(
             std::move(response),
-            "Search completed successfully"
+            "Single search completed successfully"
+        );
+        
+    } catch (const sw::redis::Error& e) {
+        return Result<SearchResponse>::Failure("Single search failed: " + std::string(e.what()));
+    }
+}
+
+Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
+    try {
+        auto startTime = std::chrono::high_resolution_clock::now();
+        
+        // Tokenize and filter stopwords
+        auto tokens = tokenizeQuery(query.query);
+        auto filteredTokens = filterStopwords(tokens);
+        
+        LOG_DEBUG("Original query: '" + query.query + "' -> " + std::to_string(tokens.size()) + " tokens -> " + 
+                  std::to_string(filteredTokens.size()) + " after stopword filtering");
+        
+        // If no meaningful tokens after filtering, use original query
+        if (filteredTokens.empty()) {
+            filteredTokens = tokens;
+        }
+        
+        SearchResponse response;
+        response.indexName = indexName_;
+        std::unordered_set<std::string> seenUrls; // For deduplication
+        
+        // Get total count from simple search (without field restrictions) first
+        int totalResultsFromRedis = 0;
+        auto countQuery = executeSingleSearch(query.query, query, 0); // LIMIT 0 to get only count
+        if (countQuery.success) {
+            totalResultsFromRedis = countQuery.value.totalResults;
+            LOG_DEBUG("Total results in Redis for full search: " + std::to_string(totalResultsFromRedis));
+        }
+        
+        // Multi-tier search strategy with clear priority:
+        // Tier 1: Terms in TITLE only (highest priority - 3x boost)
+        // Tier 2: Terms in CONTENT/DESCRIPTION only (medium priority - 1.5x boost)
+        // Tier 3: ANY match (fallback - 1x)
+        
+        // Tier 1: ALL terms in title (ALWAYS, even for single words)
+        // Fetch up to 500 best results for ranking, but count all matching
+        std::string titleQuery = buildFieldQuery(filteredTokens, "title");
+        LOG_DEBUG("Tier 1 query (terms in title): " + titleQuery);
+        
+        auto tier1Results = executeSingleSearch(titleQuery, query, 500);
+        if (tier1Results.success) {
+            for (const auto& result : tier1Results.value.results) {
+                if (seenUrls.find(result.url) == seenUrls.end()) {
+                    // Additive boost for tier 1 results (in title)
+                    SearchResult boostedResult = result;
+                    boostedResult.score = (boostedResult.score * 2.0) + 1000.0; // High priority: multiply base + large bonus
+                    response.results.push_back(boostedResult);
+                    seenUrls.insert(result.url);
+                }
+            }
+            LOG_INFO("Tier 1 (in title): fetched " + std::to_string(tier1Results.value.results.size()) + 
+                     " unique results (total matching: " + std::to_string(tier1Results.value.totalResults) + ")");
+        }
+        
+        // Tier 2: ALL terms in content/description (separate from title)
+        // Continue fetching up to 1000 total results for good ranking
+        if (response.results.size() < 1000) {
+            std::string contentQuery = buildMultiFieldQuery(filteredTokens, {"content", "description"});
+            LOG_DEBUG("Tier 2 query (terms in content/description): " + contentQuery);
+            
+            int tier2Limit = std::min(500, static_cast<int>(1000 - response.results.size()));
+            auto tier2Results = executeSingleSearch(contentQuery, query, tier2Limit);
+            if (tier2Results.success) {
+                for (const auto& result : tier2Results.value.results) {
+                    if (seenUrls.find(result.url) == seenUrls.end()) {
+                        // Moderate additive boost for tier 2 results (in content)
+                        SearchResult boostedResult = result;
+                        boostedResult.score = (boostedResult.score * 1.5) + 100.0; // Medium priority: multiply base + medium bonus
+                        response.results.push_back(boostedResult);
+                        seenUrls.insert(result.url);
+                    }
+                }
+                LOG_INFO("Tier 2 (in content): fetched " + std::to_string(tier2Results.value.results.size()) + 
+                         " unique results (total matching: " + std::to_string(tier2Results.value.totalResults) + ")");
+            }
+        }
+        
+        // Tier 3: ANY term matching (fallback)
+        // Fill remaining slots up to 1000 total
+        if (response.results.size() < 1000) {
+            int tier3Limit = std::min(500, static_cast<int>(1000 - response.results.size()));
+            auto tier3Results = executeSingleSearch(query.query, query, tier3Limit);
+            if (tier3Results.success) {
+                for (const auto& result : tier3Results.value.results) {
+                    if (seenUrls.find(result.url) == seenUrls.end()) {
+                        // Keep base score for tier 3 (lowest priority)
+                        response.results.push_back(result);
+                        seenUrls.insert(result.url);
+                    }
+                }
+                LOG_INFO("Tier 3 (any match): fetched " + std::to_string(tier3Results.value.results.size()) + 
+                         " unique results (total matching: " + std::to_string(tier3Results.value.totalResults) + ")");
+            }
+        }
+        
+        // Sort by score (descending) after combining all tiers
+        std::sort(response.results.begin(), response.results.end(), 
+                  [](const SearchResult& a, const SearchResult& b) {
+                      return a.score > b.score;
+                  });
+        
+        // Store number of unique results fetched BEFORE limiting
+        int uniqueResultsFetched = response.results.size();
+        
+        // Limit to requested number
+        if (response.results.size() > static_cast<size_t>(query.limit)) {
+            response.results.resize(query.limit);
+        }
+        
+        // Use total count from Redis, not fetched count
+        // Note: This might include duplicates across tiers, but gives accurate total matches
+        response.totalResults = totalResultsFromRedis;
+        
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        response.queryTime = duration.count();
+        
+        LOG_INFO("Multi-tier search completed: " + std::to_string(totalResultsFromRedis) + 
+                 " total in Redis (" + std::to_string(uniqueResultsFetched) + " unique fetched), returning " + 
+                 std::to_string(response.results.size()) + " in " + std::to_string(response.queryTime) + "ms");
+        
+        return Result<SearchResponse>::Success(
+            std::move(response),
+            "Multi-tier search completed successfully"
         );
         
     } catch (const sw::redis::Error& e) {

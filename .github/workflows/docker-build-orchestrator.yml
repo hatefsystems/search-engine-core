@@ -38,6 +38,12 @@ jobs:
       docker_image: ghcr.io/${{ github.repository }}/js-minifier
       docker_tag: latest
 
+  build-redis-sync:
+    uses: ./.github/workflows/build-redis-sync.yml
+    with:
+      docker_image: ghcr.io/${{ github.repository }}/redis-sync
+      docker_tag: latest
+
   build-crawler-scheduler:
     uses: ./.github/workflows/build-crawler-scheduler.yml
     with:

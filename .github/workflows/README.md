@@ -19,6 +19,7 @@ docker-build-orchestrator.yml (Orchestrates all builds)
     ↓
     ├── build-mongodb-drivers.yml
     ├── build-js-minifier.yml
+    ├── build-redis-sync.yml
     ├── build-crawler-scheduler.yml (✨ Smart caching implemented)
     └── build-search-engine.yml
 ```
@@ -245,6 +246,14 @@ If you want to always rebuild (not recommended):
 |-----------|------|---------|-------------|
 | `cache_version` | string | "1" | Passed to all build workflows |
 | `force_rebuild` | boolean | false | Passed to all build workflows |
+
+### build-redis-sync.yml
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `docker_image` | string | required | Full image name (e.g., ghcr.io/user/repo/redis-sync) |
+| `docker_tag` | string | required | Image tag (e.g., latest, v1.0.0) |
+| `cache_version` | string | "1" | Buildx cache version |
 
 ### build-crawler-scheduler.yml
 

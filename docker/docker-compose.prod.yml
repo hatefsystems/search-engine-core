@@ -80,9 +80,9 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "allkeys-lru"]
     environment:
-      - REDIS_MAXMEMORY=536870912  # 512MB in bytes
+      - REDIS_MAXMEMORY=2147483648  # 2GB in bytes
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -94,7 +94,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 2G
           cpus: '0.3'
         reservations:
           memory: 128M
@@ -231,6 +231,48 @@ services:
         max-file: "3"
     networks:
       - search-network
+
+  # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
+  redis-sync:
+    image: ghcr.io/hatefsystems/search-engine-core/redis-sync:latest
+    container_name: redis-sync
+    pull_policy: if_not_present
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-search-engine}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
+      - KEY_PREFIX=doc:
+      - SYNC_MODE=${REDIS_SYNC_MODE:-incremental}
+      - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
+      - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
+      - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
+      - MAX_CONTENT_SIZE=50000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
   # Crawler Scheduler - Progressive Warm-up Task Scheduler (Production)
   crawler-scheduler:

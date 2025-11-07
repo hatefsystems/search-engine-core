@@ -46,9 +46,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}  # CRITICAL: Configurable logging (debug, info, warning, error, none)
       - BASE_URL=${BASE_URL:-http://localhost:3000}  # Base URL for internal API calls
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017
+      - REDIS_URL=tcp://redis:6379
       - SEARCH_REDIS_URI=tcp://redis:6379
       - SEARCH_REDIS_POOL_SIZE=4
       - SEARCH_INDEX_NAME=search_index
+      - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true}  # Enable Redis-based search (10-100x faster than MongoDB)
       - MINIFY_JS=true
       - MINIFY_JS_LEVEL=none  # Use microservice instead
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
@@ -123,9 +125,9 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "allkeys-lru"]
     environment:
-      - REDIS_MAXMEMORY=268435456  # 256MB in bytes
+      - REDIS_MAXMEMORY=2147483648  # 2GB in bytes
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -268,6 +270,31 @@ services:
     depends_on:
       - redis
       - crawler-scheduler
+
+  # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
+  redis-sync:
+    build: ./redis-sync-service
+    container_name: redis-sync
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017
+      - MONGODB_DB=search-engine
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - SEARCH_INDEX_NAME=search_index
+      - "KEY_PREFIX=doc:"
+      - SYNC_MODE=${REDIS_SYNC_MODE:-incremental}
+      - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
+      - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
+      - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
+      - MAX_CONTENT_SIZE=50000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - mongodb
 
 networks:
   search-network:

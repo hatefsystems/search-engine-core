@@ -89,7 +89,9 @@ set(STORAGE_HEADERS
 )
 
 if(REDIS_AVAILABLE)
-    list(APPEND STORAGE_HEADERS ../../include/search_engine/storage/RedisSearchStorage.h)
+    list(APPEND STORAGE_HEADERS 
+        ../../include/search_engine/storage/RedisSearchStorage.h
+    )
 endif()
 
 # Create storage library

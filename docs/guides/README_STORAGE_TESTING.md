@@ -161,10 +161,12 @@ Tests the RedisSearch integration:
 Integration tests for the unified storage interface:
 
 - **Crawl Result Processing**: Converting crawler output to storage format
-- **Dual Storage Coordination**: MongoDB and Redis synchronization
+- **Dual Storage Coordination**: MongoDB and Redis synchronization (handled by Redis Sync Service)
 - **Search Integration**: End-to-end search functionality
 - **Batch Processing**: Multiple document handling
 - **Statistics and Monitoring**: Health checks, performance metrics
+
+**Note**: The Redis Sync Service (`redis-sync`) is a background microservice that continuously synchronizes MongoDB `indexed_pages` to Redis for optimal search performance. It runs automatically in both development and production environments. See `redis-sync-service/README.md` for configuration details.
 
 **Key Test Cases**:
 

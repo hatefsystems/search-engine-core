@@ -1245,34 +1245,69 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
     }
     
     try {
-        // Check if MongoDBStorage is available
-        if (!g_mongoStorage) {
-            serverError(res, "Search service not available");
-            LOG_ERROR("MongoDBStorage not initialized for indexed pages search");
+        int64_t totalResults = 0;
+        std::vector<search_engine::storage::IndexedPage> pages;
+        bool usedRedis = false;
+        
+        // Try Redis first if enabled
+        const char* redisEnabled = std::getenv("REDIS_SEARCH_ENABLED");
+        bool useRedis = redisEnabled && (std::string(redisEnabled) == "true" || std::string(redisEnabled) == "1");
+        
+        if (useRedis) {
+            LOG_INFO("REDIS_SEARCH_ENABLED=true, using Redis for search");
+            try {
+                auto redisStorage = getRedisStorage();
+                if (redisStorage) {
+                    // Build search query
+                    search_engine::storage::SearchQuery searchQuery;
+                    searchQuery.query = query;
+                    searchQuery.limit = limit;
+                    searchQuery.offset = (page - 1) * limit;
+                    searchQuery.highlight = false;
+                    
+                    // Perform Redis search
+                    auto redisResult = redisStorage->search(searchQuery);
+                    if (redisResult.success) {
+                        usedRedis = true;
+                        totalResults = redisResult.value.totalResults;
+                        
+                        // Convert Redis SearchResult to IndexedPage for consistent response format
+                        for (const auto& result : redisResult.value.results) {
+                            search_engine::storage::IndexedPage indexedPage;
+                            indexedPage.url = result.url;
+                            indexedPage.title = result.title;
+                            indexedPage.domain = result.domain;
+                            indexedPage.description = result.snippet;
+                            indexedPage.contentQuality = result.score;
+                            pages.push_back(indexedPage);
+                        }
+                        
+                        LOG_INFO("Redis search successful: found " + std::to_string(totalResults) + " results");
+                    } else {
+                        LOG_ERROR("Redis search failed: " + redisResult.message);
+                        serverError(res, "Redis search failed: " + redisResult.message);
+                        return;
+                    }
+                } else {
+                    LOG_ERROR("Redis storage not initialized");
+                    serverError(res, "Redis search service not available");
+                    return;
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("Exception during Redis search: " + std::string(e.what()));
+                serverError(res, "Redis search error: " + std::string(e.what()));
+                return;
+            }
+        } else {
+            LOG_ERROR("REDIS_SEARCH_ENABLED is not set to true");
+            serverError(res, "Redis search is not enabled. Set REDIS_SEARCH_ENABLED=true");
             return;
         }
         
-        // Calculate skip for pagination
-        int skip = (page - 1) * limit;
-        
-        LOG_DEBUG("Searching indexed pages with query: '" + query + "', page: " + std::to_string(page) + 
-                  ", limit: " + std::to_string(limit) + ", skip: " + std::to_string(skip));
-        
-        // Get total count first
-        auto countResult = g_mongoStorage->countSearchResults(query);
-        if (!countResult.success) {
-            LOG_ERROR("Failed to count search results: " + countResult.message);
-            serverError(res, "Search operation failed");
-            return;
-        }
-        
-        int64_t totalResults = countResult.value;
-        
-        // Perform the search
-        auto searchResult = g_mongoStorage->searchSiteProfiles(query, limit, skip);
-        if (!searchResult.success) {
-            LOG_ERROR("indexed pages search failed: " + searchResult.message);
-            serverError(res, "Search operation failed");
+        // MongoDB fallback disabled - Redis only mode
+        if (!usedRedis) {
+            LOG_ERROR("Redis search was not used - search failed");
+            serverError(res, "Search service unavailable - Redis search required");
             return;
         }
         
@@ -1287,6 +1322,7 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
             {"data", {
                 {"query", query},
                 {"results", nlohmann::json::array()},
+                {"searchBackend", usedRedis ? "redis" : "mongodb"},
                 {"pagination", {
                     {"page", page},
                     {"limit", limit},
@@ -1300,18 +1336,73 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
             }}
         };
         
+        // Helper function to sanitize UTF-8 strings
+        auto sanitizeUtf8 = [](const std::string& input) -> std::string {
+            std::string output;
+            output.reserve(input.size());
+            size_t i = 0;
+            while (i < input.size()) {
+                unsigned char c = input[i];
+                
+                if (c < 0x80) {
+                    // Valid ASCII (1-byte)
+                    output += c;
+                    i++;
+                } else if ((c & 0xE0) == 0xC0) {
+                    // 2-byte UTF-8 sequence
+                    if (i + 1 < input.size() && (input[i + 1] & 0xC0) == 0x80) {
+                        output += input[i];
+                        output += input[i + 1];
+                        i += 2;
+                    } else {
+                        i++; // Skip invalid sequence
+                    }
+                } else if ((c & 0xF0) == 0xE0) {
+                    // 3-byte UTF-8 sequence
+                    if (i + 2 < input.size() && 
+                        (input[i + 1] & 0xC0) == 0x80 && 
+                        (input[i + 2] & 0xC0) == 0x80) {
+                        output += input[i];
+                        output += input[i + 1];
+                        output += input[i + 2];
+                        i += 3;
+                    } else {
+                        i++; // Skip invalid sequence
+                    }
+                } else if ((c & 0xF8) == 0xF0) {
+                    // 4-byte UTF-8 sequence
+                    if (i + 3 < input.size() && 
+                        (input[i + 1] & 0xC0) == 0x80 && 
+                        (input[i + 2] & 0xC0) == 0x80 && 
+                        (input[i + 3] & 0xC0) == 0x80) {
+                        output += input[i];
+                        output += input[i + 1];
+                        output += input[i + 2];
+                        output += input[i + 3];
+                        i += 4;
+                    } else {
+                        i++; // Skip invalid sequence
+                    }
+                } else {
+                    // Invalid UTF-8 start byte
+                    i++;
+                }
+            }
+            return output;
+        };
+        
         // Add search results
         auto& resultsArray = response["data"]["results"];
-        for (const auto& page : searchResult.value) {
+        for (const auto& page : pages) {
             nlohmann::json profileJson = {
-                {"url", page.url},
-                {"title", page.title},
-                {"domain", page.domain}
+                {"url", sanitizeUtf8(page.url)},
+                {"title", sanitizeUtf8(page.title)},
+                {"domain", sanitizeUtf8(page.domain)}
             };
             
             // Add description if available (truncated for long descriptions)
             if (page.description) {
-                std::string description = *page.description;
+                std::string description = sanitizeUtf8(*page.description);
                 // Truncate descriptions longer than 300 characters
                 profileJson["description"] = truncateDescription(description, 300);
             } else {
@@ -1335,7 +1426,8 @@ void SearchController::searchSiteProfiles(uWS::HttpResponse<false>* res, uWS::Ht
         }
         
         LOG_INFO("indexed pages search completed successfully: query='" + query + 
-                 "', results=" + std::to_string(searchResult.value.size()) + 
+                 "', backend=" + (usedRedis ? "Redis" : "MongoDB") +
+                 ", results=" + std::to_string(pages.size()) + 
                  "/" + std::to_string(totalResults) + 
                  ", time=" + std::to_string(searchDuration.count()) + "ms");
         
@@ -1525,46 +1617,138 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         // Merge search localization into common
         jsonDeepMergeMissing(commonJson, searchJson);
         
-		// Perform search via MongoDB (same logic as /api/search/sites)
-		std::vector<nlohmann::json> searchResults;
-		int totalResults = 0;
-		
-		// Pagination
-		int page = 1;
-		int limit = 10;
-		auto pageIt = params.find("page");
-		if (pageIt != params.end()) {
-			try {
-				page = std::stoi(pageIt->second);
-				if (page < 1 || page > 1000) page = 1;
-			} catch (...) { page = 1; }
-		}
-		int skip = (page - 1) * limit;
-		
+	// Perform search via Redis (fast in-memory search)
+	std::vector<nlohmann::json> searchResults;
+	int64_t totalResults = 0;
+	bool usedRedis = false;
+	std::vector<search_engine::storage::IndexedPage> pages;
+	
+	// Pagination
+	int page = 1;
+	int limit = 10;
+	auto pageIt = params.find("page");
+	if (pageIt != params.end()) {
 		try {
-			if (!g_mongoStorage) {
-				LOG_ERROR("MongoDBStorage not initialized for searchResultsPage");
-				serverError(res, "Search service not available");
+			page = std::stoi(pageIt->second);
+			if (page < 1 || page > 1000) page = 1;
+		} catch (...) { page = 1; }
+	}
+	int skip = (page - 1) * limit;
+	
+	try {
+		// Try Redis first if enabled
+		const char* redisEnabled = std::getenv("REDIS_SEARCH_ENABLED");
+		bool useRedis = redisEnabled && (std::string(redisEnabled) == "true" || std::string(redisEnabled) == "1");
+		
+		if (useRedis) {
+			LOG_INFO("Using Redis for search results page");
+			try {
+				auto redisStorage = getRedisStorage();
+				if (redisStorage) {
+					// Build search query
+					search_engine::storage::SearchQuery searchQuery_obj;
+					searchQuery_obj.query = searchQuery;
+					searchQuery_obj.limit = limit;
+					searchQuery_obj.offset = skip;
+					searchQuery_obj.highlight = false;
+					
+					// Perform Redis search
+					auto redisResult = redisStorage->search(searchQuery_obj);
+					if (redisResult.success) {
+						usedRedis = true;
+						totalResults = redisResult.value.totalResults;
+						
+						// Convert Redis SearchResult to IndexedPage
+						for (const auto& result : redisResult.value.results) {
+							search_engine::storage::IndexedPage indexedPage;
+							indexedPage.url = result.url;
+							indexedPage.title = result.title;
+							indexedPage.domain = result.domain;
+							indexedPage.description = result.snippet;
+							indexedPage.contentQuality = result.score;
+							pages.push_back(indexedPage);
+						}
+						
+						LOG_INFO("Redis search for page successful: found " + std::to_string(totalResults) + " results");
+					} else {
+						LOG_ERROR("Redis search failed for page: " + redisResult.message);
+						serverError(res, "Search service temporarily unavailable");
+						return;
+					}
+				} else {
+					LOG_ERROR("Redis storage not initialized for page");
+					serverError(res, "Search service not available");
+					return;
+				}
+			} catch (const std::exception& e) {
+				LOG_ERROR("Exception during Redis search for page: " + std::string(e.what()));
+				serverError(res, "Search error occurred");
 				return;
 			}
-			
-			auto countResult = g_mongoStorage->countSearchResults(searchQuery);
-			if (!countResult.success) {
-				LOG_ERROR("Failed to count search results: " + countResult.message);
-				serverError(res, "Search operation failed");
-				return;
+		} else {
+			LOG_ERROR("REDIS_SEARCH_ENABLED is not set - page requires Redis");
+			serverError(res, "Search service not enabled");
+			return;
+		}
+		
+		// Helper function to sanitize UTF-8 strings
+		auto sanitizeUtf8 = [](const std::string& input) -> std::string {
+			std::string output;
+			output.reserve(input.size());
+			size_t i = 0;
+			while (i < input.size()) {
+				unsigned char c = input[i];
+				
+				if (c < 0x80) {
+					// Valid ASCII (1-byte)
+					output += c;
+					i++;
+				} else if ((c & 0xE0) == 0xC0) {
+					// 2-byte UTF-8 sequence
+					if (i + 1 < input.size() && (input[i + 1] & 0xC0) == 0x80) {
+						output += input[i];
+						output += input[i + 1];
+						i += 2;
+					} else {
+						i++; // Skip invalid sequence
+					}
+				} else if ((c & 0xF0) == 0xE0) {
+					// 3-byte UTF-8 sequence
+					if (i + 2 < input.size() && 
+						(input[i + 1] & 0xC0) == 0x80 && 
+						(input[i + 2] & 0xC0) == 0x80) {
+						output += input[i];
+						output += input[i + 1];
+						output += input[i + 2];
+						i += 3;
+					} else {
+						i++; // Skip invalid sequence
+					}
+				} else if ((c & 0xF8) == 0xF0) {
+					// 4-byte UTF-8 sequence
+					if (i + 3 < input.size() && 
+						(input[i + 1] & 0xC0) == 0x80 && 
+						(input[i + 2] & 0xC0) == 0x80 && 
+						(input[i + 3] & 0xC0) == 0x80) {
+						output += input[i];
+						output += input[i + 1];
+						output += input[i + 2];
+						output += input[i + 3];
+						i += 4;
+					} else {
+						i++; // Skip invalid sequence
+					}
+				} else {
+					// Invalid UTF-8 start byte
+					i++;
+				}
 			}
-			totalResults = static_cast<int>(countResult.value);
-			
-			auto searchResult = g_mongoStorage->searchSiteProfiles(searchQuery, limit, skip);
-			if (!searchResult.success) {
-				LOG_ERROR("indexed pages search failed: " + searchResult.message);
-				serverError(res, "Search operation failed");
-				return;
-			}
-			
-			for (const auto& page : searchResult.value) {
-				std::string displayUrl = page.url;
+			return output;
+		};
+		
+		// Format results for HTML template
+		for (const auto& page : pages) {
+				std::string displayUrl = sanitizeUtf8(page.url);
 
 				// Clean up display URL (remove protocol and www)
 				if (displayUrl.rfind("https://", 0) == 0) {
@@ -1577,13 +1761,13 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 				}
 
 				nlohmann::json formattedResult;
-				formattedResult["url"] = std::string(page.url);
-				formattedResult["title"] = std::string(page.title);
-				formattedResult["displayurl"] = std::string(displayUrl);
+				formattedResult["url"] = sanitizeUtf8(page.url);
+				formattedResult["title"] = sanitizeUtf8(page.title);
+				formattedResult["displayurl"] = displayUrl;
 
 				// Handle optional description with truncation for long descriptions
 				if (page.description.has_value()) {
-					std::string description = std::string(*page.description);
+					std::string description = sanitizeUtf8(*page.description);
 					// Truncate descriptions longer than 300 characters
 					formattedResult["desc"] = truncateDescription(description, 300);
 				} else {
@@ -1593,7 +1777,7 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 				searchResults.push_back(formattedResult);
 			}
 		} catch (const std::exception& e) {
-			LOG_ERROR("MongoDB search error in searchResultsPage: " + std::string(e.what()));
+			LOG_ERROR("Redis search error in searchResultsPage: " + std::string(e.what()));
 			// Continue with empty results to still render page
 		}
         
@@ -1782,6 +1966,34 @@ search_engine::storage::EmailService* SearchController::getEmailService() const 
         }
     }
     return emailService_.get();
+}
+
+search_engine::storage::RedisSearchStorage* SearchController::getRedisStorage() const {
+    if (!redisStorage_) {
+        try {
+            LOG_INFO("Lazy initializing RedisSearchStorage in SearchController");
+            
+            // Get Redis connection string from environment or use default
+            const char* redisUrl = std::getenv("REDIS_URL");
+            std::string redisConnectionString = redisUrl ? redisUrl : "tcp://127.0.0.1:6379";
+            
+            // Get search index name from environment or use default
+            const char* indexName = std::getenv("SEARCH_INDEX_NAME");
+            std::string searchIndexName = indexName ? indexName : "search_index";
+            
+            redisStorage_ = std::make_unique<search_engine::storage::RedisSearchStorage>(
+                redisConnectionString,
+                searchIndexName,
+                "doc:"
+            );
+            
+            LOG_INFO("RedisSearchStorage initialized successfully in SearchController");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to initialize RedisSearchStorage in SearchController: " + std::string(e.what()));
+            return nullptr;
+        }
+    }
+    return redisStorage_.get();
 }
 
 search_engine::storage::EmailService::SMTPConfig SearchController::loadSMTPConfig() const {
