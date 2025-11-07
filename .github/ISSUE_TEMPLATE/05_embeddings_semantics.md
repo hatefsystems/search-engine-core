@@ -24,6 +24,9 @@ Build universal multilingual semantic understanding through subword embeddings, 
 - Language-agnostic PPMI/SVD for distributional semantics
 - Automatic co-occurrence matrix construction from multilingual corpus
 - Cross-language semantic lexicon generation
+- Corpus-based vocabulary and frequency analysis for spell correction
+- Character-level n-gram models for typo detection
+- Embedding-based semantic similarity for correction validation
 - Multilingual embedding service with intelligent caching
 - Document vector precomputation for any language content
 
@@ -33,7 +36,11 @@ Build universal multilingual semantic understanding through subword embeddings, 
 - [ ] Train subword skip-gram model (multilingual)
 - [ ] Cluster n-grams for phrase detection
 - [ ] Implement cross-lingual alignment (if needed)
-- [ ] Create nightly lexicon export (synonyms, related terms)
+- [ ] Build corpus vocabulary with frequency dictionary (for spell correction)
+- [ ] Train character n-gram models for edit distance candidates
+- [ ] Create spell correction training data from query logs and corpus
+- [ ] Build embedding-based semantic similarity for correction validation
+- [ ] Create nightly lexicon export (synonyms, related terms, correction candidates)
 - [ ] Build embedding inference service (HTTP/gRPC)
 - [ ] Precompute document embeddings
 - [ ] Implement caching for query embeddings
@@ -41,6 +48,9 @@ Build universal multilingual semantic understanding through subword embeddings, 
 ## Acceptance Criteria
 - Embedding quality: intrinsic neighbors coherent
 - Query expansion improves recall by ≥15% (proxy)
+- Spell correction vocabulary covers ≥95% of corpus terms
+- Character n-gram models enable edit distance candidate generation in <1ms
+- Embedding-based correction validation accuracy ≥90%
 - Lexicon build completes nightly within SLA
 - Embedding service: ≤10ms inference for re-ranking
 - Memory efficient for 100M+ document vectors
@@ -82,9 +92,13 @@ class EmbeddingClient {
 ## Files to Create/Modify
 - `src/python/embeddings/`
 - `src/python/embedding_service/`
+- `src/python/spell_correction/vocabulary_builder.py`
+- `src/python/spell_correction/ngram_model.py`
+- `src/python/spell_correction/correction_trainer.py`
 - `include/embeddings/EmbeddingClient.h`
 - `src/embeddings/EmbeddingClient.cpp`
 - `tests/embedding_test.py`
+- `tests/spell_correction_test.py`
 
 ## Notes
 - Python for complex ML training and processing

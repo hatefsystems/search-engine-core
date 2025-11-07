@@ -56,6 +56,10 @@
 - [ ] Create language-agnostic n-gram detection supporting 100+ languages/scripts
 - [ ] Implement script-specific preprocessing (ZWNJ for Arabic scripts, word segmentation for CJK)
 - [ ] Add automatic language confidence scoring and fallback handling
+- [ ] Build universal IDF-based stopword detector from corpus analysis (automatic for any language)
+- [ ] Implement automatic stopword mining using document frequency statistics
+- [ ] Export stopword lexicon to Redis with confidence scores per language
+- [ ] Create nightly batch job for stopword list refresh from corpus updates
 - [ ] Comprehensive unit tests with content from 20+ languages/scripts
 - [ ] Export normalized text with language metadata to downstream indexer
 
@@ -64,6 +68,9 @@
 - Language detection accuracy ≥ 95% across 50+ languages on test corpus
 - Script-specific handling works for Arabic, CJK, Cyrillic, Latin scripts
 - Automatic language detection with confidence scoring
+- Stopword detection accuracy ≥90% based on IDF analysis for any language
+- Stopword lexicon automatically covers 100+ languages without manual configuration
+- Nightly stopword refresh completes within 1 hour for 100M+ documents
 - Pipeline adds universal `lang` and `script` fields per doc/query
 
 ---
@@ -78,12 +85,17 @@
 - [ ] Configure universal BM25 with field weights (works for any detected language).
 - [ ] Build language-agnostic character n-gram index (3-5 grams) for fallback retrieval.
 - [ ] Implement automatic query-time language/script detection and routing.
+- [ ] Add index-time stopword handling (store both original and filtered versions).
+- [ ] Implement dynamic field weight adjustment based on stopword density.
+- [ ] Support exact-match retrieval mode (bypass stopword filtering when needed).
 - [ ] Implement cross-language deduplication (URL-level + content simhash/shingles).
 - [ ] Universal quality gate: filter short/boilerplate pages regardless of language.
 - [ ] Integration tests & latency benchmarks for multiple languages.
 
 **Acceptance Criteria**
 - Universal top-N retrieval works for any detected language with n-gram fallback.
+- Index-time stopword handling preserves exact-match capabilities while optimizing storage.
+- Field weight adjustment based on stopword density improves ranking precision by ≥5%.
 - Cross-language deduplication reduces near-duplicates by ≥ 60% without hurting recall > 2%.
 - P95 retrieval latency ≤ 80ms for BM25 top-200 across all supported languages.
 
@@ -129,7 +141,7 @@
 ### 5) Universal Synonym & Related-Terms Mining (M3)
 **Issue Title:** `[M3][embeddings] Universal co-occurrence → PPMI/SVD + subword embeddings + nightly lexicon`
 
-**Description:** Build universal distributional semantics pipeline to mine near-synonyms/related phrases across all languages, plus cross-lingual semantic connections.
+**Description:** Build universal distributional semantics pipeline to mine near-synonyms/related phrases across all languages, plus cross-lingual semantic connections. Include spell correction vocabulary and models.
 
 **Tasks**
 - [ ] Build co‑occurrence matrix (window=5–10) over titles/body/anchors.  
@@ -137,12 +149,19 @@
 - [ ] Train subword skip‑gram (fastText‑style) on corpus; export vectors.  
 - [ ] Cluster frequent n‑grams (bi/tri‑grams) to mine phrases.  
 - [ ] Cross‑lingual alignment (unsupervised) or anchor/URL pivot mapping.  
-- [ ] Nightly job to export `lexicon.json` (top‑k related terms per token/phrase).  
+- [ ] Build corpus vocabulary with frequency dictionary (for spell correction).  
+- [ ] Train character n-gram models for edit distance candidates.  
+- [ ] Create spell correction training data from query logs and corpus.  
+- [ ] Build embedding-based semantic similarity for correction validation.  
+- [ ] Nightly job to export `lexicon.json` (top‑k related terms per token/phrase, correction candidates).  
 - [ ] Thresholding + caps (≤ 3 expansions/query).  
 - [ ] Evaluation: intrinsic (cosine neighbors) + retrieval delta.
 
 **Acceptance Criteria**
 - Query expansion improves recall with ≤ 5% precision loss (proxy).  
+- Spell correction vocabulary covers ≥95% of corpus terms.  
+- Character n-gram models enable edit distance candidate generation in <1ms.  
+- Embedding-based correction validation accuracy ≥90%.  
 - Lexicon build finishes nightly within SLA.
 
 ---
@@ -228,14 +247,35 @@
 
 **Tasks**
 - [ ] Automatic language/script detection (no manual configuration needed).
+- [ ] Add context-aware stopword filtering with intelligent rules (never filter single-word queries).
+- [ ] Implement quoted phrase detection and exact-match preservation.
+- [ ] Build entity name detection to preserve all tokens in entity queries.
+- [ ] Implement multi-stage retrieval with stopword fallback (filtered → original).
+- [ ] Build hybrid spell correction system (Stage 1: Edit Distance <1ms).
+- [ ] Implement corpus frequency validation (Stage 2: Frequency Check 2-3ms).
+- [ ] Add embedding-based semantic validation (Stage 3: Similarity 5-8ms).
+- [ ] Create spell suggestion API ("Did you mean...?" functionality).
+- [ ] Implement auto-correction for high-confidence cases (confidence >0.9).
+- [ ] Build query rewriting with spell-corrected variants.
 - [ ] Universal query expansion from nightly `lexicon.json` (≤ 3 terms, thresholded, works for any language).
 - [ ] Retrieve BM25@200 + n-gram@100; merge + dedup (universal across languages).
 - [ ] Gather features; call embeddings service; compute FinalScore for any language.
 - [ ] Diversify (MMR); cut Top‑K; cache popular queries in any language.
 - [ ] Expose API; add metrics/logging for multilingual queries.
+- [ ] Add debug mode showing stopword filtering decisions and reasoning.
 
 **Acceptance Criteria**
 - P95 end-to-end latency ≤ 300ms for head queries in any language.
+- Context-aware stopword filtering never breaks single-word queries.
+- Entity name detection preserves query intent with ≥95% accuracy.
+- Multi-stage stopword fallback improves recall by ≥15% without precision loss.
+- Stopword filtering adds <5ms latency to query processing.
+- Hybrid spell correction detects typos with ≥92% accuracy.
+- Stage 1 (edit distance) completes in <1ms for candidate generation.
+- Stage 2 (frequency validation) adds 2-3ms for filtering.
+- Stage 3 (embedding similarity) adds 5-8ms only when needed.
+- Spell suggestion precision ≥95% (minimal false positives).
+- Auto-correction applied only for confidence >0.9.
 - API returns feature traces for debugging when `debug=1` for any language.
 
 ---

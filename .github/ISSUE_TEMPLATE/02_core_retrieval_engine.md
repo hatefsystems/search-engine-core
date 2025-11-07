@@ -23,6 +23,8 @@ Build the core multilingual lexical retrieval system with weighted BM25 scoring 
 - Language-agnostic character n-gram fallback indexing (3-5 grams)
 - RedisSearch integration or custom C++ implementation
 - Automatic language detection and routing (no manual configuration needed)
+- Index-time stopword-aware processing with dual storage (original + filtered)
+- Dynamic field weighting based on stopword density analysis
 - Cross-language deduplication and quality filtering
 
 ## Tasks
@@ -31,6 +33,10 @@ Build the core multilingual lexical retrieval system with weighted BM25 scoring 
 - [ ] Build character n-gram tokenizer (3-5 grams)
 - [ ] Integrate with RedisSearch for indexing/querying
 - [ ] Implement query routing (BM25 → n-gram fallback)
+- [ ] Add index-time stopword handling (store both original and filtered versions)
+- [ ] Implement dynamic field weight adjustment based on stopword density
+- [ ] Add stopword metadata storage per document for retrieval optimization
+- [ ] Support exact-match retrieval mode (bypass stopword filtering when needed)
 - [ ] Add URL-level deduplication (simhash/shingles)
 - [ ] Quality gate filtering (short pages, boilerplate)
 - [ ] Python scripts for batch indexing and analysis
@@ -39,6 +45,9 @@ Build the core multilingual lexical retrieval system with weighted BM25 scoring 
 ## Acceptance Criteria
 - BM25 retrieval works correctly for any detected language
 - n-gram fallback improves recall by ≥20% for unknown/mixed language content
+- Index-time stopword handling preserves exact-match capabilities while optimizing storage
+- Field weight adjustment based on stopword density improves ranking precision by ≥5%
+- Exact-match retrieval mode works correctly for queries requiring no stopword filtering
 - Cross-language deduplication reduces near-duplicates by ≥60%
 - Universal quality filtering removes ≥80% low-quality pages regardless of language
 - P95 retrieval latency ≤80ms for top-200 results across all languages
@@ -65,8 +74,10 @@ class RetrievalEngine {
 - `src/search/RetrievalEngine.cpp`
 - `src/search/BM25Scorer.cpp`
 - `src/search/NGramTokenizer.cpp`
+- `src/search/StopwordAwareIndexer.cpp`
 - `src/python/index_builder/`
 - `tests/retrieval_test.cpp`
+- `tests/stopword_indexing_test.cpp`
 
 ## Notes
 - Core retrieval must be C++ for low latency

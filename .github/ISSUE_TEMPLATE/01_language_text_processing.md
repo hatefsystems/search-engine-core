@@ -23,6 +23,8 @@ Implement comprehensive multilingual text preprocessing pipeline that automatica
 - Automatic script detection and character unification (Arabic→Persian, Cyrillic variants, etc.)
 - Language-agnostic n-gram based language detection
 - Script-specific handling (ZWNJ for Persian/Arabic, word boundaries for CJK, etc.)
+- Universal stopword detection using corpus-based IDF analysis (automatic for all languages)
+- Context-aware stopword identification with confidence scoring
 - Efficient C++ integration for high-throughput processing
 - Extensible architecture for adding new languages/scripts automatically
 
@@ -32,6 +34,11 @@ Implement comprehensive multilingual text preprocessing pipeline that automatica
 - [ ] Create language-agnostic n-gram based detection supporting 100+ languages
 - [ ] Implement script-specific preprocessing (ZWNJ for Arabic scripts, word segmentation for CJK, etc.)
 - [ ] Add automatic language confidence scoring and fallback handling
+- [ ] Build universal IDF-based stopword detector from corpus analysis (any language)
+- [ ] Implement automatic stopword mining using document frequency statistics
+- [ ] Export stopword lexicon to Redis with confidence scores per language
+- [ ] Create nightly batch job for stopword list refresh from corpus updates
+- [ ] Bootstrap with standard stopword lists for major languages as fallback
 - [ ] Create C++ wrapper class with `pybind11` for seamless integration
 - [ ] Add comprehensive unit tests with content from 20+ languages/scripts
 - [ ] Performance benchmarking (1000 docs/sec target for any language)
@@ -41,6 +48,10 @@ Implement comprehensive multilingual text preprocessing pipeline that automatica
 - Language detection accuracy ≥95% across 50+ languages on test corpus
 - Script-specific handling works for Arabic, CJK, Cyrillic, Latin scripts
 - Automatic language detection with confidence scoring
+- Stopword detection accuracy ≥90% based on IDF analysis for any language
+- Stopword lexicon automatically covers 100+ languages without manual configuration
+- Nightly stopword refresh completes within 1 hour for 100M+ documents
+- Redis stopword lookup latency <1ms per query
 - C++ integration adds <5ms latency per document for any language
 - Memory efficient for large-scale processing of any language content
 
@@ -66,9 +77,13 @@ struct LanguageInfo {
 
 ## Files to Create/Modify
 - `src/python/text_processor/`
+- `src/python/text_processor/stopword_detector.py`
+- `src/python/text_processor/idf_analyzer.py`
+- `src/python/batch/nightly_stopword_refresh.py`
 - `include/text/TextProcessor.h`
 - `src/text/TextProcessor.cpp`
 - `tests/text_processing_test.py`
+- `tests/stopword_detection_test.py`
 
 ## Notes
 - Universal design: supports any language/script automatically
