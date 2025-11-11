@@ -8,11 +8,13 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for email diagnostics
       - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL:-tcp://redis:6379}
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}
       - SEARCH_REDIS_POOL_SIZE=${SEARCH_REDIS_POOL_SIZE:-16}
       - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
       - MINIFY_JS=${MINIFY_JS:-true}
       - MINIFY_JS_LEVEL=${MINIFY_JS_LEVEL:-advanced}
+      - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true} 
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
       - JS_CACHE_ENABLED=${JS_CACHE_ENABLED:-true}
       - JS_CACHE_TYPE=${JS_CACHE_TYPE:-redis}
@@ -245,13 +247,13 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
-      - KEY_PREFIX=doc:
-      - SYNC_MODE=${REDIS_SYNC_MODE:-incremental}
+      - KEY_PREFIX="doc:"
+      - SYNC_MODE=${REDIS_SYNC_MODE:-full}  # Use 'full' for initial sync, then switch to 'incremental' for ongoing updates
       - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
       - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
       - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
       - MAX_CONTENT_SIZE=50000
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_LEVEL=${REDIS_SYNC_LOG_LEVEL:-INFO}  # Set to DEBUG for detailed sync diagnostics
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:
       resources:

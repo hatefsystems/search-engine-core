@@ -1,0 +1,22 @@
+# ML Pipeline - Runtime Dependencies
+
+# Core Python
+python-dotenv==1.0.0
+
+# Unicode and text processing
+pyicu==2.11
+
+# Data structures
+pydantic==2.5.0
+
+# Utilities
+python-dateutil==2.8.2
+
+# Future services (prepare for M3-M8)
+fastapi==0.104.1
+uvicorn==0.24.0
+httpx==0.25.2
+
+# Logging
+structlog==23.2.0
+
