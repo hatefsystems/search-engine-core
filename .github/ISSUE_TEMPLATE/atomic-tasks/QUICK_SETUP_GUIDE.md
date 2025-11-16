@@ -35,6 +35,10 @@ Look at completed tasks (M0-M2) for examples of:
 - Acceptance criteria format
 - Celebration ideas
 - Integration patterns
+- **Project structure** - See Task 01.1, 01.2, 01.3 for directory layout
+- **Documentation format** - README.md, QUICK_START.md, PROJECT_STATUS.txt patterns
+- **Testing patterns** - Test organization, fixtures, benchmarks
+- **Code organization** - Shared utilities, module structure
 
 ---
 
@@ -154,6 +158,7 @@ Based on `14_security_compliance.md`:
 2. Fill in details from parent task
 3. Add specific examples and code
 4. Review acceptance criteria
+5. **Copy file structure** from similar completed task (01.1, 01.2, or 01.3)
 
 ### Option 2: Batch Creation (Faster)
 Use the provided breakdown above to create multiple tasks at once:
@@ -163,15 +168,33 @@ Use the provided breakdown above to create multiple tasks at once:
 cd atomic-tasks/M3-semantic/05-embeddings/
 cp ../../TASK_TEMPLATE.md 05.1-co-occurrence-matrix.md
 # Edit and customize...
+
+# Copy file structure from similar task
+cp -r ../../M0-foundation/01-text-processing/01.2-language-detection/* \
+      ../../M3-semantic/05-embeddings/05.1-co-occurrence-matrix/
+# Then customize files
 ```
 
 ### Option 3: AI-Assisted (Fastest)
 Use the template + parent task + this guide to generate remaining tasks.
 
+### Quick File Copying
+When starting a new task, copy these files from completed tasks:
+```bash
+# From Task 01.2 or 01.3:
+cp shared/logger.py [new-task]/shared/
+cp pytest.ini [new-task]/
+cp .gitignore [new-task]/
+cp tests/conftest.py [new-task]/tests/
+cp interactive_test.py [new-task]/  # Then customize
+# Then customize for your specific task
+```
+
 ---
 
 ## 📝 Quality Checklist for Each Task
 
+### Task Definition
 - [ ] Clear daily breakdown (specific deliverables per day)
 - [ ] Measurable acceptance criteria (numbers, metrics)
 - [ ] Celebration moment defined
@@ -179,13 +202,52 @@ Use the template + parent task + this guide to generate remaining tasks.
 - [ ] Integration points specified
 - [ ] Test strategy included
 - [ ] Resources and tips provided
-- [ ] **`docs/ALGORITHMS.md` included** with:
-  - [ ] Detailed algorithm explanations
+
+### Documentation Requirements
+- [ ] **`README.md`** includes:
+  - [ ] Status section (✅ COMPLETE & PRODUCTION-READY format)
+  - [ ] Performance metrics table
+  - [ ] Quick start examples
+  - [ ] Project structure diagram
+  - [ ] Integration examples
+- [ ] **`QUICK_START.md`** - 5-minute setup guide with examples
+- [ ] **`PROJECT_STATUS.txt`** - Completion status with ASCII art header
+- [ ] **`docs/ALGORITHMS.md`** includes:
+  - [ ] Detailed algorithm explanations with step-by-step breakdowns
   - [ ] Mathematical formulations (if applicable)
-  - [ ] Code examples
-  - [ ] Performance analysis
-  - [ ] Learning Resources section with categorized links
-  - [ ] References section
+  - [ ] Code examples demonstrating key concepts
+  - [ ] Performance characteristics (complexity, optimization strategies)
+  - [ ] Learning Resources section with categorized links:
+    - Official documentation and specifications
+    - Research papers and academic resources
+    - Tutorials and hands-on guides
+    - Implementation examples and libraries
+    - Related concepts and advanced topics
+  - [ ] References section with citations
+- [ ] **`docs/api/[feature]-guide.md`** - API documentation with examples
+
+### Code Structure
+- [ ] Follows project structure pattern (text_processing/, tests/, benchmarks/, shared/, docs/)
+- [ ] `shared/logger.py` included (copy from existing tasks or create new)
+- [ ] `interactive_test.py` created for Python tasks
+- [ ] `benchmarks/[feature]_perf.py` created for Python tasks
+- [ ] Proper `__init__.py` files in all packages
+- [ ] `tests/conftest.py` with fixtures
+
+### Configuration Files
+- [ ] `setup.py` or `pyproject.toml` configured
+- [ ] `requirements.txt` with runtime dependencies
+- [ ] `requirements-dev.txt` with dev dependencies
+- [ ] `pytest.ini` configured (matches Task 01.2/01.3 pattern)
+- [ ] `.gitignore` includes: models/, training_data/, __pycache__/, .coverage, htmlcov/, .benchmarks/
+
+### Testing
+- [ ] Unit tests (≥85% coverage target)
+- [ ] Integration tests with dependent tasks
+- [ ] Performance benchmarks
+- [ ] Interactive testing tool
+- [ ] Edge case tests
+- [ ] Error handling tests
 
 ---
 
@@ -213,17 +275,108 @@ Use the template + parent task + this guide to generate remaining tasks.
 2. **Reuse Patterns:** Copy structure from similar completed tasks
 3. **Focus on Differences:** Only customize what's unique to each task
 4. **Test As You Go:** Validate task structure with team before creating many
+5. **Copy Shared Files:** Reuse `shared/logger.py`, `pytest.ini`, `.gitignore` from completed tasks
+6. **Follow Documentation Pattern:** Use Task 01.2's README.md and QUICK_START.md as templates
+7. **Include Interactive Tools:** Always create `interactive_test.py` for Python tasks
+8. **Benchmark Early:** Add performance benchmarks from the start
 
 ---
 
 ## 🚀 Next Steps
 
-1. Review completed M0-M2 tasks for patterns
+1. Review completed M0-M2 tasks for patterns:
+   - Check `01.1-unicode-normalization` for basic structure
+   - Check `01.2-language-detection` for ML/training patterns
+   - Check `01.3-script-specific-processing` for complex processing patterns
 2. Choose a milestone to start (recommend M3)
 3. Create 2-3 tasks using template
-4. Get team feedback
-5. Batch-create remaining tasks for that milestone
-6. Repeat for other milestones
+4. **Verify all deliverables** match checklist above
+5. Get team feedback
+6. Batch-create remaining tasks for that milestone
+7. Repeat for other milestones
+
+## 📋 Standard File Checklist
+
+When creating a new task, ensure these files exist:
+
+### Required Files
+- [ ] `README.md` (with status, metrics, examples)
+- [ ] `QUICK_START.md` (5-minute guide)
+- [ ] `PROJECT_STATUS.txt` (completion status)
+- [ ] `docs/ALGORITHMS.md` (detailed algorithms)
+- [ ] `docs/api/[feature]-guide.md` (API docs)
+- [ ] `setup.py` or `pyproject.toml`
+- [ ] `requirements.txt`
+- [ ] `requirements-dev.txt`
+- [ ] `pytest.ini`
+- [ ] `.gitignore`
+- [ ] `interactive_test.py` (Python tasks)
+- [ ] `benchmarks/[feature]_perf.py` (Python tasks)
+- [ ] `shared/logger.py` (copy from Task 01.2/01.3)
+- [ ] `tests/conftest.py`
+
+### Optional Files (As Needed)
+- [ ] `examples/integration_example.py`
+- [ ] `scripts/[utility].sh` or `.py`
+- [ ] `models/README.md` (if using models)
+- [ ] `training_data/README.md` (if applicable)
+- [ ] `docs/TRAINING_GUIDE.md` (for ML tasks)
+
+## 🔄 Common Patterns from Completed Tasks
+
+### Pattern 1: Shared Logger
+**Always use:** `shared/logger.py` with structured logging
+```python
+from shared.logger import setup_logger
+logger = setup_logger(__name__)
+logger.info("Message", key=value)  # Structured logging
+```
+
+### Pattern 2: Lazy Loading (Heavy Dependencies)
+**For ML models, large libraries:**
+```python
+_model = None
+
+def _get_model():
+    global _model
+    if _model is None:
+        import heavy_library
+        _model = heavy_library.load()
+    return _model
+```
+
+### Pattern 3: Error Handling
+**Always handle gracefully:**
+```python
+try:
+    result = process_text(text)
+except Exception as e:
+    logger.error("Processing failed", error=str(e))
+    return default_result  # Never crash
+```
+
+### Pattern 4: Performance Benchmarks
+**Include in benchmarks/[feature]_perf.py:**
+```python
+import time
+import pytest
+
+def test_throughput():
+    # Test 1000+ docs/sec requirement
+    texts = ["sample"] * 1000
+    start = time.time()
+    for text in texts:
+        process(text)
+    elapsed = time.time() - start
+    assert len(texts) / elapsed >= 1000
+```
+
+### Pattern 5: Interactive Testing
+**Create interactive_test.py:**
+- Interactive CLI for manual testing
+- Support batch mode (command-line args)
+- Show processing steps and results
+- Handle errors gracefully
 
 ---
 
