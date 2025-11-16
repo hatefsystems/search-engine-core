@@ -1,0 +1,8 @@
+# Core Dependencies - Task 01.3 Script-Specific Processing
+jieba-fast>=0.53.0              # Fast Chinese word segmentation (CJK)
+structlog>=23.2.0               # Structured logging
+unicodedata2>=15.1.0            # Enhanced Unicode support (optional but recommended)
+
+# Optional dependencies for extended functionality
+# mecab-python3>=1.0.6         # Japanese tokenization (requires MeCab system library)
+# opencc-python-reimplemented>=1.1.6  # Traditional ↔ Simplified Chinese conversion
