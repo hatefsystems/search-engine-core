@@ -23,6 +23,7 @@ from text_processing.arabic_processor import (
     remove_arabic_diacritics,
     normalize_arabic_shapes,
     process_arabic,
+    ZWNJ,
 )
 from text_processing.cjk_processor import (
     segment_chinese,

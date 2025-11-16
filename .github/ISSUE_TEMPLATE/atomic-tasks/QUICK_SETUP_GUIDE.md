@@ -179,6 +179,13 @@ Use the template + parent task + this guide to generate remaining tasks.
 - [ ] Integration points specified
 - [ ] Test strategy included
 - [ ] Resources and tips provided
+- [ ] **`docs/ALGORITHMS.md` included** with:
+  - [ ] Detailed algorithm explanations
+  - [ ] Mathematical formulations (if applicable)
+  - [ ] Code examples
+  - [ ] Performance analysis
+  - [ ] Learning Resources section with categorized links
+  - [ ] References section
 
 ---
 

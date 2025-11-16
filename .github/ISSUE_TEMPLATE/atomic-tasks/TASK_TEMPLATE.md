@@ -49,8 +49,25 @@
 ## 📦 Deliverables
 - `path/to/main_file.[cpp/py]` ([X] lines estimated)
 - `path/to/test_file.[cpp/py]` ([X]+ test cases)
-- `docs/[feature]-guide.md`
+- `docs/ALGORITHMS.md` (Technical implementation details, algorithms, and learning resources)
+- `docs/[feature]-guide.md` (API documentation)
 - [Additional files as needed]
+
+### ALGORITHMS.md Requirements
+The `docs/ALGORITHMS.md` file must include:
+- **Detailed algorithm explanations** with step-by-step breakdowns
+- **Mathematical formulations** where applicable
+- **Code examples** demonstrating key concepts
+- **Performance characteristics** (complexity, optimization strategies)
+- **Learning Resources section** with categorized links:
+  - Official documentation and specifications
+  - Research papers and academic resources
+  - Tutorials and hands-on guides
+  - Implementation examples and libraries
+  - Related concepts and advanced topics
+- **References** section with citations
+
+See `modules/M0-foundation/01-text-processing/01.2-language-detection/docs/ALGORITHMS.md` and `01.3-script-specific-processing/docs/ALGORITHMS.md` for examples.
 
 ## 🔗 Dependencies & Integration
 
