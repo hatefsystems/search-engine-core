@@ -1122,12 +1122,95 @@ When adding new links to templates:
 
 ## Documentation Requirements
 
+### MANDATORY: Documentation Language
+**ALL documentation MUST be written in English:**
+
+```markdown
+// ❌ WRONG - Documentation in other languages
+# راهنمای استفاده
+این یک مثال فارسی است...
+
+// ✅ CORRECT - Documentation in English
+# Usage Guide
+This is an English example...
+```
+
+**Documentation Language Rules:**
+- ✅ **ALWAYS** write all documentation files in English (README, API docs, comments, guides)
+- ✅ **ALWAYS** write code comments in English
+- ✅ **ALWAYS** write commit messages in English
+- ✅ **ALWAYS** write docstrings/javadoc in English
+- ✅ **ALWAYS** write inline comments in English
+- ❌ **NEVER** use non-English languages in documentation files
+- ❌ **NEVER** use non-English languages in code comments
+- ✅ **EXCEPTION**: Test data or example content (e.g., "این متن فارسی است" as test input)
+- ✅ **EXCEPTION**: Localization files (`locales/fa/`, `locales/ar/`, etc.)
+- ✅ **EXCEPTION**: User-facing content that requires translation
+
+**Why English for Documentation:**
+1. **Global collaboration:** This is an international open-source project
+2. **Wider accessibility:** More developers can understand and contribute
+3. **Industry standard:** English is the standard language for technical documentation
+4. **Tooling compatibility:** Better support from documentation tools and IDEs
+5. **Future maintenance:** Easier for international teams to maintain
+
+**Examples of Correct Documentation:**
+
+```cpp
+// ✅ CORRECT - English comments
+/**
+ * Calculate IDF score for a term
+ * @param term The term to analyze
+ * @param corpus The document corpus
+ * @return IDF score (lower = more common)
+ */
+double calculate_idf(const std::string& term, const std::vector<std::string>& corpus);
+
+// ❌ WRONG - Non-English comments
+/**
+ * محاسبه امتیاز IDF برای یک کلمه
+ * @param term کلمه مورد تحلیل
+ * @return امتیاز IDF
+ */
+```
+
+```python
+# ✅ CORRECT - English docstring
+def detect_stopwords(corpus, threshold=2.0):
+    """
+    Detect stopwords using IDF analysis
+    
+    Args:
+        corpus: List of documents
+        threshold: IDF threshold for stopword detection
+        
+    Returns:
+        Dictionary of stopwords with confidence scores
+    """
+    pass
+
+# ❌ WRONG - Non-English docstring
+def detect_stopwords(corpus, threshold=2.0):
+    """
+    تشخیص استاپ‌وردها با استفاده از IDF
+    
+    آرگومان‌ها:
+        corpus: لیست اسناد
+    """
+    pass
+```
+
+### Documentation Checklist
+
 When adding new features:
-1. Update `README.md` with feature description
-2. Add API documentation to `docs/api/`
-3. Update project structure if new files added
-4. Document any new environment variables
-5. Add examples to documentation
+1. [ ] **Write all documentation in English** (MANDATORY)
+2. [ ] Update `README.md` with feature description
+3. [ ] Add API documentation to `docs/api/`
+4. [ ] Update project structure if new files added
+5. [ ] Document any new environment variables
+6. [ ] Add examples to documentation
+7. [ ] Include code comments in English
+8. [ ] Ensure docstrings/comments follow English grammar
 
 ## Git Commit Messages
 

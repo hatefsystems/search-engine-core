@@ -1,0 +1,14 @@
+# Core Dependencies - Task 01.4 Stopword IDF Analysis
+numpy>=1.24.0,<2.0         # Numerical operations for IDF calculation
+scipy>=1.11.0              # Sparse matrix operations
+pymongo>=4.6.0             # MongoDB corpus access
+redis>=5.0.0               # Fast stopword lookup storage
+structlog>=23.2.0          # Structured logging
+pydantic>=2.5.0            # Data validation
+
+# Stanza NLP for grammar-aware stopword detection (Layer 2)
+stanza>=1.7.0              # POS tagging for 60+ languages
+
+# Optional NLTK for bootstrap stopword lists
+nltk>=3.8.1                # Bootstrap fallback stopword lists
+
