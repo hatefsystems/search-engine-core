@@ -176,6 +176,310 @@ struct LinkPreview {
 - **Deletion**: Delete posts
 - **Archiving**: Archive old posts
 
+## 🎨 Advanced Content Creation Tools
+
+### Rich Text Editor Features
+
+#### Persian Text Formatting
+- **Font selection**: Persian fonts (Vazirmatn, Shabnam, etc.)
+- **Text styling**: Bold, italic, underline, strikethrough
+- **Headings**: H1, H2, H3 for structured content
+- **Lists**: Bulleted and numbered lists
+- **Quotes**: Blockquotes for highlighting
+- **Code blocks**: Code syntax highlighting
+- **Tables**: Create tables for data
+- **RTL support**: Automatic right-to-left text direction
+
+#### Advanced Formatting
+- **Colors**: Text and background colors
+- **Alignment**: Left, center, right, justify
+- **Line spacing**: Adjust line height
+- **Indentation**: Indent paragraphs
+- **Links**: Insert hyperlinks with preview
+- **Mentions**: @mention profiles with autocomplete
+- **Hashtags**: #hashtag with auto-suggestion
+- **Emojis**: Emoji picker with search
+
+### Image Editing Tools
+
+#### Basic Image Editing
+- **Crop**: Crop images to custom sizes
+- **Resize**: Resize images while maintaining aspect ratio
+- **Rotate**: Rotate 90°, 180°, 270°
+- **Flip**: Horizontal and vertical flip
+- **Aspect ratios**: Square (1:1), Landscape (16:9), Portrait (4:5)
+
+#### Image Enhancements
+- **Filters**: Apply filters (Vintage, Black & White, Sepia, etc.)
+- **Brightness**: Adjust brightness levels
+- **Contrast**: Enhance contrast
+- **Saturation**: Adjust color saturation
+- **Sharpness**: Sharpen image details
+- **Blur**: Apply blur effects
+
+#### Image Annotations
+- **Text overlay**: Add Persian text to images
+- **Stickers**: Add stickers and icons
+- **Shapes**: Draw shapes (rectangle, circle, arrow)
+- **Drawings**: Freehand drawing tools
+- **Watermarks**: Add business watermarks
+
+### Video Editing Tools
+
+#### Video Trimming
+- **Trim**: Cut video start and end
+- **Split**: Split video into segments
+- **Merge**: Merge multiple video clips
+- **Duration limits**: Max 5 minutes for standard, 15 for premium
+
+#### Video Enhancements
+- **Thumbnail selection**: Choose or upload custom thumbnail
+- **Filters**: Apply video filters
+- **Speed control**: Slow motion or fast forward (0.5x - 2x)
+- **Rotate**: Rotate video orientation
+- **Crop**: Crop video dimensions
+
+#### Video Captions
+- **Subtitle support**: Add Persian subtitles
+- **Caption editor**: Edit caption timing
+- **Auto-transcribe**: Auto-transcribe Persian audio (future)
+- **Caption styles**: Customize caption appearance
+
+### Media Gallery Management
+
+#### Gallery Organization
+- **Folders**: Organize media into folders
+- **Albums**: Create photo/video albums
+- **Tags**: Tag media for easy search
+- **Search**: Search media by name, date, tag
+- **Bulk upload**: Upload multiple files at once
+- **Bulk actions**: Delete, move, tag multiple items
+
+#### Media Library
+- **Storage quota**: Track storage usage
+- **File formats**: Support for JPEG, PNG, GIF, MP4, MOV
+- **Size limits**: Max 10MB images, 100MB videos
+- **Cloud storage**: Integrated cloud storage
+- **CDN delivery**: Fast content delivery
+
+### Content Templates
+
+#### Business Announcement Templates
+```
+📢 اطلاعیه مهم
+[Business Name]
+
+[Announcement Title]
+
+[Main Content]
+
+🔗 لینک: [URL]
+📞 تماس: [Phone]
+
+#اطلاعیه #[Business Category]
+```
+
+#### Product Launch Template
+```
+🎉 معرفی محصول جدید
+[Product Name]
+
+✨ ویژگی‌های کلیدی:
+• [Feature 1]
+• [Feature 2]
+• [Feature 3]
+
+💰 قیمت: [Price]
+🛒 سفارش: [Order Link]
+
+#محصول_جدید #[Category]
+```
+
+#### Event Promotion Template
+```
+📅 رویداد پیش‌رو
+[Event Name]
+
+📍 مکان: [Location]
+🕐 زمان: [Date & Time]
+👥 ظرفیت: [Capacity]
+
+[Event Description]
+
+🎟️ ثبت‌نام: [Registration Link]
+
+#رویداد #[Event Type]
+```
+
+#### Special Offer Template
+```
+🔥 پیشنهاد ویژه
+[Offer Title]
+
+💎 تخفیف: [Discount %]
+⏰ مهلت: [End Date]
+
+[Offer Details]
+
+🛍️ خرید: [Purchase Link]
+
+#تخفیف #پیشنهاد_ویژه
+```
+
+#### Customer Success Story Template
+```
+⭐ داستان موفقیت
+[Customer Name]
+
+[Success Story Summary]
+
+"[Customer Quote]"
+
+[Detailed Story]
+
+💼 نتیجه: [Results/Achievements]
+
+#موفقیت #مشتری_راضی
+```
+
+#### Job Posting Template
+```
+💼 فرصت شغلی
+[Job Title]
+
+🏢 شرکت: [Company Name]
+📍 محل: [Location]
+💰 حقوق: [Salary Range]
+
+📋 شرح وظایف:
+• [Duty 1]
+• [Duty 2]
+
+🎯 مهارت‌های مورد نیاز:
+• [Skill 1]
+• [Skill 2]
+
+📧 ارسال رزومه: [Email]
+
+#استخدام #[Job Category]
+```
+
+### Content Scheduling Features
+
+#### Advanced Scheduling
+- **Date and time**: Schedule for specific date/time
+- **Persian calendar**: Select date from Jalali calendar
+- **Timezone aware**: Asia/Tehran timezone support
+- **Recurring posts**: Daily, weekly, monthly recurring
+- **Queue system**: Queue multiple posts
+- **Best time recommendations**: AI suggests optimal posting times
+
+#### Scheduling Analytics
+- **Best posting times**: When your audience is most active
+- **Day analysis**: Best days for engagement
+- **Time slots**: Morning, afternoon, evening performance
+- **Engagement prediction**: Predicted engagement for scheduled time
+- **Historic data**: Based on past posting performance
+
+#### Schedule Management
+- **Calendar view**: Visual calendar of scheduled posts
+- **Edit scheduled**: Edit posts before they publish
+- **Cancel scheduled**: Cancel scheduled posts
+- **Reschedule**: Change posting time
+- **Draft queue**: Save posts to draft queue
+- **Approval workflow**: Manager approval for scheduled posts
+
+### Content Templates Library
+
+#### Template Categories
+- **Business updates**: General business announcements
+- **Product promotions**: Product/service marketing
+- **Event marketing**: Event promotions
+- **Educational**: Tips, tutorials, guides
+- **Engagement**: Polls, questions, discussions
+- **Seasonal**: Holiday and seasonal posts
+- **Industry-specific**: Templates per industry
+
+#### Template Customization
+- **Custom templates**: Create reusable templates
+- **Template variables**: [Business Name], [Product], [Date]
+- **Brand colors**: Apply brand colors to templates
+- **Logo integration**: Add business logo to templates
+- **Save as template**: Save any post as template
+- **Share templates**: Share templates with team
+
+### Multi-Platform Scheduling
+
+#### Platform Integration
+- **Hatef.ir feed**: Primary platform
+- **Future integrations**: Instagram, Telegram (planned)
+- **Cross-posting**: Post to multiple platforms
+- **Platform-specific**: Optimize for each platform
+- **Format adaptation**: Auto-adapt format per platform
+
+#### Platform Optimization
+- **Character limits**: Respect platform limits
+- **Image sizes**: Optimize image sizes per platform
+- **Hashtag rules**: Platform-specific hashtag rules
+- **Best practices**: Platform-specific best practices
+
+### Collaborative Content Creation
+
+#### Team Collaboration
+- **Multiple authors**: Multiple team members can create
+- **Draft sharing**: Share drafts with team
+- **Comments**: Leave comments on drafts
+- **Version history**: Track content revisions
+- **Approval workflow**: Submit for approval
+- **Role-based access**: Control who can post
+
+#### Content Review
+- **Review queue**: Posts awaiting review
+- **Approve/reject**: Approve or reject posts
+- **Edit suggestions**: Suggest edits to authors
+- **Review comments**: Leave review feedback
+- **Revision requests**: Request changes
+
+### Content Performance Tools
+
+#### A/B Testing
+- **Test variations**: Test different headlines, images
+- **Split traffic**: 50/50 or custom split
+- **Performance tracking**: Track variation performance
+- **Winner selection**: Auto-select winning variation
+- **Learning insights**: Learn what works best
+
+#### Content Optimization
+- **SEO suggestions**: SEO-friendly content tips
+- **Readability score**: Persian readability analysis
+- **Engagement prediction**: AI predicts engagement
+- **Hashtag suggestions**: Suggest trending hashtags
+- **Optimal length**: Suggest ideal content length
+- **Image recommendations**: Suggest adding images
+
+### Persian Business Content Features
+
+#### Persian Content Tools
+- **Persian spell checker**: Check Persian spelling
+- **Persian grammar**: Basic grammar checking
+- **Persian formality**: Formal vs. informal tone
+- **Persian localization**: Regional dialect support
+- **Persian numbers**: Convert between Persian/English numbers
+- **Persian dates**: Jalali calendar integration
+
+#### Business Communication
+- **Professional tone**: Business-appropriate language
+- **Call-to-action**: Strong Persian CTAs
+- **Contact info**: Auto-insert business contact info
+- **Legal compliance**: Ensure Persian business compliance
+- **Cultural sensitivity**: Culturally appropriate content
+
+#### Industry-Specific Tools
+- **Industry vocabulary**: Industry-specific Persian terms
+- **Technical terms**: Technical terminology assistance
+- **Compliance checks**: Industry regulation compliance
+- **Content guidelines**: Industry best practices
+
 ## 🔍 Content Discovery
 
 ### Discovery Algorithm
