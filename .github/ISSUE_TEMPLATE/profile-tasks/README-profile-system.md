@@ -2,9 +2,15 @@
 
 **Epic Goal:** Build a comprehensive profile system for Hatef.ir that provides clean URLs, rich profile pages, and integrates deeply with the search engine to create a unified online identity platform for Persian users and businesses.
 
-**Total Duration:** 12-15 weeks (17 atomic tasks)
+**Strategic Goals:**
+1. ✅ Centralize and clean online identity of Persian speakers
+2. ✅ Directly help achieve goals (customer acquisition, jobs, professional credibility)
+3. ✅ Provide unique Persian market solution (different from LinkedIn/Linktree/Google Business)
+4. ✅ Be engaging enough for 1 million daily visits
+
+**Total Duration:** 20 weeks (24 atomic tasks: 17 original + 7 new critical tasks)
 **Dependencies:** Search engine core, User authentication, MongoDB, uWebSockets
-**Success Metrics:** 1000+ active profiles, 50% profile completeness rate, 95% search integration accuracy
+**Success Metrics:** 1M+ daily visits, 100K+ active profiles, 70% profile completeness rate, 95% search integration accuracy, 15%+ engagement rate
 
 ---
 
@@ -38,6 +44,18 @@
 
 ### 🎛️ Management & UI (1 task, ~5 days)
 17. **[17-profile-management-dashboard.md](17-profile-management-dashboard.md)** - Dashboard and admin controls
+
+### 🔥 CRITICAL: Engagement & Conversion (7 new tasks, ~25 days)
+18. **[18-lead-generation-inquiry.md](18-lead-generation-inquiry.md)** 🔴 - Lead generation & business inquiry system
+19. **[19-professional-networking.md](19-professional-networking.md)** 🟠 - Professional networking & connections
+20. **[20-job-application-system.md](20-job-application-system.md)** 🟡 - Job application & candidate management
+21. **[21-persian-business-discovery.md](21-persian-business-discovery.md)** 🟠 - Persian business discovery & local networking
+22. **[22-persian-content-feed.md](22-persian-content-feed.md)** 🟠 - Persian content feed & discovery
+23. **[23-profile-discovery-trending.md](23-profile-discovery-trending.md)** 🔴 - Profile discovery & trending system
+24. **[24-social-engagement-gamification.md](24-social-engagement-gamification.md)** 🔴 - Social engagement & gamification
+
+### 📊 Analysis & Strategy
+- **[ANALYSIS_AND_IMPROVEMENTS.md](ANALYSIS_AND_IMPROVEMENTS.md)** - Complete analysis against 4 strategic goals
 
 ---
 
@@ -157,25 +175,41 @@ graph TD
 
 ---
 
-## 🚀 Launch Strategy
+## 🚀 Launch Strategy (Updated)
 
-### Phase 1: Core Launch (Weeks 1-6)
-- Basic profiles for individuals
+### Phase 1: Foundation + Engagement (Weeks 1-8)
+- Basic profiles for individuals and businesses
 - Clean URLs and link blocks
 - Search integration
 - Profile management dashboard
+- **Profile discovery & trending system** (Task 23)
+- **Social engagement & gamification** (Task 24)
+- **Viral sharing mechanisms** (Task 26 - TODO)
+- **Expected Outcome:** 10K-50K daily visits
 
-### Phase 2: Business Features (Weeks 7-10)
+### Phase 2: Conversion Features (Weeks 9-12)
 - Business profile creation
 - Products, reviews, jobs
+- **Lead generation system** (Task 18)
+- **Professional networking** (Task 19)
+- **Job application system** (Task 20)
+- **Expected Outcome:** 50K-200K daily visits
+
+### Phase 3: Unique Persian Features (Weeks 13-16)
 - Iran-specific features
 - Advanced verification
+- **Persian business discovery** (Task 21)
+- **Persian content feed** (Task 22)
+- **Content creation platform** (Task 25 - TODO)
+- **Expected Outcome:** 200K-500K daily visits
 
-### Phase 3: Advanced Features (Weeks 11-15)
+### Phase 4: Community & Scale (Weeks 17-20)
 - Full analytics and insights
 - Advanced search integration
 - Complete admin controls
+- **Community & groups system** (Task 27 - TODO)
 - Performance optimization
+- **Expected Outcome:** 500K-1M+ daily visits
 
 ---
 
@@ -226,13 +260,29 @@ graph TD
 
 ---
 
-## 📈 Growth Strategy
+## 📈 Growth Strategy (Enhanced)
 
 ### User Acquisition
 1. **Search Integration**: Profiles appear in relevant searches
-2. **Social Sharing**: Easy profile sharing and QR codes
-3. **Migration Tools**: Import from LinkedIn/other platforms
-4. **Business Partnerships**: Integration with Iranian businesses
+2. **Profile Discovery**: Trending and popular profiles showcase
+3. **Viral Sharing**: Social sharing with tracking and rewards
+4. **Social Engagement**: Likes, follows, comments drive return visits
+5. **Recommendations**: "People you may know" and skill-based matching
+6. **Migration Tools**: Import from LinkedIn/other platforms
+7. **Business Partnerships**: Integration with Iranian businesses
+
+### Engagement & Retention
+1. **Gamification**: Badges, achievements, milestones
+2. **Social Proof**: View counts, likes, followers
+3. **Content Feed**: Profile updates and activity feed
+4. **Community Features**: Groups and discussions
+5. **Notifications**: Engagement-driven notifications
+
+### Conversion Mechanisms
+1. **Lead Generation**: Direct inquiry forms on business profiles
+2. **Professional Networking**: Connections and messaging
+3. **Job Applications**: Complete application workflow
+4. **Business Discovery**: Local business directory and networking
 
 ### Feature Expansion
 1. **Messaging Integration**: Direct messaging between profiles
@@ -245,6 +295,7 @@ graph TD
 2. **Business Verification**: Paid verification services
 3. **White-label Solutions**: Custom profile systems for businesses
 4. **Advertising**: Profile-based targeted advertising
+5. **Lead Generation**: Premium lead management features
 
 ---
 
