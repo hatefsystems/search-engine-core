@@ -157,7 +157,7 @@ curl http://localhost:3000/api/profiles/resume/pdf \
 - Profile visit sources
 
 ## 🎉 Success Criteria
-- Resume renders correctly with Persian/Arabic text
+- Resume renders correctly with Unicode text
 - PDF generation completes within 3 seconds
 - Timeline visualization shows proper chronological order
 - Resume completeness score calculates accurately

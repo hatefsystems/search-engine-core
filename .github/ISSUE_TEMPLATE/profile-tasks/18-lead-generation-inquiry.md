@@ -9,7 +9,7 @@
 - ✅ Automated lead notifications
 - ✅ Lead management dashboard
 - ✅ Conversion tracking and analytics
-- ✅ Persian inquiry templates
+- ✅ Local language inquiry templates
 - ✅ CRM integration capabilities
 - ✅ Lead export functionality
 
@@ -24,12 +24,12 @@ Implement a comprehensive lead generation system that allows visitors to directl
 - Implement inquiry form on business profiles
 - Add inquiry categorization (quote, partnership, support, general)
 - Create inquiry validation and spam protection
-- Add Persian inquiry templates
+- Add local language inquiry templates
 
 ### Day 2: Lead Capture & Notification System
 - Implement real-time lead capture
 - Create automated email notifications for businesses
-- Add SMS notification support (Iranian providers)
+- Add SMS notification support (local providers)
 - Create lead status tracking (new, contacted, converted, lost)
 - Add lead priority scoring
 

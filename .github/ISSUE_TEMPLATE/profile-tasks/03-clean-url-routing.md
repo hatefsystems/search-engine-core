@@ -5,7 +5,7 @@
 **Acceptance Criteria:**
 - ✅ URL patterns: hatef.ir/username, hatef.ir/@handle, hatef.ir/company-name
 - ✅ Automatic slug generation from names
-- ✅ Unicode-friendly slug creation (Persian/Arabic support)
+- ✅ Unicode-friendly slug creation (Unicode support)
 - ✅ Duplicate slug collision handling
 - ✅ SEO-friendly URL redirects
 - ✅ URL validation and sanitization
@@ -19,7 +19,7 @@ Implement clean, readable URLs for profiles that work across different languages
 
 ### Day 1: Slug Generation Engine
 - Create SlugGenerator utility class
-- Implement Unicode normalization for Persian/Arabic
+- Implement Unicode normalization for Unicode characters
 - Add automatic transliteration for non-ASCII characters
 - Handle special characters and punctuation
 - Create slug uniqueness checking
@@ -45,8 +45,8 @@ Implement clean, readable URLs for profiles that work across different languages
 GET /john-doe                    // Person profile
 GET /@johndoe                    // Short handle
 GET /apple-inc                   // Company profile
-GET /شرکت-تست                    // Persian company name
-GET /موبایل-فروشان              // Persian business
+GET /شرکت-تست                    // Unicode company name
+GET /موبایل-فروشان              // Unicode business
 
 // API endpoints for URL management
 GET  /api/profiles/check-slug    // Check slug availability
@@ -57,7 +57,7 @@ POST /api/profiles/change-slug   // Change profile URL
 
 ### URL Generation Tests
 ```cpp
-TEST(SlugGeneratorTest, PersianSlugGeneration) {
+TEST(SlugGeneratorTest, UnicodeSlugGeneration) {
     std::string input = "شرکت موبایل فروشان";
     std::string expected = "شرکت-موبایل-فروشان";
     EXPECT_EQ(generateSlug(input), expected);
@@ -82,7 +82,7 @@ curl "http://localhost:3000/api/profiles/check-slug?slug=test-slug"
 
 ## 🔍 Unicode Handling
 
-### Persian/Arabic Characters
+### Unicode Characters
 - Normalize different forms of same letters
 - Remove diacritics and special marks
 - Convert Arabic numerals to standard digits
@@ -96,7 +96,7 @@ curl "http://localhost:3000/api/profiles/check-slug?slug=test-slug"
 
 ## 🎉 Success Criteria
 - All URL formats resolve correctly
-- Persian/Arabic URLs work properly
+- Unicode URLs work properly
 - Slug generation is deterministic and fast
 - URL conflicts resolved automatically
 - SEO redirects work for URL changes

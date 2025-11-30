@@ -112,7 +112,7 @@ TEST(JobPostingTest, CreateCompleteJobPosting) {
     JobPosting job{
         .title = "Senior Software Engineer",
         .type = JobType::FULL_TIME,
-        .location = "Tehran, Iran",
+        .location = "CityName",
         .salary = createSalaryRange(80000, 120000),
         .isRemote = true
     };

@@ -196,7 +196,7 @@ relevanceScore = (
 
 ### Group Types
 - **Industry Groups**: Tech, Finance, Healthcare, etc.
-- **Location Groups**: Tehran, Isfahan, Shiraz, etc.
+- **Location Groups**: CityName1, CityName2, CityName3, etc.
 - **Skill Groups**: Programming, Design, Marketing, etc.
 - **Interest Groups**: Entrepreneurship, Innovation, etc.
 

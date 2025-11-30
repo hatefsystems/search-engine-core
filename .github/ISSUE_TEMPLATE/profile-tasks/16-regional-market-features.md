@@ -1,52 +1,52 @@
-# 🚀 Ecosystem Features for Iran Market
+# 🚀 Regional Market Features
 
 **Duration:** 4 days
 **Dependencies:** Business profile information, Profile verification
 **Acceptance Criteria:**
 - ✅ National ID and business registration integration
-- ✅ Persian business categorization system
+- ✅ Local business categorization system
 - ✅ Local payment gateway integration
 - ✅ Geographic business clustering
-- ✅ Persian language optimization
-- ✅ Iran-specific business hours and holidays
+- ✅ Local language optimization
+- ✅ Local market-specific business hours and holidays
 - ✅ Local search result prioritization
-- ✅ Persian character and RTL support
+- ✅ Local language character and RTL support
 
 ## 🎯 Task Description
 
-Implement Iran-specific features that cater to the local market, including regulatory compliance, local business practices, and Persian language optimization.
+Implement regional market-specific features that cater to the local market, including regulatory compliance, local business practices, and local language optimization.
 
 ## 📋 Daily Breakdown
 
 ### Day 1: Regulatory Compliance Features
 - Implement national ID integration
 - Add business registration number validation
-- Create Iran-specific business categories
+- Create local market-specific business categories
 - Add regulatory document storage
 - Implement compliance verification
 
-### Day 2: Persian Language Optimization
-- Enhance Persian text processing
+### Day 2: Local Language Optimization
+- Enhance local language text processing
 - Implement RTL layout support
-- Add Persian business terminology
-- Create Persian search optimization
-- Add Persian date and number formatting
+- Add local business terminology
+- Create local search optimization
+- Add local date and number formatting
 
 ### Day 3: Local Business Integration
 - Implement local payment gateways
 - Add geographic business clustering
-- Create Iran business hours system
+- Create local market business hours system
 - Add local holiday support
 - Implement local address validation
 
-### Day 4: Iran Market Analytics
-- Add Iran-specific business insights
+### Day 4: Regional Market Analytics
+- Add local market-specific business insights
 - Create local market trend analysis
 - Implement regional business networking
-- Add Persian content analytics
-- Create Iran market dashboard
+- Add local content analytics
+- Create regional market dashboard
 
-## 🔧 Iran-Specific Data Structures
+## 🔧 Regional Market-Specific Data Structures
 
 ```cpp
 struct IranBusinessProfile {
@@ -55,7 +55,7 @@ struct IranBusinessProfile {
     std::string economicCode;
     IranBusinessCategory category;
     std::vector<IranRegulatoryDocument> documents;
-    PersianBusinessInfo persianInfo;
+    RegionalBusinessInfo regionalInfo;
     LocalPaymentMethods payments;
     IranBusinessHours hours;
 };
@@ -77,25 +77,25 @@ struct IranBusinessProfile {
 - Compliance status dashboard
 - Audit trail for changes
 
-## 🇮🇷 Persian Language Support
+## 🌐 Local Language Support
 
 ### Text Processing
-- Persian character normalization
+- Local language character normalization
 - RTL text rendering support
-- Persian number and date formatting
-- Persian business terminology database
-- Persian search query processing
+- Local number and date formatting
+- Local business terminology database
+- Local search query processing
 
 ### Content Optimization
-- Persian SEO guidelines
-- Persian meta description generation
-- Persian social media sharing
-- Persian content validation
-- Persian keyword analysis
+- Local SEO guidelines
+- Local meta description generation
+- Local social media sharing
+- Local content validation
+- Local keyword analysis
 
 ## 💳 Local Payment Integration
 
-### Iranian Payment Gateways
+### Local Payment Gateways
 - Integration with local PSPs (پرداخت‌یار, زرین‌پال, etc.)
 - Mobile payment support (شارژ کیف پول)
 - Bank transfer integration
@@ -103,15 +103,15 @@ struct IranBusinessProfile {
 - Payment status tracking
 
 ### Business Payment Features
-- Invoice generation in Persian
-- Tax calculation for Iranian businesses
+- Invoice generation in local language
+- Tax calculation for local businesses
 - Payment receipt management
 - Multi-currency support (Rial/Toman)
 - Payment analytics and reporting
 
 ## 📍 Geographic Features
 
-### Iran Business Clustering
+### Regional Business Clustering
 - Province-based business grouping
 - City-level business directories
 - Local business networking
@@ -119,7 +119,7 @@ struct IranBusinessProfile {
 - Regional business insights
 
 ### Location Services
-- Iranian address validation
+- Local address validation
 - Postal code integration
 - Geographic coordinate accuracy
 - Local transportation integration
@@ -140,35 +140,35 @@ TEST(IranComplianceTest, ValidateBusinessRegistration) {
 }
 ```
 
-### Persian Language Tests
+### Local Language Tests
 ```cpp
-TEST(PersianSupportTest, ProcessPersianText) {
-    std::string persianText = "شرکت فناوری اطلاعات";
-    auto processed = processPersianText(persianText);
+TEST(LocalLanguageSupportTest, ProcessLocalText) {
+    std::string localText = "شرکت فناوری اطلاعات";
+    auto processed = processLocalText(localText);
     EXPECT_TRUE(isRTLText(processed));
-    EXPECT_TRUE(containsPersianCharacters(processed));
+    EXPECT_TRUE(containsLocalCharacters(processed));
 }
 ```
 
 ### Integration Tests
 ```bash
-# Test Persian profile creation
-curl -X POST http://localhost:3000/api/profiles/iran \
+# Test local profile creation
+curl -X POST http://localhost:3000/api/profiles/local \
   -H "Content-Type: application/json" \
   -d '{"businessName":"شرکت تست","nationalId":"0123456789"}'
 
 # Test local payment integration
-curl http://localhost:3000/api/payments/iran/gateways
+curl http://localhost:3000/api/payments/local/gateways
 ```
 
-## 📊 Iran Market Analytics
+## 📊 Regional Market Analytics
 
 ### Local Business Insights
-- Persian business category trends
+- Local business category trends
 - Regional business growth analysis
 - Local payment method preferences
-- Persian search query analysis
-- Iran-specific business metrics
+- Local search query analysis
+- Local market-specific business metrics
 
 ### Regulatory Analytics
 - Compliance rate by business type
@@ -176,30 +176,30 @@ curl http://localhost:3000/api/payments/iran/gateways
 - Business registration trends
 - Geographic compliance distribution
 
-## 🎨 Persian UI/UX Features
+## 🎨 Local Language UI/UX Features
 
 ### RTL Design Support
 - Right-to-left layout implementation
-- Persian font optimization
+- Local language font optimization
 - RTL form input handling
-- Persian calendar integration
+- Local calendar integration
 - RTL navigation patterns
 
 ### Cultural Adaptation
-- Persian business card formats
+- Local business card formats
 - Local color scheme preferences
-- Persian user interface terminology
+- Local user interface terminology
 - Cultural business practice support
-- Persian customer service integration
+- Local customer service integration
 
 ## 🎉 Success Criteria
 - National ID validation works accurately
-- Persian text renders correctly with RTL support
+- Local language text renders correctly with RTL support
 - Local payment gateways integrate properly
 - Regulatory compliance features work seamlessly
-- Iran business categories are comprehensive
-- Persian search optimization improves results
-- Geographic clustering works for Iran locations
+- Local market business categories are comprehensive
+- Local search optimization improves results
+- Geographic clustering works for regional locations
 - Local business insights provide value
-- System handles Persian character encoding correctly
-- Iran-specific features scale properly
+- System handles local language character encoding correctly
+- Regional market-specific features scale properly

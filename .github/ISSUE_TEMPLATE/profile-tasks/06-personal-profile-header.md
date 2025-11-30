@@ -4,7 +4,7 @@
 **Dependencies:** Profile database models, Clean URL routing
 **Acceptance Criteria:**
 - ✅ Profile header with avatar and cover image
-- ✅ Name fields (Persian/English) with proper display
+- ✅ Name fields (Unicode/English) with proper display
 - ✅ Tagline/bio section with character limits
 - ✅ Location and contact information
 - ✅ Skills and expertise tags
@@ -21,7 +21,7 @@ Create the header section for personal profiles with all the essential informati
 ### Day 1: Header Layout & Basic Fields
 - Design profile header HTML template
 - Implement avatar and cover image display
-- Add name fields with Persian/English support
+- Add name fields with Unicode/English support
 - Create tagline/bio input with validation
 - Add location and basic contact fields
 - Implement responsive design for mobile
@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/api/profiles/avatar \
 ## 🎉 Success Criteria
 - Header renders correctly across devices
 - Avatar images upload and process within 2 seconds
-- All text fields support Persian/Arabic characters
+- All text fields support Unicode characters
 - Skills autocomplete works with 1000+ skills
 - Header completeness score calculates accurately
 - Privacy controls work as expected

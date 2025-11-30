@@ -206,7 +206,7 @@ matchScore = (
 ### Communication Channels
 - **Email**: Send emails to candidates
 - **In-app messaging**: Message candidates through platform
-- **SMS**: Send SMS notifications (Iranian providers)
+- **SMS**: Send SMS notifications (local providers)
 - **Notifications**: In-app notifications
 
 ### Communication Templates

@@ -9,7 +9,7 @@
 - ✅ Twitter Card support
 - ✅ Automatic schema markup validation
 - ✅ SEO-optimized page titles and descriptions
-- ✅ Rich snippets testing in Google Search Console
+- ✅ Rich snippets testing in Search Console
 
 ## 🎯 Task Description
 
@@ -43,7 +43,7 @@ Implement comprehensive SEO features for profiles including structured data mark
 - Implement meta description generation
 - Add structured breadcrumb navigation
 - Create sitemap integration for profiles
-- Add Google Search Console verification
+- Add Search Console verification
 - Implement rich snippet testing tools
 
 ## 🔧 Structured Data Examples
@@ -68,7 +68,7 @@ Implement comprehensive SEO features for profiles including structured data mark
     "name": "Software Engineer",
     "occupationLocation": {
       "@type": "City",
-      "name": "Tehran",
+      "name": "CityName",
       "addressCountry": "IR"
     }
   }
@@ -82,13 +82,13 @@ Implement comprehensive SEO features for profiles including structured data mark
   "@type": "Organization",
   "name": "Tech Startup Inc",
   "alternateName": "TSI",
-  "description": "Leading technology company in Iran",
+  "description": "Leading technology company",
   "url": "https://hatef.ir/tech-startup-inc",
   "logo": "https://hatef.ir/profiles/tech-startup/logo.png",
   "foundingDate": "2020-01-01",
   "address": {
     "@type": "PostalAddress",
-    "addressLocality": "Tehran",
+    "addressLocality": "CityName",
     "addressCountry": "IR"
   },
   "contactPoint": {
@@ -129,7 +129,7 @@ curl -s http://localhost:3000/john-doe | grep "twitter:card"
 ```
 
 ### Rich Snippets Testing
-- Use Google's Rich Results Test tool
+- Use Rich Results Test tool
 - Verify structured data appears in search results
 - Test social media unfurling
 - Validate Open Graph images generate correctly
@@ -151,9 +151,9 @@ curl -s http://localhost:3000/john-doe | grep "twitter:card"
 - Profile completeness scores
 
 ## 🎉 Success Criteria
-- All profiles pass Google's Rich Results Test
+- All profiles pass Rich Results Test
 - Social media sharing shows rich previews
-- Profiles appear in Google Person/Organization search
+- Profiles appear in Person/Organization search
 - Page load speed < 2 seconds
 - 95%+ structured data validation success rate
 - Twitter Card and Open Graph validation passes

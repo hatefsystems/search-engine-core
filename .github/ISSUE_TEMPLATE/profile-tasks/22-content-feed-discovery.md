@@ -1,22 +1,22 @@
-# 🚀 Persian Content Feed & Discovery
+# 🚀 Content Feed & Discovery
 
 **Duration:** 4 days
 **Dependencies:** Profile database models, Social engagement (Task 24), Profile discovery (Task 23)
 **Priority:** 🟠 HIGH - Critical for engagement and 1M daily visits
 **Acceptance Criteria:**
 - ✅ Profile activity feed
-- ✅ Persian content sharing
+- ✅ Local content sharing
 - ✅ Profile updates and announcements
 - ✅ Trending profiles and businesses
 - ✅ Content discovery algorithm
-- ✅ Persian hashtag system
+- ✅ Local hashtag system
 - ✅ Content engagement (likes, comments, shares)
 - ✅ Feed personalization
 - ✅ Content moderation
 
 ## 🎯 Task Description
 
-Create a comprehensive Persian content feed system that allows profiles to share updates, announcements, and content while providing users with a personalized feed of relevant content from profiles they follow or are interested in.
+Create a comprehensive content feed system that allows profiles to share updates, announcements, and content while providing users with a personalized feed of relevant content from profiles they follow or are interested in.
 
 ## 📋 Daily Breakdown
 
@@ -29,7 +29,7 @@ Create a comprehensive Persian content feed system that allows profiles to share
 
 ### Day 2: Content Creation & Sharing
 - Implement content creation interface
-- Add Persian text editor with formatting
+- Add Local language text editor with formatting
 - Create image and video upload system
 - Add link preview generation
 - Implement content scheduling
@@ -37,7 +37,7 @@ Create a comprehensive Persian content feed system that allows profiles to share
 ### Day 3: Content Discovery & Trending
 - Create content discovery algorithm
 - Implement trending content system
-- Add Persian hashtag system
+- Add Local hashtag system
 - Create content recommendations
 - Add content search functionality
 
@@ -56,12 +56,12 @@ struct ContentPost {
     std::string profileId;
     std::string profileType; // PERSON, BUSINESS
     ContentType type; // TEXT, IMAGE, VIDEO, LINK, ANNOUNCEMENT
-    std::string title; // Persian title
-    std::string content; // Persian content
+    std::string title; // Local language title
+    std::string content; // Local language content
     std::vector<std::string> imageUrls;
     std::vector<std::string> videoUrls;
     LinkPreview linkPreview;
-    std::vector<std::string> hashtags; // Persian hashtags
+    std::vector<std::string> hashtags; // Local hashtags
     std::vector<std::string> mentions; // @mentions
     PostVisibility visibility; // PUBLIC, CONNECTIONS, PRIVATE
     int likeCount = 0;
@@ -87,8 +87,8 @@ struct FeedItem {
     bool isEngaged = false; // User engaged with this item
 };
 
-struct PersianHashtag {
-    std::string tag; // Persian hashtag
+struct LocalHashtag {
+    std::string tag; // Local hashtag
     std::string normalizedTag; // Normalized for search
     int postCount = 0;
     int followerCount = 0; // Users following this hashtag
@@ -134,9 +134,9 @@ struct LinkPreview {
 ### Content Types
 
 #### Text Posts
-- **Rich text editor**: Persian text editor with formatting
+- **Rich text editor**: Local language text editor with formatting
 - **Character limit**: Configurable character limits
-- **Persian fonts**: Support for Persian fonts
+- **Local language fonts**: Support for local language fonts
 - **Emoji support**: Emoji support
 - **Mentions**: @mention other profiles
 - **Hashtags**: #hashtag support
@@ -144,7 +144,7 @@ struct LinkPreview {
 #### Image Posts
 - **Image upload**: Upload single or multiple images
 - **Image editing**: Basic image editing tools
-- **Image captions**: Add Persian captions
+- **Image captions**: Add local language captions
 - **Image albums**: Create image albums
 - **Image compression**: Automatic image optimization
 
@@ -152,14 +152,14 @@ struct LinkPreview {
 - **Video upload**: Upload video files
 - **Video processing**: Video processing and optimization
 - **Video thumbnails**: Auto-generate thumbnails
-- **Video captions**: Add Persian captions
+- **Video captions**: Add local language captions
 - **Video duration limits**: Configurable duration limits
 
 #### Link Posts
 - **Link sharing**: Share external links
 - **Link preview**: Auto-generate link previews
 - **Link validation**: Validate link safety
-- **Link description**: Add Persian description
+- **Link description**: Add local language description
 - **Link tracking**: Track link clicks
 
 #### Announcements
@@ -180,8 +180,8 @@ struct LinkPreview {
 
 ### Rich Text Editor Features
 
-#### Persian Text Formatting
-- **Font selection**: Persian fonts (Vazirmatn, Shabnam, etc.)
+#### Local Language Text Formatting
+- **Font selection**: Local language fonts (Vazirmatn, Shabnam, etc.)
 - **Text styling**: Bold, italic, underline, strikethrough
 - **Headings**: H1, H2, H3 for structured content
 - **Lists**: Bulleted and numbered lists
@@ -218,7 +218,7 @@ struct LinkPreview {
 - **Blur**: Apply blur effects
 
 #### Image Annotations
-- **Text overlay**: Add Persian text to images
+- **Text overlay**: Add local language text to images
 - **Stickers**: Add stickers and icons
 - **Shapes**: Draw shapes (rectangle, circle, arrow)
 - **Drawings**: Freehand drawing tools
@@ -240,9 +240,9 @@ struct LinkPreview {
 - **Crop**: Crop video dimensions
 
 #### Video Captions
-- **Subtitle support**: Add Persian subtitles
+- **Subtitle support**: Add local language subtitles
 - **Caption editor**: Edit caption timing
-- **Auto-transcribe**: Auto-transcribe Persian audio (future)
+- **Auto-transcribe**: Auto-transcribe local language audio (future)
 - **Caption styles**: Customize caption appearance
 
 ### Media Gallery Management
@@ -368,8 +368,8 @@ struct LinkPreview {
 
 #### Advanced Scheduling
 - **Date and time**: Schedule for specific date/time
-- **Persian calendar**: Select date from Jalali calendar
-- **Timezone aware**: Asia/Tehran timezone support
+- **Local calendar**: Select date from Jalali calendar
+- **Timezone aware**: Local timezone support
 - **Recurring posts**: Daily, weekly, monthly recurring
 - **Queue system**: Queue multiple posts
 - **Best time recommendations**: AI suggests optimal posting times
@@ -451,34 +451,107 @@ struct LinkPreview {
 
 #### Content Optimization
 - **SEO suggestions**: SEO-friendly content tips
-- **Readability score**: Persian readability analysis
+- **Readability score**: Local language readability analysis
 - **Engagement prediction**: AI predicts engagement
 - **Hashtag suggestions**: Suggest trending hashtags
 - **Optimal length**: Suggest ideal content length
 - **Image recommendations**: Suggest adding images
 
-### Persian Business Content Features
+### Local Business Content Features
 
-#### Persian Content Tools
-- **Persian spell checker**: Check Persian spelling
-- **Persian grammar**: Basic grammar checking
-- **Persian formality**: Formal vs. informal tone
-- **Persian localization**: Regional dialect support
-- **Persian numbers**: Convert between Persian/English numbers
-- **Persian dates**: Jalali calendar integration
+#### Local Content Tools
+- **Local language spell checker**: Check local language spelling
+- **Local language grammar**: Basic grammar checking
+- **Local language formality**: Formal vs. informal tone
+- **Local language localization**: Regional dialect support
+- **Local numbers**: Convert between local/English numbers
+- **Local dates**: Jalali calendar integration
 
 #### Business Communication
 - **Professional tone**: Business-appropriate language
-- **Call-to-action**: Strong Persian CTAs
+- **Call-to-action**: Strong local language CTAs
 - **Contact info**: Auto-insert business contact info
-- **Legal compliance**: Ensure Persian business compliance
+- **Legal compliance**: Ensure local business compliance
 - **Cultural sensitivity**: Culturally appropriate content
 
 #### Industry-Specific Tools
-- **Industry vocabulary**: Industry-specific Persian terms
+- **Industry vocabulary**: Industry-specific local terms
 - **Technical terms**: Technical terminology assistance
 - **Compliance checks**: Industry regulation compliance
 - **Content guidelines**: Industry best practices
+
+## ⚠️ What This Is NOT
+
+### Hatef Profile ≠ Social Network
+
+**Critical Positioning:** We are NOT building Instagram, Facebook, or a "local language social network."
+
+```markdown
+❌ **We Are NOT:**
+- A social media platform for endless scrolling
+- An Instagram/Facebook clone
+- A place for casual socializing
+- An entertainment platform
+- A "local language Twitter"
+
+✅ **We ARE:**
+- A professional identity platform
+- A tool for achieving real goals
+- A search-optimized profile system
+- A business and career enabler
+```
+
+### Purpose-Driven Content Feed
+
+Every content feature must serve ONE of these 3 goals:
+1. **Attract customers** 💰
+2. **Find jobs** 💼
+3. **Build professional credibility** 🎯
+
+```cpp
+// Before adding ANY content feature, ask:
+struct FeatureJustification {
+    bool helpsAttractCustomers = false;
+    bool helpsFindJobs = false;
+    bool buildsCredibility = false;
+    
+    bool isValid() {
+        // Must help with AT LEAST ONE goal
+        return helpsAttractCustomers || 
+               helpsFindJobs || 
+               buildsCredibility;
+    }
+    
+    // If feature doesn't help with goals: DON'T ADD IT
+};
+```
+
+### Social Features Have Purpose
+
+| Feature | Purpose | NOT For |
+|---------|---------|---------|
+| **Content Feed** | Keep profile updated with work/projects | Posting lunch photos |
+| **Likes/Comments** | Professional feedback | Social validation |
+| **Hashtags** | Categorize work (#طراحی #برنامه‌نویسی) | Trending topics |
+| **Sharing** | Increase professional visibility | Going viral |
+| **Following** | Track relevant professionals | Follow celebrities |
+
+### Constant Reminders
+
+```markdown
+## Throughout UI, we remind users:
+
+"این یک شبکه اجتماعی نیست - این هویت حرفه‌ای شماست"
+
+**In Feed:**
+💡 Tip: Share your professional work, not personal life
+
+**When Posting:**
+💼 Best practices: Projects, achievements, work updates
+
+**In Analytics:**
+📊 Focus: "Did this post help your goal?" not "How many likes?"
+```
 
 ## 🔍 Content Discovery
 
@@ -512,11 +585,11 @@ trendingScore = (
 ) * categoryBoost * locationBoost
 ```
 
-## 🏷️ Persian Hashtag System
+## 🏷️ Local Hashtag System
 
 ### Hashtag Features
-- **Persian hashtags**: Support Persian hashtags
-- **Hashtag normalization**: Normalize Persian hashtags
+- **Local hashtags**: Support local hashtags
+- **Hashtag normalization**: Normalize local hashtags
 - **Hashtag search**: Search content by hashtags
 - **Hashtag following**: Follow hashtags
 - **Trending hashtags**: Show trending hashtags
@@ -648,12 +721,12 @@ curl "http://localhost:3000/api/content/hashtags/فناوری/posts"
 - Content creation completes in <3 seconds
 - Feed personalization relevance >75%
 - Trending algorithm updates every 5 minutes
-- Hashtag system handles Persian characters correctly
+- Hashtag system handles local language characters correctly
 - Content moderation prevents 99% of spam
 - Engagement features work smoothly
 - System handles 1M+ feed views per day
 - Content discovery drives 30%+ of engagement
-- Persian language support works perfectly
+- Local language support works perfectly
 
 ## 📊 Expected Impact
 

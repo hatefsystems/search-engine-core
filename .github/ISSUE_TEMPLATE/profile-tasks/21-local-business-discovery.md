@@ -1,38 +1,38 @@
-# 🚀 Persian Business Discovery & Local Networking
+# 🚀 Local Business Discovery & Networking
 
 **Duration:** 4 days
-**Dependencies:** Business profile information, Iran ecosystem features (Task 16), Profile discovery (Task 23)
-**Priority:** 🟠 HIGH - Unique differentiator for Persian market
+**Dependencies:** Business profile information, Regional market features (Task 16), Profile discovery (Task 23)
+**Priority:** 🟠 HIGH - Unique differentiator for local market
 **Acceptance Criteria:**
-- ✅ Local business directory with Persian categories
+- ✅ Local business directory with local categories
 - ✅ Neighborhood business clustering
-- ✅ Persian business hours and holiday calendar
+- ✅ Local business hours and holiday calendar
 - ✅ Local event integration
-- ✅ Persian business networking events
+- ✅ Local business networking events
 - ✅ Regional business insights
-- ✅ Persian business recommendations
+- ✅ Local business recommendations
 - ✅ Local search optimization
 - ✅ Geographic business mapping
 
 ## 🎯 Task Description
 
-Create a comprehensive Persian business discovery system that helps users find local businesses, discover neighborhood businesses, and connect with regional business communities through Iran-specific features and Persian language optimization.
+Create a comprehensive local business discovery system that helps users find local businesses, discover neighborhood businesses, and connect with regional business communities through regional market-specific features and local language optimization.
 
 ## 📋 Daily Breakdown
 
 ### Day 1: Local Business Directory & Categories
-- Create Persian business category system
+- Create local business category system
 - Implement local business directory structure
 - Add neighborhood business clustering
 - Create geographic business mapping
-- Add Persian business search optimization
+- Add local business search optimization
 
-### Day 2: Persian Business Features
-- Implement Persian business hours system
-- Add Iranian holiday calendar integration
-- Create Persian date and time formatting
-- Add local address validation (Iranian addresses)
-- Implement Persian business terminology
+### Day 2: Local Business Features
+- Implement local business hours system
+- Add local holiday calendar integration
+- Create local date and time formatting
+- Add local address validation
+- Implement local business terminology
 
 ### Day 3: Local Networking & Events
 - Create local business networking events system
@@ -48,12 +48,12 @@ Create a comprehensive Persian business discovery system that helps users find l
 - Create regional business analytics
 - Add local market intelligence
 
-## 🔧 Persian Business Data Structures
+## 🔧 Local Business Data Structures
 
 ```cpp
-struct PersianBusinessCategory {
+struct LocalBusinessCategory {
     std::string id;
-    std::string persianName;
+    std::string localName;
     std::string englishName;
     std::string icon;
     std::vector<std::string> subcategories;
@@ -74,20 +74,20 @@ struct LocalBusinessCluster {
     double averageRating = 0.0;
 };
 
-struct PersianBusinessHours {
+struct LocalBusinessHours {
     std::string businessId;
     std::map<DayOfWeek, BusinessDayHours> weeklyHours;
     std::vector<IranianHoliday> holidays;
-    std::string timezone; // Asia/Tehran
+    std::string timezone; // Local timezone
     bool isOpenNow = false;
     std::string nextOpenTime;
     std::string specialHours; // For special occasions
 };
 
-struct IranianHoliday {
-    std::string name; // Persian name
+struct LocalHoliday {
+    std::string name; // Local name
     std::string englishName;
-    Date date; // Persian calendar date
+    Date date; // Local calendar date
     Date gregorianDate;
     HolidayType type; // RELIGIOUS, NATIONAL, CULTURAL
     bool isBusinessDay = false;
@@ -96,7 +96,7 @@ struct IranianHoliday {
 struct LocalBusinessEvent {
     std::string id;
     std::string organizerBusinessId;
-    std::string title; // Persian title
+    std::string title; // Local title
     std::string description;
     EventType type; // NETWORKING, WORKSHOP, SEMINAR, EXHIBITION
     Date eventDate;
@@ -113,7 +113,7 @@ struct LocalBusinessEvent {
 };
 ```
 
-## 🏪 Persian Business Categories
+## 🏪 Local Business Categories
 
 ### Main Categories (دسته‌بندی‌های اصلی)
 - **فروشگاه‌ها و خرده‌فروشی** (Retail & Shops)
@@ -128,7 +128,7 @@ struct LocalBusinessEvent {
 - **فناوری و نرم‌افزار** (Technology & Software)
 
 ### Subcategories
-Each main category has Persian subcategories with proper terminology and local business understanding.
+Each main category has local subcategories with proper terminology and local business understanding.
 
 ## 📍 Geographic Business Clustering
 
@@ -153,27 +153,27 @@ Each main category has Persian subcategories with proper terminology and local b
 - **Route planning**: Plan routes to businesses
 - **Location search**: Search businesses by location
 
-## 🕐 Persian Business Hours
+## 🕐 Local Business Hours
 
 ### Business Hours System
 - **Weekly hours**: Set hours for each day of week
-- **Holiday handling**: Handle Iranian holidays
+- **Holiday handling**: Handle local holidays
 - **Special hours**: Special hours for occasions
-- **Timezone support**: Asia/Tehran timezone
+- **Timezone support**: Local timezone
 - **Real-time status**: Show if business is open now
 
-### Iranian Holiday Integration
-- **Religious holidays**: Islamic holidays (Eid, Ashura, etc.)
+### Local Holiday Integration
+- **Religious holidays**: Religious holidays (Eid, Ashura, etc.)
 - **National holidays**: National holidays (Nowruz, etc.)
 - **Cultural holidays**: Cultural celebrations
 - **Regional holidays**: Province-specific holidays
-- **Holiday calendar**: Complete Iranian holiday calendar
+- **Holiday calendar**: Complete local holiday calendar
 
-### Persian Date Formatting
-- **Persian calendar**: Support Persian (Jalali) calendar
-- **Date display**: Display dates in Persian format
-- **Time formatting**: Persian time formatting
-- **Date conversion**: Convert between Gregorian and Persian
+### Local Date Formatting
+- **Local calendar**: Support local (Jalali) calendar
+- **Date display**: Display dates in local format
+- **Time formatting**: Local time formatting
+- **Date conversion**: Convert between Gregorian and local calendar
 
 ## 🎉 Local Events System
 
@@ -224,11 +224,11 @@ Each main category has Persian subcategories with proper terminology and local b
 
 ## 🧪 Testing Strategy
 
-### Persian Category Tests
+### Local Category Tests
 ```cpp
-TEST(PersianCategoryTest, CreatePersianCategory) {
-    PersianBusinessCategory category{
-        .persianName = "رستوران‌ها و کافه‌ها",
+TEST(LocalCategoryTest, CreateLocalCategory) {
+    LocalBusinessCategory category{
+        .localName = "رستوران‌ها و کافه‌ها",
         .englishName = "Restaurants & Cafes",
         .subcategories = {"رستوران", "کافه", "فست‌فود"}
     };
@@ -240,7 +240,7 @@ TEST(PersianCategoryTest, CreatePersianCategory) {
 ### Geographic Clustering Tests
 ```cpp
 TEST(ClusteringTest, ClusterBusinessesByNeighborhood) {
-    auto businesses = getBusinessesInArea("Tehran", "District 1");
+    auto businesses = getBusinessesInArea("CityName", "District 1");
     auto clusters = clusterBusinesses(businesses);
     EXPECT_GT(clusters.size(), 0);
     for (const auto& cluster : clusters) {
@@ -251,7 +251,7 @@ TEST(ClusteringTest, ClusterBusinessesByNeighborhood) {
 
 ### Integration Tests
 ```bash
-# Test Persian business search
+# Test local business search
 curl "http://localhost:3000/api/businesses/search?q=رستوران&city=تهران"
 
 # Test local business discovery
@@ -265,12 +265,12 @@ curl -X POST http://localhost:3000/api/events \
 
 ## 🗺️ Local Search Optimization
 
-### Persian Search Features
-- **Persian keyword matching**: Match Persian keywords
-- **Fuzzy search**: Handle Persian spelling variations
-- **Synonym support**: Support Persian synonyms
+### Local Search Features
+- **Local keyword matching**: Match local keywords
+- **Fuzzy search**: Handle local spelling variations
+- **Synonym support**: Support local synonyms
 - **Location-based ranking**: Rank by location relevance
-- **Category filtering**: Filter by Persian categories
+- **Category filtering**: Filter by local categories
 
 ### Search Ranking Factors
 - **Location proximity**: Distance from user
@@ -285,9 +285,9 @@ curl -X POST http://localhost:3000/api/events \
 ### Business Discovery Interface
 - **Map view**: Interactive map of businesses
 - **List view**: List of businesses with filters
-- **Category browser**: Browse by Persian categories
+- **Category browser**: Browse by local categories
 - **Neighborhood explorer**: Explore by neighborhood
-- **Search interface**: Persian search interface
+- **Search interface**: Local search interface
 
 ### Event Discovery Interface
 - **Event calendar**: Calendar view of events
@@ -304,13 +304,13 @@ curl -X POST http://localhost:3000/api/events \
 - **Analytics**: Regional business analytics
 
 ## 🎉 Success Criteria
-- Persian business categories cover 95%+ of businesses
+- Local business categories cover 95%+ of businesses
 - Geographic clustering accuracy >90%
-- Business hours display correctly with Persian calendar
+- Business hours display correctly with local calendar
 - Event system handles 1000+ events per city
 - Local search results relevance >80%
 - Regional insights update in real-time
-- Persian language support works perfectly
+- Local language support works perfectly
 - System handles 100K+ local business searches per day
 - Geographic mapping loads in <2 seconds
 - Event discovery works smoothly
@@ -319,7 +319,7 @@ curl -X POST http://localhost:3000/api/events \
 
 ### User Value
 - **Local discovery**: Easy discovery of local businesses
-- **Persian experience**: Native Persian language experience
+- **Local language experience**: Native local language experience
 - **Local networking**: Connect with local business community
 - **Event participation**: Participate in local business events
 - **Market insights**: Understand local market trends
@@ -332,9 +332,9 @@ curl -X POST http://localhost:3000/api/events \
 - **Customer discovery**: Customers discover businesses easily
 
 ### Platform Value
-- **Unique feature**: Unique Persian market feature
+- **Unique feature**: Unique local market feature
 - **Competitive advantage**: Different from LinkedIn/Linktree
 - **Local engagement**: Increased local engagement
 - **Network effects**: Local network effects
-- **Market penetration**: Better penetration in Iranian market
+- **Market penetration**: Better penetration in regional market
 
