@@ -17,8 +17,8 @@ private:
     std::string getLastModifiedHeader(const std::string& filePath);
 };
 
-// Route registration - catch-all route for static files
+// Route registration - serve static files from /assets/* prefix
 ROUTE_CONTROLLER(StaticFileController) {
     using namespace routing;
-    REGISTER_ROUTE(HttpMethod::GET, "/*", serveStatic, StaticFileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/assets/*", serveStatic, StaticFileController);
 } 

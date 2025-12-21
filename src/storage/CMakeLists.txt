@@ -56,6 +56,7 @@ set(STORAGE_SOURCES
     MongoDBStorage.cpp
     ContentStorage.cpp
     SponsorStorage.cpp
+    ProfileStorage.cpp
     EmailService.cpp
     EmailLogsStorage.cpp
     EmailTrackingStorage.cpp
@@ -78,8 +79,10 @@ endif()
 set(STORAGE_HEADERS
     ../../include/search_engine/storage/IndexedPage.h
     ../../include/search_engine/storage/SponsorProfile.h
+    ../../include/search_engine/storage/Profile.h
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h
+    ../../include/search_engine/storage/ProfileStorage.h
     ../../include/search_engine/storage/ContentStorage.h
     ../../include/search_engine/storage/EmailService.h
     ../../include/search_engine/storage/EmailLogsStorage.h
@@ -176,13 +179,25 @@ if(REDIS_AVAILABLE)
 endif()
 
 add_library(SponsorStorage STATIC SponsorStorage.cpp ../infrastructure.cpp)
-target_include_directories(SponsorStorage 
-    PUBLIC 
+target_include_directories(SponsorStorage
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(SponsorStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
 target_compile_definitions(SponsorStorage PRIVATE
+    BSONCXX_STATIC
+    MONGOCXX_STATIC
+)
+
+add_library(ProfileStorage STATIC ProfileStorage.cpp ../infrastructure.cpp)
+target_include_directories(ProfileStorage
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(ProfileStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
+target_compile_definitions(ProfileStorage PRIVATE
     BSONCXX_STATIC
     MONGOCXX_STATIC
 )
@@ -256,7 +271,7 @@ target_compile_definitions(WebsiteProfileStorage PRIVATE
 )
 
 # Export targets for use by other CMake projects
-install(TARGETS storage MongoDBStorage SponsorStorage ContentStorage EmailService EmailLogsStorage EmailTrackingStorage UnsubscribeService WebsiteProfileStorage
+install(TARGETS storage MongoDBStorage SponsorStorage ProfileStorage ContentStorage EmailService EmailLogsStorage EmailTrackingStorage UnsubscribeService WebsiteProfileStorage
     EXPORT StorageTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

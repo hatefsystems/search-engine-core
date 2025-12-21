@@ -1,4 +1,9 @@
-<!-- 360677f0-60e8-4c50-8bc4-236dc47150a5 eb68fd79-8325-4e33-9233-e979f5ba7873 -->
+---
+name: Fix Dark Mode System Preference Detection
+overview: ""
+todos: []
+---
+
 # Fix Dark Mode System Preference Detection
 
 ## Problem
@@ -78,7 +83,3 @@ After the fix:
 3. Set Windows to dark mode → homepage should be dark theme by default
 4. Toggle button should work correctly in both cases
 5. Manual selection should persist in localStorage and override system preference
-
-### To-dos
-
-- [ ] 

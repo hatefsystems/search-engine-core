@@ -21,6 +21,22 @@ target_include_directories(test_js_minifier_file PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
+# Test executable for SlugGenerator
+add_executable(test_slug_generator test_slug_generator.cpp)
+
+# Link libraries
+target_link_libraries(test_slug_generator
+    PRIVATE
+        Catch2::Catch2WithMain
+        common
+)
+
+# Include directories
+target_include_directories(test_slug_generator PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/include
+)
+
 # Register tests with CTest
 include(CTest)
 include(Catch)
@@ -32,7 +48,15 @@ set_tests_properties(js_minifier_file_test PROPERTIES
     LABELS "common;js_minifier;file_processing"
 )
 
+# Add SlugGenerator test to CTest
+add_test(NAME slug_generator_test COMMAND test_slug_generator)
+set_tests_properties(slug_generator_test PROPERTIES
+    TIMEOUT 30
+    LABELS "common;slug;unicode"
+)
+
 # Auto-discover test cases
 catch_discover_tests(test_js_minifier_file)
+catch_discover_tests(test_slug_generator)
 
 message(STATUS "Common tests configured with JS Minifier file processing test")

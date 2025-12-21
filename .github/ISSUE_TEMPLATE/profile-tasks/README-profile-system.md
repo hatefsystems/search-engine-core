@@ -171,7 +171,7 @@ This profile system learns from common platform failures. Every task addresses s
 
 ### ✅ URL Structure
 - `hatef.ir/john-doe` - Personal profiles
-- `hatef.ir/@johndoe` - Short handles
+- `hatef.ir/johndoe` - Clean usernames (without @)
 - `hatef.ir/company-name` - Business profiles
 - Unicode-friendly Persian URLs
 

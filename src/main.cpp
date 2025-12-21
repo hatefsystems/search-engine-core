@@ -14,6 +14,7 @@
 #include "controllers/StaticFileController.h"
 #include "controllers/UnsubscribeController.h"
 #include "controllers/WebsiteProfileController.h"
+#include "controllers/ProfileController.h"
 #include "controllers/EmailController.h"
 #include "controllers/TrackingController.h"
 

@@ -90,6 +90,8 @@ add_library(common STATIC
     src/common/JsMinifierClient.cpp
     src/common/UrlSanitizer.cpp
     src/common/UrlCanonicalizer.cpp
+    src/common/SlugGenerator.cpp
+    src/common/SlugCache.cpp
 )
 target_include_directories(common 
     PUBLIC 
@@ -166,6 +168,7 @@ target_link_libraries(server
         common
         storage
         SponsorStorage
+        ProfileStorage
         crawler
         search_core
         scoring

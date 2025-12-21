@@ -144,7 +144,14 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     if (queryPos != std::string::npos) {
         path = path.substr(0, queryPos);
     }
-    
+
+    // Strip /assets prefix to map /assets/* to public/*
+    if (path.rfind("/assets/", 0) == 0) {
+        path = path.substr(7); // Remove "/assets" (7 characters)
+    } else if (path == "/assets") {
+        path = "/"; // Map /assets to root of public directory
+    }
+
     // Construct full file path
     std::string filePath = "public" + path;
     

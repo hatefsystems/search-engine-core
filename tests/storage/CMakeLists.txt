@@ -15,6 +15,12 @@ target_link_libraries(test_mongodb_storage PRIVATE
     storage
 )
 
+add_executable(test_profile_storage test_profile_storage.cpp)
+target_link_libraries(test_profile_storage PRIVATE
+    Catch2::Catch2WithMain
+    storage
+)
+
 # Add Redis-dependent tests only if Redis was detected in parent build
 if(REDIS_AVAILABLE)
     add_executable(test_redis_search_storage test_redis_search_storage.cpp)
@@ -44,9 +50,9 @@ else()
 endif()
 
 # Combined storage test executable (for convenience)
-set(COMBINED_TEST_SOURCES test_mongodb_storage.cpp)
+set(COMBINED_TEST_SOURCES test_mongodb_storage.cpp test_profile_storage.cpp)
 if(REDIS_AVAILABLE)
-    list(APPEND COMBINED_TEST_SOURCES 
+    list(APPEND COMBINED_TEST_SOURCES
         test_redis_search_storage.cpp
         test_content_storage.cpp
     )
@@ -73,6 +79,12 @@ set_tests_properties(mongodb_storage_test PROPERTIES
     LABELS "storage;mongodb"
 )
 
+add_test(NAME profile_storage_test COMMAND test_profile_storage)
+set_tests_properties(profile_storage_test PROPERTIES
+    TIMEOUT 300
+    LABELS "storage;profile"
+)
+
 if(REDIS_AVAILABLE)
     add_test(NAME redis_search_storage_test COMMAND test_redis_search_storage)
     set_tests_properties(redis_search_storage_test PROPERTIES
@@ -96,6 +108,7 @@ set_tests_properties(storage_tests PROPERTIES
 
 # Auto-discover individual test cases within each executable
 catch_discover_tests(test_mongodb_storage)
+catch_discover_tests(test_profile_storage)
 catch_discover_tests(storage_tests)
 
 if(REDIS_AVAILABLE)

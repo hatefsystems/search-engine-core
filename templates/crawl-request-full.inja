@@ -17,7 +17,7 @@
         type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
     {% endif %}
-    <link rel="stylesheet" href="/css/crawl-request-template.css">
+    <link rel="stylesheet" href="/assets/css/crawl-request-template.css">
     <style>
         /* Template-specific dynamic styles */
         body {
@@ -217,7 +217,7 @@
         </div>
     </div>
     
-    <script src="/js/crawl-request-template.js"></script>
+    <script src="/assets/js/crawl-request-template.js"></script>
      <!-- Template data injection for JavaScript -->
     <script>
         // Theme switching functionality
