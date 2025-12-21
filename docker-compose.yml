@@ -125,16 +125,32 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "4gb", "--maxmemory-policy", "allkeys-lru"]
+    # Development: Less aggressive save policy for stability
+    command: [
+      "redis-stack-server",
+      "--appendonly", "yes",
+      "--appendfsync", "everysec",
+      "--maxmemory", "3gb",
+      "--maxmemory-policy", "allkeys-lfu",
+      "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed
+      "--save", "1800", "100",  # Save every 30 min if 100+ keys changed
+      "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed
+      "--stop-writes-on-bgsave-error", "no"  # Don't stop writes if background save fails
+    ]
     environment:
-      - REDIS_MAXMEMORY=4294967296  # 4GB in bytes
-      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (corrected from 3221225476)
+      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    # System-level settings for Redis fork operations
+    sysctls:
+      - net.core.somaxconn=65535
+      - vm.overcommit_memory=1  # Enable memory overcommit for fork operations
+    stop_grace_period: 60s  # Allow Redis time to finish background saves on shutdown
     networks:
       - search-network
 
@@ -288,7 +304,7 @@ services:
       - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
       - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
       - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
-      - MAX_CONTENT_SIZE=50000
+      - MAX_CONTENT_SIZE=300
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     networks:
       - search-network

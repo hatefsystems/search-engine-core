@@ -82,10 +82,24 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "4gb", "--maxmemory-policy", "allkeys-lru"]
+    # CRITICAL FIX: Reduced save frequency to prevent fork contention with large datasets
+    # AOF-only persistence is more stable for datasets with frequent updates
+    command: [
+      "redis-stack-server",
+      "--appendonly", "yes",
+      "--appendfsync", "everysec",
+      "--maxmemory", "3gb",
+      "--maxmemory-policy", "allkeys-lfu",
+      "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed (reduced from 15 min)
+      "--save", "1800", "100",  # Save every 30 min if 100+ keys changed (reduced from 5 min)
+      "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed (reduced from 1 min)
+      "--stop-writes-on-bgsave-error", "no",  # Don't stop writes if background save fails
+      "--rdbcompression", "yes",  # Compress RDB files
+      "--rdbchecksum", "yes"  # Checksum RDB files for integrity
+    ]
     environment:
-      - REDIS_MAXMEMORY=4294967296  # 4GB in bytes
-      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (updated from 4GB)
+      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -101,6 +115,11 @@ services:
         reservations:
           memory: 256M
           cpus: '0.1'
+    # System-level settings for Redis fork operations
+    sysctls:
+      - net.core.somaxconn=65535
+      - vm.overcommit_memory=1  # Enable memory overcommit for fork operations
+    stop_grace_period: 60s  # Allow Redis time to finish background saves on shutdown
     logging:
       driver: json-file
       options:
@@ -252,7 +271,7 @@ services:
       - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
       - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
       - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
-      - MAX_CONTENT_SIZE=50000
+      - MAX_CONTENT_SIZE=300  # Reduced from 50000 to 300 (only used for description now)
       - LOG_LEVEL=${REDIS_SYNC_LOG_LEVEL:-INFO}  # Set to DEBUG for detailed sync diagnostics
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:

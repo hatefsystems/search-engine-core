@@ -91,14 +91,13 @@ class RedisSync:
             except redis.ResponseError:
                 pass  # Index doesn't exist, create it
             
-            # Create index schema
+            # Create index schema (UPDATED - no content field)
             schema = (
                 TextField("url", no_stem=True),
-                TextField("title", weight=5.0),
-                TextField("content", weight=1.0),
+                TextField("title", weight=5.0),  # Title is most important for search
+                TextField("description", weight=2.0),  # Description for snippets
                 TagField("domain", sortable=True),
                 TagField("keywords"),
-                TextField("description", weight=2.0),
                 TagField("language"),
                 TagField("category"),
                 NumericField("indexed_at", sortable=True),
@@ -161,39 +160,44 @@ class RedisSync:
         return f"{self.key_prefix}{url_hash}"
     
     def _sync_document(self, page: Dict) -> bool:
-        """Sync a single document to Redis"""
+        """Sync only essential search fields to Redis"""
         try:
             doc_key = self._generate_doc_key(page['url'])
-            
-            # Prepare document for Redis with sanitized content
+
+            # Store ONLY critical search fields (minimal memory footprint)
             doc = {
-                'url': self._sanitize_text(page.get('url', '')),
-                'title': self._sanitize_text(page.get('title', '')),
-                'content': self._extract_content(page),
-                'domain': self._sanitize_text(page.get('domain', '')),
+                'url': self._sanitize_text(page.get('url', ''))[:500],  # Truncate long URLs
+                'title': self._sanitize_text(page.get('title', ''))[:200],  # Max 200 chars
+                'domain': self._sanitize_text(page.get('domain', ''))[:100],
                 'score': page.get('contentQuality', 0.0) if page.get('contentQuality') else 0.0,
                 'indexed_at': int(page.get('indexedAt', datetime.now()).timestamp())
             }
-            
-            # Optional fields
+
+            # Store truncated description for search snippets (300 chars max)
             if page.get('description'):
-                doc['description'] = self._sanitize_text(page['description'])
-            
+                doc['description'] = self._sanitize_text(page['description'])[:300]
+            else:
+                doc['description'] = ''
+
+            # Store only top 5 keywords
             if page.get('keywords'):
-                sanitized_keywords = [self._sanitize_text(k) for k in page['keywords']]
-                doc['keywords'] = '|'.join(sanitized_keywords)
-            
+                sanitized_keywords = [self._sanitize_text(k) for k in page['keywords'][:5]]
+                doc['keywords'] = '|'.join(sanitized_keywords)[:200]  # Max 200 chars total
+
+            # Optional metadata (small fields)
             if page.get('language'):
-                doc['language'] = self._sanitize_text(page['language'])
-            
+                doc['language'] = self._sanitize_text(page['language'])[:10]
+
             if page.get('category'):
-                doc['category'] = self._sanitize_text(page['category'])
-            
-            # Store in Redis
+                doc['category'] = self._sanitize_text(page['category'])[:50]
+
+            # DO NOT STORE: content, textContent, full description
+            # Full content should be fetched from MongoDB when user clicks result
+
             self.redis_client.hset(doc_key, mapping=doc)
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to sync document {page.get('url')}: {e}")
             return False
