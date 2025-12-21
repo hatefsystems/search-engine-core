@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
-#include "../../../include/search_engine/common/SlugGenerator.h"
+#include "../../include/search_engine/common/SlugGenerator.h"
 
 using namespace search_engine::common;
 
