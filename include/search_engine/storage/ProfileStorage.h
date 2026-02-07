@@ -25,6 +25,14 @@ private:
     bsoncxx::document::value profileToBson(const Profile& profile) const;
     Profile bsonToProfile(const bsoncxx::document::view& doc) const;
 
+    // Conversion methods for PersonProfile and BSON
+    bsoncxx::document::value profileToBson(const PersonProfile& profile) const;
+    PersonProfile bsonToPersonProfile(const bsoncxx::document::view& doc) const;
+
+    // Conversion methods for BusinessProfile and BSON
+    bsoncxx::document::value profileToBson(const BusinessProfile& profile) const;
+    BusinessProfile bsonToBusinessProfile(const bsoncxx::document::view& doc) const;
+
     // Helper methods for BSON conversion
     static std::string profileTypeToString(ProfileType type);
     static ProfileType stringToProfileType(const std::string& type);
@@ -52,12 +60,24 @@ public:
     ProfileStorage(const ProfileStorage&) = delete;
     ProfileStorage& operator=(const ProfileStorage&) = delete;
 
-    // Core storage operations
+    // Core storage operations (base Profile)
     Result<std::string> store(const Profile& profile);
     Result<Profile> findById(const std::string& id);
     Result<std::optional<Profile>> findBySlug(const std::string& slug);
     Result<bool> update(const Profile& profile);
     Result<bool> deleteProfile(const std::string& id);
+
+    // PersonProfile storage operations
+    Result<std::string> store(const PersonProfile& profile);
+    Result<std::optional<PersonProfile>> findPersonById(const std::string& id);
+    Result<std::optional<PersonProfile>> findPersonBySlug(const std::string& slug);
+    Result<bool> update(const PersonProfile& profile);
+
+    // BusinessProfile storage operations
+    Result<std::string> store(const BusinessProfile& profile);
+    Result<std::optional<BusinessProfile>> findBusinessById(const std::string& id);
+    Result<std::optional<BusinessProfile>> findBusinessBySlug(const std::string& slug);
+    Result<bool> update(const BusinessProfile& profile);
 
     // Validation operations
     static bool isValidSlug(const std::string& slug);

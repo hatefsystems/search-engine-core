@@ -56,6 +56,7 @@ set(STORAGE_SOURCES
     MongoDBStorage.cpp
     ContentStorage.cpp
     SponsorStorage.cpp
+    Profile.cpp
     ProfileStorage.cpp
     EmailService.cpp
     EmailLogsStorage.cpp
@@ -190,7 +191,7 @@ target_compile_definitions(SponsorStorage PRIVATE
     MONGOCXX_STATIC
 )
 
-add_library(ProfileStorage STATIC ProfileStorage.cpp ../infrastructure.cpp)
+add_library(ProfileStorage STATIC Profile.cpp ProfileStorage.cpp ../infrastructure.cpp)
 target_include_directories(ProfileStorage
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>

@@ -118,7 +118,7 @@ services:
     # System-level settings for Redis fork operations
     sysctls:
       - net.core.somaxconn=65535
-      - vm.overcommit_memory=1  # Enable memory overcommit for fork operations
+      # vm.overcommit_memory=1 removed for WSL2 compatibility
     stop_grace_period: 60s  # Allow Redis time to finish background saves on shutdown
     logging:
       driver: json-file

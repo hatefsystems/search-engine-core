@@ -486,5 +486,627 @@ Result<bool> ProfileStorage::testConnection() {
     }
 }
 
+// ==================== PersonProfile BSON Serialization ====================
+
+bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& profile) const {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+    using bsoncxx::builder::basic::make_array;
+    
+    auto builder = bsoncxx::builder::basic::document{};
+
+    // Add ID if it exists
+    if (profile.id) {
+        builder.append(kvp("_id", bsoncxx::oid{profile.id.value()}));
+    }
+
+    // Required base fields
+    builder.append(kvp("slug", profile.slug));
+    builder.append(kvp("name", profile.name));
+    builder.append(kvp("type", profileTypeToString(profile.type)));
+    builder.append(kvp("isPublic", profile.isPublic));
+    builder.append(kvp("createdAt", timePointToDate(profile.createdAt)));
+
+    // Optional base fields
+    if (profile.bio) {
+        builder.append(kvp("bio", profile.bio.value()));
+    }
+
+    if (profile.previousSlugs && !profile.previousSlugs->empty()) {
+        auto slugsArray = bsoncxx::builder::basic::array{};
+        for (const auto& slug : profile.previousSlugs.value()) {
+            slugsArray.append(slug);
+        }
+        builder.append(kvp("previousSlugs", slugsArray));
+    }
+
+    if (profile.slugChangedAt) {
+        builder.append(kvp("slugChangedAt", timePointToDate(profile.slugChangedAt.value())));
+    }
+
+    // PersonProfile-specific fields (optional)
+    if (profile.title) {
+        builder.append(kvp("title", profile.title.value()));
+    }
+    if (profile.company) {
+        builder.append(kvp("company", profile.company.value()));
+    }
+    if (!profile.skills.empty()) {
+        auto skillsArray = bsoncxx::builder::basic::array{};
+        for (const auto& skill : profile.skills) {
+            skillsArray.append(skill);
+        }
+        builder.append(kvp("skills", skillsArray));
+    }
+    if (profile.experienceLevel) {
+        builder.append(kvp("experienceLevel", profile.experienceLevel.value()));
+    }
+    if (profile.education) {
+        builder.append(kvp("education", profile.education.value()));
+    }
+    if (profile.school) {
+        builder.append(kvp("school", profile.school.value()));
+    }
+    if (profile.linkedinUrl) {
+        builder.append(kvp("linkedinUrl", profile.linkedinUrl.value()));
+    }
+    if (profile.githubUrl) {
+        builder.append(kvp("githubUrl", profile.githubUrl.value()));
+    }
+    if (profile.portfolioUrl) {
+        builder.append(kvp("portfolioUrl", profile.portfolioUrl.value()));
+    }
+    if (profile.email) {
+        builder.append(kvp("email", profile.email.value()));
+    }
+    if (profile.phone) {
+        builder.append(kvp("phone", profile.phone.value()));
+    }
+
+    return builder.extract();
+}
+
+PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view& doc) const {
+    PersonProfile profile;
+
+    // ID
+    if (doc["_id"]) {
+        profile.id = doc["_id"].get_oid().value.to_string();
+    }
+
+    // Required base fields
+    profile.slug = std::string(doc["slug"].get_string().value);
+    profile.name = std::string(doc["name"].get_string().value);
+    profile.type = stringToProfileType(std::string(doc["type"].get_string().value));
+    profile.isPublic = doc["isPublic"].get_bool().value;
+    profile.createdAt = dateToTimePoint(doc["createdAt"].get_date());
+
+    // Optional base fields
+    if (doc["bio"]) {
+        profile.bio = std::string(doc["bio"].get_string().value);
+    }
+
+    if (doc["previousSlugs"] && doc["previousSlugs"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> slugs;
+        auto slugsArray = doc["previousSlugs"].get_array();
+        for (const auto& element : slugsArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                slugs.push_back(std::string(element.get_string().value));
+            }
+        }
+        if (!slugs.empty()) {
+            profile.previousSlugs = slugs;
+        }
+    }
+
+    if (doc["slugChangedAt"]) {
+        profile.slugChangedAt = dateToTimePoint(doc["slugChangedAt"].get_date());
+    }
+
+    // PersonProfile-specific fields
+    if (doc["title"]) {
+        profile.title = std::string(doc["title"].get_string().value);
+    }
+    if (doc["company"]) {
+        profile.company = std::string(doc["company"].get_string().value);
+    }
+    if (doc["skills"] && doc["skills"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> skills;
+        auto skillsArray = doc["skills"].get_array();
+        for (const auto& element : skillsArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                skills.push_back(std::string(element.get_string().value));
+            }
+        }
+        profile.skills = skills;
+    }
+    if (doc["experienceLevel"]) {
+        profile.experienceLevel = std::string(doc["experienceLevel"].get_string().value);
+    }
+    if (doc["education"]) {
+        profile.education = std::string(doc["education"].get_string().value);
+    }
+    if (doc["school"]) {
+        profile.school = std::string(doc["school"].get_string().value);
+    }
+    if (doc["linkedinUrl"]) {
+        profile.linkedinUrl = std::string(doc["linkedinUrl"].get_string().value);
+    }
+    if (doc["githubUrl"]) {
+        profile.githubUrl = std::string(doc["githubUrl"].get_string().value);
+    }
+    if (doc["portfolioUrl"]) {
+        profile.portfolioUrl = std::string(doc["portfolioUrl"].get_string().value);
+    }
+    if (doc["email"]) {
+        profile.email = std::string(doc["email"].get_string().value);
+    }
+    if (doc["phone"]) {
+        profile.phone = std::string(doc["phone"].get_string().value);
+    }
+
+    return profile;
+}
+
+// ==================== BusinessProfile BSON Serialization ====================
+
+bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& profile) const {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+    using bsoncxx::builder::basic::make_array;
+    
+    auto builder = bsoncxx::builder::basic::document{};
+
+    // Add ID if it exists
+    if (profile.id) {
+        builder.append(kvp("_id", bsoncxx::oid{profile.id.value()}));
+    }
+
+    // Required base fields
+    builder.append(kvp("slug", profile.slug));
+    builder.append(kvp("name", profile.name));
+    builder.append(kvp("type", profileTypeToString(profile.type)));
+    builder.append(kvp("isPublic", profile.isPublic));
+    builder.append(kvp("createdAt", timePointToDate(profile.createdAt)));
+
+    // Optional base fields
+    if (profile.bio) {
+        builder.append(kvp("bio", profile.bio.value()));
+    }
+
+    if (profile.previousSlugs && !profile.previousSlugs->empty()) {
+        auto slugsArray = bsoncxx::builder::basic::array{};
+        for (const auto& slug : profile.previousSlugs.value()) {
+            slugsArray.append(slug);
+        }
+        builder.append(kvp("previousSlugs", slugsArray));
+    }
+
+    if (profile.slugChangedAt) {
+        builder.append(kvp("slugChangedAt", timePointToDate(profile.slugChangedAt.value())));
+    }
+
+    // BusinessProfile-specific fields (optional)
+    if (profile.companyName) {
+        builder.append(kvp("companyName", profile.companyName.value()));
+    }
+    if (profile.industry) {
+        builder.append(kvp("industry", profile.industry.value()));
+    }
+    if (profile.companySize) {
+        builder.append(kvp("companySize", profile.companySize.value()));
+    }
+    if (profile.foundedYear) {
+        builder.append(kvp("foundedYear", profile.foundedYear.value()));
+    }
+    if (profile.address) {
+        builder.append(kvp("address", profile.address.value()));
+    }
+    if (profile.city) {
+        builder.append(kvp("city", profile.city.value()));
+    }
+    if (profile.country) {
+        builder.append(kvp("country", profile.country.value()));
+    }
+    if (profile.website) {
+        builder.append(kvp("website", profile.website.value()));
+    }
+    if (profile.description) {
+        builder.append(kvp("description", profile.description.value()));
+    }
+    if (!profile.services.empty()) {
+        auto servicesArray = bsoncxx::builder::basic::array{};
+        for (const auto& service : profile.services) {
+            servicesArray.append(service);
+        }
+        builder.append(kvp("services", servicesArray));
+    }
+    if (profile.businessEmail) {
+        builder.append(kvp("businessEmail", profile.businessEmail.value()));
+    }
+    if (profile.businessPhone) {
+        builder.append(kvp("businessPhone", profile.businessPhone.value()));
+    }
+
+    return builder.extract();
+}
+
+BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::view& doc) const {
+    BusinessProfile profile;
+
+    // ID
+    if (doc["_id"]) {
+        profile.id = doc["_id"].get_oid().value.to_string();
+    }
+
+    // Required base fields
+    profile.slug = std::string(doc["slug"].get_string().value);
+    profile.name = std::string(doc["name"].get_string().value);
+    profile.type = stringToProfileType(std::string(doc["type"].get_string().value));
+    profile.isPublic = doc["isPublic"].get_bool().value;
+    profile.createdAt = dateToTimePoint(doc["createdAt"].get_date());
+
+    // Optional base fields
+    if (doc["bio"]) {
+        profile.bio = std::string(doc["bio"].get_string().value);
+    }
+
+    if (doc["previousSlugs"] && doc["previousSlugs"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> slugs;
+        auto slugsArray = doc["previousSlugs"].get_array();
+        for (const auto& element : slugsArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                slugs.push_back(std::string(element.get_string().value));
+            }
+        }
+        if (!slugs.empty()) {
+            profile.previousSlugs = slugs;
+        }
+    }
+
+    if (doc["slugChangedAt"]) {
+        profile.slugChangedAt = dateToTimePoint(doc["slugChangedAt"].get_date());
+    }
+
+    // BusinessProfile-specific fields
+    if (doc["companyName"]) {
+        profile.companyName = std::string(doc["companyName"].get_string().value);
+    }
+    if (doc["industry"]) {
+        profile.industry = std::string(doc["industry"].get_string().value);
+    }
+    if (doc["companySize"]) {
+        profile.companySize = std::string(doc["companySize"].get_string().value);
+    }
+    if (doc["foundedYear"]) {
+        profile.foundedYear = doc["foundedYear"].get_int32().value;
+    }
+    if (doc["address"]) {
+        profile.address = std::string(doc["address"].get_string().value);
+    }
+    if (doc["city"]) {
+        profile.city = std::string(doc["city"].get_string().value);
+    }
+    if (doc["country"]) {
+        profile.country = std::string(doc["country"].get_string().value);
+    }
+    if (doc["website"]) {
+        profile.website = std::string(doc["website"].get_string().value);
+    }
+    if (doc["description"]) {
+        profile.description = std::string(doc["description"].get_string().value);
+    }
+    if (doc["services"] && doc["services"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> services;
+        auto servicesArray = doc["services"].get_array();
+        for (const auto& element : servicesArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                services.push_back(std::string(element.get_string().value));
+            }
+        }
+        profile.services = services;
+    }
+    if (doc["businessEmail"]) {
+        profile.businessEmail = std::string(doc["businessEmail"].get_string().value);
+    }
+    if (doc["businessPhone"]) {
+        profile.businessPhone = std::string(doc["businessPhone"].get_string().value);
+    }
+
+    return profile;
+}
+
+// ==================== PersonProfile CRUD Operations ====================
+
+Result<std::string> ProfileStorage::store(const PersonProfile& profile) {
+    try {
+        // Validate slug format
+        if (!isValidSlug(profile.slug)) {
+            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        }
+
+        // Validate profile
+        if (!profile.isValid()) {
+            return Result<std::string>::Failure("Invalid PersonProfile: validation failed");
+        }
+
+        // Check for slug uniqueness
+        auto existingResult = findBySlug(profile.slug);
+        if (existingResult.success && existingResult.value.has_value()) {
+            return Result<std::string>::Failure("Slug '" + profile.slug + "' is already taken.");
+        }
+
+        auto doc = profileToBson(profile);
+        auto result = profileCollection_.insert_one(doc.view());
+
+        if (result) {
+            std::string id = result->inserted_id().get_oid().value.to_string();
+            LOG_INFO("Stored PersonProfile with ID: " + id + ", slug: " + profile.slug);
+            return Result<std::string>::Success(id, "PersonProfile stored successfully");
+        } else {
+            LOG_ERROR("Failed to store PersonProfile");
+            return Result<std::string>::Failure("Failed to store PersonProfile");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error storing PersonProfile: " + std::string(e.what()));
+        return Result<std::string>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<std::optional<PersonProfile>> ProfileStorage::findPersonById(const std::string& id) {
+    try {
+        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        auto result = profileCollection_.find_one(filter.view());
+
+        if (result) {
+            auto doc = result->view();
+            // Check if this is a person profile
+            if (doc["type"] && std::string(doc["type"].get_string().value) == "PERSON") {
+                return Result<std::optional<PersonProfile>>::Success(
+                    std::optional<PersonProfile>(bsonToPersonProfile(doc)), 
+                    "PersonProfile found"
+                );
+            } else {
+                return Result<std::optional<PersonProfile>>::Success(
+                    std::nullopt, 
+                    "Profile found but not a PersonProfile"
+                );
+            }
+        } else {
+            return Result<std::optional<PersonProfile>>::Success(
+                std::nullopt, 
+                "No profile found with this ID"
+            );
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error finding PersonProfile by ID: " + std::string(e.what()));
+        return Result<std::optional<PersonProfile>>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<std::optional<PersonProfile>> ProfileStorage::findPersonBySlug(const std::string& slug) {
+    try {
+        auto filter = document{} << "slug" << slug << finalize;
+        auto result = profileCollection_.find_one(filter.view());
+
+        if (result) {
+            auto doc = result->view();
+            // Check if this is a person profile
+            if (doc["type"] && std::string(doc["type"].get_string().value) == "PERSON") {
+                return Result<std::optional<PersonProfile>>::Success(
+                    std::optional<PersonProfile>(bsonToPersonProfile(doc)), 
+                    "PersonProfile found"
+                );
+            } else {
+                return Result<std::optional<PersonProfile>>::Success(
+                    std::nullopt, 
+                    "Profile found but not a PersonProfile"
+                );
+            }
+        } else {
+            return Result<std::optional<PersonProfile>>::Success(
+                std::nullopt, 
+                "No profile found with this slug"
+            );
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error finding PersonProfile by slug: " + std::string(e.what()));
+        return Result<std::optional<PersonProfile>>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<bool> ProfileStorage::update(const PersonProfile& profile) {
+    try {
+        if (!profile.id) {
+            return Result<bool>::Failure("Profile ID is required for update");
+        }
+
+        // Validate profile
+        if (!profile.isValid()) {
+            return Result<bool>::Failure("Invalid PersonProfile: validation failed");
+        }
+
+        // Validate slug format
+        if (!isValidSlug(profile.slug)) {
+            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        }
+
+        auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
+
+        // Check slug uniqueness (excluding current profile)
+        auto existingResult = findBySlug(profile.slug);
+        if (existingResult.success && existingResult.value.has_value() &&
+            existingResult.value.value().id != profile.id) {
+            return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
+        }
+
+        // Build full update document with all fields
+        auto updateDoc = profileToBson(profile);
+        
+        // Use $set to update all fields
+        using bsoncxx::builder::basic::kvp;
+        auto setDoc = bsoncxx::builder::basic::document{};
+        setDoc.append(kvp("$set", updateDoc));
+
+        auto result = profileCollection_.update_one(filter.view(), setDoc.view());
+
+        if (result && result->modified_count() > 0) {
+            LOG_INFO("Updated PersonProfile with ID: " + profile.id.value());
+            return Result<bool>::Success(true, "PersonProfile updated successfully");
+        } else {
+            return Result<bool>::Failure("No profile found with given ID or no changes made");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error updating PersonProfile: " + std::string(e.what()));
+        return Result<bool>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+// ==================== BusinessProfile CRUD Operations ====================
+
+Result<std::string> ProfileStorage::store(const BusinessProfile& profile) {
+    try {
+        // Validate slug format
+        if (!isValidSlug(profile.slug)) {
+            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        }
+
+        // Validate profile
+        if (!profile.isValid()) {
+            return Result<std::string>::Failure("Invalid BusinessProfile: validation failed");
+        }
+
+        // Check for slug uniqueness
+        auto existingResult = findBySlug(profile.slug);
+        if (existingResult.success && existingResult.value.has_value()) {
+            return Result<std::string>::Failure("Slug '" + profile.slug + "' is already taken.");
+        }
+
+        auto doc = profileToBson(profile);
+        auto result = profileCollection_.insert_one(doc.view());
+
+        if (result) {
+            std::string id = result->inserted_id().get_oid().value.to_string();
+            LOG_INFO("Stored BusinessProfile with ID: " + id + ", slug: " + profile.slug);
+            return Result<std::string>::Success(id, "BusinessProfile stored successfully");
+        } else {
+            LOG_ERROR("Failed to store BusinessProfile");
+            return Result<std::string>::Failure("Failed to store BusinessProfile");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error storing BusinessProfile: " + std::string(e.what()));
+        return Result<std::string>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<std::optional<BusinessProfile>> ProfileStorage::findBusinessById(const std::string& id) {
+    try {
+        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        auto result = profileCollection_.find_one(filter.view());
+
+        if (result) {
+            auto doc = result->view();
+            // Check if this is a business profile
+            if (doc["type"] && std::string(doc["type"].get_string().value) == "BUSINESS") {
+                return Result<std::optional<BusinessProfile>>::Success(
+                    std::optional<BusinessProfile>(bsonToBusinessProfile(doc)), 
+                    "BusinessProfile found"
+                );
+            } else {
+                return Result<std::optional<BusinessProfile>>::Success(
+                    std::nullopt, 
+                    "Profile found but not a BusinessProfile"
+                );
+            }
+        } else {
+            return Result<std::optional<BusinessProfile>>::Success(
+                std::nullopt, 
+                "No profile found with this ID"
+            );
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error finding BusinessProfile by ID: " + std::string(e.what()));
+        return Result<std::optional<BusinessProfile>>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<std::optional<BusinessProfile>> ProfileStorage::findBusinessBySlug(const std::string& slug) {
+    try {
+        auto filter = document{} << "slug" << slug << finalize;
+        auto result = profileCollection_.find_one(filter.view());
+
+        if (result) {
+            auto doc = result->view();
+            // Check if this is a business profile
+            if (doc["type"] && std::string(doc["type"].get_string().value) == "BUSINESS") {
+                return Result<std::optional<BusinessProfile>>::Success(
+                    std::optional<BusinessProfile>(bsonToBusinessProfile(doc)), 
+                    "BusinessProfile found"
+                );
+            } else {
+                return Result<std::optional<BusinessProfile>>::Success(
+                    std::nullopt, 
+                    "Profile found but not a BusinessProfile"
+                );
+            }
+        } else {
+            return Result<std::optional<BusinessProfile>>::Success(
+                std::nullopt, 
+                "No profile found with this slug"
+            );
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error finding BusinessProfile by slug: " + std::string(e.what()));
+        return Result<std::optional<BusinessProfile>>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
+    try {
+        if (!profile.id) {
+            return Result<bool>::Failure("Profile ID is required for update");
+        }
+
+        // Validate profile
+        if (!profile.isValid()) {
+            return Result<bool>::Failure("Invalid BusinessProfile: validation failed");
+        }
+
+        // Validate slug format
+        if (!isValidSlug(profile.slug)) {
+            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        }
+
+        auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
+
+        // Check slug uniqueness (excluding current profile)
+        auto existingResult = findBySlug(profile.slug);
+        if (existingResult.success && existingResult.value.has_value() &&
+            existingResult.value.value().id != profile.id) {
+            return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
+        }
+
+        // Build full update document with all fields
+        auto updateDoc = profileToBson(profile);
+        
+        // Use $set to update all fields
+        using bsoncxx::builder::basic::kvp;
+        auto setDoc = bsoncxx::builder::basic::document{};
+        setDoc.append(kvp("$set", updateDoc));
+
+        auto result = profileCollection_.update_one(filter.view(), setDoc.view());
+
+        if (result && result->modified_count() > 0) {
+            LOG_INFO("Updated BusinessProfile with ID: " + profile.id.value());
+            return Result<bool>::Success(true, "BusinessProfile updated successfully");
+        } else {
+            return Result<bool>::Failure("No profile found with given ID or no changes made");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error updating BusinessProfile: " + std::string(e.what()));
+        return Result<bool>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
 } // namespace storage
 } // namespace search_engine

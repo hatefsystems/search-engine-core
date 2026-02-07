@@ -2,6 +2,26 @@
 
 **Duration:** 1 day
 **Dependencies:** 01a-database-mvp.md (basic profile model)
+**Status:** ✅ **Complete**
+
+## 📊 Implementation Status
+
+- **PersonProfile / BusinessProfile structs**: ✅ Complete (`include/search_engine/storage/Profile.h`)
+- **Profile type enum and validation**: ✅ Complete (`profileTypeToString`, `stringToProfileType`, `Profile::isValid()`, `PersonProfile::isValid()`, `BusinessProfile::isValid()`)
+- **ProfileStorage overloads**: ✅ Complete (`store`/`update`/`findPersonById`/`findPersonBySlug`, `findBusinessById`/`findBusinessBySlug` in `ProfileStorage.h` / `ProfileStorage.cpp`)
+- **BSON serialization**: ✅ Complete (basic builder with `.extract()` for extended profiles; single `profiles` collection with type-discriminated documents)
+- **Unit tests**: ✅ Complete (profile models, type conversion, validation; Catch2 in `tests/storage/test_profile_storage.cpp`)
+- **Integration tests**: ✅ Complete (PersonProfile and BusinessProfile CRUD, type discrimination, slug uniqueness; 204 assertions, 8 test cases)
+
+**Implementation files:**
+- `include/search_engine/storage/Profile.h` - PersonProfile, BusinessProfile, validation, type helpers
+- `src/storage/Profile.cpp` - Validation and type conversion implementations
+- `include/search_engine/storage/ProfileStorage.h` - Overloaded store/update/find for extended types
+- `src/storage/ProfileStorage.cpp` - BSON serialization and CRUD for PersonProfile/BusinessProfile
+- `tests/storage/test_profile_storage.cpp` - Unit and integration tests
+
+**Notes:** Extended fields use `std::optional` where applicable; experienceLevel and companySize validation enums and foundedYear range checks are implemented; tests use MongoDB with auth (`mongodb://admin:password123@localhost:27017`) when running integration tests.
+
 **Acceptance Criteria:**
 - ✅ Person profile model extending base (skills, experience, education fields)
 - ✅ Business profile model extending base (company info, category, location fields)
