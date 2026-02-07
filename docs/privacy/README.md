@@ -48,6 +48,7 @@ INTERNAL_API_KEY="change-this-secret-key-in-production"
 ### API Endpoints
 
 #### Privacy Dashboard
+
 ```bash
 GET /api/profiles/:id/privacy-dashboard
 ```
@@ -55,6 +56,7 @@ GET /api/profiles/:id/privacy-dashboard
 Returns user's privacy data and analytics (no IPs).
 
 #### Compliance Cleanup
+
 ```bash
 POST /api/internal/compliance/cleanup
 Header: x-api-key: YOUR_INTERNAL_API_KEY
@@ -70,11 +72,11 @@ Deletes expired compliance logs (run daily via cron).
 
 ### Data Stored
 
-| Tier | IP Address | Location | Device | Encryption | Retention |
-|------|-----------|----------|--------|------------|-----------|
-| Tier 1 | ❌ Never | City-level | Generic | None needed | 2 years |
-| Tier 2 | ✅ Encrypted | Link only | Link only | AES-256 | 12 months |
-| Tier 3 | ✅ Original | Full data | Full data | At rest | Court order |
+| Tier   | IP Address   | Location   | Device    | Encryption  | Retention   |
+| ------ | ------------ | ---------- | --------- | ----------- | ----------- |
+| Tier 1 | ❌ Never     | City-level | Generic   | None needed | 2 years     |
+| Tier 2 | ✅ Encrypted | Link only  | Link only | AES-256     | 12 months   |
+| Tier 3 | ✅ Original  | Full data  | Full data | At rest     | Court order |
 
 ### Security Features
 

@@ -60,6 +60,7 @@ Local law requires retaining IP addresses for potential legal investigations, **
 ### What Users See
 
 Privacy dashboard shows:
+
 - **45 views from Tehran this month**
 - **78% from mobile devices**
 - **Top referrer: Google Search**
@@ -70,6 +71,7 @@ Privacy dashboard shows:
 ### Collection: `profile_view_analytics`
 
 **Indexes:**
+
 - `profileId` + `timestamp` (for dashboard queries)
 - `timestamp` (for aggregations)
 
@@ -104,6 +106,7 @@ Privacy dashboard shows:
 ### Collection: `legal_compliance_logs`
 
 **Indexes:**
+
 - `retentionExpiry` (for auto-deletion)
 - `timestamp` (for audit queries)
 - `viewId` (link to Tier 1 analytics)
@@ -119,6 +122,7 @@ curl -X POST http://localhost:3000/api/internal/compliance/cleanup \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -136,6 +140,7 @@ curl -X POST http://localhost:3000/api/internal/compliance/cleanup \
 See [LEGAL_VAULT_PROTOCOL.md](./LEGAL_VAULT_PROTOCOL.md) for complete details.
 
 **Summary:**
+
 - Physical air-gapped server
 - Dual authorization (CEO + Legal Officer)
 - Valid court order required
@@ -147,10 +152,12 @@ See [LEGAL_VAULT_PROTOCOL.md](./LEGAL_VAULT_PROTOCOL.md) for complete details.
 ### Sensitive Fields Encrypted at Rest
 
 **PersonProfile:**
+
 - `email` (encrypted)
 - `phone` (encrypted)
 
 **BusinessProfile:**
+
 - `businessEmail` (encrypted)
 - `businessPhone` (encrypted)
 - `address` (encrypted)
@@ -176,6 +183,7 @@ if (result.success) {
 ### Public Profile Views
 
 When users view a public profile:
+
 - Email/phone are **never** returned to the client
 - Only public fields (name, bio, links) are visible
 - PII remains encrypted in database
@@ -195,17 +203,17 @@ sequenceDiagram
     Server->>Server: Extract IP, User-Agent, Referrer
     Server->>Server: GeoIP Lookup (city-level)
     Server->>Server: Parse User-Agent (generic)
-    
+
     Server->>T1: Record Analytics (NO IP!)
     Note over T1: country, province, city<br/>browser, os, deviceType
-    
+
     Server->>Server: Encrypt IP, UA, Referrer (AES-256)
     Server->>T2: Record Compliance Log
     Note over T2: IP encrypted<br/>12-month retention
-    
+
     Server->>Memory: Secure Memory Wipe
     Note over Memory: Overwrite IP/UA<br/>strings with zeros
-    
+
     Server->>User: Return Profile (NO PII)
 ```
 
@@ -276,6 +284,7 @@ MONGODB_COMPLIANCE_URI="mongodb://admin:password@compliance-db:27017"
 ### Key Management
 
 1. **Generate strong keys:**
+
    ```bash
    # Generate 32-byte random key
    openssl rand -hex 32
@@ -309,6 +318,7 @@ MONGODB_COMPLIANCE_URI="mongodb://admin:password@compliance-db:27017"
 ### Monitoring
 
 1. **Track compliance log growth:**
+
    ```bash
    # Monitor Tier 2 storage
    curl http://localhost:3000/api/internal/compliance/stats \
@@ -316,6 +326,7 @@ MONGODB_COMPLIANCE_URI="mongodb://admin:password@compliance-db:27017"
    ```
 
 2. **Verify auto-deletion:**
+
    ```bash
    # Check cleanup job logs
    docker logs core | grep "Compliance cleanup"
@@ -384,17 +395,20 @@ docker exec mongodb_test mongosh --eval "db.legal_compliance_logs.findOne()"
 ## Future Enhancements
 
 ### Phase 2 (Task 01d)
+
 - Performance indexes for encrypted data
 - Query optimization for privacy dashboard
 - Bulk export functionality
 
 ### Phase 3
+
 - User authentication and authorization
 - Self-service data export (GDPR)
 - Configurable retention periods
 - Advanced analytics (still privacy-first)
 
 ### Phase 4
+
 - Real GeoIP database integration (MaxMind GeoLite2)
 - Enhanced user-agent parsing
 - Anomaly detection in compliance logs
@@ -403,6 +417,7 @@ docker exec mongodb_test mongosh --eval "db.legal_compliance_logs.findOne()"
 ## Support
 
 For privacy-related questions:
+
 - Technical: See code in `src/storage/` and `include/search_engine/storage/`
 - Legal: Review [LEGAL_VAULT_PROTOCOL.md](./LEGAL_VAULT_PROTOCOL.md)
 - Security: Contact security team
