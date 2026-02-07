@@ -63,6 +63,11 @@ set(STORAGE_SOURCES
     EmailTrackingStorage.cpp
     UnsubscribeService.cpp
     WebsiteProfileStorage.cpp
+    DataEncryption.cpp
+    GeoIPService.cpp
+    UserAgentParser.cpp
+    ProfileViewAnalyticsStorage.cpp
+    ComplianceStorage.cpp
     ../infrastructure.cpp
 )
 

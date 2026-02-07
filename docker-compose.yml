@@ -78,6 +78,10 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
       - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
+      # Privacy & Compliance Configuration (Task 01c)
+      - COMPLIANCE_ENCRYPTION_KEY=${COMPLIANCE_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}  # MUST be 32 bytes for AES-256
+      - MONGODB_COMPLIANCE_URI=${MONGODB_COMPLIANCE_URI:-mongodb://admin:password123@mongodb:27017}  # Default: same as main DB (override for separate instance)
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-change-this-secret-key-in-production}  # For compliance cleanup endpoint
       - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
       - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
     depends_on:

@@ -38,6 +38,138 @@ search_engine::common::SlugCache* ProfileController::getSlugCache() const {
     return slugCache_.get();
 }
 
+search_engine::storage::ProfileViewAnalyticsStorage* ProfileController::getAnalyticsStorage() const {
+    if (!analyticsStorage_) {
+        try {
+            LOG_INFO("Lazy initializing ProfileViewAnalyticsStorage");
+            analyticsStorage_ = std::make_unique<search_engine::storage::ProfileViewAnalyticsStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize ProfileViewAnalyticsStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return analyticsStorage_.get();
+}
+
+search_engine::storage::ComplianceStorage* ProfileController::getComplianceStorage() const {
+    if (!complianceStorage_) {
+        try {
+            LOG_INFO("Lazy initializing ComplianceStorage");
+            complianceStorage_ = std::make_unique<search_engine::storage::ComplianceStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize ComplianceStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return complianceStorage_.get();
+}
+
+std::string ProfileController::getClientIP(uWS::HttpRequest* req) {
+    // Try X-Forwarded-For header first (for proxied requests)
+    std::string xForwardedFor = std::string(req->getHeader("x-forwarded-for"));
+    if (!xForwardedFor.empty()) {
+        // X-Forwarded-For can contain multiple IPs, get the first one
+        size_t commaPos = xForwardedFor.find(",");
+        if (commaPos != std::string::npos) {
+            return xForwardedFor.substr(0, commaPos);
+        }
+        return xForwardedFor;
+    }
+    
+    // Try X-Real-IP header
+    std::string xRealIP = std::string(req->getHeader("x-real-ip"));
+    if (!xRealIP.empty()) {
+        return xRealIP;
+    }
+    
+    return "unknown";
+}
+
+std::string ProfileController::getUserAgent(uWS::HttpRequest* req) {
+    std::string userAgent = std::string(req->getHeader("user-agent"));
+    if (userAgent.empty()) {
+        return "unknown";
+    }
+    return userAgent;
+}
+
+std::string ProfileController::getReferrer(uWS::HttpRequest* req) {
+    std::string referrer = std::string(req->getHeader("referer"));
+    if (referrer.empty()) {
+        return "direct";
+    }
+    return referrer;
+}
+
+void ProfileController::recordProfileView(const std::string& profileId, uWS::HttpRequest* req) {
+    try {
+        // Get client IP and User-Agent
+        std::string ipAddress = getClientIP(req);
+        std::string userAgent = getUserAgent(req);
+        std::string referrer = getReferrer(req);
+        
+        LOG_DEBUG("Recording profile view: profileId=" + profileId + ", IP=" + ipAddress);
+        
+        // Generate unique view ID (UUID simulation with timestamp + random)
+        auto now = std::chrono::system_clock::now();
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::string viewId = std::to_string(nowMs) + "-" + std::to_string(rand() % 10000);
+        
+        // Tier 1: Privacy-first analytics (NO IP!)
+        search_engine::storage::GeoData geo = search_engine::storage::GeoIPService::lookup(ipAddress);
+        search_engine::storage::UserAgentInfo uaInfo = search_engine::storage::UserAgentParser::parse(userAgent);
+        
+        search_engine::storage::ProfileViewAnalytics analytics;
+        analytics.viewId = viewId;
+        analytics.profileId = profileId;
+        analytics.timestamp = now;
+        analytics.country = geo.country;
+        analytics.province = geo.province;
+        analytics.city = geo.city;
+        analytics.browser = uaInfo.browser;
+        analytics.os = uaInfo.os;
+        analytics.deviceType = uaInfo.deviceType;
+        
+        auto analyticsResult = getAnalyticsStorage()->recordView(analytics);
+        if (!analyticsResult.success) {
+            LOG_WARNING("Failed to record Tier 1 analytics: " + analyticsResult.message);
+        }
+        
+        // Tier 2: Encrypted compliance log
+        std::string encryptionKey = search_engine::storage::DataEncryption::getEncryptionKey();
+        
+        search_engine::storage::LegalComplianceLog complianceLog;
+        complianceLog.logId = viewId + "-compliance";
+        complianceLog.userId = "anonymous";  // No user tracking yet
+        complianceLog.timestamp = now;
+        complianceLog.ipAddress_encrypted = search_engine::storage::DataEncryption::encrypt(ipAddress, encryptionKey);
+        complianceLog.userAgent_encrypted = search_engine::storage::DataEncryption::encrypt(userAgent, encryptionKey);
+        complianceLog.referrer_encrypted = search_engine::storage::DataEncryption::encrypt(referrer, encryptionKey);
+        complianceLog.viewId = viewId;
+        
+        // Set retention expiry to 12 months from now
+        auto twelveMonths = std::chrono::hours(24 * 365);  // 365 days
+        complianceLog.retentionExpiry = now + twelveMonths;
+        complianceLog.isUnderInvestigation = false;
+        
+        auto complianceResult = getComplianceStorage()->recordLog(complianceLog);
+        if (!complianceResult.success) {
+            LOG_WARNING("Failed to record Tier 2 compliance log: " + complianceResult.message);
+        }
+        
+        // Secure memory wipe for sensitive data
+        search_engine::storage::secureMemoryWipe(&ipAddress);
+        search_engine::storage::secureMemoryWipe(&userAgent);
+        search_engine::storage::secureMemoryWipe(&referrer);
+        
+        LOG_INFO("Profile view recorded successfully: viewId=" + viewId);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to record profile view: " + std::string(e.what()));
+        // Don't fail the request if tracking fails
+    }
+}
+
 search_engine::storage::Profile ProfileController::parseProfileFromJson(const nlohmann::json& json) {
     search_engine::storage::Profile profile;
 
@@ -238,6 +370,9 @@ void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::Htt
                     return;
                 }
 
+                // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
+                recordProfileView(profile.id.value_or(""), req);
+
                 nlohmann::json response = {
                     {"success", true},
                     {"message", "Profile found (cached)"},
@@ -274,6 +409,9 @@ void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::Htt
                 json(res, errorResponse);
                 return;
             }
+
+            // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
+            recordProfileView(profile.id.value_or(""), req);
 
             nlohmann::json response = {
                 {"success", true},
@@ -535,6 +673,9 @@ void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uW
                     return;
                 }
 
+                // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
+                recordProfileView(profile.id.value_or(""), req);
+
                 nlohmann::json response = {
                     {"success", true},
                     {"message", "Profile found (cached)"},
@@ -571,6 +712,9 @@ void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uW
                 json(res, errorResponse);
                 return;
             }
+
+            // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
+            recordProfileView(profile.id.value_or(""), req);
 
             nlohmann::json response = {
                 {"success", true},
@@ -723,5 +867,133 @@ bool ProfileController::checkAndRedirectOldSlug(uWS::HttpResponse<false>* res, c
     } catch (const std::exception& e) {
         LOG_ERROR("Error in checkAndRedirectOldSlug: " + std::string(e.what()));
         return false; // Don't redirect on error, let normal flow continue
+    }
+}
+
+void ProfileController::getPrivacyDashboard(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        std::string profileId = std::string(req->getParameter(0));
+        
+        if (profileId.empty()) {
+            badRequest(res, "Profile ID is required");
+            return;
+        }
+        
+        LOG_INFO("Privacy dashboard requested for profile: " + profileId);
+        
+        // Get recent views from Tier 1 analytics (last 30 days)
+        auto viewsResult = getAnalyticsStorage()->getRecentViewsByProfile(profileId, 30);
+        auto viewCountResult = getAnalyticsStorage()->countViewsByProfile(profileId);
+        
+        // Build activity log (privacy-first: no IPs!)
+        nlohmann::json activityLog = nlohmann::json::array();
+        
+        if (viewsResult.success) {
+            for (const auto& view : viewsResult.value) {
+                auto time_t = std::chrono::system_clock::to_time_t(view.timestamp);
+                std::stringstream ss;
+                ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
+                
+                nlohmann::json activity = {
+                    {"when", ss.str()},
+                    {"action", "profile_view"},
+                    {"location", view.city + ", " + view.province + ", " + view.country},
+                    {"device", view.browser + " on " + view.os + " (" + view.deviceType + ")"}
+                };
+                activityLog.push_back(activity);
+            }
+        }
+        
+        // Data retention settings
+        nlohmann::json dataRetention = {
+            {"profileData", "Until account deletion"},
+            {"analyticsData", "2 years (730 days)"},
+            {"complianceLogs", "12 months (365 days) - auto-deleted"},
+            {"deletedData", "Immediate (0 days)"}
+        };
+        
+        // User controls (foundation - auth will gate these)
+        nlohmann::json userControls = {
+            {"canExportAllData", true},
+            {"canDeleteAccount", true},
+            {"canControlRetention", false}  // Future feature
+        };
+        
+        // Build response
+        nlohmann::json response = {
+            {"success", true},
+            {"data", {
+                {"profileId", profileId},
+                {"totalViews", viewCountResult.success ? viewCountResult.value : 0},
+                {"recentActivity", activityLog},
+                {"dataRetention", dataRetention},
+                {"userControls", userControls},
+                {"legalRequestsCount", 0},  // Future: track court orders
+                {"privacyLevel", "Maximum"},
+                {"encryptionEnabled", true},
+                {"ipAddressStored", "Encrypted only (12 months)"}
+            }}
+        };
+        
+        json(res, response);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getPrivacyDashboard: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
+void ProfileController::cleanupExpiredComplianceLogs(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        // Verify API key for internal endpoint
+        std::string apiKey = std::string(req->getHeader("x-api-key"));
+        const char* expectedKey = std::getenv("INTERNAL_API_KEY");
+        
+        if (!expectedKey || apiKey.empty() || apiKey != std::string(expectedKey)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Unauthorized: Invalid or missing API key"},
+                {"error", "INVALID_API_KEY"}
+            };
+            json(res, errorResponse);
+            LOG_WARNING("Unauthorized compliance cleanup attempt with key: " + apiKey);
+            return;
+        }
+        
+        LOG_INFO("Compliance cleanup job started (authorized)");
+        
+        // Count expired logs before deletion (for audit)
+        auto countResult = getComplianceStorage()->countExpiredLogs();
+        int64_t expiredCount = countResult.success ? countResult.value : 0;
+        
+        // Delete expired compliance logs
+        auto deleteResult = getComplianceStorage()->deleteExpiredLogs();
+        
+        if (deleteResult.success) {
+            nlohmann::json response = {
+                {"success", true},
+                {"message", "Compliance logs cleanup completed"},
+                {"data", {
+                    {"expiredLogsFound", expiredCount},
+                    {"logsDeleted", deleteResult.value},
+                    {"timestamp", std::chrono::system_clock::now().time_since_epoch().count()}
+                }}
+            };
+            json(res, response);
+            LOG_INFO("Compliance cleanup completed: " + std::to_string(deleteResult.value) + " logs deleted");
+        } else {
+            res->writeStatus("500 Internal Server Error");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Failed to cleanup compliance logs: " + deleteResult.message},
+                {"error", "CLEANUP_FAILED"}
+            };
+            json(res, errorResponse);
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in cleanupExpiredComplianceLogs: " + std::string(e.what()));
+        serverError(res, "Internal server error");
     }
 }

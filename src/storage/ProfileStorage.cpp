@@ -1,4 +1,5 @@
 #include "../../include/search_engine/storage/ProfileStorage.h"
+#include "../../include/search_engine/storage/DataEncryption.h"
 #include "../../include/Logger.h"
 #include "../../include/mongodb.h"
 #include <mongocxx/client.hpp>
@@ -36,6 +37,10 @@ std::chrono::system_clock::time_point ProfileStorage::dateToTimePoint(const bson
 ProfileStorage::ProfileStorage(const std::string& connectionString, const std::string& databaseName) {
     LOG_DEBUG("ProfileStorage constructor called with database: " + databaseName);
     try {
+        // Load encryption key for sensitive PII fields
+        encryptionKey_ = DataEncryption::getEncryptionKey();
+        LOG_INFO("Encryption key loaded for PII protection");
+        
         // Use MONGODB_URI environment variable if available (for Docker), otherwise use provided connectionString
         std::string actualConnectionString = connectionString;
         const char* envUri = std::getenv("MONGODB_URI");
@@ -64,6 +69,9 @@ ProfileStorage::ProfileStorage(const std::string& connectionString, const std::s
     } catch (const mongocxx::exception& e) {
         LOG_ERROR("Failed to initialize ProfileStorage MongoDB connection: " + std::string(e.what()));
         throw std::runtime_error("Failed to initialize ProfileStorage MongoDB connection: " + std::string(e.what()));
+    } catch (const std::runtime_error& e) {
+        LOG_ERROR("Failed to load encryption key: " + std::string(e.what()));
+        throw;
     }
 }
 
@@ -556,11 +564,14 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     if (profile.portfolioUrl) {
         builder.append(kvp("portfolioUrl", profile.portfolioUrl.value()));
     }
+    // Encrypt sensitive PII fields before storing
     if (profile.email) {
-        builder.append(kvp("email", profile.email.value()));
+        std::string encryptedEmail = DataEncryption::encrypt(profile.email.value(), encryptionKey_);
+        builder.append(kvp("email", encryptedEmail));
     }
     if (profile.phone) {
-        builder.append(kvp("phone", profile.phone.value()));
+        std::string encryptedPhone = DataEncryption::encrypt(profile.phone.value(), encryptionKey_);
+        builder.append(kvp("phone", encryptedPhone));
     }
 
     return builder.extract();
@@ -638,11 +649,14 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     if (doc["portfolioUrl"]) {
         profile.portfolioUrl = std::string(doc["portfolioUrl"].get_string().value);
     }
+    // Decrypt sensitive PII fields when reading
     if (doc["email"]) {
-        profile.email = std::string(doc["email"].get_string().value);
+        std::string encryptedEmail = std::string(doc["email"].get_string().value);
+        profile.email = DataEncryption::decrypt(encryptedEmail, encryptionKey_);
     }
     if (doc["phone"]) {
-        profile.phone = std::string(doc["phone"].get_string().value);
+        std::string encryptedPhone = std::string(doc["phone"].get_string().value);
+        profile.phone = DataEncryption::decrypt(encryptedPhone, encryptionKey_);
     }
 
     return profile;
@@ -699,8 +713,10 @@ bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& pr
     if (profile.foundedYear) {
         builder.append(kvp("foundedYear", profile.foundedYear.value()));
     }
+    // Encrypt sensitive PII field (address)
     if (profile.address) {
-        builder.append(kvp("address", profile.address.value()));
+        std::string encryptedAddress = DataEncryption::encrypt(profile.address.value(), encryptionKey_);
+        builder.append(kvp("address", encryptedAddress));
     }
     if (profile.city) {
         builder.append(kvp("city", profile.city.value()));
@@ -721,11 +737,14 @@ bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& pr
         }
         builder.append(kvp("services", servicesArray));
     }
+    // Encrypt sensitive PII fields
     if (profile.businessEmail) {
-        builder.append(kvp("businessEmail", profile.businessEmail.value()));
+        std::string encryptedEmail = DataEncryption::encrypt(profile.businessEmail.value(), encryptionKey_);
+        builder.append(kvp("businessEmail", encryptedEmail));
     }
     if (profile.businessPhone) {
-        builder.append(kvp("businessPhone", profile.businessPhone.value()));
+        std::string encryptedPhone = DataEncryption::encrypt(profile.businessPhone.value(), encryptionKey_);
+        builder.append(kvp("businessPhone", encryptedPhone));
     }
 
     return builder.extract();
@@ -781,8 +800,10 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
     if (doc["foundedYear"]) {
         profile.foundedYear = doc["foundedYear"].get_int32().value;
     }
+    // Decrypt sensitive PII field (address)
     if (doc["address"]) {
-        profile.address = std::string(doc["address"].get_string().value);
+        std::string encryptedAddress = std::string(doc["address"].get_string().value);
+        profile.address = DataEncryption::decrypt(encryptedAddress, encryptionKey_);
     }
     if (doc["city"]) {
         profile.city = std::string(doc["city"].get_string().value);
@@ -806,11 +827,14 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
         }
         profile.services = services;
     }
+    // Decrypt sensitive PII fields
     if (doc["businessEmail"]) {
-        profile.businessEmail = std::string(doc["businessEmail"].get_string().value);
+        std::string encryptedEmail = std::string(doc["businessEmail"].get_string().value);
+        profile.businessEmail = DataEncryption::decrypt(encryptedEmail, encryptionKey_);
     }
     if (doc["businessPhone"]) {
-        profile.businessPhone = std::string(doc["businessPhone"].get_string().value);
+        std::string encryptedPhone = std::string(doc["businessPhone"].get_string().value);
+        profile.businessPhone = DataEncryption::decrypt(encryptedPhone, encryptionKey_);
     }
 
     return profile;

@@ -20,6 +20,7 @@ private:
     std::unique_ptr<mongocxx::client> client_;
     mongocxx::database database_;
     mongocxx::collection profileCollection_;
+    std::string encryptionKey_;  // Loaded from COMPLIANCE_ENCRYPTION_KEY env
 
     // Conversion methods between Profile and BSON
     bsoncxx::document::value profileToBson(const Profile& profile) const;
