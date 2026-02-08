@@ -2,6 +2,33 @@
 
 **Duration:** 2 days
 **Dependencies:** 01b-database-personal-business.md (profile models)
+**Status:** ✅ **Complete**
+
+## 📊 Implementation Status
+
+- **DataEncryption (AES-256-GCM)**: ✅ Complete (`include/search_engine/storage/DataEncryption.h`, `src/storage/DataEncryption.cpp`) with `secureMemoryWipe()`
+- **GeoIPService (stub)**: ✅ Complete (`include/search_engine/storage/GeoIPService.h`, `src/storage/GeoIPService.cpp`) – city-level lookup interface
+- **UserAgentParser**: ✅ Complete (`include/search_engine/storage/UserAgentParser.h`, `src/storage/UserAgentParser.cpp`) – browser/OS/device type
+- **Tier 1 Analytics**: ✅ Complete (`ProfileViewAnalytics.h`, `ProfileViewAnalyticsStorage.cpp`) – collection `profile_view_analytics`, no IP stored
+- **Tier 2 Compliance**: ✅ Complete (`LegalComplianceLog.h`, `ComplianceStorage.cpp`) – collection `legal_compliance_logs`, encrypted IP/UA/referrer, 12-month retention
+- **Tier 3 Legal Vault**: ✅ Foundation (schema + protocol in `docs/privacy/LEGAL_VAULT_PROTOCOL.md`)
+- **Profile PII encryption**: ✅ Complete – PersonProfile (email, phone) and BusinessProfile (businessEmail, businessPhone, address) encrypted at rest in ProfileStorage
+- **Profile view tracking**: ✅ Complete – `recordProfileView()` in ProfileController (getPublicProfile, getPublicProfileBySlug) → Tier 1 + Tier 2 + secure wipe
+- **Auto-deletion**: ✅ Complete – `POST /api/internal/compliance/cleanup` (INTERNAL_API_KEY), cron-callable
+- **Privacy dashboard**: ✅ Complete – `GET /api/profiles/:id/privacy-dashboard` (recent activity, retention, controls)
+- **Unit tests**: ✅ Complete – `tests/privacy/test_encryption.cpp` (round-trip, empty string, secure wipe, multiple encryptions)
+- **Env/config**: ✅ Complete – `COMPLIANCE_ENCRYPTION_KEY`, `MONGODB_COMPLIANCE_URI` (default same DB), `INTERNAL_API_KEY` in docker-compose
+
+**Implementation files:**
+- Encryption: `DataEncryption.h/cpp`, `GeoIPService.h/cpp`, `UserAgentParser.h/cpp`
+- Tier 1: `ProfileViewAnalytics.h`, `ProfileViewAnalyticsStorage.cpp`
+- Tier 2: `LegalComplianceLog.h`, `ComplianceStorage.cpp`
+- Modified: `ProfileStorage.cpp` (PII encrypt/decrypt), `ProfileController.h/cpp` (tracking, dashboard, cleanup)
+- Docs: `docs/privacy/PRIVACY_ARCHITECTURE.md`, `LEGAL_VAULT_PROTOCOL.md`, `IMPLEMENTATION_SUMMARY.md`, `README.md`
+- Tests: `tests/privacy/test_encryption.cpp`, `tests/privacy/CMakeLists.txt`
+
+**Notes:** GeoIP is stub (returns "Unknown"); real GeoIP can be added later. Tier 2 access controlled by API key; 2FA for admin UI is future. Profile storage tests require `COMPLIANCE_ENCRYPTION_KEY` env when running.
+
 **Acceptance Criteria:**
 - ✅ Three-tier database architecture (Analytics, Compliance, Legal Vault)
 - ✅ IP/Geo separation system implemented
