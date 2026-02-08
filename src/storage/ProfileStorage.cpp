@@ -8,6 +8,8 @@
 #include <mongocxx/exception/exception.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
 #include <regex>
@@ -181,21 +183,72 @@ Profile ProfileStorage::bsonToProfile(const bsoncxx::document::view& doc) const 
 
 void ProfileStorage::ensureIndexes() {
     try {
-        // Create unique index on slug (MongoDB handles UTF-8 natively)
-        mongocxx::options::index uniqueIndexOptions{};
-        uniqueIndexOptions.unique(true);
-        profileCollection_.create_index(document{} << "slug" << 1 << finalize, uniqueIndexOptions);
+        using bsoncxx::builder::basic::kvp;
+        using bsoncxx::builder::basic::make_document;
+        
+        // 1. slug_unique: Unique index on slug for fast lookups
+        {
+            mongocxx::options::index opts{};
+            opts.unique(true);
+            opts.name("slug_unique");
+            profileCollection_.create_index(document{} << "slug" << 1 << finalize, opts);
+        }
 
-        // Create index on type
-        profileCollection_.create_index(document{} << "type" << 1 << finalize);
+        // 2. type_index: Filter profiles by type
+        {
+            mongocxx::options::index opts{};
+            opts.name("type_index");
+            profileCollection_.create_index(document{} << "type" << 1 << finalize, opts);
+        }
 
-        // Create index on createdAt
-        profileCollection_.create_index(document{} << "createdAt" << -1 << finalize);
+        // 3. created_at_index: Sort profiles by creation date (descending for recent first)
+        {
+            mongocxx::options::index opts{};
+            opts.name("created_at_index");
+            profileCollection_.create_index(document{} << "createdAt" << -1 << finalize, opts);
+        }
 
-        // Create compound index on type and createdAt
-        profileCollection_.create_index(document{} << "type" << 1 << "createdAt" << -1 << finalize);
+        // 4. public_filter: Filter for public profiles
+        {
+            mongocxx::options::index opts{};
+            opts.name("public_filter");
+            profileCollection_.create_index(document{} << "isPublic" << 1 << finalize, opts);
+        }
 
-        LOG_INFO("ProfileStorage indexes created successfully");
+        // 5. type_public_recent: Compound index for listing public profiles by type, sorted by recency
+        {
+            mongocxx::options::index opts{};
+            opts.name("type_public_recent");
+            profileCollection_.create_index(
+                document{} << "type" << 1 << "isPublic" << 1 << "createdAt" << -1 << finalize,
+                opts
+            );
+        }
+
+        // 6. person_skills: Partial index for PERSON profiles with skills
+        {
+            mongocxx::options::index opts{};
+            opts.name("person_skills");
+            // Partial filter: only index documents where type is PERSON
+            auto partialFilter = make_document(kvp("type", "PERSON"));
+            opts.partial_filter_expression(partialFilter.view());
+            profileCollection_.create_index(document{} << "skills" << 1 << finalize, opts);
+        }
+
+        // 7. business_location_industry: Partial index for BUSINESS profiles by industry + city
+        {
+            mongocxx::options::index opts{};
+            opts.name("business_location_industry");
+            // Partial filter: only index documents where type is BUSINESS
+            auto partialFilter = make_document(kvp("type", "BUSINESS"));
+            opts.partial_filter_expression(partialFilter.view());
+            profileCollection_.create_index(
+                document{} << "industry" << 1 << "city" << 1 << finalize,
+                opts
+            );
+        }
+
+        LOG_INFO("ProfileStorage indexes created successfully with named indexes");
     } catch (const mongocxx::exception& e) {
         LOG_WARNING("Failed to create ProfileStorage indexes (may already exist): " + std::string(e.what()));
     }

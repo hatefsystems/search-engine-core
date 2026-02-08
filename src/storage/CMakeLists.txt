@@ -58,6 +58,10 @@ set(STORAGE_SOURCES
     SponsorStorage.cpp
     Profile.cpp
     ProfileStorage.cpp
+    ProfileValidator.cpp
+    AuditStorage.cpp
+    AuditLogger.cpp
+    IndexMonitor.cpp
     EmailService.cpp
     EmailLogsStorage.cpp
     EmailTrackingStorage.cpp
@@ -89,6 +93,10 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/MongoDBStorage.h
     ../../include/search_engine/storage/SponsorStorage.h
     ../../include/search_engine/storage/ProfileStorage.h
+    ../../include/search_engine/storage/ProfileValidator.h
+    ../../include/search_engine/storage/ProfileAuditLog.h
+    ../../include/search_engine/storage/AuditLogger.h
+    ../../include/search_engine/storage/IndexMonitor.h
     ../../include/search_engine/storage/ContentStorage.h
     ../../include/search_engine/storage/EmailService.h
     ../../include/search_engine/storage/EmailLogsStorage.h
@@ -196,7 +204,7 @@ target_compile_definitions(SponsorStorage PRIVATE
     MONGOCXX_STATIC
 )
 
-add_library(ProfileStorage STATIC Profile.cpp ProfileStorage.cpp ../infrastructure.cpp)
+add_library(ProfileStorage STATIC Profile.cpp ProfileStorage.cpp ProfileValidator.cpp ../infrastructure.cpp)
 target_include_directories(ProfileStorage
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>

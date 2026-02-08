@@ -1,6 +1,8 @@
 #include "ProfileController.h"
 #include "../../include/Logger.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
+#include "../../include/search_engine/storage/ProfileValidator.h"
+#include "../../include/search_engine/storage/AuditLogger.h"
 #include <nlohmann/json.hpp>
 #include <chrono>
 #include <sstream>
@@ -62,6 +64,19 @@ search_engine::storage::ComplianceStorage* ProfileController::getComplianceStora
         }
     }
     return complianceStorage_.get();
+}
+
+search_engine::storage::AuditStorage* ProfileController::getAuditStorage() const {
+    if (!auditStorage_) {
+        try {
+            LOG_INFO("Lazy initializing AuditStorage");
+            auditStorage_ = std::make_unique<search_engine::storage::AuditStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize AuditStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return auditStorage_.get();
 }
 
 std::string ProfileController::getClientIP(uWS::HttpRequest* req) {
@@ -155,6 +170,16 @@ void ProfileController::recordProfileView(const std::string& profileId, uWS::Htt
         auto complianceResult = getComplianceStorage()->recordLog(complianceLog);
         if (!complianceResult.success) {
             LOG_WARNING("Failed to record Tier 2 compliance log: " + complianceResult.message);
+        }
+        
+        // Audit log: record profile view
+        try {
+            std::string viewerId = "anonymous";  // TODO: Get viewer's user ID from auth when implemented
+            search_engine::storage::AuditLogger::logProfileView(
+                profileId, viewerId, ipAddress, userAgent, getAuditStorage()
+            );
+        } catch (const std::exception& e) {
+            LOG_WARNING("Failed to record audit log for profile view: " + std::string(e.what()));
         }
         
         // Secure memory wipe for sensitive data
@@ -256,7 +281,7 @@ search_engine::storage::ProfileType ProfileController::stringToProfileType(const
 void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
     std::string buffer;
 
-    res->onData([this, res, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
+    res->onData([this, res, req, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -270,15 +295,55 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 // Set creation timestamp
                 profile.createdAt = std::chrono::system_clock::now();
 
+                // Validate profile using ProfileValidator
+                auto validationResult = search_engine::storage::ProfileValidator::validate(profile);
+                
+                if (!validationResult.isValid) {
+                    // Return 400 with structured error response
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Validation failed"},
+                        {"errors", validationResult.errors}
+                    };
+                    
+                    if (!validationResult.warnings.empty()) {
+                        errorResponse["warnings"] = validationResult.warnings;
+                    }
+                    
+                    res->writeStatus("400 Bad Request");
+                    this->json(res, errorResponse);
+                    LOG_WARNING("Profile validation failed: " + std::to_string(validationResult.errors.size()) + " errors");
+                    return;
+                }
+
                 // Save to database
                 auto result = getStorage()->store(profile);
 
                 if (result.success) {
+                    // Audit log: record profile creation
+                    try {
+                        std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                        std::string ipAddress = getClientIP(req);
+                        std::string userAgent = getUserAgent(req);
+                        
+                        search_engine::storage::AuditLogger::logProfileCreate(
+                            profile, userId, ipAddress, userAgent, getAuditStorage()
+                        );
+                    } catch (const std::exception& e) {
+                        LOG_WARNING("Failed to record audit log: " + std::string(e.what()));
+                    }
+                    
                     nlohmann::json response = {
                         {"success", true},
                         {"message", result.message},
                         {"data", profileToJson(profile)}
                     };
+                    
+                    // Include warnings if present
+                    if (!validationResult.warnings.empty()) {
+                        response["warnings"] = validationResult.warnings;
+                    }
+                    
                     this->json(res, response);
                     LOG_INFO("Profile created with slug: " + profile.slug);
                 } else {
@@ -438,7 +503,7 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
         return;
     }
 
-    res->onData([this, res, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -446,23 +511,19 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 // Parse JSON body
                 auto jsonBody = nlohmann::json::parse(buffer);
 
-                // First, get the existing profile
+                // First, get the existing profile (for audit trail)
                 auto existingResult = getStorage()->findById(profileId);
                 if (!existingResult.success) {
                     notFound(res, "Profile not found");
                     return;
                 }
 
+                auto oldProfile = existingResult.value;  // Keep old version for audit
                 auto existingProfile = existingResult.value;
 
                 // Update only provided fields (partial update)
                 if (jsonBody.contains("slug") && jsonBody["slug"].is_string()) {
                     existingProfile.slug = jsonBody["slug"].get<std::string>();
-                    // Validate slug format
-                    if (!search_engine::storage::ProfileStorage::isValidSlug(existingProfile.slug)) {
-                        badRequest(res, "Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
-                        return;
-                    }
                 }
 
                 if (jsonBody.contains("name") && jsonBody["name"].is_string()) {
@@ -475,11 +536,6 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 
                 if (jsonBody.contains("bio") && jsonBody["bio"].is_string()) {
                     existingProfile.bio = jsonBody["bio"].get<std::string>();
-                    // Validate bio length
-                    if (existingProfile.bio->length() > 500) {
-                        badRequest(res, "Bio exceeds maximum length of 500 characters");
-                        return;
-                    }
                 }
 
                 if (jsonBody.contains("isPublic") && jsonBody["isPublic"].is_boolean()) {
@@ -489,12 +545,46 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 // Set ID for update
                 existingProfile.id = profileId;
 
+                // Validate the updated profile using ProfileValidator
+                auto validationResult = search_engine::storage::ProfileValidator::validate(existingProfile);
+                
+                if (!validationResult.isValid) {
+                    // Return 400 with structured error response
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Validation failed"},
+                        {"errors", validationResult.errors}
+                    };
+                    
+                    if (!validationResult.warnings.empty()) {
+                        errorResponse["warnings"] = validationResult.warnings;
+                    }
+                    
+                    res->writeStatus("400 Bad Request");
+                    this->json(res, errorResponse);
+                    LOG_WARNING("Profile validation failed during update: " + std::to_string(validationResult.errors.size()) + " errors");
+                    return;
+                }
+
                 // Update in database
                 auto updateResult = getStorage()->update(existingProfile);
 
                 if (updateResult.success) {
+                    // Audit log: record profile update
+                    try {
+                        std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                        std::string ipAddress = getClientIP(req);
+                        std::string userAgent = getUserAgent(req);
+                        
+                        search_engine::storage::AuditLogger::logProfileUpdate(
+                            oldProfile, existingProfile, userId, ipAddress, userAgent, getAuditStorage()
+                        );
+                    } catch (const std::exception& e) {
+                        LOG_WARNING("Failed to record audit log: " + std::string(e.what()));
+                    }
+                    
                     // Clear cache if slug was changed
-                    if (existingProfile.slug != jsonBody["slug"].get<std::string>()) {
+                    if (jsonBody.contains("slug") && existingProfile.slug != jsonBody["slug"].get<std::string>()) {
                         getSlugCache()->clear();
                         LOG_DEBUG("Profile slug changed - cache cleared");
                     }
@@ -504,6 +594,12 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                         {"message", updateResult.message},
                         {"data", profileToJson(existingProfile)}
                     };
+                    
+                    // Include warnings if present
+                    if (!validationResult.warnings.empty()) {
+                        response["warnings"] = validationResult.warnings;
+                    }
+                    
                     this->json(res, response);
                     LOG_INFO("Profile updated with ID: " + profileId);
                 } else {
@@ -544,6 +640,19 @@ void ProfileController::deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
         auto result = getStorage()->deleteProfile(id);
 
         if (result.success) {
+            // Audit log: record profile deletion
+            try {
+                std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                std::string ipAddress = getClientIP(req);
+                std::string userAgent = getUserAgent(req);
+                
+                search_engine::storage::AuditLogger::logProfileDelete(
+                    id, userId, ipAddress, userAgent, getAuditStorage()
+                );
+            } catch (const std::exception& e) {
+                LOG_WARNING("Failed to record audit log: " + std::string(e.what()));
+            }
+            
             // Clear cache when profile is deleted
             getSlugCache()->clear();
             LOG_DEBUG("Profile deleted - cache cleared");

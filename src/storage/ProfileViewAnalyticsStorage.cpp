@@ -73,19 +73,46 @@ void ProfileViewAnalyticsStorage::ensureIndexes() {
         using bsoncxx::builder::basic::kvp;
         using bsoncxx::builder::basic::make_document;
         
-        // Index on profileId + timestamp for dashboard queries
-        auto profileTimestampIndex = make_document(
-            kvp("profileId", 1),
-            kvp("timestamp", -1)  // Descending for recent views
-        );
+        // 1. profile_views_timeline: Index on profileId + timestamp for dashboard queries
+        {
+            mongocxx::options::index opts{};
+            opts.name("profile_views_timeline");
+            auto profileTimestampIndex = make_document(
+                kvp("profileId", 1),
+                kvp("timestamp", -1)  // Descending for recent views
+            );
+            analyticsCollection_.create_index(profileTimestampIndex.view(), opts);
+        }
         
-        analyticsCollection_.create_index(profileTimestampIndex.view());
+        // 2. location_analytics: Index on city + timestamp for geographic analytics
+        {
+            mongocxx::options::index opts{};
+            opts.name("location_analytics");
+            auto cityTimestampIndex = make_document(
+                kvp("city", 1),
+                kvp("timestamp", -1)
+            );
+            analyticsCollection_.create_index(cityTimestampIndex.view(), opts);
+        }
         
-        // Index on timestamp only for cleanup/aggregation queries
-        auto timestampIndex = make_document(kvp("timestamp", -1));
-        analyticsCollection_.create_index(timestampIndex.view());
+        // 3. device_analytics: Index on deviceType + timestamp for device analytics
+        {
+            mongocxx::options::index opts{};
+            opts.name("device_analytics");
+            auto deviceTimestampIndex = make_document(
+                kvp("deviceType", 1),
+                kvp("timestamp", -1)
+            );
+            analyticsCollection_.create_index(deviceTimestampIndex.view(), opts);
+        }
         
-        LOG_INFO("Analytics indexes created successfully");
+        // Index on timestamp only for cleanup/aggregation queries (unnamed helper index)
+        {
+            auto timestampIndex = make_document(kvp("timestamp", -1));
+            analyticsCollection_.create_index(timestampIndex.view());
+        }
+        
+        LOG_INFO("ProfileViewAnalyticsStorage indexes created successfully with named indexes");
         
     } catch (const mongocxx::exception& e) {
         LOG_WARNING("Failed to create analytics indexes (may already exist): " + std::string(e.what()));

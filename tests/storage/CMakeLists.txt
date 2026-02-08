@@ -21,6 +21,19 @@ target_link_libraries(test_profile_storage PRIVATE
     storage
 )
 
+add_executable(test_profile_performance test_profile_performance.cpp)
+target_link_libraries(test_profile_performance PRIVATE
+    Catch2::Catch2WithMain
+    storage
+    Threads::Threads
+)
+
+add_executable(test_profile_validator test_profile_validator.cpp)
+target_link_libraries(test_profile_validator PRIVATE
+    Catch2::Catch2WithMain
+    storage
+)
+
 # Add Redis-dependent tests only if Redis was detected in parent build
 if(REDIS_AVAILABLE)
     add_executable(test_redis_search_storage test_redis_search_storage.cpp)
@@ -85,6 +98,18 @@ set_tests_properties(profile_storage_test PROPERTIES
     LABELS "storage;profile"
 )
 
+add_test(NAME profile_performance_test COMMAND test_profile_performance)
+set_tests_properties(profile_performance_test PROPERTIES
+    TIMEOUT 600
+    LABELS "storage;profile;performance"
+)
+
+add_test(NAME profile_validator_test COMMAND test_profile_validator)
+set_tests_properties(profile_validator_test PROPERTIES
+    TIMEOUT 30
+    LABELS "storage;profile;validator"
+)
+
 if(REDIS_AVAILABLE)
     add_test(NAME redis_search_storage_test COMMAND test_redis_search_storage)
     set_tests_properties(redis_search_storage_test PROPERTIES
@@ -109,6 +134,8 @@ set_tests_properties(storage_tests PROPERTIES
 # Auto-discover individual test cases within each executable
 catch_discover_tests(test_mongodb_storage)
 catch_discover_tests(test_profile_storage)
+catch_discover_tests(test_profile_performance)
+catch_discover_tests(test_profile_validator)
 catch_discover_tests(storage_tests)
 
 if(REDIS_AVAILABLE)

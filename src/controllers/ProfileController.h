@@ -6,6 +6,8 @@
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include "../../include/search_engine/storage/ProfileViewAnalytics.h"
 #include "../../include/search_engine/storage/LegalComplianceLog.h"
+#include "../../include/search_engine/storage/ProfileAuditLog.h"
+#include "../../include/search_engine/storage/AuditLogger.h"
 #include "../../include/search_engine/storage/GeoIPService.h"
 #include "../../include/search_engine/storage/UserAgentParser.h"
 #include "../../include/search_engine/storage/DataEncryption.h"
@@ -42,12 +44,14 @@ private:
     mutable std::unique_ptr<search_engine::common::SlugCache> slugCache_;
     mutable std::unique_ptr<search_engine::storage::ProfileViewAnalyticsStorage> analyticsStorage_;
     mutable std::unique_ptr<search_engine::storage::ComplianceStorage> complianceStorage_;
+    mutable std::unique_ptr<search_engine::storage::AuditStorage> auditStorage_;
 
     // Lazy initialization helpers
     search_engine::storage::ProfileStorage* getStorage() const;
     search_engine::common::SlugCache* getSlugCache() const;
     search_engine::storage::ProfileViewAnalyticsStorage* getAnalyticsStorage() const;
     search_engine::storage::ComplianceStorage* getComplianceStorage() const;
+    search_engine::storage::AuditStorage* getAuditStorage() const;
 
     // Helper to parse JSON request body
     search_engine::storage::Profile parseProfileFromJson(const nlohmann::json& json);

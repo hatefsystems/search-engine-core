@@ -87,19 +87,40 @@ void ComplianceStorage::ensureIndexes() {
         using bsoncxx::builder::basic::kvp;
         using bsoncxx::builder::basic::make_document;
         
-        // Index on retentionExpiry for auto-deletion queries
-        auto expiryIndex = make_document(kvp("retentionExpiry", 1));
-        complianceCollection_.create_index(expiryIndex.view());
+        // 1. user_compliance_history: Index on userId + timestamp for user compliance history
+        {
+            mongocxx::options::index opts{};
+            opts.name("user_compliance_history");
+            auto userTimestampIndex = make_document(
+                kvp("userId", 1),
+                kvp("timestamp", -1)
+            );
+            complianceCollection_.create_index(userTimestampIndex.view(), opts);
+        }
         
-        // Index on timestamp for audit queries
-        auto timestampIndex = make_document(kvp("timestamp", -1));
-        complianceCollection_.create_index(timestampIndex.view());
+        // 2. auto_deletion_index: Index on retentionExpiry for auto-deletion queries
+        {
+            mongocxx::options::index opts{};
+            opts.name("auto_deletion_index");
+            auto expiryIndex = make_document(kvp("retentionExpiry", 1));
+            complianceCollection_.create_index(expiryIndex.view(), opts);
+        }
         
-        // Index on viewId for linking to Tier 1 analytics
-        auto viewIdIndex = make_document(kvp("viewId", 1));
-        complianceCollection_.create_index(viewIdIndex.view());
+        // 3. analytics_link: Index on viewId for linking to Tier 1 analytics
+        {
+            mongocxx::options::index opts{};
+            opts.name("analytics_link");
+            auto viewIdIndex = make_document(kvp("viewId", 1));
+            complianceCollection_.create_index(viewIdIndex.view(), opts);
+        }
         
-        LOG_INFO("Compliance indexes created successfully");
+        // Index on timestamp for audit queries (unnamed helper index)
+        {
+            auto timestampIndex = make_document(kvp("timestamp", -1));
+            complianceCollection_.create_index(timestampIndex.view());
+        }
+        
+        LOG_INFO("ComplianceStorage indexes created successfully with named indexes");
         
     } catch (const mongocxx::exception& e) {
         LOG_WARNING("Failed to create compliance indexes (may already exist): " + std::string(e.what()));
