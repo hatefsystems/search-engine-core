@@ -1,0 +1,26 @@
+---
+description: Search Engine Core project context and critical reminders
+alwaysApply: true
+---
+
+# Search Engine Core - Project Context
+
+This is a high-performance search engine built with C++, uWebSockets, MongoDB, and Redis. Docker for containerization; features include web crawling, SPA rendering, and sponsor management.
+
+## Critical Reminders
+
+1. **MongoDB:** Use `MongoDBInstance::getInstance()` before creating any client; never create clients without it.
+2. **uWebSockets:** Every `res->onData()` MUST be paired with `res->onAborted()` to prevent crashes.
+3. **Controllers:** Use lazy initialization — NEVER initialize services in controller constructors.
+4. **Debug:** Use `LOG_DEBUG()` instead of `std::cout`; configure via `LOG_LEVEL` environment variable.
+5. **MongoDB updates:** Use basic builder with `.extract()` for complex updates; stream builder causes data corruption.
+
+## Important Paths
+
+- Controllers: `src/controllers/`
+- Storage: `src/storage/`
+- Headers: `include/`
+- MongoDB singleton: `include/mongodb.h`
+- API docs: `docs/api/`
+- Templates: `templates/`
+- Static files: `public/`

@@ -1,0 +1,101 @@
+---
+description: MongoDB BSON basic builder and instance initialization
+applyTo: '**/*.cpp,**/*.h,src/**/*.cpp,include/**/*.h'
+---
+
+# MongoDB C++ Rules
+
+## Instance Initialization
+
+```cpp
+// ❌ WRONG - Crashes
+mongocxx::uri uri{"mongodb://localhost:27017"};
+client_ = std::make_unique<mongocxx::client>(uri);
+
+// ✅ CORRECT
+#include "../../include/mongodb.h"
+mongocxx::instance& instance = MongoDBInstance::getInstance();
+mongocxx::uri uri{"mongodb://localhost:27017"};
+client_ = std::make_unique<mongocxx::client>(uri);
+```
+
+## BSON: Use Basic Builder for Complex Documents
+
+Never use stream builder for nested documents or updates — it causes data corruption.
+
+```cpp
+// ❌ WRONG - Stream builder corrupts; ALL FIELDS GET DELETED
+document setDoc{};
+setDoc << "field1" << value1 << "field2" << value2;  // Not finalized!
+document updateDoc{};
+updateDoc << "$set" << setDoc << finalize;  // Passing unfinalized doc!
+// Result: document becomes { _id: ObjectId(...) } - ALL DATA LOST!
+```
+
+```cpp
+// ✅ CORRECT - Basic builder
+using bsoncxx::builder::basic::kvp;
+auto setFields = bsoncxx::builder::basic::document{};
+setFields.append(kvp("field1", value1));
+setFields.append(kvp("field2", value2));
+auto updateDoc = bsoncxx::builder::basic::document{};
+updateDoc.append(kvp("$set", setFields.extract()));
+collection.update_one(filter, updateDoc.extract());
+```
+
+- Use basic builder for `$set`, `$push`, `$pull`, nested docs.
+- Call `.extract()` on each subdocument before adding to parent.
+- Stream builder ONLY for simple, flat filters (e.g. `document{} << "email" << "x@y.com" << "active" << true << finalize` for find_one).
+
+## When to Use Each Builder
+
+| Use Case | Builder | Why |
+|----------|---------|-----|
+| Complex updates (`$set`, `$push`, etc.) | Basic Builder | Prevents data corruption |
+| Nested documents (arrays, subdocuments) | Basic Builder | Explicit extraction required |
+| Multiple operators in one update | Basic Builder | Safer composition |
+| Simple flat queries/filters | Stream Builder | More concise |
+| Production database operations | Basic Builder | Safer and maintainable |
+
+## DON'T: Mix Builder Types
+
+```cpp
+// ❌ BAD
+document streamDoc{};
+basic::document basicDoc{};
+streamDoc << "$set" << basicDoc;  // Wrong!
+```
+
+## DON'T: Nest Without Extraction
+
+```cpp
+// ❌ BAD - DATA CORRUPTION
+document parent{};
+document child{};
+child << "field" << "value";
+parent << "nested" << child;  // Child not extracted!
+```
+
+## Common BSON Errors and Solutions
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Document becomes `{ _id: ObjectId(...) }` only | Stream builder without finalization | Basic builder + `.extract()` |
+| `modified_count() == 0` but document exists | Malformed BSON | Basic builder, verify structure |
+| Nested fields unchanged after update | Nested not extracted | `.extract()` on nested before `append()` |
+
+## MongoDB Integration Checklist
+
+1. Include `#include "../../include/mongodb.h"`
+2. Call `MongoDBInstance::getInstance()` before creating any client
+3. Use consistent collection names across imports and code
+4. Add proper exception handling with try-catch blocks
+5. Test connection with simple query first
+
+## BSON Document Checklist
+
+- [ ] Use basic builder for nested structures and multiple operators
+- [ ] `.extract()` on each subdocument before adding to parent
+- [ ] `.extract()` on final document before passing to MongoDB
+- [ ] Use `kvp()` for type-safe key-value pairs
+- [ ] Stream builder ONLY for simple, flat filters/queries

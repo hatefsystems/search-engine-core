@@ -1,0 +1,23 @@
+---
+description: Documentation in English, commit messages, API format
+applyTo: '**'
+---
+
+# Documentation and Conventions
+
+## Language
+
+All documentation, comments, commit messages, and docstrings must be in English. Exceptions: localization files, user-facing translated content, test data.
+
+## API Response Format
+
+Success: `{"success": true, "message": "...", "data": {...}}`
+Error: `{"success": false, "message": "...", "error": "ERROR_CODE"}`
+
+## Git Commits
+
+Format: `type: description`. Types: feat, fix, docs, refactor, test, perf, chore.
+
+## Docs Checklist
+
+- Write docs in English; update README and docs/api/ for new features; document new env vars.

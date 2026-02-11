@@ -1,0 +1,56 @@
+---
+description: Controller registration and lazy initialization
+globs: "src/controllers/**/*.h,src/controllers/**/*.cpp"
+alwaysApply: false
+---
+
+# Controller Rules
+
+## Required Includes
+
+```cpp
+#include "../../include/routing/Controller.h"
+#include "../../include/routing/RouteRegistry.h"
+```
+
+## No Namespaces
+
+Controllers must NOT use namespaces (breaks ROUTE_CONTROLLER macro). Use global namespace.
+
+## Route Registration (in header, after class)
+
+```cpp
+ROUTE_CONTROLLER(MyController) {
+    using namespace routing;
+    REGISTER_ROUTE(HttpMethod::GET, "/api/v2/my-endpoint", myEndpoint, MyController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/v2/another-endpoint", anotherEndpoint, MyController);
+}
+```
+
+- No separate `*_routes.cpp` files. No namespaces around controller class.
+
+## Lazy Initialization
+
+Never initialize services in the controller constructor (static initialization order fiasco).
+
+```cpp
+// ✅ CORRECT - with error handling
+mutable std::unique_ptr<DomainStorage> domainStorage_;
+DomainStorage* getDomainStorage() const {
+    if (!domainStorage_) {
+        try {
+            LOG_INFO("Lazy initializing DomainStorage");
+            domainStorage_ = std::make_unique<DomainStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize DomainStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return domainStorage_.get();
+}
+```
+
+- Declare as `mutable std::unique_ptr<Service>`
+- Use getter methods with null check and create on first use
+- Add try-catch and logging in getters
+- Use getter methods instead of direct member access
