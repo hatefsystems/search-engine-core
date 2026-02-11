@@ -488,6 +488,7 @@ _Not Found:_
 ```
 
 **Notes:**
+
 - Reserved system slugs (api, admin, search, etc.) are reported as unavailable
 - Soft-deleted profiles do not block slug reuse
 
@@ -562,7 +563,7 @@ _Slug Taken:_
 Authorization: Bearer <owner_token>
 ```
 
-**Success Response:
+\*\*Success Response:
 
 ```json
 {

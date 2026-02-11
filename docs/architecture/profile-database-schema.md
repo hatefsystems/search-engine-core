@@ -70,7 +70,7 @@ This document describes the MongoDB database schema for the profile system, incl
 | `type_public_recent`         | `{ "type": 1, "isPublic": 1, "createdAt": -1 }` | Compound                | List public profiles by type, sorted by recency |
 | `person_skills`              | `{ "skills": 1 }`                               | Partial (type=PERSON)   | Search by skills for person profiles            |
 | `business_location_industry` | `{ "industry": 1, "city": 1 }`                  | Partial (type=BUSINESS) | Search businesses by industry and location      |
-| `previous_slugs`             | `{ "previousSlugs": 1 }`                         | Regular                 | Fast old-slug redirect lookups                  |
+| `previous_slugs`             | `{ "previousSlugs": 1 }`                        | Regular                 | Fast old-slug redirect lookups                  |
 
 **Query Patterns:**
 
