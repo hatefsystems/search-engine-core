@@ -88,6 +88,7 @@ public:
     Result<bool> checkSlugAvailability(const std::string& slug);
     Result<std::optional<Profile>> findByHandle(const std::string& handle);
     Result<bool> updateSlug(const std::string& profileId, const std::string& newSlug);
+    Result<std::optional<Profile>> findByPreviousSlug(const std::string& oldSlug);
 
     // Query operations
     Result<std::vector<Profile>> findAll(int limit = 100, int skip = 0);

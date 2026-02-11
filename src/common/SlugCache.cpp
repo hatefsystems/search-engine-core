@@ -4,8 +4,8 @@
 namespace search_engine {
 namespace common {
 
-SlugCache::SlugCache(int ttlSeconds)
-    : ttlSeconds_(ttlSeconds) {
+SlugCache::SlugCache(int ttlSeconds, size_t maxSize)
+    : ttlSeconds_(ttlSeconds), maxSize_(maxSize) {
 }
 
 std::optional<std::string> SlugCache::get(const std::string& slug) {
@@ -31,6 +31,33 @@ void SlugCache::put(const std::string& slug, const std::string& profileId) {
 
     CacheEntry entry(profileId, getExpirationTime());
     cache_[slug] = entry;
+
+    // Periodic cleanup every 100 put operations
+    ++putCount_;
+    if (putCount_ % 100 == 0) {
+        auto now = std::chrono::system_clock::now();
+        for (auto it = cache_.begin(); it != cache_.end(); ) {
+            if (now >= it->second.expiresAt) {
+                it = cache_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    // Evict oldest entries if exceeding max size
+    if (cache_.size() > maxSize_) {
+        // Find and remove the entry closest to expiration
+        auto oldest = cache_.begin();
+        for (auto it = cache_.begin(); it != cache_.end(); ++it) {
+            if (it->second.expiresAt < oldest->second.expiresAt) {
+                oldest = it;
+            }
+        }
+        if (oldest != cache_.end()) {
+            cache_.erase(oldest);
+        }
+    }
 }
 
 void SlugCache::remove(const std::string& slug) {

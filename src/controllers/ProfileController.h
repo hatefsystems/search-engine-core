@@ -72,6 +72,9 @@ private:
     // Helper for SEO redirects
     bool checkAndRedirectOldSlug(uWS::HttpResponse<false>* res, const std::string& requestedSlug);
     
+    // Shared helper for resolving and serving a public profile by slug
+    void servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug);
+    
     // Privacy & tracking helpers
     std::string getClientIP(uWS::HttpRequest* req);
     std::string getUserAgent(uWS::HttpRequest* req);

@@ -70,10 +70,12 @@ This document describes the MongoDB database schema for the profile system, incl
 | `type_public_recent`         | `{ "type": 1, "isPublic": 1, "createdAt": -1 }` | Compound                | List public profiles by type, sorted by recency |
 | `person_skills`              | `{ "skills": 1 }`                               | Partial (type=PERSON)   | Search by skills for person profiles            |
 | `business_location_industry` | `{ "industry": 1, "city": 1 }`                  | Partial (type=BUSINESS) | Search businesses by industry and location      |
+| `previous_slugs`             | `{ "previousSlugs": 1 }`                         | Regular                 | Fast old-slug redirect lookups                  |
 
 **Query Patterns:**
 
 - Get profile by slug: `db.profiles.find({ slug: "john-doe" })`
+- Get profile by old slug (SEO redirect): `db.profiles.findOne({ previousSlugs: "old-slug", deletedAt: { $exists: false } })`
 - List public person profiles: `db.profiles.find({ type: "PERSON", isPublic: true }).sort({ createdAt: -1 })`
 - Search person by skills: `db.profiles.find({ type: "PERSON", skills: "C++" })`
 - Search business by location: `db.profiles.find({ type: "BUSINESS", industry: "Technology", city: "Tehran" })`
@@ -243,7 +245,10 @@ This document describes the MongoDB database schema for the profile system, incl
 ### Slug Validation
 
 - **Pattern:** Persian letters (U+0600–U+06FF) + English letters + numbers + hyphens
-- **Length:** 1-50 characters
+- **Length:** 1-100 characters (enforced in `isValidSlug()`)
+- **Reserved:** System slugs (api, admin, search, etc.) blocked via `isReservedSlug()`
+- **Soft-delete:** `checkSlugAvailability()` excludes soft-deleted profiles (`deletedAt` $exists false)
+- **TOCTOU:** Duplicate slug insertion caught via MongoDB E11000 duplicate key error handling
 - **Warnings:** Double hyphens (`--`) trigger a warning
 
 ### Email Validation

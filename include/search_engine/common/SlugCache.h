@@ -33,8 +33,9 @@ public:
     /**
      * Constructor
      * @param ttlSeconds Time-to-live in seconds (default: 300 = 5 minutes)
+     * @param maxSize Maximum number of entries before eviction (default: 10000)
      */
-    explicit SlugCache(int ttlSeconds = 300);
+    explicit SlugCache(int ttlSeconds = 300, size_t maxSize = 10000);
 
     /**
      * Get cached profile ID for slug
@@ -77,6 +78,8 @@ private:
     std::unordered_map<std::string, CacheEntry> cache_;
     mutable std::mutex mutex_;
     int ttlSeconds_;
+    size_t maxSize_;
+    size_t putCount_ = 0;
 
     /**
      * Check if cache entry is expired

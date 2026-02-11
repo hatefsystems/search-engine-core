@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <sstream>
 #include <chrono>
+#include <vector>
 
 namespace search_engine {
 namespace common {
@@ -129,12 +130,22 @@ std::string SlugGenerator::transliterate(const std::string& input) {
 std::string SlugGenerator::convertArabicNumerals(const std::string& input) {
     std::string result = input;
 
-    // Arabic-Indic numerals (٠-٩) to ASCII (0-9)
-    const std::string arabicNumerals = "٠١٢٣٤٥٦٧٨٩";
-    const std::string asciiNumerals = "0123456789";
+    // Arabic-Indic numerals (٠-٩) are multi-byte UTF-8 sequences.
+    // We must use string find/replace, not byte-level std::replace.
+    const std::vector<std::pair<std::string, std::string>> numeralMap = {
+        {"٠", "0"}, {"١", "1"}, {"٢", "2"}, {"٣", "3"}, {"٤", "4"},
+        {"٥", "5"}, {"٦", "6"}, {"٧", "7"}, {"٨", "8"}, {"٩", "9"},
+        // Extended Arabic-Indic numerals (Persian/Urdu: ۰-۹)
+        {"۰", "0"}, {"۱", "1"}, {"۲", "2"}, {"۳", "3"}, {"۴", "4"},
+        {"۵", "5"}, {"۶", "6"}, {"۷", "7"}, {"۸", "8"}, {"۹", "9"}
+    };
 
-    for (size_t i = 0; i < arabicNumerals.length(); ++i) {
-        std::replace(result.begin(), result.end(), arabicNumerals[i], asciiNumerals[i]);
+    for (const auto& [from, to] : numeralMap) {
+        size_t pos = 0;
+        while ((pos = result.find(from, pos)) != std::string::npos) {
+            result.replace(pos, from.length(), to);
+            pos += to.length();
+        }
     }
 
     return result;
@@ -142,18 +153,56 @@ std::string SlugGenerator::convertArabicNumerals(const std::string& input) {
 
 std::string SlugGenerator::removeCombiningMarks(const std::string& input) {
     std::string result;
+    result.reserve(input.size());
 
-    // Basic combining mark removal - this is simplified
-    // In production, you'd use proper Unicode libraries like ICU
-    for (char c : input) {
-        // Skip common combining marks (U+0300-U+036F range)
-        // This is a very basic implementation
-        if (static_cast<unsigned char>(c) < 0x80 ||
-            (static_cast<unsigned char>(c) >= 0xC0)) { // Keep ASCII and UTF-8 start bytes
-            result += c;
+    // UTF-8 aware combining mark removal.
+    // We iterate by complete UTF-8 code points, skipping only U+0300-U+036F
+    // (Combining Diacritical Marks block).
+    size_t i = 0;
+    while (i < input.size()) {
+        unsigned char byte = static_cast<unsigned char>(input[i]);
+        size_t seqLen = 1;
+
+        if (byte < 0x80) {
+            // ASCII byte — always keep
+            seqLen = 1;
+        } else if ((byte & 0xE0) == 0xC0) {
+            // 2-byte sequence
+            seqLen = 2;
+        } else if ((byte & 0xF0) == 0xE0) {
+            // 3-byte sequence
+            seqLen = 3;
+        } else if ((byte & 0xF8) == 0xF0) {
+            // 4-byte sequence
+            seqLen = 4;
+        } else {
+            // Unexpected continuation byte — skip it
+            ++i;
+            continue;
         }
-        // Note: This is not a complete solution for combining marks
-        // A proper implementation would use Unicode normalization libraries
+
+        // Ensure we don't read past end
+        if (i + seqLen > input.size()) {
+            break;
+        }
+
+        // Decode code point for 2-byte sequences to check if it's a combining mark
+        // U+0300-U+036F are all 2-byte sequences: 0xCC 0x80 to 0xCD 0xAF
+        bool isCombiningMark = false;
+        if (seqLen == 2) {
+            unsigned char b0 = static_cast<unsigned char>(input[i]);
+            unsigned char b1 = static_cast<unsigned char>(input[i + 1]);
+            uint32_t cp = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
+            if (cp >= 0x0300 && cp <= 0x036F) {
+                isCombiningMark = true;
+            }
+        }
+
+        if (!isCombiningMark) {
+            result.append(input, i, seqLen);
+        }
+
+        i += seqLen;
     }
 
     return result;
@@ -255,22 +304,22 @@ const std::unordered_set<std::string>& SlugGenerator::getReservedWords() {
 
 const std::unordered_map<std::string, std::string>& SlugGenerator::getTransliterationMap() {
     static std::unordered_map<std::string, std::string> translitMap = {
-        // German umlauts
+        // German umlauts (canonical transliterations)
         {"ä", "ae"}, {"ö", "oe"}, {"ü", "ue"}, {"ß", "ss"},
         {"Ä", "ae"}, {"Ö", "oe"}, {"Ü", "ue"},
 
-        // French accents
-        {"à", "a"}, {"â", "a"}, {"ä", "a"}, {"é", "e"}, {"è", "e"},
-        {"ê", "e"}, {"ë", "e"}, {"ï", "i"}, {"ô", "o"}, {"ö", "o"},
-        {"ù", "u"}, {"û", "u"}, {"ü", "u"}, {"ÿ", "y"}, {"ç", "c"},
-        {"À", "a"}, {"Â", "a"}, {"Ä", "a"}, {"É", "e"}, {"È", "e"},
-        {"Ê", "e"}, {"Ë", "e"}, {"Ï", "i"}, {"Ô", "o"}, {"Ö", "o"},
-        {"Ù", "u"}, {"Û", "u"}, {"Ü", "u"}, {"Ÿ", "y"}, {"Ç", "c"},
+        // French accents (excluding chars already covered by German umlauts)
+        {"à", "a"}, {"â", "a"}, {"é", "e"}, {"è", "e"},
+        {"ê", "e"}, {"ë", "e"}, {"ï", "i"}, {"ô", "o"},
+        {"ù", "u"}, {"û", "u"}, {"ÿ", "y"}, {"ç", "c"},
+        {"À", "a"}, {"Â", "a"}, {"É", "e"}, {"È", "e"},
+        {"Ê", "e"}, {"Ë", "e"}, {"Ï", "i"}, {"Ô", "o"},
+        {"Ù", "u"}, {"Û", "u"}, {"Ÿ", "y"}, {"Ç", "c"},
 
-        // Spanish accents
-        {"á", "a"}, {"é", "e"}, {"í", "i"}, {"ó", "o"}, {"ú", "u"},
-        {"ü", "u"}, {"ñ", "n"}, {"Á", "a"}, {"É", "e"}, {"Í", "i"},
-        {"Ó", "o"}, {"Ú", "u"}, {"Ü", "u"}, {"Ñ", "n"},
+        // Spanish accents (excluding chars already covered above)
+        {"á", "a"}, {"í", "i"}, {"ó", "o"}, {"ú", "u"},
+        {"ñ", "n"}, {"Á", "a"}, {"Í", "i"},
+        {"Ó", "o"}, {"Ú", "u"}, {"Ñ", "n"},
 
         // Other European characters
         {"å", "a"}, {"Å", "a"}, {"ø", "o"}, {"Ø", "o"}, {"æ", "ae"}, {"Æ", "ae"},

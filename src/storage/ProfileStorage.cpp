@@ -1,5 +1,6 @@
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include "../../include/search_engine/storage/DataEncryption.h"
+#include "../../include/search_engine/common/SlugGenerator.h"
 #include "../../include/Logger.h"
 #include "../../include/mongodb.h"
 #include <mongocxx/client.hpp>
@@ -94,6 +95,9 @@ ProfileType ProfileStorage::stringToProfileType(const std::string& type) {
 bool ProfileStorage::isValidSlug(const std::string& slug) {
     if (slug.empty()) return false;
 
+    // Enforce maximum length
+    if (slug.length() > 100) return false;
+
     // Regex pattern for Persian letters (U+0600-U+06FF) + English letters + numbers + hyphens
     // Pattern: ^[\u0600-\u06FFa-zA-Z0-9-]+$
     static const std::regex slugRegex("^[\u0600-\u06FFa-zA-Z0-9-]+$", std::regex_constants::extended);
@@ -102,59 +106,61 @@ bool ProfileStorage::isValidSlug(const std::string& slug) {
 }
 
 bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) const {
-    auto builder = document{};
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    
+    auto builder = bsoncxx::builder::basic::document{};
 
     // Add ID if it exists
     if (profile.id) {
-        builder << "_id" << bsoncxx::oid{profile.id.value()};
+        builder.append(kvp("_id", bsoncxx::oid{profile.id.value()}));
     }
 
     // Required fields (support UTF-8)
-    builder << "slug" << profile.slug
-            << "name" << profile.name
-            << "type" << profileTypeToString(profile.type)
-            << "isPublic" << profile.isPublic
-            << "createdAt" << timePointToDate(profile.createdAt);
+    builder.append(kvp("slug", profile.slug));
+    builder.append(kvp("name", profile.name));
+    builder.append(kvp("type", profileTypeToString(profile.type)));
+    builder.append(kvp("isPublic", profile.isPublic));
+    builder.append(kvp("createdAt", timePointToDate(profile.createdAt)));
 
     // Optional bio field
     if (profile.bio) {
-        builder << "bio" << profile.bio.value();
+        builder.append(kvp("bio", profile.bio.value()));
     }
 
     // Optional previousSlugs array for SEO redirects
     if (profile.previousSlugs && !profile.previousSlugs->empty()) {
-        using bsoncxx::builder::stream::array;
-        auto slugsArray = array{};
+        auto slugsArray = bsoncxx::builder::basic::array{};
         for (const auto& slug : profile.previousSlugs.value()) {
-            slugsArray << slug;
+            slugsArray.append(slug);
         }
-        builder << "previousSlugs" << slugsArray;
+        builder.append(kvp("previousSlugs", slugsArray));
     }
 
     // Optional slugChangedAt timestamp
     if (profile.slugChangedAt) {
-        builder << "slugChangedAt" << timePointToDate(profile.slugChangedAt.value());
+        builder.append(kvp("slugChangedAt", timePointToDate(profile.slugChangedAt.value())));
     }
 
     // Optional updatedAt timestamp
     if (profile.updatedAt) {
-        builder << "updatedAt" << timePointToDate(profile.updatedAt.value());
+        builder.append(kvp("updatedAt", timePointToDate(profile.updatedAt.value())));
     }
 
     // Optional ownership fields
     if (profile.ownerToken) {
-        builder << "ownerToken" << profile.ownerToken.value();
+        builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
     if (profile.ownerId) {
-        builder << "ownerId" << profile.ownerId.value();
+        builder.append(kvp("ownerId", profile.ownerId.value()));
     }
 
     // Optional deletedAt timestamp (soft delete)
     if (profile.deletedAt) {
-        builder << "deletedAt" << timePointToDate(profile.deletedAt.value());
+        builder.append(kvp("deletedAt", timePointToDate(profile.deletedAt.value())));
     }
 
-    return builder << finalize;
+    return builder.extract();
 }
 
 Profile ProfileStorage::bsonToProfile(const bsoncxx::document::view& doc) const {
@@ -284,6 +290,13 @@ void ProfileStorage::ensureIndexes() {
             );
         }
 
+        // 8. previous_slugs: Index for SEO redirect lookups on previousSlugs array
+        {
+            mongocxx::options::index opts{};
+            opts.name("previous_slugs");
+            profileCollection_.create_index(document{} << "previousSlugs" << 1 << finalize, opts);
+        }
+
         LOG_INFO("ProfileStorage indexes created successfully with named indexes");
     } catch (const mongocxx::exception& e) {
         LOG_WARNING("Failed to create ProfileStorage indexes (may already exist): " + std::string(e.what()));
@@ -297,6 +310,11 @@ Result<std::string> ProfileStorage::store(const Profile& profile) {
             return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
         }
 
+        // Check if slug is reserved
+        if (search_engine::common::SlugGenerator::isReservedSlug(profile.slug)) {
+            return Result<std::string>::Failure("Slug '" + profile.slug + "' is reserved and cannot be used.");
+        }
+
         // Check for slug uniqueness
         auto existingResult = findBySlug(profile.slug);
         if (existingResult.success && existingResult.value.has_value()) {
@@ -304,15 +322,27 @@ Result<std::string> ProfileStorage::store(const Profile& profile) {
         }
 
         auto doc = profileToBson(profile);
-        auto result = profileCollection_.insert_one(doc.view());
 
-        if (result) {
-            std::string id = result->inserted_id().get_oid().value.to_string();
-            LOG_INFO("Stored profile with ID: " + id + ", slug: " + profile.slug);
-            return Result<std::string>::Success(id, "Profile stored successfully");
-        } else {
-            LOG_ERROR("Failed to store profile");
-            return Result<std::string>::Failure("Failed to store profile");
+        try {
+            auto result = profileCollection_.insert_one(doc.view());
+
+            if (result) {
+                std::string id = result->inserted_id().get_oid().value.to_string();
+                LOG_INFO("Stored profile with ID: " + id + ", slug: " + profile.slug);
+                return Result<std::string>::Success(id, "Profile stored successfully");
+            } else {
+                LOG_ERROR("Failed to store profile");
+                return Result<std::string>::Failure("Failed to store profile");
+            }
+        } catch (const mongocxx::exception& e) {
+            // Handle duplicate key error from unique index (TOCTOU race condition)
+            std::string errMsg = e.what();
+            if (errMsg.find("duplicate key") != std::string::npos ||
+                errMsg.find("E11000") != std::string::npos) {
+                LOG_WARNING("Duplicate slug detected via unique index: " + profile.slug);
+                return Result<std::string>::Failure("Slug '" + profile.slug + "' is already taken.");
+            }
+            throw; // Re-throw non-duplicate-key exceptions
         }
     } catch (const mongocxx::exception& e) {
         LOG_ERROR("MongoDB error storing profile: " + std::string(e.what()));
@@ -371,6 +401,11 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
             return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
         }
 
+        // Check if slug is reserved
+        if (search_engine::common::SlugGenerator::isReservedSlug(profile.slug)) {
+            return Result<bool>::Failure("Slug '" + profile.slug + "' is reserved and cannot be used.");
+        }
+
         auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
 
         // For update, we need to check slug uniqueness (excluding current profile)
@@ -385,9 +420,13 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
         updatedProfile.updatedAt = std::chrono::system_clock::now();
 
         auto updateDoc = profileToBson(updatedProfile);
-        auto update = document{} << "$set" << updateDoc << finalize;
+        
+        // Use basic builder for $set to prevent data corruption
+        using bsoncxx::builder::basic::kvp;
+        auto update = bsoncxx::builder::basic::document{};
+        update.append(kvp("$set", updateDoc));
 
-        auto result = profileCollection_.update_one(filter.view(), update.view());
+        auto result = profileCollection_.update_one(filter.view(), update.extract());
 
         if (result && result->modified_count() > 0) {
             LOG_INFO("Updated profile with ID: " + profile.id.value());
@@ -525,8 +564,11 @@ Result<bool> ProfileStorage::checkSlugAvailability(const std::string& slug) {
             return Result<bool>::Failure("Invalid slug format");
         }
 
-        // Query for existing profile with this slug
-        auto filter = document{} << "slug" << slug << finalize;
+        // Query for existing profile with this slug, excluding soft-deleted profiles
+        auto filter = document{}
+            << "slug" << slug
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         // If no document found, slug is available
@@ -572,6 +614,11 @@ Result<bool> ProfileStorage::updateSlug(const std::string& profileId, const std:
         // Validate new slug format
         if (!isValidSlug(newSlug)) {
             return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        }
+
+        // Check if slug is reserved
+        if (search_engine::common::SlugGenerator::isReservedSlug(newSlug)) {
+            return Result<bool>::Failure("Slug '" + newSlug + "' is reserved and cannot be used.");
         }
 
         // Check if new slug is available (excluding current profile)
@@ -629,6 +676,30 @@ Result<bool> ProfileStorage::updateSlug(const std::string& profileId, const std:
     } catch (const mongocxx::exception& e) {
         LOG_ERROR("MongoDB error updating slug: " + std::string(e.what()));
         return Result<bool>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
+Result<std::optional<Profile>> ProfileStorage::findByPreviousSlug(const std::string& oldSlug) {
+    try {
+        // Query profiles where previousSlugs array contains the requested slug
+        // Uses the "previous_slugs" index for efficient lookup
+        auto filter = document{}
+            << "previousSlugs" << oldSlug
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
+        auto result = profileCollection_.find_one(filter.view());
+
+        if (result) {
+            return Result<std::optional<Profile>>::Success(
+                std::optional<Profile>(bsonToProfile(result->view())),
+                "Profile found by previous slug");
+        } else {
+            return Result<std::optional<Profile>>::Success(
+                std::nullopt, "No profile found with this previous slug");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error finding profile by previous slug: " + std::string(e.what()));
+        return Result<std::optional<Profile>>::Failure("Database error: " + std::string(e.what()));
     }
 }
 

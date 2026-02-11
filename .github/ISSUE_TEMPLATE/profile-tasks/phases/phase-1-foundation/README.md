@@ -25,7 +25,7 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 
 ### Core Functionality (Week 2)
 - **02-profile-routing-crud.md** (4 days) - Complete CRUD operations ✅ **Complete**
-- **03-clean-url-routing.md** (3 days) - Advanced URL routing and validation
+- **03-clean-url-routing.md** (3 days) - Advanced URL routing and validation ✅ **Complete + Hardened**
 - **04-link-blocks-analytics.md** (3 days) - Profile link blocks and analytics
 
 ### Search & Discovery (Week 3)
@@ -45,6 +45,8 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 - AES-256 encryption for sensitive data
 - IP/geo separation for privacy compliance
 - Auto-deletion system for compliance logs
+- CSPRNG-based owner token generation (`std::random_device`)
+- Strict ownership enforcement (no backward-compat bypass)
 
 ### 🔍 Search Integration
 - Profile indexing with ranking factors
@@ -141,6 +143,7 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 
 ### Must Pass Before Phase 2
 - [x] All core APIs functional and tested (Profile CRUD: auth, rate limit, soft delete, docs)
+- [x] Security hardening completed (auth enforcement, TOCTOU, CSPRNG, reserved slug checks)
 - [ ] Privacy architecture audited and approved
 - [ ] Search integration working end-to-end
 - [ ] Basic verification process tested

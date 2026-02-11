@@ -36,7 +36,7 @@ or
 x-profile-token: <owner_token>
 ```
 
-**Backward Compatibility:** Profiles without `ownerToken` can be modified without authentication.
+**Ownership Enforcement:** All profiles require a valid `ownerToken` for protected operations. Profiles created before the token system cannot be modified without a token (no backward-compatibility bypass).
 
 ---
 
@@ -370,7 +370,7 @@ _Not Found:_
 
 **Description:** Restore a soft-deleted profile.
 
-**Authentication:** Required if profile has `ownerToken`
+**Authentication:** Required (ownership verified via `ownerToken`)
 
 **Request Headers:**
 
@@ -387,7 +387,19 @@ Authorization: Bearer <owner_token>
 }
 ```
 
-**Error Response:**
+**Error Responses:**
+
+_Forbidden:_
+
+```json
+{
+  "success": false,
+  "message": "Forbidden: You don't have permission to restore this profile",
+  "error": "FORBIDDEN"
+}
+```
+
+_Not Found:_
 
 ```json
 {
@@ -465,6 +477,20 @@ Authorization: Bearer <owner_token>
 }
 ```
 
+**Success Response (Reserved):**
+
+```json
+{
+  "success": true,
+  "available": false,
+  "message": "This slug is reserved and cannot be used"
+}
+```
+
+**Notes:**
+- Reserved system slugs (api, admin, search, etc.) are reported as unavailable
+- Soft-deleted profiles do not block slug reuse
+
 ---
 
 ### 9. Change Slug
@@ -528,7 +554,15 @@ _Slug Taken:_
 
 **Description:** Get privacy and analytics dashboard for profile owners.
 
-**Success Response:**
+**Authentication:** Required (ownership verified via `ownerToken`)
+
+**Request Headers:**
+
+```
+Authorization: Bearer <owner_token>
+```
+
+**Success Response:
 
 ```json
 {
@@ -598,6 +632,7 @@ curl -X POST http://localhost:3000/api/profiles/507f1f77bcf86cd799439011/restore
 - `200 OK` - Request successful
 - `201 Created` - Profile created successfully
 - `204 No Content` - Profile deleted successfully
+- `301 Moved Permanently` - SEO redirect to current slug (old slug in `previousSlugs`)
 - `400 Bad Request` - Invalid request data
 - `403 Forbidden` - Authentication required or failed
 - `404 Not Found` - Profile not found
@@ -658,9 +693,13 @@ curl -X POST http://localhost:3000/api/profiles/507f1f77bcf86cd799439011/restore
 
 ## Notes
 
-- Slugs support Persian and English characters, numbers, and hyphens
+- Slugs support Persian and English characters, numbers, and hyphens (max 100 characters)
+- Reserved system slugs (api, admin, search, etc.) are blocked from all write operations
 - Sensitive fields (email, phone, address) are encrypted at rest using AES-256
 - Profile views are tracked for analytics (IP addresses not stored in analytics)
-- Old slugs automatically redirect to new slugs (301 redirect)
-- Soft-deleted profiles are excluded from all read operations
-- Rate limits apply per IP address
+- Old slugs automatically redirect to new slugs (301 redirect via indexed `previousSlugs` lookup)
+- Soft-deleted profiles are excluded from all read operations and slug availability checks
+- Rate limits apply per IP address (including public profile and slug routes)
+- Owner tokens are generated using cryptographically secure random numbers (`std::random_device`)
+- Ownership is enforced on all protected operations; missing tokens result in denial (no backward-compat bypass)
+- TOCTOU protection: duplicate slug insertion is caught via MongoDB E11000 error handling

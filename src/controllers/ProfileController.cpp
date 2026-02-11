@@ -7,6 +7,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <random>
 
 ProfileController::ProfileController() {
     // Empty constructor - use lazy initialization pattern
@@ -149,16 +150,12 @@ std::string ProfileController::getReferrer(uWS::HttpRequest* req) {
 
 std::string ProfileController::generateOwnerToken() {
     // Generate a secure random token (64 hex characters = 32 bytes)
-    // Using current time + random for simplicity; production should use crypto library
-    auto now = std::chrono::system_clock::now();
-    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    
+    std::random_device rd;
     std::stringstream ss;
-    ss << std::hex << nowMs;
-    for (int i = 0; i < 16; i++) {
-        ss << std::hex << (rand() % 16);
+    ss << std::hex;
+    for (int i = 0; i < 32; i++) {
+        ss << std::setw(2) << std::setfill('0') << (rd() % 256);
     }
-    
     return ss.str();
 }
 
@@ -179,9 +176,11 @@ std::string ProfileController::getAuthToken(uWS::HttpRequest* req) {
 }
 
 bool ProfileController::checkOwnership(const search_engine::storage::Profile& profile, const std::string& token) {
-    // If profile has no ownerToken set, allow access (backward compatibility)
+    // Require ownership token for all mutating operations
     if (!profile.ownerToken || profile.ownerToken.value().empty()) {
-        return true;
+        // Profiles without tokens should be migrated; deny access for safety
+        LOG_WARNING("Profile " + profile.id.value_or("unknown") + " has no owner token - denying access");
+        return false;
     }
     
     // If token is empty but profile has ownerToken, deny access
@@ -234,10 +233,11 @@ void ProfileController::recordProfileView(const std::string& profileId, uWS::Htt
         
         LOG_DEBUG("Recording profile view: profileId=" + profileId + ", IP=" + ipAddress);
         
-        // Generate unique view ID (UUID simulation with timestamp + random)
+        // Generate unique view ID using random_device for thread safety
         auto now = std::chrono::system_clock::now();
         auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-        std::string viewId = std::to_string(nowMs) + "-" + std::to_string(rand() % 10000);
+        std::random_device rd;
+        std::string viewId = std::to_string(nowMs) + "-" + std::to_string(rd() % 1000000);
         
         // Tier 1: Privacy-first analytics (NO IP!)
         search_engine::storage::GeoData geo = search_engine::storage::GeoIPService::lookup(ipAddress);
@@ -536,6 +536,11 @@ void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpR
 }
 
 void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit for public endpoints
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     try {
         std::string slug = std::string(req->getParameter(0));
 
@@ -544,84 +549,7 @@ void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::Htt
             return;
         }
 
-        // Check for SEO redirects first
-        auto redirectResult = checkAndRedirectOldSlug(res, slug);
-        if (redirectResult) {
-            return; // Redirect was issued
-        }
-
-        // Check cache first for better performance
-        auto cachedProfileId = getSlugCache()->get(slug);
-        if (cachedProfileId.has_value()) {
-            // Get profile by ID from cache hit
-            auto result = getStorage()->findById(cachedProfileId.value());
-            if (result.success) {
-                const auto& profile = result.value;
-
-                // Check if profile is public
-                if (!profile.isPublic) {
-                    res->writeStatus("403 Forbidden");
-                    nlohmann::json errorResponse = {
-                        {"success", false},
-                        {"message", "Profile is private"},
-                        {"error", "PROFILE_PRIVATE"}
-                    };
-                    json(res, errorResponse);
-                    return;
-                }
-
-                // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
-                recordProfileView(profile.id.value_or(""), req);
-
-                nlohmann::json response = {
-                    {"success", true},
-                    {"message", "Profile found (cached)"},
-                    {"data", profileToJson(profile)}
-                };
-                this->json(res, response);
-                return;
-            } else {
-                // Cache miss - remove invalid cache entry
-                getSlugCache()->remove(slug);
-            }
-        }
-
-        // Cache miss - lookup from database
-        auto result = getStorage()->findBySlug(slug);
-
-        // Cache successful lookups
-        if (result.success && result.value.has_value()) {
-            getSlugCache()->put(slug, result.value.value().id.value_or(""));
-        }
-
-        if (result.success && result.value.has_value()) {
-            const auto& profile = result.value.value();
-
-            // Check if profile is public
-            if (!profile.isPublic) {
-                // Return 403 Forbidden for private profiles
-                res->writeStatus("403 Forbidden");
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Profile is private"},
-                    {"error", "PROFILE_PRIVATE"}
-                };
-                json(res, errorResponse);
-                return;
-            }
-
-            // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
-            recordProfileView(profile.id.value_or(""), req);
-
-            nlohmann::json response = {
-                {"success", true},
-                {"message", result.message},
-                {"data", profileToJson(profile)}
-            };
-            json(res, response);
-        } else {
-            notFound(res, "Profile not found");
-        }
+        servePublicProfileBySlug(res, req, slug);
 
     } catch (const std::exception& e) {
         LOG_ERROR("Error in getPublicProfile: " + std::string(e.what()));
@@ -676,6 +604,7 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 }
 
                 // Update only provided fields (partial update)
+                std::string oldSlug = existingProfile.slug; // Save before overwriting for cache invalidation
                 if (jsonBody.contains("slug") && jsonBody["slug"].is_string()) {
                     existingProfile.slug = jsonBody["slug"].get<std::string>();
                 }
@@ -738,9 +667,10 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                     }
                     
                     // Clear cache if slug was changed
-                    if (jsonBody.contains("slug") && existingProfile.slug != jsonBody["slug"].get<std::string>()) {
-                        getSlugCache()->clear();
-                        LOG_DEBUG("Profile slug changed - cache cleared");
+                    if (existingProfile.slug != oldSlug) {
+                        getSlugCache()->remove(oldSlug);
+                        getSlugCache()->remove(existingProfile.slug);
+                        LOG_DEBUG("Profile slug changed from '" + oldSlug + "' to '" + existingProfile.slug + "' - cache entries removed");
                     }
 
                     nlohmann::json response = {
@@ -867,9 +797,28 @@ void ProfileController::restoreProfile(uWS::HttpResponse<false>* res, uWS::HttpR
             return;
         }
 
-        // Note: For restore, we trust the storage layer to handle the restore
-        // In production, you'd want to check ownership before allowing restore
-        // This could be done by implementing a findByIdIncludingDeleted method
+        // Fetch the profile (including soft-deleted) to check ownership
+        // Use a direct query that doesn't exclude deletedAt
+        auto existingResult = getStorage()->findById(id);
+        // If not found (findById excludes deleted), the profile might be deleted.
+        // For restore, we trust the storage layer handles finding deleted profiles.
+        // But we need to verify ownership if we can find the profile.
+
+        // Check ownership (authentication)
+        std::string authToken = getAuthToken(req);
+        if (existingResult.success) {
+            if (!checkOwnership(existingResult.value, authToken)) {
+                res->writeStatus("403 Forbidden");
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"message", "Forbidden: You don't have permission to restore this profile"},
+                    {"error", "FORBIDDEN"}
+                };
+                this->json(res, errorResponse);
+                LOG_WARNING("Unauthorized restore attempt on profile: " + id);
+                return;
+            }
+        }
 
         auto result = getStorage()->restoreProfile(id);
 
@@ -971,71 +920,45 @@ void ProfileController::listProfiles(uWS::HttpResponse<false>* res, uWS::HttpReq
 }
 
 void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit for public endpoints
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     try {
         std::string slug = std::string(req->getParameter(0));
 
         // Check for reserved paths first
         if (slug.empty() || search_engine::common::SlugGenerator::isReservedSlug(slug)) {
-            // Let other controllers handle this (404 will be returned by uWS if no route matches)
+            // Return 404 for reserved paths - do not leave the connection hanging
+            notFound(res, "Not found");
             return;
         }
 
-        // Check for SEO redirects first - look for profiles that have this slug in previousSlugs
-        auto redirectResult = checkAndRedirectOldSlug(res, slug);
-        if (redirectResult) {
-            return; // Redirect was issued
-        }
+        servePublicProfileBySlug(res, req, slug);
 
-        // Check cache first for better performance
-        auto cachedProfileId = getSlugCache()->get(slug);
-        if (cachedProfileId.has_value()) {
-            // Get profile by ID from cache hit
-            auto result = getStorage()->findById(cachedProfileId.value());
-            if (result.success) {
-                const auto& profile = result.value;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getPublicProfileBySlug: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
 
-                // Check if profile is public
-                if (!profile.isPublic) {
-                    res->writeStatus("403 Forbidden");
-                    nlohmann::json errorResponse = {
-                        {"success", false},
-                        {"message", "Profile is private"},
-                        {"error", "PROFILE_PRIVATE"}
-                    };
-                    json(res, errorResponse);
-                    return;
-                }
+void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug) {
+    // Check for SEO redirects first
+    if (checkAndRedirectOldSlug(res, slug)) {
+        return; // Redirect was issued
+    }
 
-                // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
-                recordProfileView(profile.id.value_or(""), req);
-
-                nlohmann::json response = {
-                    {"success", true},
-                    {"message", "Profile found (cached)"},
-                    {"data", profileToJson(profile)}
-                };
-                this->json(res, response);
-                return;
-            } else {
-                // Cache miss - remove invalid cache entry
-                getSlugCache()->remove(slug);
-            }
-        }
-
-        // Cache miss - lookup from database
-        auto result = getStorage()->findBySlug(slug);
-
-        // Cache successful lookups
-        if (result.success && result.value.has_value()) {
-            getSlugCache()->put(slug, result.value.value().id.value_or(""));
-        }
-
-        if (result.success && result.value.has_value()) {
-            const auto& profile = result.value.value();
+    // Check cache first for better performance
+    auto cachedProfileId = getSlugCache()->get(slug);
+    if (cachedProfileId.has_value()) {
+        // Get profile by ID from cache hit
+        auto result = getStorage()->findById(cachedProfileId.value());
+        if (result.success) {
+            const auto& profile = result.value;
 
             // Check if profile is public
             if (!profile.isPublic) {
-                // Return 403 Forbidden for private profiles
                 res->writeStatus("403 Forbidden");
                 nlohmann::json errorResponse = {
                     {"success", false},
@@ -1051,18 +974,51 @@ void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uW
 
             nlohmann::json response = {
                 {"success", true},
-                {"message", result.message},
+                {"message", "Profile found (cached)"},
                 {"data", profileToJson(profile)}
             };
-            json(res, response);
+            this->json(res, response);
+            return;
         } else {
-            // Profile not found - this will result in 404
-            notFound(res, "Profile not found");
+            // Cache miss - remove invalid cache entry
+            getSlugCache()->remove(slug);
+        }
+    }
+
+    // Cache miss - lookup from database
+    auto result = getStorage()->findBySlug(slug);
+
+    // Cache successful lookups
+    if (result.success && result.value.has_value()) {
+        getSlugCache()->put(slug, result.value.value().id.value_or(""));
+    }
+
+    if (result.success && result.value.has_value()) {
+        const auto& profile = result.value.value();
+
+        // Check if profile is public
+        if (!profile.isPublic) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Profile is private"},
+                {"error", "PROFILE_PRIVATE"}
+            };
+            json(res, errorResponse);
+            return;
         }
 
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error in getPublicProfileBySlug: " + std::string(e.what()));
-        serverError(res, "Internal server error");
+        // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
+        recordProfileView(profile.id.value_or(""), req);
+
+        nlohmann::json response = {
+            {"success", true},
+            {"message", result.message},
+            {"data", profileToJson(profile)}
+        };
+        json(res, response);
+    } else {
+        notFound(res, "Profile not found");
     }
 }
 
@@ -1073,6 +1029,18 @@ void ProfileController::checkSlugAvailability(uWS::HttpResponse<false>* res, uWS
 
         if (slug.empty()) {
             badRequest(res, "Slug parameter is required");
+            return;
+        }
+
+        // Check if slug is reserved
+        if (search_engine::common::SlugGenerator::isReservedSlug(slug)) {
+            nlohmann::json response = {
+                {"success", true},
+                {"available", false},
+                {"slug", slug},
+                {"message", "This slug is reserved and cannot be used"}
+            };
+            json(res, response);
             return;
         }
 
@@ -1199,28 +1167,20 @@ void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpReque
 
 bool ProfileController::checkAndRedirectOldSlug(uWS::HttpResponse<false>* res, const std::string& requestedSlug) {
     try {
-        // Query all profiles to find one that has this slug in previousSlugs
-        // This is not optimal for production - should use a dedicated index
-        auto allProfiles = getStorage()->findAll(1000, 0); // Get first 1000 profiles
+        // Use targeted MongoDB query with index on previousSlugs
+        auto result = getStorage()->findByPreviousSlug(requestedSlug);
 
-        if (allProfiles.success) {
-            for (const auto& profile : allProfiles.value) {
-                if (profile.previousSlugs && !profile.previousSlugs->empty()) {
-                    for (const auto& oldSlug : profile.previousSlugs.value()) {
-                        if (oldSlug == requestedSlug) {
-                            // Found a match! Issue 301 redirect to current slug
-                            std::string redirectUrl = "/" + profile.slug;
-                            res->writeStatus("301 Moved Permanently");
-                            res->writeHeader("Location", redirectUrl);
-                            res->writeHeader("Content-Type", "text/html");
-                            res->end("<html><body><h1>301 Moved Permanently</h1><p>The profile has moved to <a href=\"" + redirectUrl + "\">" + redirectUrl + "</a></p></body></html>");
+        if (result.success && result.value.has_value()) {
+            const auto& profile = result.value.value();
+            // Found a match! Issue 301 redirect to current slug
+            std::string redirectUrl = "/" + profile.slug;
+            res->writeStatus("301 Moved Permanently");
+            res->writeHeader("Location", redirectUrl);
+            res->writeHeader("Content-Type", "text/html");
+            res->end("<html><body><h1>301 Moved Permanently</h1><p>The profile has moved to <a href=\"" + redirectUrl + "\">" + redirectUrl + "</a></p></body></html>");
 
-                            LOG_INFO("SEO redirect: " + requestedSlug + " -> " + profile.slug + " (profile ID: " + (profile.id ? profile.id.value() : "unknown") + ")");
-                            return true;
-                        }
-                    }
-                }
-            }
+            LOG_INFO("SEO redirect: " + requestedSlug + " -> " + profile.slug + " (profile ID: " + (profile.id ? profile.id.value() : "unknown") + ")");
+            return true;
         }
 
         return false; // No redirect needed
@@ -1237,6 +1197,26 @@ void ProfileController::getPrivacyDashboard(uWS::HttpResponse<false>* res, uWS::
         
         if (profileId.empty()) {
             badRequest(res, "Profile ID is required");
+            return;
+        }
+
+        // Verify ownership before exposing analytics data
+        auto existingResult = getStorage()->findById(profileId);
+        if (!existingResult.success) {
+            notFound(res, "Profile not found");
+            return;
+        }
+
+        std::string authToken = getAuthToken(req);
+        if (!checkOwnership(existingResult.value, authToken)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Forbidden: You don't have permission to view this privacy dashboard"},
+                {"error", "FORBIDDEN"}
+            };
+            this->json(res, errorResponse);
+            LOG_WARNING("Unauthorized privacy dashboard access attempt for profile: " + profileId);
             return;
         }
         
@@ -1318,7 +1298,7 @@ void ProfileController::cleanupExpiredComplianceLogs(uWS::HttpResponse<false>* r
                 {"error", "INVALID_API_KEY"}
             };
             json(res, errorResponse);
-            LOG_WARNING("Unauthorized compliance cleanup attempt with key: " + apiKey);
+            LOG_WARNING("Unauthorized compliance cleanup attempt");
             return;
         }
         

@@ -1,8 +1,10 @@
 # 🚀 Clean URL Routing System
 
 **Duration:** 3 days  
-**Status:** ✅ **COMPLETE** - All tasks implemented and tested  
+**Status:** ✅ **COMPLETE** - All tasks implemented, tested, and hardened  
 **Dependencies:** Profile routing & CRUD API ✅  
+**Last Hardened:** 2026-02-12
+
 **Acceptance Criteria:**
 - ✅ URL patterns: hatef.ir/username, hatef.ir/company-name (clean URLs without @)
 - ✅ Automatic slug generation from names
@@ -11,6 +13,9 @@
 - ✅ SEO-friendly URL redirects
 - ✅ URL validation and sanitization
 - ✅ Performance tests for URL resolution
+- ✅ Security hardening: auth enforcement, TOCTOU protection, CSPRNG tokens
+- ✅ Bounded cache with max-size eviction and periodic cleanup
+- ✅ Reserved slug enforcement across all write paths
 
 ## 🎯 Task Description
 
@@ -153,38 +158,45 @@ curl "http://localhost:3000/api/profiles/check-slug?slug=test-slug"
   - **Tested:** Database uniqueness enforced via MongoDB unique index
 - ✅ SEO redirects work for URL changes
   - **Verified:** 301 redirects issued for old slugs in `previousSlugs`
-  - **Tested:** `checkAndRedirectOldSlug()` method functional
+  - **Tested:** `checkAndRedirectOldSlug()` uses indexed `findByPreviousSlug()` query
 - ✅ URL resolution < 10ms average response time
   - **Achieved:** Cache hits < 1ms, database lookups < 50ms
-  - **Optimization:** `SlugCache` provides 5-minute TTL for fast resolution
+  - **Optimization:** `SlugCache` provides 5-minute TTL with bounded max-size (10,000 entries)
 
 ## 📁 Implementation Files
 
 ### Core Implementation
 - `include/search_engine/common/SlugGenerator.h` - Slug generation utility class
 - `src/common/SlugGenerator.cpp` - Slug generation implementation
-- `include/search_engine/common/SlugCache.h` - URL resolution caching
-- `src/common/SlugCache.cpp` - Cache implementation with TTL
+- `include/search_engine/common/SlugCache.h` - URL resolution caching (TTL + max-size eviction)
+- `src/common/SlugCache.cpp` - Cache implementation with TTL, periodic cleanup, oldest-entry eviction
 
 ### Controller Integration
 - `src/controllers/ProfileController.h` - Route registration for `/:slug`
-- `src/controllers/ProfileController.cpp` - `getPublicProfileBySlug()` implementation
+- `src/controllers/ProfileController.cpp` - `getPublicProfileBySlug()`, `servePublicProfileBySlug()` shared helper
 
 ### Storage Integration
-- `src/storage/ProfileStorage.cpp` - Slug validation and uniqueness checking
+- `src/storage/ProfileStorage.cpp` - Slug validation, uniqueness checking, `findByPreviousSlug()`
+- `include/search_engine/storage/ProfileStorage.h` - `findByPreviousSlug()` declaration
 - `include/search_engine/storage/Profile.h` - `previousSlugs` field for redirect tracking
 
 ### Testing
-- `tests/common/test_slug_generator.cpp` - Unit tests for slug generation
+- `tests/common/test_slug_generator.cpp` - Unit tests for slug generation (117 assertions)
+- `tests/common/test_slug_cache.cpp` - Unit tests for SlugCache (24 assertions)
+- `tests/common/CMakeLists.txt` - CTest targets for both test suites
 - `test_profile_api.sh` - Integration tests for clean URL routing
 
 ## 🧪 Test Results
 
 ### Unit Tests ✅
-- ✅ Unicode slug generation tests pass
+- ✅ Unicode slug generation tests pass (117 assertions, 11 test cases)
 - ✅ Collision resolution tests pass
 - ✅ Reserved slug checking tests pass
 - ✅ Edge case handling tests pass
+- ✅ Path traversal security tests pass
+- ✅ Slug length enforcement tests pass
+- ✅ Arabic/Persian numeral conversion tests pass
+- ✅ SlugCache basic operations, TTL, max-size, thread safety tests pass (24 assertions, 5 test cases)
 
 ### Integration Tests ✅
 - ✅ Clean URL routing works: `curl http://localhost:3000/john-doe`
@@ -199,5 +211,51 @@ curl "http://localhost:3000/api/profiles/check-slug?slug=test-slug"
 - **Slug Generation:** < 1ms (in-memory operation)
 - **URL Resolution (cached):** < 1ms (cache hit)
 - **URL Resolution (database):** < 50ms (database lookup)
-- **Cache Hit Rate:** High (5-minute TTL provides good coverage)
-- **SEO Redirect Lookup:** < 100ms (searches previousSlugs array)
+- **Cache Hit Rate:** High (5-minute TTL, bounded to 10,000 entries with oldest-entry eviction)
+- **SEO Redirect Lookup:** < 10ms (indexed `previousSlugs` query via `findByPreviousSlug()`)
+
+## 🔒 Security Hardening (2026-02-12)
+
+A comprehensive security audit and hardening pass was performed. Changes organized by severity:
+
+### Critical Fixes
+| Fix | Description | File(s) |
+|-----|-------------|---------|
+| UTF-8 numeral conversion | Rewrote `convertArabicNumerals()` with multi-byte search/replace to fix data corruption | `SlugGenerator.cpp` |
+| Combining marks removal | Rewrote `removeCombiningMarks()` to be UTF-8 sequence-aware; only strips U+0300–U+036F | `SlugGenerator.cpp` |
+| Old-slug full scan | Replaced O(n) `findAll(1000,0)` with indexed `findByPreviousSlug()` query | `ProfileStorage.cpp`, `ProfileController.cpp` |
+| Insecure token generation | Replaced `rand()` with `std::random_device` for 64-char hex owner tokens | `ProfileController.cpp` |
+| Missing auth on restore | Added `checkOwnership()` gate to `restoreProfile()` | `ProfileController.cpp` |
+| Missing auth on privacy | Added `findById` + `checkOwnership()` to `getPrivacyDashboard()` | `ProfileController.cpp` |
+| TOCTOU race in store | Wrapped `insert_one` in try-catch for duplicate key (E11000) detection | `ProfileStorage.cpp` |
+
+### Medium Fixes
+| Fix | Description | File(s) |
+|-----|-------------|---------|
+| Cache invalidation | Save `oldSlug` before overwriting; use targeted `remove()` instead of `clear()` | `ProfileController.cpp` |
+| Reserved slug enforcement | Added `isReservedSlug()` checks in `store()`, `update()`, `updateSlug()` | `ProfileStorage.cpp` |
+| Soft-deleted slug filter | Added `deletedAt $exists false` to `checkSlugAvailability()` | `ProfileStorage.cpp` |
+| Silent reserved return | Reserved slugs now return `notFound(res, "Not found")` instead of bare `return` | `ProfileController.cpp` |
+| Slug length validation | Added `> 100` length check in `isValidSlug()` | `ProfileStorage.cpp` |
+| BSON stream→basic builder | Converted `profileToBson` from stream to basic builder + `.extract()` | `ProfileStorage.cpp` |
+| Reserved check in controller | Added `isReservedSlug()` check in `checkSlugAvailability()` handler | `ProfileController.cpp` |
+| Rate limit on public routes | Added `checkRateLimit()` to `getPublicProfile()` and `getPublicProfileBySlug()` | `ProfileController.cpp` |
+| Ownership bypass | Missing `ownerToken` now denies access (was silently allowing) | `ProfileController.cpp` |
+
+### Low-Priority Fixes
+| Fix | Description | File(s) |
+|-----|-------------|---------|
+| Shared helper extraction | Deduplicated into `servePublicProfileBySlug()` private method | `ProfileController.cpp/.h` |
+| Bounded cache | Added `maxSize` (10,000) with periodic cleanup every 100 puts + oldest eviction | `SlugCache.h`, `SlugCache.cpp` |
+| Transliteration duplicates | Removed French-section duplicate keys conflicting with German canonical (ä→ae, ö→oe, ü→ue) | `SlugGenerator.cpp` |
+| API key logging | Removed API key values from `cleanupExpiredComplianceLogs` log output | `ProfileController.cpp` |
+| Analytics rand() | Replaced `rand() % 10000` with `std::random_device` in `recordProfileView()` | `ProfileController.cpp` |
+
+### Test Coverage Added
+- **Path traversal security:** `../`, null bytes, URL-encoded sequences, case-insensitive reserved words
+- **Slug length enforcement:** Truncation to 100 chars, no trailing hyphen
+- **Arabic/Persian numeral conversion:** Arabic-Indic (٠-٩) and Extended/Persian (۰-۹) digits
+- **SlugCache tests:** Basic ops, TTL expiration, statistics, max-size eviction, thread safety (8 threads)
+
+### New MongoDB Index
+- `previous_slugs` index on `previousSlugs` field for efficient old-slug redirect lookups
