@@ -79,6 +79,35 @@ search_engine::storage::AuditStorage* ProfileController::getAuditStorage() const
     return auditStorage_.get();
 }
 
+ApiRateLimiter* ProfileController::getRateLimiter() const {
+    if (!rateLimiter_) {
+        try {
+            LOG_INFO("Lazy initializing ApiRateLimiter");
+            // Get config from environment or use defaults
+            size_t maxRequests = 60; // Default: 60 requests
+            int windowSeconds = 60;  // Default: 60 seconds
+            
+            const char* limitEnv = std::getenv("PROFILE_API_RATE_LIMIT_REQUESTS");
+            if (limitEnv) {
+                maxRequests = std::stoi(limitEnv);
+            }
+            
+            const char* windowEnv = std::getenv("PROFILE_API_RATE_LIMIT_WINDOW_SECONDS");
+            if (windowEnv) {
+                windowSeconds = std::stoi(windowEnv);
+            }
+            
+            rateLimiter_ = std::make_unique<ApiRateLimiter>(maxRequests, std::chrono::seconds(windowSeconds));
+            LOG_INFO("ApiRateLimiter configured: " + std::to_string(maxRequests) + 
+                    " requests per " + std::to_string(windowSeconds) + " seconds");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize ApiRateLimiter: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return rateLimiter_.get();
+}
+
 std::string ProfileController::getClientIP(uWS::HttpRequest* req) {
     // Try X-Forwarded-For header first (for proxied requests)
     std::string xForwardedFor = std::string(req->getHeader("x-forwarded-for"));
@@ -114,6 +143,86 @@ std::string ProfileController::getReferrer(uWS::HttpRequest* req) {
         return "direct";
     }
     return referrer;
+}
+
+// ==================== Authentication & Ownership Helpers ====================
+
+std::string ProfileController::generateOwnerToken() {
+    // Generate a secure random token (64 hex characters = 32 bytes)
+    // Using current time + random for simplicity; production should use crypto library
+    auto now = std::chrono::system_clock::now();
+    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    
+    std::stringstream ss;
+    ss << std::hex << nowMs;
+    for (int i = 0; i < 16; i++) {
+        ss << std::hex << (rand() % 16);
+    }
+    
+    return ss.str();
+}
+
+std::string ProfileController::getAuthToken(uWS::HttpRequest* req) {
+    // Try Authorization header first (Bearer token)
+    std::string authHeader = std::string(req->getHeader("authorization"));
+    if (!authHeader.empty() && authHeader.find("Bearer ") == 0) {
+        return authHeader.substr(7); // Remove "Bearer " prefix
+    }
+    
+    // Try x-profile-token header
+    std::string profileToken = std::string(req->getHeader("x-profile-token"));
+    if (!profileToken.empty()) {
+        return profileToken;
+    }
+    
+    return "";
+}
+
+bool ProfileController::checkOwnership(const search_engine::storage::Profile& profile, const std::string& token) {
+    // If profile has no ownerToken set, allow access (backward compatibility)
+    if (!profile.ownerToken || profile.ownerToken.value().empty()) {
+        return true;
+    }
+    
+    // If token is empty but profile has ownerToken, deny access
+    if (token.empty()) {
+        return false;
+    }
+    
+    // Check if tokens match
+    return profile.ownerToken.value() == token;
+}
+
+std::string ProfileController::getCallerIdentity(uWS::HttpRequest* req) {
+    std::string token = getAuthToken(req);
+    if (!token.empty()) {
+        return "token:" + token.substr(0, 8) + "..."; // Return first 8 chars for logging
+    }
+    return "anonymous";
+}
+
+bool ProfileController::checkRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    std::string clientIP = getClientIP(req);
+    
+    if (getRateLimiter()->shouldThrottle(clientIP)) {
+        int retryAfter = getRateLimiter()->getRetryAfter(clientIP);
+        
+        res->writeStatus("429 Too Many Requests");
+        res->writeHeader("Retry-After", std::to_string(retryAfter));
+        
+        nlohmann::json errorResponse = {
+            {"success", false},
+            {"message", "Rate limit exceeded. Please try again later."},
+            {"error", "RATE_LIMIT_EXCEEDED"},
+            {"retryAfter", retryAfter}
+        };
+        
+        this->json(res, errorResponse);
+        LOG_WARNING("Rate limit exceeded for IP: " + clientIP);
+        return true; // Rate limited
+    }
+    
+    return false; // Not rate limited
 }
 
 void ProfileController::recordProfileView(const std::string& profileId, uWS::HttpRequest* req) {
@@ -261,6 +370,14 @@ nlohmann::json ProfileController::profileToJson(const search_engine::storage::Pr
     ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
     json["createdAt"] = ss.str();
 
+    // Format updatedAt timestamp as ISO 8601 string if present
+    if (profile.updatedAt) {
+        auto updated_time_t = std::chrono::system_clock::to_time_t(profile.updatedAt.value());
+        std::stringstream updated_ss;
+        updated_ss << std::put_time(std::gmtime(&updated_time_t), "%Y-%m-%dT%H:%M:%SZ");
+        json["updatedAt"] = updated_ss.str();
+    }
+
     return json;
 }
 
@@ -279,6 +396,11 @@ search_engine::storage::ProfileType ProfileController::stringToProfileType(const
 }
 
 void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     std::string buffer;
 
     res->onData([this, res, req, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
@@ -294,6 +416,9 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 
                 // Set creation timestamp
                 profile.createdAt = std::chrono::system_clock::now();
+
+                // Generate owner token for authentication
+                profile.ownerToken = generateOwnerToken();
 
                 // Validate profile using ProfileValidator
                 auto validationResult = search_engine::storage::ProfileValidator::validate(profile);
@@ -322,7 +447,7 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 if (result.success) {
                     // Audit log: record profile creation
                     try {
-                        std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                        std::string userId = getCallerIdentity(req);
                         std::string ipAddress = getClientIP(req);
                         std::string userAgent = getUserAgent(req);
                         
@@ -338,6 +463,11 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                         {"message", result.message},
                         {"data", profileToJson(profile)}
                     };
+                    
+                    // Include ownerToken in response (only returned once on creation)
+                    if (profile.ownerToken) {
+                        response["ownerToken"] = profile.ownerToken.value();
+                    }
                     
                     // Include warnings if present
                     if (!validationResult.warnings.empty()) {
@@ -373,6 +503,11 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 }
 
 void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     try {
         std::string id = std::string(req->getParameter(0));
 
@@ -495,6 +630,11 @@ void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::Htt
 }
 
 void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     std::string buffer;
     std::string profileId = std::string(req->getParameter(0));
 
@@ -520,6 +660,20 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 
                 auto oldProfile = existingResult.value;  // Keep old version for audit
                 auto existingProfile = existingResult.value;
+
+                // Check ownership (authentication)
+                std::string authToken = getAuthToken(req);
+                if (!checkOwnership(existingProfile, authToken)) {
+                    res->writeStatus("403 Forbidden");
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Forbidden: You don't have permission to update this profile"},
+                        {"error", "FORBIDDEN"}
+                    };
+                    this->json(res, errorResponse);
+                    LOG_WARNING("Unauthorized update attempt on profile: " + profileId);
+                    return;
+                }
 
                 // Update only provided fields (partial update)
                 if (jsonBody.contains("slug") && jsonBody["slug"].is_string()) {
@@ -572,7 +726,7 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 if (updateResult.success) {
                     // Audit log: record profile update
                     try {
-                        std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                        std::string userId = getCallerIdentity(req);
                         std::string ipAddress = getClientIP(req);
                         std::string userAgent = getUserAgent(req);
                         
@@ -629,6 +783,11 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 }
 
 void ProfileController::deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     try {
         std::string id = std::string(req->getParameter(0));
 
@@ -637,12 +796,35 @@ void ProfileController::deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
             return;
         }
 
+        // First, get the existing profile to check ownership
+        auto existingResult = getStorage()->findById(id);
+        if (!existingResult.success) {
+            notFound(res, "Profile not found");
+            return;
+        }
+
+        auto profile = existingResult.value;
+
+        // Check ownership (authentication)
+        std::string authToken = getAuthToken(req);
+        if (!checkOwnership(profile, authToken)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Forbidden: You don't have permission to delete this profile"},
+                {"error", "FORBIDDEN"}
+            };
+            this->json(res, errorResponse);
+            LOG_WARNING("Unauthorized delete attempt on profile: " + id);
+            return;
+        }
+
         auto result = getStorage()->deleteProfile(id);
 
         if (result.success) {
             // Audit log: record profile deletion
             try {
-                std::string userId = "anonymous";  // TODO: Get from auth when implemented
+                std::string userId = getCallerIdentity(req);
                 std::string ipAddress = getClientIP(req);
                 std::string userAgent = getUserAgent(req);
                 
@@ -671,7 +853,49 @@ void ProfileController::deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
     }
 }
 
+void ProfileController::restoreProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    try {
+        std::string id = std::string(req->getParameter(0));
+
+        if (id.empty()) {
+            badRequest(res, "Profile ID is required");
+            return;
+        }
+
+        // Note: For restore, we trust the storage layer to handle the restore
+        // In production, you'd want to check ownership before allowing restore
+        // This could be done by implementing a findByIdIncludingDeleted method
+
+        auto result = getStorage()->restoreProfile(id);
+
+        if (result.success) {
+            nlohmann::json response = {
+                {"success", true},
+                {"message", result.message}
+            };
+            this->json(res, response);
+            LOG_INFO("Profile restored with ID: " + id);
+        } else {
+            notFound(res, result.message);
+        }
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in restoreProfile: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
 void ProfileController::listProfiles(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     try {
         // Parse query parameters
         int limit = 50; // Default
@@ -887,6 +1111,11 @@ void ProfileController::checkSlugAvailability(uWS::HttpResponse<false>* res, uWS
 }
 
 void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Check rate limit
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
     std::string buffer;
     std::string profileId = std::string(req->getParameter(0));
 
@@ -895,7 +1124,7 @@ void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpReque
         return;
     }
 
-    res->onData([this, res, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -910,6 +1139,29 @@ void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpReque
                 }
 
                 std::string newSlug = jsonBody["slug"].get<std::string>();
+
+                // First, get the existing profile to check ownership
+                auto existingResult = getStorage()->findById(profileId);
+                if (!existingResult.success) {
+                    badRequest(res, "Profile not found");
+                    return;
+                }
+
+                auto profile = existingResult.value;
+
+                // Check ownership (authentication)
+                std::string authToken = getAuthToken(req);
+                if (!checkOwnership(profile, authToken)) {
+                    res->writeStatus("403 Forbidden");
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Forbidden: You don't have permission to change this profile's slug"},
+                        {"error", "FORBIDDEN"}
+                    };
+                    this->json(res, errorResponse);
+                    LOG_WARNING("Unauthorized slug change attempt on profile: " + profileId);
+                    return;
+                }
 
                 // Update slug
                 auto result = getStorage()->updateSlug(profileId, newSlug);

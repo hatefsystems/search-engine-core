@@ -67,6 +67,7 @@ public:
     Result<std::optional<Profile>> findBySlug(const std::string& slug);
     Result<bool> update(const Profile& profile);
     Result<bool> deleteProfile(const std::string& id);
+    Result<bool> restoreProfile(const std::string& id);
 
     // PersonProfile storage operations
     Result<std::string> store(const PersonProfile& profile);

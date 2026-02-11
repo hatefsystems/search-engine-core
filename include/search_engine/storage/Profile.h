@@ -37,6 +37,12 @@ struct Profile {
 
     // Timestamps
     std::chrono::system_clock::time_point createdAt;
+    std::optional<std::chrono::system_clock::time_point> updatedAt;  // When profile was last updated
+    std::optional<std::chrono::system_clock::time_point> deletedAt;  // Soft delete timestamp (if set, profile is deleted)
+
+    // Ownership and authentication (optional for backward compatibility)
+    std::optional<std::string> ownerToken;  // Authentication token for profile ownership
+    std::optional<std::string> ownerId;     // Future: User ID from auth system
 
     // Validation method
     bool isValid() const;

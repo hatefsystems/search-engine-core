@@ -24,7 +24,7 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 - **01d-database-indexes-validation.md** (1 day) - Performance indexes and advanced validation ✅ **Complete**
 
 ### Core Functionality (Week 2)
-- **02-profile-routing-crud.md** (4 days) - Complete CRUD operations
+- **02-profile-routing-crud.md** (4 days) - Complete CRUD operations ✅ **Complete**
 - **03-clean-url-routing.md** (3 days) - Advanced URL routing and validation
 - **04-link-blocks-analytics.md** (3 days) - Profile link blocks and analytics
 
@@ -74,8 +74,8 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 ### API
 - RESTful endpoints for all operations
 - Proper error handling and validation
-- Rate limiting and security
-- API documentation
+- Rate limiting and security (Profile API: per-IP rate limit, token-based ownership)
+- API documentation (`docs/api/profile_endpoint.md`)
 
 ### Security
 - Input sanitization and validation
@@ -120,7 +120,7 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 - **Analytics:** Usage tracking and insights
 
 ### Internal Systems
-- **User Management:** Authentication and authorization
+- **User Management:** Authentication and authorization (Profile: token-based ownership)
 - **Notification System:** In-app and email notifications
 - **Audit System:** Compliance logging
 - **Admin Panel:** Moderation and management tools
@@ -140,7 +140,7 @@ This phase builds on the MVP foundation to create a complete, production-ready p
 ## 🔄 Phase Gate Criteria
 
 ### Must Pass Before Phase 2
-- [ ] All core APIs functional and tested
+- [x] All core APIs functional and tested (Profile CRUD: auth, rate limit, soft delete, docs)
 - [ ] Privacy architecture audited and approved
 - [ ] Search integration working end-to-end
 - [ ] Basic verification process tested

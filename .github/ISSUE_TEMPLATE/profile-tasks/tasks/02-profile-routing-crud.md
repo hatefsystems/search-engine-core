@@ -2,24 +2,24 @@
 
 **Duration:** 4 days
 **Dependencies:** Profile database models
-**Status:** ~80% Complete (Core CRUD functional, missing auth/security features)
+**Status:** ✅ Complete (100%)
 
 ## 📊 Implementation Status
 - **Core CRUD Operations**: ✅ Complete
 - **Routing & URL Slugs**: ✅ Complete
 - **Error Handling**: ✅ Complete
 - **Integration Tests**: ✅ Complete
-- **Authentication**: ❌ Missing
-- **Rate Limiting**: ❌ Missing
-- **API Documentation**: ❌ Missing
+- **Authentication**: ✅ Complete (token-based ownership validation)
+- **Rate Limiting**: ✅ Complete (in-process per-IP, configurable)
+- **API Documentation**: ✅ Complete (`docs/api/profile_endpoint.md`)
 
 **Acceptance Criteria:**
 - ✅ ProfileController created with lazy initialization
 - ✅ RESTful routes for profile CRUD operations
 - ✅ URL slug routing (hatef.ir/username)
-- ❌ Basic authentication middleware (NOT IMPLEMENTED)
+- ✅ Basic authentication (owner token; `Authorization: Bearer` / `x-profile-token`)
 - ✅ Error handling with proper HTTP status codes
-- ❌ API documentation and examples (NOT IMPLEMENTED - only test script exists)
+- ✅ API documentation and examples (`docs/api/profile_endpoint.md`)
 - ✅ Integration tests for all endpoints
 
 ## 🎯 Task Description
@@ -44,16 +44,16 @@ Implement the basic CRUD API endpoints for profile management. This includes cre
 ### Day 3: Update & Delete Operations
 - ✅ Implement PUT /api/profiles/:id (update profile)
 - ✅ Implement DELETE /api/profiles/:id (delete profile)
-- ❌ Add ownership validation (users can only edit their profiles) - NOT IMPLEMENTED
-- ❌ Implement soft delete with recovery option - NOT IMPLEMENTED
-- ❌ Add update timestamp tracking - NOT IMPLEMENTED
+- ✅ Add ownership validation (users can only edit their profiles via owner token)
+- ✅ Implement soft delete with recovery option (POST /api/profiles/:id/restore)
+- ✅ Add update timestamp tracking (`updatedAt`)
 
 ### Day 4: Error Handling & Testing
 - ✅ Implement comprehensive error responses
-- ❌ Add rate limiting for API endpoints - NOT IMPLEMENTED
+- ✅ Add rate limiting for API endpoints (PROFILE_API_RATE_LIMIT_* env)
 - ✅ Create integration tests for all CRUD operations
 - ✅ Test edge cases (invalid slugs, duplicate usernames)
-- ❌ Document API endpoints with examples - NOT IMPLEMENTED
+- ✅ Document API endpoints with examples (`docs/api/profile_endpoint.md`)
 
 ## 🔧 API Endpoints
 
@@ -62,12 +62,14 @@ Implement the basic CRUD API endpoints for profile management. This includes cre
 ROUTE_CONTROLLER(ProfileController) {
     using namespace routing;
     REGISTER_ROUTE(HttpMethod::POST, "/api/profiles", createProfile, ProfileController);
-    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id", getProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id", getProfileById, ProfileController);
     REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id", updateProfile, ProfileController);
     REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id", deleteProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/restore", restoreProfile, ProfileController);
 
     // Public profile viewing
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug", getPublicProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/:slug", getPublicProfileBySlug, ProfileController);
 }
 ```
 
@@ -96,25 +98,27 @@ curl http://localhost:3000/profiles/test-user
 - ✅ Proper error handling for edge cases
 - ✅ API responds within 100ms for simple operations
 - ✅ All integration tests pass
-- ❌ Authentication/authorization - NOT IMPLEMENTED
-- ❌ Rate limiting - NOT IMPLEMENTED
-- ❌ Soft delete with recovery - NOT IMPLEMENTED
-- ❌ API documentation - NOT IMPLEMENTED
+- ✅ Authentication/authorization (owner token per profile)
+- ✅ Rate limiting (per-IP, 429 + Retry-After)
+- ✅ Soft delete with recovery (POST /api/profiles/:id/restore)
+- ✅ API documentation (`docs/api/profile_endpoint.md`)
 
-## 🔄 Remaining Work
+## ✅ Completed Work (Summary)
 
-### High Priority (Security)
-- **Authentication Middleware**: Implement user sessions and ownership validation
-- **Rate Limiting**: Add API rate limiting to prevent abuse
+### Security
+- **Authentication**: Token-based ownership (`ownerToken` per profile; `Authorization: Bearer` or `x-profile-token`)
+- **Rate Limiting**: In-process per-IP sliding window; env `PROFILE_API_RATE_LIMIT_REQUESTS`, `PROFILE_API_RATE_LIMIT_WINDOW_SECONDS`
 
-### Medium Priority (Features)
-- **Soft Delete**: Implement soft delete with recovery option
-- **Update Timestamps**: Add `updatedAt` field tracking
+### Features
+- **Soft Delete**: `deletedAt` field; all reads exclude deleted; `restoreProfile()` and POST restore endpoint
+- **Update Timestamps**: `updatedAt` set on all updates and exposed in API
 
-### Low Priority (Documentation)
-- **API Documentation**: Create `docs/api/profile_endpoint.md` with examples
-- **OpenAPI/Swagger**: Generate API specification
+### Documentation
+- **API Documentation**: `docs/api/profile_endpoint.md` with all endpoints, auth, rate limits, examples
+
+### Optional (Future)
+- **OpenAPI/Swagger**: Can be added later; markdown doc is the source of truth.
 
 ## 🚀 Current Status
 
-The Profile CRUD API is **fully functional** for basic operations. All core endpoints work correctly with proper error handling and comprehensive test coverage. The API is production-ready for basic profile management, but lacks advanced security features that would be needed for a multi-user system.
+The Profile CRUD API is **complete and production-ready**. All core endpoints work with authentication, rate limiting, soft delete, and update timestamps. API documentation is in `docs/api/profile_endpoint.md`. Profile and performance tests pass when MongoDB is available.

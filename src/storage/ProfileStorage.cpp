@@ -136,6 +136,24 @@ bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) c
         builder << "slugChangedAt" << timePointToDate(profile.slugChangedAt.value());
     }
 
+    // Optional updatedAt timestamp
+    if (profile.updatedAt) {
+        builder << "updatedAt" << timePointToDate(profile.updatedAt.value());
+    }
+
+    // Optional ownership fields
+    if (profile.ownerToken) {
+        builder << "ownerToken" << profile.ownerToken.value();
+    }
+    if (profile.ownerId) {
+        builder << "ownerId" << profile.ownerId.value();
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (profile.deletedAt) {
+        builder << "deletedAt" << timePointToDate(profile.deletedAt.value());
+    }
+
     return builder << finalize;
 }
 
@@ -176,6 +194,24 @@ Profile ProfileStorage::bsonToProfile(const bsoncxx::document::view& doc) const 
     // Optional slugChangedAt timestamp
     if (doc["slugChangedAt"]) {
         profile.slugChangedAt = dateToTimePoint(doc["slugChangedAt"].get_date());
+    }
+
+    // Optional updatedAt timestamp
+    if (doc["updatedAt"]) {
+        profile.updatedAt = dateToTimePoint(doc["updatedAt"].get_date());
+    }
+
+    // Optional ownership fields
+    if (doc["ownerToken"]) {
+        profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
+    }
+    if (doc["ownerId"]) {
+        profile.ownerId = std::string(doc["ownerId"].get_string().value);
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (doc["deletedAt"]) {
+        profile.deletedAt = dateToTimePoint(doc["deletedAt"].get_date());
     }
 
     return profile;
@@ -286,7 +322,11 @@ Result<std::string> ProfileStorage::store(const Profile& profile) {
 
 Result<Profile> ProfileStorage::findById(const std::string& id) {
     try {
-        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        // Filter: match ID and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "_id" << bsoncxx::oid{id}
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -302,7 +342,11 @@ Result<Profile> ProfileStorage::findById(const std::string& id) {
 
 Result<std::optional<Profile>> ProfileStorage::findBySlug(const std::string& slug) {
     try {
-        auto filter = document{} << "slug" << slug << finalize;
+        // Filter: match slug and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "slug" << slug
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -336,7 +380,11 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
             return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
         }
 
-        auto updateDoc = profileToBson(profile);
+        // Create mutable copy and set updatedAt timestamp
+        Profile updatedProfile = profile;
+        updatedProfile.updatedAt = std::chrono::system_clock::now();
+
+        auto updateDoc = profileToBson(updatedProfile);
         auto update = document{} << "$set" << updateDoc << finalize;
 
         auto result = profileCollection_.update_one(filter.view(), update.view());
@@ -356,10 +404,20 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
 Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
     try {
         auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
-        auto result = profileCollection_.delete_one(filter.view());
+        
+        // Soft delete: set deletedAt and updatedAt timestamps
+        auto now = std::chrono::system_clock::now();
+        auto update = document{} 
+            << "$set" << open_document
+                << "deletedAt" << timePointToDate(now)
+                << "updatedAt" << timePointToDate(now)
+            << close_document
+            << finalize;
+        
+        auto result = profileCollection_.update_one(filter.view(), update.view());
 
-        if (result && result->deleted_count() > 0) {
-            LOG_INFO("Deleted profile with ID: " + id);
+        if (result && result->modified_count() > 0) {
+            LOG_INFO("Soft deleted profile with ID: " + id);
             return Result<bool>::Success(true, "Profile deleted successfully");
         } else {
             return Result<bool>::Failure("No profile found with given ID");
@@ -370,12 +428,46 @@ Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
     }
 }
 
+Result<bool> ProfileStorage::restoreProfile(const std::string& id) {
+    try {
+        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        
+        // Restore: unset deletedAt and update updatedAt
+        auto now = std::chrono::system_clock::now();
+        auto update = document{} 
+            << "$unset" << open_document
+                << "deletedAt" << ""
+            << close_document
+            << "$set" << open_document
+                << "updatedAt" << timePointToDate(now)
+            << close_document
+            << finalize;
+        
+        auto result = profileCollection_.update_one(filter.view(), update.view());
+
+        if (result && result->modified_count() > 0) {
+            LOG_INFO("Restored profile with ID: " + id);
+            return Result<bool>::Success(true, "Profile restored successfully");
+        } else {
+            return Result<bool>::Failure("No profile found with given ID or profile was not deleted");
+        }
+    } catch (const mongocxx::exception& e) {
+        LOG_ERROR("MongoDB error restoring profile: " + std::string(e.what()));
+        return Result<bool>::Failure("Database error: " + std::string(e.what()));
+    }
+}
+
 Result<std::vector<Profile>> ProfileStorage::findAll(int limit, int skip) {
     try {
+        // Filter out soft-deleted profiles
+        auto filter = document{} 
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
+        
         mongocxx::options::find findOptions{};
         findOptions.limit(limit).skip(skip);
 
-        auto cursor = profileCollection_.find({}, findOptions);
+        auto cursor = profileCollection_.find(filter.view(), findOptions);
 
         std::vector<Profile> profiles;
         for (auto&& doc : cursor) {
@@ -391,7 +483,11 @@ Result<std::vector<Profile>> ProfileStorage::findAll(int limit, int skip) {
 
 Result<std::vector<Profile>> ProfileStorage::findByType(ProfileType type, int limit, int skip) {
     try {
-        auto filter = document{} << "type" << profileTypeToString(type) << finalize;
+        // Filter: match type and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "type" << profileTypeToString(type)
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
 
         mongocxx::options::find findOptions{};
         findOptions.limit(limit).skip(skip);
@@ -585,6 +681,23 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
         builder.append(kvp("slugChangedAt", timePointToDate(profile.slugChangedAt.value())));
     }
 
+    if (profile.updatedAt) {
+        builder.append(kvp("updatedAt", timePointToDate(profile.updatedAt.value())));
+    }
+
+    // Optional ownership fields
+    if (profile.ownerToken) {
+        builder.append(kvp("ownerToken", profile.ownerToken.value()));
+    }
+    if (profile.ownerId) {
+        builder.append(kvp("ownerId", profile.ownerId.value()));
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (profile.deletedAt) {
+        builder.append(kvp("deletedAt", timePointToDate(profile.deletedAt.value())));
+    }
+
     // PersonProfile-specific fields (optional)
     if (profile.title) {
         builder.append(kvp("title", profile.title.value()));
@@ -665,6 +778,23 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
 
     if (doc["slugChangedAt"]) {
         profile.slugChangedAt = dateToTimePoint(doc["slugChangedAt"].get_date());
+    }
+
+    if (doc["updatedAt"]) {
+        profile.updatedAt = dateToTimePoint(doc["updatedAt"].get_date());
+    }
+
+    // Optional ownership fields
+    if (doc["ownerToken"]) {
+        profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
+    }
+    if (doc["ownerId"]) {
+        profile.ownerId = std::string(doc["ownerId"].get_string().value);
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (doc["deletedAt"]) {
+        profile.deletedAt = dateToTimePoint(doc["deletedAt"].get_date());
     }
 
     // PersonProfile-specific fields
@@ -753,6 +883,23 @@ bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& pr
         builder.append(kvp("slugChangedAt", timePointToDate(profile.slugChangedAt.value())));
     }
 
+    if (profile.updatedAt) {
+        builder.append(kvp("updatedAt", timePointToDate(profile.updatedAt.value())));
+    }
+
+    // Optional ownership fields
+    if (profile.ownerToken) {
+        builder.append(kvp("ownerToken", profile.ownerToken.value()));
+    }
+    if (profile.ownerId) {
+        builder.append(kvp("ownerId", profile.ownerId.value()));
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (profile.deletedAt) {
+        builder.append(kvp("deletedAt", timePointToDate(profile.deletedAt.value())));
+    }
+
     // BusinessProfile-specific fields (optional)
     if (profile.companyName) {
         builder.append(kvp("companyName", profile.companyName.value()));
@@ -838,6 +985,23 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
 
     if (doc["slugChangedAt"]) {
         profile.slugChangedAt = dateToTimePoint(doc["slugChangedAt"].get_date());
+    }
+
+    if (doc["updatedAt"]) {
+        profile.updatedAt = dateToTimePoint(doc["updatedAt"].get_date());
+    }
+
+    // Optional ownership fields
+    if (doc["ownerToken"]) {
+        profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
+    }
+    if (doc["ownerId"]) {
+        profile.ownerId = std::string(doc["ownerId"].get_string().value);
+    }
+
+    // Optional deletedAt timestamp (soft delete)
+    if (doc["deletedAt"]) {
+        profile.deletedAt = dateToTimePoint(doc["deletedAt"].get_date());
     }
 
     // BusinessProfile-specific fields
@@ -932,7 +1096,11 @@ Result<std::string> ProfileStorage::store(const PersonProfile& profile) {
 
 Result<std::optional<PersonProfile>> ProfileStorage::findPersonById(const std::string& id) {
     try {
-        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        // Filter: match ID and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "_id" << bsoncxx::oid{id}
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -963,7 +1131,11 @@ Result<std::optional<PersonProfile>> ProfileStorage::findPersonById(const std::s
 
 Result<std::optional<PersonProfile>> ProfileStorage::findPersonBySlug(const std::string& slug) {
     try {
-        auto filter = document{} << "slug" << slug << finalize;
+        // Filter: match slug and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "slug" << slug
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -1017,8 +1189,12 @@ Result<bool> ProfileStorage::update(const PersonProfile& profile) {
             return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
         }
 
+        // Create mutable copy and set updatedAt timestamp
+        PersonProfile updatedProfile = profile;
+        updatedProfile.updatedAt = std::chrono::system_clock::now();
+
         // Build full update document with all fields
-        auto updateDoc = profileToBson(profile);
+        auto updateDoc = profileToBson(updatedProfile);
         
         // Use $set to update all fields
         using bsoncxx::builder::basic::kvp;
@@ -1078,7 +1254,11 @@ Result<std::string> ProfileStorage::store(const BusinessProfile& profile) {
 
 Result<std::optional<BusinessProfile>> ProfileStorage::findBusinessById(const std::string& id) {
     try {
-        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
+        // Filter: match ID and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "_id" << bsoncxx::oid{id}
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -1109,7 +1289,11 @@ Result<std::optional<BusinessProfile>> ProfileStorage::findBusinessById(const st
 
 Result<std::optional<BusinessProfile>> ProfileStorage::findBusinessBySlug(const std::string& slug) {
     try {
-        auto filter = document{} << "slug" << slug << finalize;
+        // Filter: match slug and exclude soft-deleted profiles
+        auto filter = document{} 
+            << "slug" << slug
+            << "deletedAt" << open_document << "$exists" << false << close_document
+            << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
         if (result) {
@@ -1163,8 +1347,12 @@ Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
             return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
         }
 
+        // Create mutable copy and set updatedAt timestamp
+        BusinessProfile updatedProfile = profile;
+        updatedProfile.updatedAt = std::chrono::system_clock::now();
+
         // Build full update document with all fields
-        auto updateDoc = profileToBson(profile);
+        auto updateDoc = profileToBson(updatedProfile);
         
         // Use $set to update all fields
         using bsoncxx::builder::basic::kvp;

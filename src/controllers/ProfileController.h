@@ -13,6 +13,7 @@
 #include "../../include/search_engine/storage/DataEncryption.h"
 #include "../../include/search_engine/common/SlugCache.h"
 #include "../../include/Logger.h"
+#include "../../include/ApiRateLimiter.h"
 #include <memory>
 
 class ProfileController : public routing::Controller {
@@ -26,6 +27,7 @@ public:
     void getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void restoreProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void listProfiles(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
     // Root-level URL endpoints
@@ -45,9 +47,11 @@ private:
     mutable std::unique_ptr<search_engine::storage::ProfileViewAnalyticsStorage> analyticsStorage_;
     mutable std::unique_ptr<search_engine::storage::ComplianceStorage> complianceStorage_;
     mutable std::unique_ptr<search_engine::storage::AuditStorage> auditStorage_;
+    mutable std::unique_ptr<ApiRateLimiter> rateLimiter_;
 
     // Lazy initialization helpers
     search_engine::storage::ProfileStorage* getStorage() const;
+    ApiRateLimiter* getRateLimiter() const;
     search_engine::common::SlugCache* getSlugCache() const;
     search_engine::storage::ProfileViewAnalyticsStorage* getAnalyticsStorage() const;
     search_engine::storage::ComplianceStorage* getComplianceStorage() const;
@@ -73,6 +77,15 @@ private:
     std::string getUserAgent(uWS::HttpRequest* req);
     std::string getReferrer(uWS::HttpRequest* req);
     void recordProfileView(const std::string& profileId, uWS::HttpRequest* req);
+    
+    // Authentication & ownership helpers
+    static std::string generateOwnerToken();
+    std::string getAuthToken(uWS::HttpRequest* req);
+    bool checkOwnership(const search_engine::storage::Profile& profile, const std::string& token);
+    std::string getCallerIdentity(uWS::HttpRequest* req);
+    
+    // Rate limiting helper
+    bool checkRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 };
 
 // Route registration
@@ -85,6 +98,7 @@ ROUTE_CONTROLLER(ProfileController) {
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id", getProfileById, ProfileController);
     REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id", updateProfile, ProfileController);
     REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id", deleteProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/restore", restoreProfile, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles", listProfiles, ProfileController);
 
     // Slug management API routes

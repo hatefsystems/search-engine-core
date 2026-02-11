@@ -28,7 +28,7 @@ namespace {
 }
 
 TEST_CASE("ProfileStorage - Performance: Slug Lookup Speed", "[profilestorage][performance]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
@@ -114,7 +114,7 @@ TEST_CASE("ProfileStorage - Performance: Slug Lookup Speed", "[profilestorage][p
 }
 
 TEST_CASE("ProfileStorage - Performance: Batch Operations", "[profilestorage][performance]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
@@ -232,7 +232,7 @@ TEST_CASE("ProfileViewAnalyticsStorage - Performance: Analytics Queries", "[anal
 }
 
 TEST_CASE("ProfileStorage - Performance: Concurrent Operations", "[profilestorage][performance][concurrent]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
