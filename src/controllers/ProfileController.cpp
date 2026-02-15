@@ -3,7 +3,9 @@
 #include "../../include/search_engine/common/SlugGenerator.h"
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/storage/AuditLogger.h"
+#include "../../include/search_engine/seo/SEOGenerator.h"
 #include <nlohmann/json.hpp>
+#include <inja/inja.hpp>
 #include <chrono>
 #include <sstream>
 #include <iomanip>
@@ -144,6 +146,158 @@ std::string ProfileController::getReferrer(uWS::HttpRequest* req) {
         return "direct";
     }
     return referrer;
+}
+
+// ==================== Template Rendering Helpers ====================
+
+std::string ProfileController::renderTemplate(const std::string& templateName, const nlohmann::json& data) {
+    try {
+        LOG_DEBUG("Rendering template: " + templateName);
+        
+        // Initialize Inja environment
+        inja::Environment env("templates/");
+        
+        // Render the template with data
+        std::string result = env.render_file(templateName, data);
+        LOG_DEBUG("Successfully rendered template: " + templateName);
+        return result;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error rendering template " + templateName + ": " + std::string(e.what()));
+        throw;
+    }
+}
+
+void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile) {
+    try {
+        LOG_DEBUG("Rendering profile page for: " + profile.slug);
+        
+        // Get base URL from environment or use default
+        const char* baseUrlEnv = std::getenv("BASE_URL");
+        std::string baseUrl = baseUrlEnv ? std::string(baseUrlEnv) : "http://localhost:3000";
+        
+        // Fetch link blocks for this profile
+        nlohmann::json linksArray = nlohmann::json::array();
+        try {
+            auto linksResult = getLinkBlockStorage()->findByProfile(profile.id.value_or(""));
+            if (linksResult.success) {
+                for (const auto& link : linksResult.value) {
+                    // Only include public and active links
+                    if (link.privacy == search_engine::storage::LinkPrivacy::PUBLIC && link.isActive) {
+                        linksArray.push_back(linkToJson(link));
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_WARNING("Failed to fetch link blocks: " + std::string(e.what()));
+            // Continue without links
+        }
+        
+        // Determine profile type and generate appropriate schema
+        nlohmann::json jsonld;
+        std::string templateName;
+        std::string profileType;
+        
+        if (profile.type == search_engine::storage::ProfileType::PERSON) {
+            // Cast to PersonProfile to access person-specific fields
+            // Note: This is a simplified approach; in production, you'd want proper type handling
+            search_engine::storage::PersonProfile personProfile;
+            // Copy base profile fields
+            personProfile.id = profile.id;
+            personProfile.slug = profile.slug;
+            personProfile.name = profile.name;
+            personProfile.type = profile.type;
+            personProfile.bio = profile.bio;
+            personProfile.isPublic = profile.isPublic;
+            personProfile.previousSlugs = profile.previousSlugs;
+            personProfile.slugChangedAt = profile.slugChangedAt;
+            personProfile.createdAt = profile.createdAt;
+            personProfile.updatedAt = profile.updatedAt;
+            personProfile.deletedAt = profile.deletedAt;
+            personProfile.ownerToken = profile.ownerToken;
+            personProfile.ownerId = profile.ownerId;
+            
+            // For now, use empty person-specific fields
+            // In production, these would come from the database
+            personProfile.skills = {};
+            
+            jsonld = search_engine::seo::SEOGenerator::generatePersonSchema(
+                personProfile, 
+                baseUrl, 
+                linksArray
+            );
+            templateName = "profile_person.inja";
+            profileType = "person";
+        } else {
+            // Cast to BusinessProfile
+            search_engine::storage::BusinessProfile businessProfile;
+            // Copy base profile fields
+            businessProfile.id = profile.id;
+            businessProfile.slug = profile.slug;
+            businessProfile.name = profile.name;
+            businessProfile.type = profile.type;
+            businessProfile.bio = profile.bio;
+            businessProfile.isPublic = profile.isPublic;
+            businessProfile.previousSlugs = profile.previousSlugs;
+            businessProfile.slugChangedAt = profile.slugChangedAt;
+            businessProfile.createdAt = profile.createdAt;
+            businessProfile.updatedAt = profile.updatedAt;
+            businessProfile.deletedAt = profile.deletedAt;
+            businessProfile.ownerToken = profile.ownerToken;
+            businessProfile.ownerId = profile.ownerId;
+            
+            // For now, use empty business-specific fields
+            businessProfile.services = {};
+            
+            jsonld = search_engine::seo::SEOGenerator::generateOrganizationSchema(
+                businessProfile, 
+                baseUrl, 
+                linksArray
+            );
+            templateName = "profile_organization.inja";
+            profileType = "organization";
+        }
+        
+        // Generate Open Graph and Twitter Card tags
+        auto openGraph = search_engine::seo::SEOGenerator::generateOpenGraphTags(
+            profile, 
+            baseUrl, 
+            profileType
+        );
+        auto twitterCard = search_engine::seo::SEOGenerator::generateTwitterCardTags(
+            profile, 
+            baseUrl, 
+            profileType
+        );
+        
+        // Prepare template data
+        nlohmann::json templateData = {
+            {"profile", profileToJson(profile)},
+            {"links", linksArray},
+            {"jsonld", jsonld.dump(2)},  // Pretty print JSON-LD
+            {"openGraph", openGraph},
+            {"twitterCard", twitterCard},
+            {"baseUrl", baseUrl},
+            {"seo", {
+                {"title", search_engine::seo::SEOGenerator::generatePageTitle(profile)},
+                {"description", search_engine::seo::SEOGenerator::generateMetaDescription(profile)}
+            }}
+        };
+        
+        // Render template
+        std::string html = renderTemplate(templateName, templateData);
+        
+        // Send HTML response
+        res->writeHeader("Content-Type", "text/html; charset=utf-8");
+        res->writeHeader("Cache-Control", "public, max-age=300"); // Cache for 5 minutes
+        res->end(html);
+        
+        LOG_DEBUG("Successfully rendered profile page for: " + profile.slug);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error rendering profile page: " + std::string(e.what()));
+        serverError(res, "Failed to render profile page");
+    }
 }
 
 // ==================== Authentication & Ownership Helpers ====================
@@ -949,6 +1103,15 @@ void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, 
         return; // Redirect was issued
     }
 
+    // Content negotiation: Check Accept header
+    std::string acceptHeader = std::string(req->getHeader("accept"));
+    bool wantsJson = acceptHeader.find("application/json") != std::string::npos;
+    
+    // If no Accept header is specified, default to HTML for browsers
+    if (acceptHeader.empty()) {
+        wantsJson = false;
+    }
+
     // Check cache first for better performance
     auto cachedProfileId = getSlugCache()->get(slug);
     if (cachedProfileId.has_value()) {
@@ -960,24 +1123,35 @@ void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, 
             // Check if profile is public
             if (!profile.isPublic) {
                 res->writeStatus("403 Forbidden");
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Profile is private"},
-                    {"error", "PROFILE_PRIVATE"}
-                };
-                json(res, errorResponse);
+                if (wantsJson) {
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Profile is private"},
+                        {"error", "PROFILE_PRIVATE"}
+                    };
+                    json(res, errorResponse);
+                } else {
+                    res->writeHeader("Content-Type", "text/html; charset=utf-8");
+                    res->end("<html><body><h1>403 Forbidden</h1><p>This profile is private.</p></body></html>");
+                }
                 return;
             }
 
             // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
             recordProfileView(profile.id.value_or(""), req);
 
-            nlohmann::json response = {
-                {"success", true},
-                {"message", "Profile found (cached)"},
-                {"data", profileToJson(profile)}
-            };
-            this->json(res, response);
+            // Return JSON or HTML based on Accept header
+            if (wantsJson) {
+                nlohmann::json response = {
+                    {"success", true},
+                    {"message", "Profile found (cached)"},
+                    {"data", profileToJson(profile)}
+                };
+                this->json(res, response);
+            } else {
+                // Render HTML page with SEO
+                renderProfilePage(res, profile);
+            }
             return;
         } else {
             // Cache miss - remove invalid cache entry
@@ -999,26 +1173,43 @@ void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, 
         // Check if profile is public
         if (!profile.isPublic) {
             res->writeStatus("403 Forbidden");
-            nlohmann::json errorResponse = {
-                {"success", false},
-                {"message", "Profile is private"},
-                {"error", "PROFILE_PRIVATE"}
-            };
-            json(res, errorResponse);
+            if (wantsJson) {
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"message", "Profile is private"},
+                    {"error", "PROFILE_PRIVATE"}
+                };
+                json(res, errorResponse);
+            } else {
+                res->writeHeader("Content-Type", "text/html; charset=utf-8");
+                res->end("<html><body><h1>403 Forbidden</h1><p>This profile is private.</p></body></html>");
+            }
             return;
         }
 
         // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
         recordProfileView(profile.id.value_or(""), req);
 
-        nlohmann::json response = {
-            {"success", true},
-            {"message", result.message},
-            {"data", profileToJson(profile)}
-        };
-        json(res, response);
+        // Return JSON or HTML based on Accept header
+        if (wantsJson) {
+            nlohmann::json response = {
+                {"success", true},
+                {"message", result.message},
+                {"data", profileToJson(profile)}
+            };
+            json(res, response);
+        } else {
+            // Render HTML page with SEO
+            renderProfilePage(res, profile);
+        }
     } else {
-        notFound(res, "Profile not found");
+        if (wantsJson) {
+            notFound(res, "Profile not found");
+        } else {
+            res->writeStatus("404 Not Found");
+            res->writeHeader("Content-Type", "text/html; charset=utf-8");
+            res->end("<html><body><h1>404 Not Found</h1><p>Profile not found.</p></body></html>");
+        }
     }
 }
 

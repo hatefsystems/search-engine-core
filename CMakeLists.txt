@@ -159,6 +159,27 @@ target_compile_definitions(mongodb_instance PRIVATE
 # Filter out mongodb.cpp from MAIN_SOURCES since it's now in a separate library  
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*mongodb\\.cpp$")
 
+# Create SEO library
+add_library(seo STATIC
+    src/seo/SEOGenerator.cpp
+    src/seo/SitemapGenerator.cpp
+    src/seo/SchemaValidator.cpp
+)
+target_include_directories(seo 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(seo
+    PUBLIC
+        common
+        mongo::bsoncxx_shared
+        mongo::mongocxx_shared
+)
+
+# Filter out SEO sources from MAIN_SOURCES
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*seo/.*\\.cpp$")
+
 # Create executable
 add_executable(server ${MAIN_SOURCES} ${HEADERS})
 
@@ -172,6 +193,7 @@ target_link_libraries(server
         crawler
         search_core
         scoring
+        seo
         mongodb_instance
         /usr/local/lib/libmongocxx.so
         /usr/local/lib/libbsoncxx.so

@@ -96,6 +96,12 @@ private:
     // Shared helper for resolving and serving a public profile by slug
     void servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug);
     
+    // Helper to render HTML profile page with SEO
+    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile);
+    
+    // Helper to render Inja templates
+    std::string renderTemplate(const std::string& templateName, const nlohmann::json& data);
+    
     // Privacy & tracking helpers
     std::string getClientIP(uWS::HttpRequest* req);
     std::string getUserAgent(uWS::HttpRequest* req);

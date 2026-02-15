@@ -17,6 +17,7 @@
 #include "controllers/ProfileController.h"
 #include "controllers/EmailController.h"
 #include "controllers/TrackingController.h"
+#include "controllers/SitemapController.h"
 
 #include <chrono>
 #include <iomanip>
