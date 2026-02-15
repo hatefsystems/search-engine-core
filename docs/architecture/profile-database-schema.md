@@ -203,6 +203,96 @@ This document describes the MongoDB database schema for the profile system, incl
 
 ---
 
+### 5. link_blocks
+
+**Purpose:** Link blocks for profile pages (social media, website, portfolio links).
+
+**Collection Name:** `link_blocks`
+
+#### Fields
+
+| Field         | Type          | Required | Description                                            |
+| ------------- | ------------- | -------- | ------------------------------------------------------ |
+| `_id`         | ObjectId      | Yes      | MongoDB auto-generated unique identifier               |
+| `profileId`   | String        | Yes      | Profile this link belongs to                           |
+| `url`         | String        | Yes      | Destination URL (http/https only, max 2048 chars)      |
+| `title`       | String        | Yes      | Link title (max 200 characters)                        |
+| `description` | String        | No       | Optional description (max 500 characters)              |
+| `iconUrl`     | String        | No       | Optional icon/favicon URL                              |
+| `isActive`    | Boolean       | Yes      | Active links can be clicked (default: true)            |
+| `privacy`     | String        | Yes      | "PUBLIC", "HIDDEN", or "DISABLED" (default: "PUBLIC")  |
+| `tags`        | Array[String] | No       | Optional tags for grouping                             |
+| `sortOrder`   | Number        | Yes      | Display order, lower = higher (default: 0)             |
+| `createdAt`   | Date          | Yes      | Link creation timestamp                                |
+| `updatedAt`   | Date          | No       | Last update timestamp                                  |
+
+#### Indexes
+
+| Index Name             | Keys                              | Type     | Purpose                             |
+| ---------------------- | --------------------------------- | -------- | ----------------------------------- |
+| `profile_sort_order`   | `{ "profileId": 1, "sortOrder": 1 }` | Compound | List links for profile ordered      |
+| `profile_active_links` | `{ "profileId": 1, "isActive": 1 }`  | Compound | Filter active links for profile     |
+
+**Privacy Levels:**
+
+- **PUBLIC:** Link is visible on profile and redirect works
+- **HIDDEN:** Link is hidden from profile but redirect still works
+- **DISABLED:** Link is disabled, redirect returns 404
+
+**Query Patterns:**
+
+- List active links for profile: `db.link_blocks.find({ profileId: "...", isActive: true }).sort({ sortOrder: 1 })`
+- Get link by ID: `db.link_blocks.findOne({ _id: ObjectId("...") })`
+- Count links for profile: `db.link_blocks.countDocuments({ profileId: "..." })`
+
+---
+
+### 6. link_click_analytics
+
+**Purpose:** Privacy-first link click analytics (no IP addresses).
+
+**Collection Name:** `link_click_analytics`
+
+#### Fields
+
+| Field        | Type   | Required | Description                                  |
+| ------------ | ------ | -------- | -------------------------------------------- |
+| `clickId`    | String | Yes      | Unique click identifier                      |
+| `linkId`     | String | Yes      | Link being clicked                           |
+| `profileId`  | String | Yes      | Profile owning the link                      |
+| `timestamp`  | Date   | Yes      | Click timestamp                              |
+| `country`    | String | Yes      | Country (city-level only, default "Unknown") |
+| `province`   | String | Yes      | Province/state (default "Unknown")           |
+| `city`       | String | Yes      | City (default "Unknown")                     |
+| `browser`    | String | Yes      | Browser name only (e.g., "Chrome")           |
+| `os`         | String | Yes      | OS name only (e.g., "Linux")                 |
+| `deviceType` | String | Yes      | "Mobile", "Tablet", or "Desktop"             |
+| `referrer`   | String | Yes      | Referrer URL or "Direct"                     |
+
+#### Indexes
+
+| Index Name                | Keys                                   | Type     | Purpose                          |
+| ------------------------- | -------------------------------------- | -------- | -------------------------------- |
+| `link_clicks_timeline`    | `{ "linkId": 1, "timestamp": -1 }`     | Compound | Recent clicks for link           |
+| `profile_clicks_timeline` | `{ "profileId": 1, "timestamp": -1 }`  | Compound | Recent clicks for profile        |
+| `timestamp_cleanup`       | `{ "timestamp": -1 }`                  | Regular  | Retention cleanup                |
+
+**Privacy:**
+
+- **No IP addresses:** Never stored in this collection
+- **City-level location:** Country/province/city only (no precise geolocation)
+- **Generic device info:** Browser/OS family only (no versions)
+- **Referrer sanitized:** Domain only, no sensitive query params
+
+**Query Patterns:**
+
+- Get recent clicks for link: `db.link_click_analytics.find({ linkId: "..." }).sort({ timestamp: -1 }).limit(100)`
+- Get recent clicks for profile: `db.link_click_analytics.find({ profileId: "..." }).sort({ timestamp: -1 }).limit(100)`
+- Count clicks for link: `db.link_click_analytics.countDocuments({ linkId: "..." })`
+- Delete old analytics: `db.link_click_analytics.deleteMany({ timestamp: { $lt: ISODate("...") }})`
+
+---
+
 ## Data Flow
 
 ```

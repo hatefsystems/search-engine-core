@@ -1338,3 +1338,754 @@ void ProfileController::cleanupExpiredComplianceLogs(uWS::HttpResponse<false>* r
         serverError(res, "Internal server error");
     }
 }
+
+// ==================== Link Block Methods ====================
+
+search_engine::storage::LinkBlockStorage* ProfileController::getLinkBlockStorage() const {
+    if (!linkBlockStorage_) {
+        try {
+            LOG_INFO("Lazy initializing LinkBlockStorage");
+            linkBlockStorage_ = std::make_unique<search_engine::storage::LinkBlockStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize LinkBlockStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return linkBlockStorage_.get();
+}
+
+search_engine::storage::LinkClickAnalyticsStorage* ProfileController::getLinkClickAnalyticsStorage() const {
+    if (!linkClickAnalyticsStorage_) {
+        try {
+            LOG_INFO("Lazy initializing LinkClickAnalyticsStorage");
+            linkClickAnalyticsStorage_ = std::make_unique<search_engine::storage::LinkClickAnalyticsStorage>();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize LinkClickAnalyticsStorage: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return linkClickAnalyticsStorage_.get();
+}
+
+ApiRateLimiter* ProfileController::getLinkRedirectRateLimiter() const {
+    if (!linkRedirectRateLimiter_) {
+        try {
+            LOG_INFO("Lazy initializing link redirect ApiRateLimiter");
+            // Get config from environment or use defaults (stricter for redirect)
+            size_t maxRequests = 120; // Default: 120 requests per minute (2/s)
+            int windowSeconds = 60;
+            
+            const char* limitEnv = std::getenv("LINK_REDIRECT_RATE_LIMIT_REQUESTS");
+            if (limitEnv) {
+                maxRequests = std::stoi(limitEnv);
+            }
+            
+            const char* windowEnv = std::getenv("LINK_REDIRECT_RATE_LIMIT_WINDOW_SECONDS");
+            if (windowEnv) {
+                windowSeconds = std::stoi(windowEnv);
+            }
+            
+            linkRedirectRateLimiter_ = std::make_unique<ApiRateLimiter>(maxRequests, std::chrono::seconds(windowSeconds));
+            LOG_INFO("Link redirect rate limiter configured: " + std::to_string(maxRequests) + 
+                    " requests per " + std::to_string(windowSeconds) + " seconds");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to lazy initialize link redirect rate limiter: " + std::string(e.what()));
+            throw;
+        }
+    }
+    return linkRedirectRateLimiter_.get();
+}
+
+bool ProfileController::checkLinkRedirectRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    std::string clientIP = getClientIP(req);
+    
+    if (getLinkRedirectRateLimiter()->shouldThrottle(clientIP)) {
+        int retryAfter = getLinkRedirectRateLimiter()->getRetryAfter(clientIP);
+        
+        res->writeStatus("429 Too Many Requests");
+        res->writeHeader("Retry-After", std::to_string(retryAfter));
+        
+        nlohmann::json errorResponse = {
+            {"success", false},
+            {"message", "Too many redirect requests. Please try again later."},
+            {"error", "RATE_LIMIT_EXCEEDED"},
+            {"retryAfter", retryAfter}
+        };
+        
+        this->json(res, errorResponse);
+        LOG_WARNING("Link redirect rate limit exceeded for IP: " + clientIP);
+        return true; // Rate limited
+    }
+    
+    return false; // Not rate limited
+}
+
+void ProfileController::recordLinkClick(const std::string& linkId, const std::string& profileId, uWS::HttpRequest* req) {
+    try {
+        // Get client IP and User-Agent
+        std::string ipAddress = getClientIP(req);
+        std::string userAgent = getUserAgent(req);
+        std::string referrer = getReferrer(req);
+        
+        LOG_DEBUG("Recording link click: linkId=" + linkId + ", profileId=" + profileId);
+        
+        // Generate unique click ID using random_device for thread safety
+        auto now = std::chrono::system_clock::now();
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::random_device rd;
+        std::string clickId = std::to_string(nowMs) + "-" + std::to_string(rd() % 1000000);
+        
+        // Privacy-first analytics (NO IP!)
+        search_engine::storage::GeoData geo = search_engine::storage::GeoIPService::lookup(ipAddress);
+        search_engine::storage::UserAgentInfo uaInfo = search_engine::storage::UserAgentParser::parse(userAgent);
+        
+        search_engine::storage::LinkClickAnalytics analytics;
+        analytics.clickId = clickId;
+        analytics.linkId = linkId;
+        analytics.profileId = profileId;
+        analytics.timestamp = now;
+        analytics.country = geo.country;
+        analytics.province = geo.province;
+        analytics.city = geo.city;
+        analytics.browser = uaInfo.browser;
+        analytics.os = uaInfo.os;
+        analytics.deviceType = uaInfo.deviceType;
+        analytics.referrer = referrer.empty() ? "Direct" : referrer;
+        
+        auto analyticsResult = getLinkClickAnalyticsStorage()->recordClick(analytics);
+        if (!analyticsResult.success) {
+            LOG_WARNING("Failed to record link click analytics: " + analyticsResult.message);
+        }
+        
+        // Secure memory wipe for sensitive data
+        search_engine::storage::secureMemoryWipe(&ipAddress);
+        search_engine::storage::secureMemoryWipe(&userAgent);
+        search_engine::storage::secureMemoryWipe(&referrer);
+        
+        LOG_INFO("Link click recorded successfully: clickId=" + clickId);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to record link click: " + std::string(e.what()));
+        // Don't fail the redirect if tracking fails
+    }
+}
+
+search_engine::storage::LinkBlock ProfileController::parseLinkFromJson(const nlohmann::json& json) {
+    search_engine::storage::LinkBlock link;
+    
+    // Required: url
+    if (json.contains("url") && json["url"].is_string()) {
+        link.url = json["url"].get<std::string>();
+    } else {
+        throw std::invalid_argument("Missing required field: url");
+    }
+    
+    // Required: title
+    if (json.contains("title") && json["title"].is_string()) {
+        link.title = json["title"].get<std::string>();
+    } else {
+        throw std::invalid_argument("Missing required field: title");
+    }
+    
+    // Optional: description
+    if (json.contains("description") && json["description"].is_string()) {
+        link.description = json["description"].get<std::string>();
+    }
+    
+    // Optional: iconUrl
+    if (json.contains("iconUrl") && json["iconUrl"].is_string()) {
+        link.iconUrl = json["iconUrl"].get<std::string>();
+    }
+    
+    // Optional: isActive
+    if (json.contains("isActive") && json["isActive"].is_boolean()) {
+        link.isActive = json["isActive"].get<bool>();
+    }
+    
+    // Optional: privacy
+    if (json.contains("privacy") && json["privacy"].is_string()) {
+        std::string privacyStr = json["privacy"].get<std::string>();
+        link.privacy = search_engine::storage::stringToLinkPrivacy(privacyStr);
+    }
+    
+    // Optional: tags
+    if (json.contains("tags") && json["tags"].is_array()) {
+        for (const auto& tag : json["tags"]) {
+            if (tag.is_string()) {
+                link.tags.push_back(tag.get<std::string>());
+            }
+        }
+    }
+    
+    // Optional: sortOrder
+    if (json.contains("sortOrder") && json["sortOrder"].is_number()) {
+        link.sortOrder = json["sortOrder"].get<int>();
+    }
+    
+    return link;
+}
+
+nlohmann::json ProfileController::linkToJson(const search_engine::storage::LinkBlock& link) const {
+    nlohmann::json json;
+    
+    if (link.id.has_value()) {
+        json["id"] = link.id.value();
+    }
+    
+    json["profileId"] = link.profileId;
+    json["url"] = link.url;
+    json["title"] = link.title;
+    
+    if (link.description.has_value()) {
+        json["description"] = link.description.value();
+    }
+    if (link.iconUrl.has_value()) {
+        json["iconUrl"] = link.iconUrl.value();
+    }
+    
+    json["isActive"] = link.isActive;
+    json["privacy"] = search_engine::storage::linkPrivacyToString(link.privacy);
+    json["tags"] = link.tags;
+    json["sortOrder"] = link.sortOrder;
+    
+    // Timestamps (ISO 8601)
+    auto createdTime = std::chrono::system_clock::to_time_t(link.createdAt);
+    std::tm createdTm = *std::gmtime(&createdTime);
+    char createdBuffer[32];
+    std::strftime(createdBuffer, sizeof(createdBuffer), "%Y-%m-%dT%H:%M:%SZ", &createdTm);
+    json["createdAt"] = createdBuffer;
+    
+    if (link.updatedAt.has_value()) {
+        auto updatedTime = std::chrono::system_clock::to_time_t(link.updatedAt.value());
+        std::tm updatedTm = *std::gmtime(&updatedTime);
+        char updatedBuffer[32];
+        std::strftime(updatedBuffer, sizeof(updatedBuffer), "%Y-%m-%dT%H:%M:%SZ", &updatedTm);
+        json["updatedAt"] = updatedBuffer;
+    }
+    
+    return json;
+}
+
+void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        // Check rate limit first
+        if (checkLinkRedirectRateLimit(res, req)) {
+            return; // Rate limited
+        }
+        
+        // Get link ID from URL parameter
+        std::string linkId = std::string(req->getParameter(0));
+        
+        LOG_DEBUG("Link redirect requested: " + linkId);
+        
+        // Find link by ID
+        auto linkResult = getLinkBlockStorage()->findById(linkId);
+        if (!linkResult.success || !linkResult.value.has_value()) {
+            res->writeStatus("404 Not Found");
+            res->end("Link not found");
+            return;
+        }
+        
+        const auto& link = linkResult.value.value();
+        
+        // Check if link is active
+        if (!link.isActive || link.privacy == search_engine::storage::LinkPrivacy::DISABLED) {
+            res->writeStatus("404 Not Found");
+            res->end("Link not available");
+            return;
+        }
+        
+        // Check if profile is public
+        auto profileResult = getStorage()->findById(link.profileId);
+        if (!profileResult.success || !profileResult.value.isPublic) {
+            res->writeStatus("404 Not Found");
+            res->end("Link not available");
+            return;
+        }
+        
+        // Record click analytics (async, don't block redirect)
+        if (link.privacy == search_engine::storage::LinkPrivacy::PUBLIC) {
+            // Only record analytics for public links
+            recordLinkClick(link.id.value(), link.profileId, req);
+        }
+        
+        // Perform redirect (secure: only to stored URL)
+        res->writeStatus("302 Found");
+        res->writeHeader("Location", link.url);
+        res->end();
+        
+        LOG_INFO("Link redirect: " + linkId + " -> " + link.url);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in redirectLink: " + std::string(e.what()));
+        res->writeStatus("500 Internal Server Error");
+        res->end("Internal server error");
+    }
+}
+
+void ProfileController::createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Rate limit check
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    
+    // Setup response handlers for POST data
+    std::string buffer;
+    
+    res->onAborted([&buffer]() {
+        LOG_WARNING("Request aborted during createLink");
+    });
+    
+    res->onData([this, res, req, profileId, &buffer](std::string_view chunk, bool isFinal) {
+        buffer.append(chunk.data(), chunk.size());
+        
+        if (!isFinal) {
+            return;
+        }
+        
+        try {
+            // Parse JSON body
+            nlohmann::json json = nlohmann::json::parse(buffer);
+            
+            // Verify profile ownership
+            auto profileResult = getStorage()->findById(profileId);
+            if (!profileResult.success) {
+                badRequest(res, "Profile not found");
+                return;
+            }
+            
+            std::string token = getAuthToken(req);
+            if (!checkOwnership(profileResult.value, token)) {
+                res->writeStatus("403 Forbidden");
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"message", "Not authorized to create links for this profile"},
+                    {"error", "FORBIDDEN"}
+                };
+                this->json(res, errorResponse);
+                return;
+            }
+            
+            // Parse link from JSON
+            auto link = parseLinkFromJson(json);
+            link.profileId = profileId;
+            link.createdAt = std::chrono::system_clock::now();
+            
+            // Validate link
+            if (!link.isValid()) {
+                badRequest(res, "Invalid link data");
+                return;
+            }
+            
+            // Store link
+            auto result = getLinkBlockStorage()->store(link);
+            
+            if (result.success) {
+                link.id = result.value;
+                nlohmann::json response = {
+                    {"success", true},
+                    {"message", "Link created successfully"},
+                    {"data", linkToJson(link)}
+                };
+                this->json(res, response);
+                LOG_INFO("Link created: " + result.value);
+            } else {
+                res->writeStatus("500 Internal Server Error");
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"message", "Failed to create link: " + result.message},
+                    {"error", "STORAGE_ERROR"}
+                };
+                this->json(res, errorResponse);
+            }
+            
+        } catch (const std::invalid_argument& e) {
+            badRequest(res, std::string(e.what()));
+        } catch (const nlohmann::json::exception& e) {
+            badRequest(res, "Invalid JSON: " + std::string(e.what()));
+        } catch (const std::exception& e) {
+            LOG_ERROR("Error in createLink: " + std::string(e.what()));
+            serverError(res, "Internal server error");
+        }
+    });
+}
+
+void ProfileController::getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        std::string profileId = std::string(req->getParameter(0));
+        
+        LOG_DEBUG("Fetching links for profile: " + profileId);
+        
+        // Find links for profile
+        auto result = getLinkBlockStorage()->findByProfile(profileId, 100, 0);
+        
+        if (result.success) {
+            nlohmann::json linksArray = nlohmann::json::array();
+            for (const auto& link : result.value) {
+                linksArray.push_back(linkToJson(link));
+            }
+            
+            nlohmann::json response = {
+                {"success", true},
+                {"message", "Links retrieved successfully"},
+                {"data", linksArray}
+            };
+            this->json(res, response);
+        } else {
+            serverError(res, "Failed to retrieve links: " + result.message);
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getLinks: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
+void ProfileController::getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        std::string profileId = std::string(req->getParameter(0));
+        std::string linkId = std::string(req->getParameter(1));
+        
+        // Find link by ID
+        auto result = getLinkBlockStorage()->findById(linkId);
+        
+        if (!result.success) {
+            serverError(res, "Failed to retrieve link: " + result.message);
+            return;
+        }
+        
+        if (!result.value.has_value()) {
+            res->writeStatus("404 Not Found");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Link not found"},
+                {"error", "NOT_FOUND"}
+            };
+            this->json(res, errorResponse);
+            return;
+        }
+        
+        const auto& link = result.value.value();
+        
+        // Verify link belongs to profile
+        if (link.profileId != profileId) {
+            res->writeStatus("404 Not Found");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Link not found"},
+                {"error", "NOT_FOUND"}
+            };
+            this->json(res, errorResponse);
+            return;
+        }
+        
+        nlohmann::json response = {
+            {"success", true},
+            {"message", "Link retrieved successfully"},
+            {"data", linkToJson(link)}
+        };
+        this->json(res, response);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getLinkById: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
+void ProfileController::updateLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    // Rate limit check
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    std::string linkId = std::string(req->getParameter(1));
+    
+    std::string buffer;
+    
+    res->onAborted([&buffer]() {
+        LOG_WARNING("Request aborted during updateLink");
+    });
+    
+    res->onData([this, res, req, profileId, linkId, &buffer](std::string_view chunk, bool isFinal) {
+        buffer.append(chunk.data(), chunk.size());
+        
+        if (!isFinal) {
+            return;
+        }
+        
+        try {
+            // Verify profile ownership
+            auto profileResult = getStorage()->findById(profileId);
+            if (!profileResult.success) {
+                badRequest(res, "Profile not found");
+                return;
+            }
+            
+            std::string token = getAuthToken(req);
+            if (!checkOwnership(profileResult.value, token)) {
+                res->writeStatus("403 Forbidden");
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"message", "Not authorized to update links for this profile"},
+                    {"error", "FORBIDDEN"}
+                };
+                this->json(res, errorResponse);
+                return;
+            }
+            
+            // Get existing link
+            auto linkResult = getLinkBlockStorage()->findById(linkId);
+            if (!linkResult.success || !linkResult.value.has_value()) {
+                badRequest(res, "Link not found");
+                return;
+            }
+            
+            auto link = linkResult.value.value();
+            
+            // Verify link belongs to profile
+            if (link.profileId != profileId) {
+                badRequest(res, "Link not found");
+                return;
+            }
+            
+            // Parse updates from JSON
+            nlohmann::json json = nlohmann::json::parse(buffer);
+            
+            if (json.contains("url")) link.url = json["url"].get<std::string>();
+            if (json.contains("title")) link.title = json["title"].get<std::string>();
+            if (json.contains("description")) {
+                link.description = json["description"].is_null() ? std::nullopt : std::optional<std::string>(json["description"].get<std::string>());
+            }
+            if (json.contains("iconUrl")) {
+                link.iconUrl = json["iconUrl"].is_null() ? std::nullopt : std::optional<std::string>(json["iconUrl"].get<std::string>());
+            }
+            if (json.contains("isActive")) link.isActive = json["isActive"].get<bool>();
+            if (json.contains("privacy")) {
+                link.privacy = search_engine::storage::stringToLinkPrivacy(json["privacy"].get<std::string>());
+            }
+            if (json.contains("tags")) {
+                link.tags.clear();
+                for (const auto& tag : json["tags"]) {
+                    link.tags.push_back(tag.get<std::string>());
+                }
+            }
+            if (json.contains("sortOrder")) link.sortOrder = json["sortOrder"].get<int>();
+            
+            // Validate updated link
+            if (!link.isValid()) {
+                badRequest(res, "Invalid link data");
+                return;
+            }
+            
+            // Update link
+            auto result = getLinkBlockStorage()->update(link);
+            
+            if (result.success) {
+                nlohmann::json response = {
+                    {"success", true},
+                    {"message", "Link updated successfully"},
+                    {"data", linkToJson(link)}
+                };
+                this->json(res, response);
+                LOG_INFO("Link updated: " + linkId);
+            } else {
+                serverError(res, "Failed to update link: " + result.message);
+            }
+            
+        } catch (const std::invalid_argument& e) {
+            badRequest(res, std::string(e.what()));
+        } catch (const nlohmann::json::exception& e) {
+            badRequest(res, "Invalid JSON: " + std::string(e.what()));
+        } catch (const std::exception& e) {
+            LOG_ERROR("Error in updateLink: " + std::string(e.what()));
+            serverError(res, "Internal server error");
+        }
+    });
+}
+
+void ProfileController::deleteLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        std::string profileId = std::string(req->getParameter(0));
+        std::string linkId = std::string(req->getParameter(1));
+        
+        // Verify profile ownership
+        auto profileResult = getStorage()->findById(profileId);
+        if (!profileResult.success) {
+            badRequest(res, "Profile not found");
+            return;
+        }
+        
+        std::string token = getAuthToken(req);
+        if (!checkOwnership(profileResult.value, token)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Not authorized to delete links for this profile"},
+                {"error", "FORBIDDEN"}
+            };
+            this->json(res, errorResponse);
+            return;
+        }
+        
+        // Verify link belongs to profile
+        auto linkResult = getLinkBlockStorage()->findById(linkId);
+        if (!linkResult.success || !linkResult.value.has_value()) {
+            badRequest(res, "Link not found");
+            return;
+        }
+        
+        if (linkResult.value.value().profileId != profileId) {
+            badRequest(res, "Link not found");
+            return;
+        }
+        
+        // Delete link
+        auto result = getLinkBlockStorage()->deleteLink(linkId);
+        
+        if (result.success) {
+            nlohmann::json response = {
+                {"success", true},
+                {"message", "Link deleted successfully"}
+            };
+            this->json(res, response);
+            LOG_INFO("Link deleted: " + linkId);
+        } else {
+            serverError(res, "Failed to delete link: " + result.message);
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in deleteLink: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
+void ProfileController::getLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        std::string profileId = std::string(req->getParameter(0));
+        
+        // Verify profile ownership
+        auto profileResult = getStorage()->findById(profileId);
+        if (!profileResult.success) {
+            badRequest(res, "Profile not found");
+            return;
+        }
+        
+        std::string token = getAuthToken(req);
+        if (!checkOwnership(profileResult.value, token)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Not authorized to view analytics for this profile"},
+                {"error", "FORBIDDEN"}
+            };
+            this->json(res, errorResponse);
+            return;
+        }
+        
+        // Get total clicks for profile
+        auto countResult = getLinkClickAnalyticsStorage()->countClicksByProfile(profileId);
+        int64_t totalClicks = countResult.success ? countResult.value : 0;
+        
+        // Get recent clicks
+        auto clicksResult = getLinkClickAnalyticsStorage()->getRecentClicksByProfile(profileId, 100);
+        
+        // Build analytics response
+        nlohmann::json response = {
+            {"success", true},
+            {"message", "Analytics retrieved successfully"},
+            {"data", {
+                {"totalClicks", totalClicks},
+                {"recentClicks", nlohmann::json::array()}
+            }}
+        };
+        
+        if (clicksResult.success) {
+            for (const auto& click : clicksResult.value) {
+                nlohmann::json clickJson = {
+                    {"linkId", click.linkId},
+                    {"timestamp", std::chrono::duration_cast<std::chrono::milliseconds>(
+                        click.timestamp.time_since_epoch()).count()},
+                    {"country", click.country},
+                    {"city", click.city},
+                    {"browser", click.browser},
+                    {"os", click.os},
+                    {"deviceType", click.deviceType},
+                    {"referrer", click.referrer}
+                };
+                response["data"]["recentClicks"].push_back(clickJson);
+            }
+        }
+        
+        this->json(res, response);
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getLinkAnalytics: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}
+
+void ProfileController::cleanupExpiredLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        LOG_INFO("Link analytics cleanup job requested");
+        
+        // Require API key for internal endpoint
+        std::string apiKey = std::string(req->getHeader("x-api-key"));
+        const char* expectedKey = std::getenv("INTERNAL_API_KEY");
+        
+        if (!expectedKey || apiKey.empty() || apiKey != std::string(expectedKey)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Unauthorized: Invalid or missing API key"},
+                {"error", "INVALID_API_KEY"}
+            };
+            json(res, errorResponse);
+            LOG_WARNING("Unauthorized link analytics cleanup attempt");
+            return;
+        }
+        
+        LOG_INFO("Link analytics cleanup job started (authorized)");
+        
+        // Get retention days from environment or use default
+        const char* retentionEnv = std::getenv("LINK_ANALYTICS_RETENTION_DAYS");
+        int retentionDays = retentionEnv ? std::stoi(retentionEnv) : 90;
+        
+        // Calculate cutoff timestamp
+        auto now = std::chrono::system_clock::now();
+        auto cutoff = now - std::chrono::hours(24 * retentionDays);
+        
+        // Delete old analytics
+        auto deleteResult = getLinkClickAnalyticsStorage()->deleteOldClicks(cutoff);
+        
+        if (deleteResult.success) {
+            nlohmann::json response = {
+                {"success", true},
+                {"message", "Link analytics cleanup completed"},
+                {"data", {
+                    {"retentionDays", retentionDays},
+                    {"analyticsDeleted", deleteResult.value},
+                    {"timestamp", std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now.time_since_epoch()).count()}
+                }}
+            };
+            json(res, response);
+            LOG_INFO("Link analytics cleanup completed: " + std::to_string(deleteResult.value) + 
+                    " records deleted (retention: " + std::to_string(retentionDays) + " days)");
+        } else {
+            res->writeStatus("500 Internal Server Error");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Failed to cleanup link analytics: " + deleteResult.message},
+                {"error", "CLEANUP_FAILED"}
+            };
+            json(res, errorResponse);
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in cleanupExpiredLinkAnalytics: " + std::string(e.what()));
+        serverError(res, "Internal server error");
+    }
+}

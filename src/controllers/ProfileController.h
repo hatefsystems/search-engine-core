@@ -11,6 +11,9 @@
 #include "../../include/search_engine/storage/GeoIPService.h"
 #include "../../include/search_engine/storage/UserAgentParser.h"
 #include "../../include/search_engine/storage/DataEncryption.h"
+#include "../../include/search_engine/storage/LinkBlock.h"
+#include "../../include/search_engine/storage/LinkBlockStorage.h"
+#include "../../include/search_engine/storage/LinkClickAnalytics.h"
 #include "../../include/search_engine/common/SlugCache.h"
 #include "../../include/Logger.h"
 #include "../../include/ApiRateLimiter.h"
@@ -40,6 +43,18 @@ public:
     // Privacy & compliance endpoints
     void getPrivacyDashboard(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void cleanupExpiredComplianceLogs(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void cleanupExpiredLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Link block endpoints
+    void redirectLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void updateLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void deleteLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Link analytics endpoints
+    void getLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
 private:
     mutable std::unique_ptr<search_engine::storage::ProfileStorage> storage_;
@@ -47,7 +62,10 @@ private:
     mutable std::unique_ptr<search_engine::storage::ProfileViewAnalyticsStorage> analyticsStorage_;
     mutable std::unique_ptr<search_engine::storage::ComplianceStorage> complianceStorage_;
     mutable std::unique_ptr<search_engine::storage::AuditStorage> auditStorage_;
+    mutable std::unique_ptr<search_engine::storage::LinkBlockStorage> linkBlockStorage_;
+    mutable std::unique_ptr<search_engine::storage::LinkClickAnalyticsStorage> linkClickAnalyticsStorage_;
     mutable std::unique_ptr<ApiRateLimiter> rateLimiter_;
+    mutable std::unique_ptr<ApiRateLimiter> linkRedirectRateLimiter_;
 
     // Lazy initialization helpers
     search_engine::storage::ProfileStorage* getStorage() const;
@@ -56,6 +74,9 @@ private:
     search_engine::storage::ProfileViewAnalyticsStorage* getAnalyticsStorage() const;
     search_engine::storage::ComplianceStorage* getComplianceStorage() const;
     search_engine::storage::AuditStorage* getAuditStorage() const;
+    search_engine::storage::LinkBlockStorage* getLinkBlockStorage() const;
+    search_engine::storage::LinkClickAnalyticsStorage* getLinkClickAnalyticsStorage() const;
+    ApiRateLimiter* getLinkRedirectRateLimiter() const;
 
     // Helper to parse JSON request body
     search_engine::storage::Profile parseProfileFromJson(const nlohmann::json& json);
@@ -80,6 +101,7 @@ private:
     std::string getUserAgent(uWS::HttpRequest* req);
     std::string getReferrer(uWS::HttpRequest* req);
     void recordProfileView(const std::string& profileId, uWS::HttpRequest* req);
+    void recordLinkClick(const std::string& linkId, const std::string& profileId, uWS::HttpRequest* req);
     
     // Authentication & ownership helpers
     static std::string generateOwnerToken();
@@ -87,8 +109,13 @@ private:
     bool checkOwnership(const search_engine::storage::Profile& profile, const std::string& token);
     std::string getCallerIdentity(uWS::HttpRequest* req);
     
-    // Rate limiting helper
+    // Rate limiting helpers
     bool checkRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    bool checkLinkRedirectRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Link helpers
+    search_engine::storage::LinkBlock parseLinkFromJson(const nlohmann::json& json);
+    nlohmann::json linkToJson(const search_engine::storage::LinkBlock& link) const;
 };
 
 // Route registration
@@ -111,9 +138,23 @@ ROUTE_CONTROLLER(ProfileController) {
     // Privacy & compliance API routes
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/privacy-dashboard", getPrivacyDashboard, ProfileController);
     REGISTER_ROUTE(HttpMethod::POST, "/api/internal/compliance/cleanup", cleanupExpiredComplianceLogs, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/internal/analytics/cleanup", cleanupExpiredLinkAnalytics, ProfileController);
+
+    // Link block API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/links", createLink, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links", getLinks, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/:linkId", getLinkById, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/links/:linkId", updateLink, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/links/:linkId", deleteLink, ProfileController);
+    
+    // Link analytics API routes
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/analytics", getLinkAnalytics, ProfileController);
 
     // Legacy profile route
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug", getPublicProfile, ProfileController);
+
+    // Link redirect route (MUST come before /:slug to match first)
+    REGISTER_ROUTE(HttpMethod::GET, "/l/:linkId", redirectLink, ProfileController);
 
     // Root-level routes (must come after static routes to avoid conflicts)
     REGISTER_ROUTE(HttpMethod::GET, "/:slug", getPublicProfileBySlug, ProfileController);

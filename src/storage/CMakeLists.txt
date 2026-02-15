@@ -72,6 +72,9 @@ set(STORAGE_SOURCES
     UserAgentParser.cpp
     ProfileViewAnalyticsStorage.cpp
     ComplianceStorage.cpp
+    LinkBlock.cpp
+    LinkBlockStorage.cpp
+    LinkClickAnalyticsStorage.cpp
     ../infrastructure.cpp
 )
 
@@ -102,6 +105,9 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/EmailLogsStorage.h
     ../../include/search_engine/storage/EmailTrackingStorage.h
     ../../include/search_engine/storage/UnsubscribeService.h
+    ../../include/search_engine/storage/LinkBlock.h
+    ../../include/search_engine/storage/LinkBlockStorage.h
+    ../../include/search_engine/storage/LinkClickAnalytics.h
     ../../include/infrastructure.h
 )
 
