@@ -191,6 +191,10 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 ├── pages/                      # Frontend source files
 ├── public/                     # Static files served by server
 ├── tests/                      # Comprehensive testing suite
+│   ├── integration/            # Integration tests (API, end-to-end)
+│   │   ├── test_profile_api.sh     # Profile CRUD operations
+│   │   ├── test_link_blocks.sh     # Link blocks & analytics
+│   │   └── test_website_profile_api.sh
 │   ├── crawler/                # Crawler component tests (including SPA tests)
 │   ├── search_core/            # Search API unit tests
 │   └── storage/                # Storage component tests
@@ -519,11 +523,51 @@ The storage layer now provides sophisticated content handling:
 - **Title Extraction**: Successfully extracts titles from JavaScript-rendered
   pages
 
-## Testing Infrastructure with SPA Support
+## Testing Infrastructure
+
+### Test Organization
+
+```
+tests/
+├── integration/            # Integration tests (Shell scripts)
+│   ├── test_profile_api.sh          # Profile CRUD operations
+│   ├── test_link_blocks.sh          # Link blocks & analytics
+│   ├── test_website_profile_api.sh  # Business profiles
+│   └── test_10_concurrent.sh        # Load testing
+├── crawler/                # Crawler component tests (C++)
+├── search_core/            # Search API unit tests (C++)
+├── storage/                # Storage component tests (C++)
+└── ...                     # Other C++ unit tests
+```
+
+See `tests/integration/README.md` for detailed integration test documentation.
+
+### Running Integration Tests
+
+```bash
+# Run all integration tests
+for test in tests/integration/test_*.sh; do
+    bash "$test"
+done
+
+# Run specific test
+./tests/integration/test_profile_api.sh
+./tests/integration/test_link_blocks.sh
+
+# With verbose output
+TEST_VERBOSE=1 ./tests/integration/test_link_blocks.sh
+```
 
 ### Enhanced Test Coverage
 
-**Crawler Tests** (Enhanced):
+**Integration Tests** (Shell):
+
+- **Profile API**: CRUD operations, authentication, rate limiting
+- **Link Blocks**: Link management, redirects, click analytics
+- **Privacy Controls**: PUBLIC/HIDDEN/DISABLED link behavior
+- **Performance**: Concurrent requests, load testing
+
+**Crawler Tests** (C++):
 
 - **Basic Crawling**: Traditional HTTP crawling functionality
 - **SPA Detection**: Framework detection and content analysis tests
@@ -533,13 +577,13 @@ The storage layer now provides sophisticated content handling:
 - **Timeout Handling**: 30-second timeout validation
 - **Error Recovery**: Graceful fallback when SPA rendering fails
 
-**Integration Tests:**
+**Integration Tests** (End-to-End):
 
 - **End-to-end SPA crawling**: Complete workflow from detection to storage
 - **Multi-framework support**: Testing across React, Vue, Angular sites
 - **Performance benchmarks**: Rendering time and content size metrics
 
-### Running SPA Tests
+### Running C++ Tests
 
 ```bash
 # Build with SPA support
@@ -554,6 +598,15 @@ The storage layer now provides sophisticated content handling:
 # Run with debug logging to see SPA detection
 LOG_LEVEL=DEBUG ./tests/crawler/crawler_tests
 ```
+
+### Test Requirements
+
+- `curl` - HTTP client for API requests
+- `jq` - JSON processor for response parsing
+- Docker and docker-compose (for services)
+- Server running on `localhost:3000`
+
+See `.cursor/rules/testing.mdc` for complete testing standards and best practices.
 
 ## CrawlerManager Architecture
 

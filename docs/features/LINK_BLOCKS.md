@@ -47,6 +47,11 @@ Stores link metadata and configuration:
 ```
 
 **Indexes:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `{ profileId: 1, sortOrder: 1 }` - List links ordered by display order
 - `{ profileId: 1, isActive: 1 }` - Filter active links
 
@@ -71,11 +76,21 @@ Privacy-first click analytics (no IP addresses):
 ```
 
 **Indexes:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `{ linkId: 1, timestamp: -1 }` - Recent clicks for link
 - `{ profileId: 1, timestamp: -1 }` - Recent clicks for profile
 - `{ timestamp: -1 }` - Retention cleanup
 
 **Privacy Principles:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - ❌ **No IP addresses** stored in analytics
 - ✅ **City-level location** only (no precise geolocation)
 - ✅ **Generic device info** (browser/OS family, no versions)
@@ -87,6 +102,7 @@ Privacy-first click analytics (no IP addresses):
 
 ### Link Management (Owner Only)
 
+<<<<<<< Updated upstream
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/profiles/:id/links` | Create link |
@@ -94,24 +110,51 @@ Privacy-first click analytics (no IP addresses):
 | GET | `/api/profiles/:id/links/:linkId` | Get specific link |
 | PUT | `/api/profiles/:id/links/:linkId` | Update link |
 | DELETE | `/api/profiles/:id/links/:linkId` | Delete link |
+=======
+| Method | Endpoint | Description |
+| ------ | --------------------------------- | ----------------- |
+| POST | `/api/profiles/:id/links` | Create link |
+| GET | `/api/profiles/:id/links` | List all links |
+| GET | `/api/profiles/:id/links/:linkId` | Get specific link |
+| PUT | `/api/profiles/:id/links/:linkId` | Update link |
+| DELETE | `/api/profiles/:id/links/:linkId` | Delete link |
+
+> > > > > > > Stashed changes
 
 **Authentication:** Bearer token (profile owner token)
 
 ### Analytics (Owner Only)
 
+<<<<<<< Updated upstream
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/profiles/:id/links/analytics` | Get click analytics |
+=======
+| Method | Endpoint | Description |
+| ------ | ----------------------------------- | ------------------- |
+| GET | `/api/profiles/:id/links/analytics` | Get click analytics |
+
+> > > > > > > Stashed changes
 
 **Returns:** Total clicks, recent clicks with privacy-safe data
 
 ### Public Redirect
 
+<<<<<<< Updated upstream
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/l/:linkId` | Redirect to link destination |
 
+# **Features:**
+
+| Method | Endpoint     | Description                  |
+| ------ | ------------ | ---------------------------- |
+| GET    | `/l/:linkId` | Redirect to link destination |
+
 **Features:**
+
+> > > > > > > Stashed changes
+
 - Fast redirect (< 50ms target)
 - Records analytics (if link is PUBLIC)
 - Rate limited (120 req/min per IP)
@@ -119,9 +162,16 @@ Privacy-first click analytics (no IP addresses):
 
 ### Internal Maintenance
 
+<<<<<<< Updated upstream
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/internal/analytics/cleanup` | Delete old analytics (retention) |
+=======
+| Method | Endpoint | Description |
+| ------ | --------------------------------- | -------------------------------- |
+| POST | `/api/internal/analytics/cleanup` | Delete old analytics (retention) |
+
+> > > > > > > Stashed changes
 
 **Authentication:** API key (`INTERNAL_API_KEY` env var)
 **Retention:** Configurable via `LINK_ANALYTICS_RETENTION_DAYS` (default: 90 days)
@@ -172,7 +222,11 @@ struct LinkBlock {
     int sortOrder = 0;
     std::chrono::system_clock::time_point createdAt;
     std::optional<std::chrono::system_clock::time_point> updatedAt;
-    
+<<<<<<< Updated upstream
+
+=======
+
+>>>>>>> Stashed changes
     bool isValid() const;
 };
 ```
@@ -195,13 +249,23 @@ void recordLinkClick(linkId, profileId, req) {
     ipAddress = getClientIP(req);
     userAgent = getUserAgent(req);
     referrer = getReferrer(req);
-    
+<<<<<<< Updated upstream
+
     // Parse location (city-level, no IP stored)
     geo = GeoIPService::lookup(ipAddress);
-    
+
     // Parse device info (family only, no versions)
     uaInfo = UserAgentParser::parse(userAgent);
-    
+
+=======
+
+    // Parse location (city-level, no IP stored)
+    geo = GeoIPService::lookup(ipAddress);
+
+    // Parse device info (family only, no versions)
+    uaInfo = UserAgentParser::parse(userAgent);
+
+>>>>>>> Stashed changes
     // Store analytics (NO IP!)
     LinkClickAnalytics analytics{
         linkId, profileId, timestamp,
@@ -209,9 +273,15 @@ void recordLinkClick(linkId, profileId, req) {
         uaInfo.browser, uaInfo.os, uaInfo.deviceType,
         referrer
     };
-    
+<<<<<<< Updated upstream
+
     storage->recordClick(analytics);
-    
+
+=======
+
+    storage->recordClick(analytics);
+
+>>>>>>> Stashed changes
     // Secure memory wipe
     secureMemoryWipe(&ipAddress);
     secureMemoryWipe(&userAgent);
@@ -225,26 +295,51 @@ void recordLinkClick(linkId, profileId, req) {
 ### Security Measures
 
 ✅ **URL Validation:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - All URLs validated via `ProfileValidator::isValidUrl()`
 - Only http/https allowed (max 2048 chars)
 - Rejects javascript:, data:, file:, etc.
 
 ✅ **Open Redirect Prevention:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Redirects **only** to stored URL (validated at create/update)
 - No user input used at redirect time
 - Link ID is MongoDB ObjectId (non-guessable)
 
 ✅ **Authentication:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - All write operations require owner token
 - Owner token generated with `std::random_device` (CSPRNG)
 - Token checked via `checkOwnership()` helper
 
 ✅ **Rate Limiting:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Profile API: 60 req/min per IP
 - Link redirects: 120 req/min per IP
 - Configurable via environment variables
 
 ✅ **Input Validation:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Title: max 200 chars
 - Description: max 500 chars
 - URL: validated format + length
@@ -253,21 +348,41 @@ void recordLinkClick(linkId, profileId, req) {
 ### Privacy Principles
 
 ✅ **No IP Storage:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - IP addresses **never** stored in `link_click_analytics`
 - Used only for GeoIP lookup (city-level)
 - Securely wiped from memory after use
 
 ✅ **Minimal Data Collection:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Location: city-level only (no precise lat/lon)
 - Device: browser/OS family (no versions)
 - No user identifiers (beyond link/profile IDs)
 
 ✅ **User Control:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Per-link privacy settings
 - Links can be HIDDEN (no analytics)
 - Links can be DISABLED (no redirect)
 
 ✅ **Data Retention:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Default: 90 days (configurable)
 - Automated cleanup via `/api/internal/analytics/cleanup`
 - Environment variable: `LINK_ANALYTICS_RETENTION_DAYS`
@@ -275,20 +390,40 @@ void recordLinkClick(linkId, profileId, req) {
 ### GDPR Compliance
 
 ✅ **Right to Erasure:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Delete link → analytics remain (anonymized data)
 - Delete profile → can cascade to links and analytics
 
 ✅ **Data Minimization:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Only essential data collected
 - No tracking across profiles
 - No user fingerprinting
 
 ✅ **Transparency:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Analytics visible to profile owner
 - Clear documentation of what's collected
 - Privacy policy can reference this implementation
 
 ✅ **Purpose Limitation:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Analytics used only for profile owner insights
 - Not sold or shared with third parties
 - Not used for advertising
@@ -319,6 +454,11 @@ Default connection string: `mongodb://localhost:27017`
 Default database: `search-engine`
 
 Override via:
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `MONGODB_URI` environment variable
 - Constructor parameters in storage classes
 
@@ -329,6 +469,11 @@ Override via:
 ### Unit Tests
 
 Run storage tests:
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```bash
 cd build
 ./test_link_block_storage
@@ -338,11 +483,21 @@ cd build
 ### Integration Tests
 
 Run the comprehensive test script:
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```bash
 ./test_link_blocks.sh
 ```
 
 This script tests:
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 1. Profile creation
 2. Link creation (with metadata)
 3. Link listing
@@ -401,15 +556,30 @@ curl http://localhost:3000/api/profiles/$PROFILE_ID/links/analytics \
 ### Optimization
 
 ✅ **Indexes:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - All collections have appropriate indexes
 - Compound indexes for common query patterns
 - TTL index consideration for auto-cleanup (future)
 
 ✅ **Caching:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Link lookups could be cached (future enhancement)
 - Analytics aggregations could be pre-computed (future)
 
 ✅ **Async Operations:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Click recording doesn't block redirect
 - Analytics stored after response sent
 
@@ -427,6 +597,11 @@ curl -X POST http://localhost:3000/api/internal/analytics/cleanup \
 ```
 
 Response:
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -442,17 +617,32 @@ Response:
 ### Monitoring
 
 **Key Metrics:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Links created per day
 - Total redirects per day
 - Analytics data size
 - Redirect latency (p50, p95, p99)
 
 **Logs to Monitor:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Link redirect errors
 - Analytics storage failures
 - Rate limit hits
 
 **Health Checks:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - MongoDB connection status
 - Collection sizes
 - Index performance
@@ -495,16 +685,31 @@ Response:
 ### What Went Well
 
 ✅ **Privacy-First Design:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Clear separation between analytics and compliance
 - No IP addresses in user-facing data
 - Easy to audit and verify
 
 ✅ **Security Hardening:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - URL validation at all entry points
 - Open redirect prevention built-in
 - Rate limiting protects against abuse
 
 ✅ **Code Reuse:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Leveraged existing ProfileStorage patterns
 - Reused GeoIPService and UserAgentParser
 - Consistent error handling and logging
@@ -512,29 +717,59 @@ Response:
 ### Challenges
 
 ⚠️ **Route Ordering:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Had to register `/l/:linkId` before `/:slug`
 - Documented clearly in route registration
 
 ⚠️ **BSON Exception Handling:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `bsoncxx::exception` doesn't exist
 - Used `std::exception` as catch-all
 
 ⚠️ **Lambda Captures:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Needed to capture `req` in POST/PUT lambdas
 - Easy to miss during implementation
 
 ### Best Practices Applied
 
 ✅ **Lazy Initialization:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - All storage instances lazy-inited
 - Follows ProfileController pattern
 
 ✅ **MongoDB Best Practices:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - Basic builder + `.extract()` for complex docs
 - `MongoDBInstance::getInstance()` before client
 - Proper index creation
 
 ✅ **Logging:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `LOG_DEBUG()` for development
 - `LOG_INFO()` for operations
 - `LOG_ERROR()` for failures
@@ -547,7 +782,10 @@ Response:
 - **API Reference:** [docs/api/link_blocks_endpoint.md](../api/link_blocks_endpoint.md)
 - **Database Schema:** [docs/architecture/profile-database-schema.md](../architecture/profile-database-schema.md)
 - **Test Script:** [test_link_blocks.sh](../../test_link_blocks.sh)
-- **Implementation Plan:** [.cursor/plans/link_blocks_analytics_*.plan.md](../../.cursor/plans/)
+  <<<<<<< Updated upstream
+- # **Implementation Plan:** [.cursor/plans/link*blocks_analytics*\*.plan.md](../../.cursor/plans/)
+- **Implementation Plan:** [.cursor/plans/link*blocks_analytics*\*.plan.md](../../.cursor/plans/)
+  > > > > > > > Stashed changes
 
 ---
 

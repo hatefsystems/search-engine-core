@@ -72,7 +72,11 @@ curl -X POST http://localhost:3000/api/profiles/<PROFILE_ID>/links \
   -H "Authorization: Bearer <TOKEN>" \
   -d '{"url":"https://github.com/user","title":"GitHub","sortOrder":1}'
 
-# Twitter  
+<<<<<<< Updated upstream
+# Twitter
+=======
+# Twitter
+>>>>>>> Stashed changes
 curl -X POST http://localhost:3000/api/profiles/<PROFILE_ID>/links \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <TOKEN>" \
@@ -121,11 +125,20 @@ curl -X DELETE http://localhost:3000/api/profiles/<PROFILE_ID>/links/<LINK_ID> \
 
 ## Privacy Levels Explained
 
+<<<<<<< Updated upstream
 | Privacy | On Profile | Redirect | Analytics |
 |---------|-----------|----------|-----------|
 | **PUBLIC** | ✅ Visible | ✅ Works | ✅ Recorded |
 | **HIDDEN** | ❌ Hidden | ✅ Works | ❌ Not recorded |
 | **DISABLED** | ❌ Hidden | ❌ Returns 404 | ❌ Not recorded |
+=======
+| Privacy | On Profile | Redirect | Analytics |
+| ------------ | ---------- | -------------- | --------------- |
+| **PUBLIC** | ✅ Visible | ✅ Works | ✅ Recorded |
+| **HIDDEN** | ❌ Hidden | ✅ Works | ❌ Not recorded |
+| **DISABLED** | ❌ Hidden | ❌ Returns 404 | ❌ Not recorded |
+
+> > > > > > > Stashed changes
 
 ---
 

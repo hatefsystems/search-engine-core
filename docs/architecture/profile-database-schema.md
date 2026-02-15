@@ -211,27 +211,53 @@ This document describes the MongoDB database schema for the profile system, incl
 
 #### Fields
 
-| Field         | Type          | Required | Description                                            |
+<<<<<<< Updated upstream
+| Field | Type | Required | Description |
 | ------------- | ------------- | -------- | ------------------------------------------------------ |
-| `_id`         | ObjectId      | Yes      | MongoDB auto-generated unique identifier               |
-| `profileId`   | String        | Yes      | Profile this link belongs to                           |
-| `url`         | String        | Yes      | Destination URL (http/https only, max 2048 chars)      |
-| `title`       | String        | Yes      | Link title (max 200 characters)                        |
-| `description` | String        | No       | Optional description (max 500 characters)              |
-| `iconUrl`     | String        | No       | Optional icon/favicon URL                              |
-| `isActive`    | Boolean       | Yes      | Active links can be clicked (default: true)            |
-| `privacy`     | String        | Yes      | "PUBLIC", "HIDDEN", or "DISABLED" (default: "PUBLIC")  |
-| `tags`        | Array[String] | No       | Optional tags for grouping                             |
-| `sortOrder`   | Number        | Yes      | Display order, lower = higher (default: 0)             |
-| `createdAt`   | Date          | Yes      | Link creation timestamp                                |
-| `updatedAt`   | Date          | No       | Last update timestamp                                  |
+| `_id` | ObjectId | Yes | MongoDB auto-generated unique identifier |
+| `profileId` | String | Yes | Profile this link belongs to |
+| `url` | String | Yes | Destination URL (http/https only, max 2048 chars) |
+| `title` | String | Yes | Link title (max 200 characters) |
+| `description` | String | No | Optional description (max 500 characters) |
+| `iconUrl` | String | No | Optional icon/favicon URL |
+| `isActive` | Boolean | Yes | Active links can be clicked (default: true) |
+| `privacy` | String | Yes | "PUBLIC", "HIDDEN", or "DISABLED" (default: "PUBLIC") |
+| `tags` | Array[String] | No | Optional tags for grouping |
+| `sortOrder` | Number | Yes | Display order, lower = higher (default: 0) |
+| `createdAt` | Date | Yes | Link creation timestamp |
+| `updatedAt` | Date | No | Last update timestamp |
 
 #### Indexes
 
-| Index Name             | Keys                              | Type     | Purpose                             |
-| ---------------------- | --------------------------------- | -------- | ----------------------------------- |
-| `profile_sort_order`   | `{ "profileId": 1, "sortOrder": 1 }` | Compound | List links for profile ordered      |
-| `profile_active_links` | `{ "profileId": 1, "isActive": 1 }`  | Compound | Filter active links for profile     |
+| Index Name             | Keys                                 | Type     | Purpose                         |
+| ---------------------- | ------------------------------------ | -------- | ------------------------------- |
+| `profile_sort_order`   | `{ "profileId": 1, "sortOrder": 1 }` | Compound | List links for profile ordered  |
+| `profile_active_links` | `{ "profileId": 1, "isActive": 1 }`  | Compound | Filter active links for profile |
+
+=======
+| Field | Type | Required | Description |
+| ------------- | ------------- | -------- | ----------------------------------------------------- |
+| `_id` | ObjectId | Yes | MongoDB auto-generated unique identifier |
+| `profileId` | String | Yes | Profile this link belongs to |
+| `url` | String | Yes | Destination URL (http/https only, max 2048 chars) |
+| `title` | String | Yes | Link title (max 200 characters) |
+| `description` | String | No | Optional description (max 500 characters) |
+| `iconUrl` | String | No | Optional icon/favicon URL |
+| `isActive` | Boolean | Yes | Active links can be clicked (default: true) |
+| `privacy` | String | Yes | "PUBLIC", "HIDDEN", or "DISABLED" (default: "PUBLIC") |
+| `tags` | Array[String] | No | Optional tags for grouping |
+| `sortOrder` | Number | Yes | Display order, lower = higher (default: 0) |
+| `createdAt` | Date | Yes | Link creation timestamp |
+| `updatedAt` | Date | No | Last update timestamp |
+
+#### Indexes
+
+| Index Name             | Keys                                 | Type     | Purpose                         |
+| ---------------------- | ------------------------------------ | -------- | ------------------------------- |
+| `profile_sort_order`   | `{ "profileId": 1, "sortOrder": 1 }` | Compound | List links for profile ordered  |
+| `profile_active_links` | `{ "profileId": 1, "isActive": 1 }`  | Compound | Filter active links for profile |
+
+> > > > > > > Stashed changes
 
 **Privacy Levels:**
 
@@ -271,11 +297,20 @@ This document describes the MongoDB database schema for the profile system, incl
 
 #### Indexes
 
-| Index Name                | Keys                                   | Type     | Purpose                          |
+<<<<<<< Updated upstream
+| Index Name | Keys | Type | Purpose |
 | ------------------------- | -------------------------------------- | -------- | -------------------------------- |
-| `link_clicks_timeline`    | `{ "linkId": 1, "timestamp": -1 }`     | Compound | Recent clicks for link           |
-| `profile_clicks_timeline` | `{ "profileId": 1, "timestamp": -1 }`  | Compound | Recent clicks for profile        |
-| `timestamp_cleanup`       | `{ "timestamp": -1 }`                  | Regular  | Retention cleanup                |
+| `link_clicks_timeline` | `{ "linkId": 1, "timestamp": -1 }` | Compound | Recent clicks for link |
+| `profile_clicks_timeline` | `{ "profileId": 1, "timestamp": -1 }` | Compound | Recent clicks for profile |
+| `timestamp_cleanup` | `{ "timestamp": -1 }` | Regular | Retention cleanup |
+=======
+| Index Name | Keys | Type | Purpose |
+| ------------------------- | ------------------------------------- | -------- | ------------------------- |
+| `link_clicks_timeline` | `{ "linkId": 1, "timestamp": -1 }` | Compound | Recent clicks for link |
+| `profile_clicks_timeline` | `{ "profileId": 1, "timestamp": -1 }` | Compound | Recent clicks for profile |
+| `timestamp_cleanup` | `{ "timestamp": -1 }` | Regular | Retention cleanup |
+
+> > > > > > > Stashed changes
 
 **Privacy:**
 

@@ -43,13 +43,27 @@ Create a new link block for a profile.
 #### Request
 
 **Headers:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `Content-Type: application/json`
 - `Authorization: Bearer <ownerToken>`
 
 **Path Parameters:**
+<<<<<<< Updated upstream
+
+- `id` (string, required): Profile ID
+
+# **Body:**
+
 - `id` (string, required): Profile ID
 
 **Body:**
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "url": "https://github.com/username",
@@ -64,6 +78,11 @@ Create a new link block for a profile.
 ```
 
 **Fields:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `url` (string, required): Destination URL (http/https, max 2048 chars)
 - `title` (string, required): Link title (max 200 chars)
 - `description` (string, optional): Description (max 500 chars)
@@ -76,6 +95,11 @@ Create a new link block for a profile.
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -97,6 +121,11 @@ Create a new link block for a profile.
 ```
 
 **400 Bad Request:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -106,6 +135,11 @@ Create a new link block for a profile.
 ```
 
 **403 Forbidden:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -125,11 +159,21 @@ Get all links for a profile (ordered by sortOrder).
 #### Request
 
 **Path Parameters:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `id` (string, required): Profile ID
 
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -160,12 +204,22 @@ Get a specific link by ID.
 #### Request
 
 **Path Parameters:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `id` (string, required): Profile ID
 - `linkId` (string, required): Link ID
 
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -185,6 +239,11 @@ Get a specific link by ID.
 ```
 
 **404 Not Found:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -204,14 +263,29 @@ Update an existing link.
 #### Request
 
 **Headers:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `Content-Type: application/json`
 - `Authorization: Bearer <ownerToken>`
 
 **Path Parameters:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 - `id` (string, required): Profile ID
 - `linkId` (string, required): Link ID
 
 **Body:** (all fields optional, only include fields to update)
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "url": "https://github.com/newusername",
@@ -224,6 +298,11 @@ Update an existing link.
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -252,15 +331,29 @@ Delete a link block.
 #### Request
 
 **Headers:**
+<<<<<<< Updated upstream
+
+- `Authorization: Bearer <ownerToken>`
+
+# **Path Parameters:**
+
 - `Authorization: Bearer <ownerToken>`
 
 **Path Parameters:**
+
+> > > > > > > Stashed changes
+
 - `id` (string, required): Profile ID
 - `linkId` (string, required): Link ID
 
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -269,6 +362,11 @@ Delete a link block.
 ```
 
 **404 Not Found:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -288,25 +386,49 @@ Redirect to the link's destination URL and record analytics.
 #### Request
 
 **Path Parameters:**
+<<<<<<< Updated upstream
+
+- `linkId` (string, required): Link ID
+
+# **Optional Headers:**
+
 - `linkId` (string, required): Link ID
 
 **Optional Headers:**
+
+> > > > > > > Stashed changes
+
 - `Referer`: Original page (tracked in analytics)
 - `User-Agent`: Browser/device info (parsed for analytics)
 
 #### Response
 
 **302 Found:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```
 Location: https://destination-url.com
 ```
 
 **404 Not Found:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```
 Link not found
 ```
 
 **429 Too Many Requests:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -334,14 +456,28 @@ Get click analytics for all links in a profile.
 #### Request
 
 **Headers:**
+<<<<<<< Updated upstream
+
+- `Authorization: Bearer <ownerToken>`
+
+# **Path Parameters:**
+
 - `Authorization: Bearer <ownerToken>`
 
 **Path Parameters:**
+
+> > > > > > > Stashed changes
+
 - `id` (string, required): Profile ID
 
 #### Response
 
 **200 OK:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": true,
@@ -365,6 +501,11 @@ Get click analytics for all links in a profile.
 ```
 
 **403 Forbidden:**
+<<<<<<< Updated upstream
+=======
+
+> > > > > > > Stashed changes
+
 ```json
 {
   "success": false,
@@ -384,22 +525,42 @@ Get click analytics for all links in a profile.
 
 ## Privacy Levels
 
+<<<<<<< Updated upstream
 | Level | Visibility | Redirect Works | Analytics Recorded |
 |-------|-----------|----------------|-------------------|
 | PUBLIC | Visible on profile | ✅ Yes | ✅ Yes |
 | HIDDEN | Hidden from profile | ✅ Yes | ❌ No |
 | DISABLED | Hidden from profile | ❌ No (404) | ❌ No |
+=======
+| Level | Visibility | Redirect Works | Analytics Recorded |
+| -------- | ------------------- | -------------- | ------------------ |
+| PUBLIC | Visible on profile | ✅ Yes | ✅ Yes |
+| HIDDEN | Hidden from profile | ✅ Yes | ❌ No |
+| DISABLED | Hidden from profile | ❌ No (404) | ❌ No |
+
+> > > > > > > Stashed changes
 
 ---
 
 ## Rate Limits
 
+<<<<<<< Updated upstream
 | Endpoint | Limit | Window |
 |----------|-------|--------|
 | Link Management APIs | 60 requests | 60 seconds |
 | Link Redirects | 120 requests | 60 seconds |
 
+# Limits are per IP address and configurable via environment variables:
+
+| Endpoint             | Limit        | Window     |
+| -------------------- | ------------ | ---------- |
+| Link Management APIs | 60 requests  | 60 seconds |
+| Link Redirects       | 120 requests | 60 seconds |
+
 Limits are per IP address and configurable via environment variables:
+
+> > > > > > > Stashed changes
+
 - `PROFILE_API_RATE_LIMIT_REQUESTS`
 - `PROFILE_API_RATE_LIMIT_WINDOW_SECONDS`
 - `LINK_REDIRECT_RATE_LIMIT_REQUESTS`
@@ -458,6 +619,7 @@ curl http://localhost:3000/api/profiles/507f191e810c19729de860ea/links/analytics
 
 ## Error Codes
 
+<<<<<<< Updated upstream
 | Code | Description |
 |------|-------------|
 | BAD_REQUEST | Invalid request data (validation failed) |
@@ -465,6 +627,16 @@ curl http://localhost:3000/api/profiles/507f191e810c19729de860ea/links/analytics
 | NOT_FOUND | Resource not found |
 | RATE_LIMIT_EXCEEDED | Too many requests |
 | STORAGE_ERROR | Database error |
+=======
+| Code | Description |
+| ------------------- | ----------------------------------------------- |
+| BAD_REQUEST | Invalid request data (validation failed) |
+| FORBIDDEN | Not authorized (invalid or missing owner token) |
+| NOT_FOUND | Resource not found |
+| RATE_LIMIT_EXCEEDED | Too many requests |
+| STORAGE_ERROR | Database error |
+
+> > > > > > > Stashed changes
 
 ---
 
