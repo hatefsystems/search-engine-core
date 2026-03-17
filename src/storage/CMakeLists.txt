@@ -75,6 +75,7 @@ set(STORAGE_SOURCES
     LinkBlock.cpp
     LinkBlockStorage.cpp
     LinkClickAnalyticsStorage.cpp
+    CloudflareScanStorage.cpp
     ../infrastructure.cpp
 )
 
@@ -108,6 +109,7 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/LinkBlock.h
     ../../include/search_engine/storage/LinkBlockStorage.h
     ../../include/search_engine/storage/LinkClickAnalytics.h
+    ../../include/search_engine/storage/CloudflareScanStorage.h
     ../../include/infrastructure.h
 )
 
