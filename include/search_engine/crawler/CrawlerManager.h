@@ -10,6 +10,7 @@
 #include <functional>
 #include "Crawler.h"
 #include "CrawlPriority.h"
+#include "SessionPriorityQueue.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
 #include "../storage/ContentStorage.h"
@@ -79,12 +80,23 @@ public:
     std::vector<std::string> getActiveSessions();
     void cleanupCompletedSessions();
     size_t getActiveSessionCount();
-    
+
+    // ----- Session queuing & prioritization (issue #14) -----
+
+    // Total number of pending (queued, not yet running) sessions.
+    size_t getPendingSessionCount() const;
+
+    // Snapshot of pending sessions in priority order, for inspection / API.
+    std::vector<PendingSessionEntry> getPendingSessions() const;
+
+    // Effective concurrency limit (env MAX_CONCURRENT_SESSIONS or default).
+    size_t getMaxConcurrentSessions() const;
+
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
-    
-    
-    // Limit concurrent sessions to prevent MongoDB connection issues
+
+
+    // Default concurrent session limit (overridable via MAX_CONCURRENT_SESSIONS env).
     static constexpr size_t MAX_CONCURRENT_SESSIONS = 5;
 
 private:
@@ -97,6 +109,32 @@ private:
     std::string generateSessionId();
     void cleanupWorker();
     std::unique_ptr<Crawler> createCrawler(const CrawlConfig& config, const std::string& sessionId = "");
+
+    // ----- Session queuing & prioritization internals -----
+    SessionPriorityQueue pendingQueue_;
+
+    // Per-pending-session config (cannot live in SessionPriorityQueue because
+    // CrawlConfig is heavy and we want the queue testable without it).
+    std::unordered_map<std::string, CrawlConfig> pendingConfigs_;
+    std::unordered_map<std::string, CrawlCompletionCallback> pendingCallbacks_;
+    mutable std::mutex pendingExtrasMutex_;
+
+    // Actually start a crawl now (no concurrency check). Used both for
+    // immediate starts and for dispatching pending sessions when a slot opens.
+    void startCrawlInternal(const std::string& sessionId,
+                            const std::string& url,
+                            const CrawlConfig& config,
+                            bool force,
+                            CrawlPriority priority,
+                            CrawlCompletionCallback callback,
+                            int retryCount = 0);
+
+    // Try to dequeue and dispatch the next ready pending session. Called when
+    // an active session completes/fails and a slot opens up.
+    void tryDispatchPending();
+
+    // Read MAX_CONCURRENT_SESSIONS env (with fallback) and return effective limit.
+    size_t resolveMaxConcurrentSessions() const;
 };
 
 

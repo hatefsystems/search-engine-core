@@ -1,4 +1,4 @@
-#include "CrawlerManager.h"
+#include "search_engine/crawler/CrawlerManager.h"
 #include "../../include/Logger.h"
 #include "../../include/crawler/CrawlLogger.h"
 #include "PageFetcher.h"
@@ -43,58 +43,86 @@ CrawlerManager::~CrawlerManager() {
 }
 
 std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback, CrawlPriority priority) {
-    // Check if we've reached the maximum concurrent sessions limit
+    // Check current concurrency vs effective limit.
     size_t currentSessions = getActiveSessionCount();
-    
-    // Read MAX_CONCURRENT_SESSIONS from environment variable (default: 5)
-    const char* maxSessionsEnv = std::getenv("MAX_CONCURRENT_SESSIONS");
-    size_t MAX_CONCURRENT_SESSIONS = 5; // Default value
-    if (maxSessionsEnv) {
-        try {
-            MAX_CONCURRENT_SESSIONS = std::stoull(maxSessionsEnv);
-        } catch (const std::exception& e) {
-            LOG_WARNING("Invalid MAX_CONCURRENT_SESSIONS value, using default: 5");
-            MAX_CONCURRENT_SESSIONS = 5;
-        }
-    }
-    
-    if (currentSessions >= MAX_CONCURRENT_SESSIONS) {
-        LOG_WARNING("Maximum concurrent sessions limit reached (" + std::to_string(MAX_CONCURRENT_SESSIONS) + "), rejecting new crawl request for URL: " + url);
-        throw std::runtime_error("Maximum concurrent sessions limit reached. Please try again later.");
-    }
-    
+    size_t maxConcurrent = resolveMaxConcurrentSessions();
+
     std::string sessionId = generateSessionId();
-    
+
+    // If we're at the limit, queue this session instead of rejecting it.
+    if (currentSessions >= maxConcurrent) {
+        LOG_INFO("Concurrency limit reached (" + std::to_string(currentSessions) + "/" + std::to_string(maxConcurrent) +
+                 "), queuing session: " + sessionId + " for URL: " + url +
+                 " (priority=" + std::to_string(static_cast<int>(priority)) + ")");
+        CrawlLogger::broadcastSessionLog(sessionId, "Queued crawl session for URL: " + url, "info");
+
+        PendingSessionEntry entry;
+        entry.sessionId = sessionId;
+        entry.url = url;
+        entry.force = force;
+        entry.priority = priority;
+        entry.queuedAt = std::chrono::system_clock::now();
+        entry.readyAt = entry.queuedAt;
+        entry.retryCount = 0;
+        {
+            std::lock_guard<std::mutex> lock(pendingExtrasMutex_);
+            pendingConfigs_[sessionId] = config;
+            if (completionCallback) {
+                pendingCallbacks_[sessionId] = std::move(completionCallback);
+            }
+        }
+        pendingQueue_.push(entry);
+        return sessionId;
+    }
+
     LOG_INFO("Starting new crawl session: " + sessionId + " for URL: " + url + " (priority=" + std::to_string(static_cast<int>(priority)) + ")");
-    LOG_DEBUG("CrawlerManager::startCrawl - Current active sessions: " + std::to_string(currentSessions) + "/" + std::to_string(MAX_CONCURRENT_SESSIONS));
+    LOG_DEBUG("CrawlerManager::startCrawl - Current active sessions: " + std::to_string(currentSessions) + "/" + std::to_string(maxConcurrent));
     CrawlLogger::broadcastSessionLog(sessionId, "Starting new crawl session for URL: " + url, "info");
-    
+
+    try {
+        startCrawlInternal(sessionId, url, config, force, priority, std::move(completionCallback), 0);
+        return sessionId;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to start crawl session: " + std::string(e.what()));
+        throw;
+    }
+}
+
+void CrawlerManager::startCrawlInternal(const std::string& sessionId,
+                                        const std::string& url,
+                                        const CrawlConfig& config,
+                                        bool force,
+                                        CrawlPriority priority,
+                                        CrawlCompletionCallback completionCallback,
+                                        int retryCount) {
     try {
         // Create new crawler instance with the provided configuration
-        LOG_DEBUG("CrawlerManager::startCrawl - Creating crawler for session: " + sessionId);
+        LOG_DEBUG("CrawlerManager::startCrawlInternal - Creating crawler for session: " + sessionId);
         auto crawler = createCrawler(config, sessionId);
-        
+
         // Create crawl session with completion callback
-        LOG_DEBUG("CrawlerManager::startCrawl - Creating crawl session for session: " + sessionId);
+        LOG_DEBUG("CrawlerManager::startCrawlInternal - Creating crawl session for session: " + sessionId);
         auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback), priority);
         
         // Add seed URL to the crawler
-        LOG_DEBUG("CrawlerManager::startCrawl - Adding seed URL for session: " + sessionId);
+        LOG_DEBUG("CrawlerManager::startCrawlInternal - Adding seed URL for session: " + sessionId);
         session->crawler->addSeedURL(url, force);
-        
-        // Start crawling in a separate thread
-        session->crawlThread = std::thread([sessionId, this]() {
+
+        // Start crawling in a separate thread.
+        // Capture retry context for session-level retry on failure.
+        session->crawlThread = std::thread([sessionId, this, url, config, force, priority, retryCount]() {
+            bool sessionFailed = false;
             std::unique_lock<std::mutex> lock(sessionsMutex_);
             auto it = sessions_.find(sessionId);
             if (it == sessions_.end()) {
                 LOG_ERROR("Session not found during crawl start: " + sessionId);
                 return;
             }
-            
+
             auto& session = it->second;
             auto crawler = session->crawler.get();
             lock.unlock();
-            
+
             try {
                 LOG_INFO("Starting crawler for session: " + sessionId);
                 CrawlLogger::broadcastLog("Starting crawler for session: " + sessionId, "info");
@@ -144,15 +172,17 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
             } catch (const std::exception& e) {
                 LOG_ERROR("Error in crawl thread for session " + sessionId + ": " + e.what());
                 CrawlLogger::broadcastLog("Error in crawl thread for session " + sessionId + ": " + e.what(), "error");
+                sessionFailed = true;
             }
-            
+
             // Mark session as completed and execute completion callback
+            CrawlCompletionCallback callbackCopy;
             lock.lock();
             auto sessionIt = sessions_.find(sessionId);
             if (sessionIt != sessions_.end()) {
                 auto& completedSession = sessionIt->second;
                 completedSession->isCompleted = true;
-                
+
                 // Execute completion callback if provided
                 if (completedSession->completionCallback) {
                     LOG_INFO("Executing completion callback for session: " + sessionId);
@@ -163,26 +193,131 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
                     } catch (const std::exception& e) {
                         LOG_ERROR("Error executing completion callback for session " + sessionId + ": " + e.what());
                     }
+                    // Stash callback for potential re-use on retry.
+                    callbackCopy = completedSession->completionCallback;
                 }
             }
             lock.unlock();
+
+            // Step 4: session-level retry on failure with exponential backoff.
+            if (sessionFailed && config.maxSessionRetries > 0 && retryCount < config.maxSessionRetries) {
+                // Exponential backoff: base * 2^retryCount, capped at max delay.
+                auto delayMs = config.sessionRetryBaseDelay.count();
+                for (int i = 0; i < retryCount; ++i) {
+                    delayMs *= 2;
+                    if (delayMs > config.sessionRetryMaxDelay.count()) {
+                        delayMs = config.sessionRetryMaxDelay.count();
+                        break;
+                    }
+                }
+                auto readyAt = std::chrono::system_clock::now() + std::chrono::milliseconds(delayMs);
+                LOG_WARNING("Session " + sessionId + " failed; scheduling retry " +
+                            std::to_string(retryCount + 1) + "/" +
+                            std::to_string(config.maxSessionRetries) +
+                            " after " + std::to_string(delayMs) + "ms");
+
+                PendingSessionEntry retryEntry;
+                retryEntry.sessionId = sessionId;  // keep same session id across retries
+                retryEntry.url = url;
+                retryEntry.force = force;
+                retryEntry.priority = CrawlPriority::RETRY;  // retries jump the queue
+                retryEntry.queuedAt = std::chrono::system_clock::now();
+                retryEntry.readyAt = readyAt;
+                retryEntry.retryCount = retryCount + 1;
+                {
+                    std::lock_guard<std::mutex> elock(pendingExtrasMutex_);
+                    pendingConfigs_[sessionId] = config;
+                    if (callbackCopy) pendingCallbacks_[sessionId] = std::move(callbackCopy);
+                }
+                pendingQueue_.push(retryEntry);
+            }
+
+            // A slot just opened — try to start the next pending session.
+            tryDispatchPending();
         });
-        
+
         // Store session
         {
             std::lock_guard<std::mutex> lock(sessionsMutex_);
-            LOG_DEBUG("CrawlerManager::startCrawl - Storing session in map: " + sessionId);
+            LOG_DEBUG("CrawlerManager::startCrawlInternal - Storing session in map: " + sessionId);
             sessions_[sessionId] = std::move(session);
-            LOG_DEBUG("CrawlerManager::startCrawl - Session stored, total active sessions: " + std::to_string(sessions_.size()));
+            LOG_DEBUG("CrawlerManager::startCrawlInternal - Session stored, total active sessions: " + std::to_string(sessions_.size()));
         }
-        
+
         LOG_INFO("Crawl session started successfully: " + sessionId);
-        return sessionId;
-        
     } catch (const std::exception& e) {
-        LOG_ERROR("Failed to start crawl session: " + std::string(e.what()));
+        LOG_ERROR("Failed to start crawl session " + sessionId + ": " + std::string(e.what()));
         throw;
     }
+}
+
+void CrawlerManager::tryDispatchPending() {
+    // Pop a ready (priority-respecting, time-eligible) pending session and
+    // start it if a slot is free. Loops in case there are multiple ready
+    // sessions and multiple free slots (e.g. on init/cleanup).
+    while (true) {
+        size_t active = getActiveSessionCount();
+        size_t maxConcurrent = resolveMaxConcurrentSessions();
+        if (active >= maxConcurrent) return;
+
+        auto popped = pendingQueue_.tryPopReady();
+        if (!popped) return;  // nothing ready
+
+        CrawlConfig cfg;
+        CrawlCompletionCallback cb;
+        {
+            std::lock_guard<std::mutex> lock(pendingExtrasMutex_);
+            auto cit = pendingConfigs_.find(popped->sessionId);
+            if (cit != pendingConfigs_.end()) {
+                cfg = cit->second;
+                pendingConfigs_.erase(cit);
+            }
+            auto kit = pendingCallbacks_.find(popped->sessionId);
+            if (kit != pendingCallbacks_.end()) {
+                cb = std::move(kit->second);
+                pendingCallbacks_.erase(kit);
+            }
+        }
+
+        LOG_INFO("Dispatching pending session: " + popped->sessionId +
+                 " (priority=" + std::to_string(static_cast<int>(popped->priority)) +
+                 ", retry=" + std::to_string(popped->retryCount) + ")");
+        CrawlLogger::broadcastSessionLog(popped->sessionId, "Dispatching queued crawl session", "info");
+
+        try {
+            startCrawlInternal(popped->sessionId, popped->url, cfg, popped->force,
+                               popped->priority, std::move(cb), popped->retryCount);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to dispatch pending session " + popped->sessionId + ": " + e.what());
+            // Drop on the floor; do not loop forever on a broken entry.
+        }
+    }
+}
+
+size_t CrawlerManager::resolveMaxConcurrentSessions() const {
+    const char* maxSessionsEnv = std::getenv("MAX_CONCURRENT_SESSIONS");
+    size_t maxConcurrent = MAX_CONCURRENT_SESSIONS;
+    if (maxSessionsEnv) {
+        try {
+            maxConcurrent = std::stoull(maxSessionsEnv);
+        } catch (...) {
+            LOG_WARNING("Invalid MAX_CONCURRENT_SESSIONS value, using default: " +
+                        std::to_string(MAX_CONCURRENT_SESSIONS));
+        }
+    }
+    return maxConcurrent;
+}
+
+size_t CrawlerManager::getPendingSessionCount() const {
+    return pendingQueue_.size();
+}
+
+std::vector<PendingSessionEntry> CrawlerManager::getPendingSessions() const {
+    return pendingQueue_.snapshot();
+}
+
+size_t CrawlerManager::getMaxConcurrentSessions() const {
+    return resolveMaxConcurrentSessions();
 }
 
 std::vector<CrawlResult> CrawlerManager::getCrawlResults(const std::string& sessionId) {
@@ -198,8 +333,13 @@ std::vector<CrawlResult> CrawlerManager::getCrawlResults(const std::string& sess
 }
 
 std::string CrawlerManager::getCrawlStatus(const std::string& sessionId) {
+    // If session is queued (not yet running), report "queued".
+    if (pendingQueue_.contains(sessionId)) {
+        return "queued";
+    }
+
     std::lock_guard<std::mutex> lock(sessionsMutex_);
-    
+
     auto it = sessions_.find(sessionId);
     if (it == sessions_.end()) {
         return "not_found";
@@ -226,10 +366,19 @@ std::string CrawlerManager::getCrawlStatus(const std::string& sessionId) {
 }
 
 bool CrawlerManager::stopCrawl(const std::string& sessionId) {
+    // If session is still queued (not yet running), just drop it from the queue.
+    if (pendingQueue_.remove(sessionId)) {
+        std::lock_guard<std::mutex> elock(pendingExtrasMutex_);
+        pendingConfigs_.erase(sessionId);
+        pendingCallbacks_.erase(sessionId);
+        LOG_INFO("Cancelled pending crawl session: " + sessionId);
+        return true;
+    }
+
     std::unique_ptr<CrawlSession> sessionCopy;
     {
         std::lock_guard<std::mutex> lock(sessionsMutex_);
-        
+
         auto it = sessions_.find(sessionId);
         if (it == sessions_.end()) {
             return false;
@@ -382,12 +531,15 @@ void CrawlerManager::cleanupWorker() {
     while (!shouldStop_) {
         try {
             cleanupCompletedSessions();
-            
+            // Also drive the pending queue — picks up retry entries whose
+            // backoff has just elapsed.
+            tryDispatchPending();
+
             // Sleep for 30 seconds
             for (int i = 0; i < 300 && !shouldStop_; ++i) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-            
+
         } catch (const std::exception& e) {
             LOG_ERROR("Error in cleanup worker: " + std::string(e.what()));
         }

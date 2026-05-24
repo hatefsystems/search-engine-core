@@ -1,7 +1,7 @@
 #include "SearchController.h"
 #include "../../include/Logger.h"
 #include "../../include/search_engine/crawler/Crawler.h"
-#include "../../include/search_engine/crawler/CrawlerManager.h"
+#include "search_engine/crawler/CrawlerManager.h"
 #include "../../include/search_engine/crawler/PageFetcher.h"
 #include "../../include/search_engine/crawler/models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
@@ -243,6 +243,21 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 int requestTimeoutMs = jsonBody.value("requestTimeout", defaultTimeoutMs); // allow overriding request timeout
                 bool stopPreviousSessions = jsonBody.value("stopPreviousSessions", false);  // Default to false for concurrent crawling
                 std::string browserlessUrl = jsonBody.value("browserlessUrl", "http://browserless:3000");
+
+                // Parse session priority (#14). Accept "low" | "normal" | "high".
+                // Default: normal. Invalid values fall back to normal with a warning.
+                CrawlPriority priority = CrawlPriority::NORMAL;
+                std::string priorityStr = jsonBody.value("priority", std::string("normal"));
+                if (priorityStr == "low") priority = CrawlPriority::LOW;
+                else if (priorityStr == "normal") priority = CrawlPriority::NORMAL;
+                else if (priorityStr == "high") priority = CrawlPriority::HIGH;
+                else {
+                    LOG_WARNING("Unknown priority '" + priorityStr + "', defaulting to normal");
+                }
+
+                // Optional session-level retry policy (#14, step 4).
+                int maxSessionRetries = jsonBody.value("maxSessionRetries", 0);
+                int sessionRetryBaseDelayMs = jsonBody.value("sessionRetryBaseDelayMs", 30000);
                 
                 // Validate parameters
                 if (maxPages < 1 || maxPages > 10000) {
@@ -305,6 +320,11 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     config.spaRenderingEnabled = spaRenderingEnabled;
                     config.includeFullContent = includeFullContent;
                     config.browserlessUrl = browserlessUrl;
+                    // Session-level retry policy (#14).
+                    if (maxSessionRetries > 0) {
+                        config.maxSessionRetries = maxSessionRetries;
+                        config.sessionRetryBaseDelay = std::chrono::milliseconds(sessionRetryBaseDelayMs);
+                    }
                     
                     // Create completion callback for email notification if email is provided
                     CrawlCompletionCallback emailCallback = nullptr;
@@ -317,8 +337,8 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                         };
                     }
                     
-                    // Start new crawl session with completion callback
-                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback);
+                    // Start new crawl session with completion callback (#14: priority-aware)
+                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback, priority);
                     
                     LOG_INFO("Started new crawl session: " + sessionId + " for URL: " + url + 
                              " (maxPages: " + std::to_string(maxPages) + 
@@ -695,6 +715,53 @@ void SearchController::getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRe
     } catch (const std::exception& e) {
         LOG_ERROR("Error in getCrawlStatus: " + std::string(e.what()));
         serverError(res, "Failed to get crawl status");
+    }
+}
+
+// GET /api/crawl/queue
+// Returns the snapshot of pending (queued but not yet running) crawl sessions
+// in priority order, plus current concurrency stats. Part of issue #14.
+void SearchController::getCrawlQueue(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::getCrawlQueue called");
+    try {
+        if (!g_crawlerManager) {
+            serverError(res, "CrawlerManager not initialized");
+            return;
+        }
+
+        auto pending = g_crawlerManager->getPendingSessions();
+        nlohmann::json pendingArr = nlohmann::json::array();
+        auto nowTime = std::chrono::system_clock::now();
+        for (const auto& entry : pending) {
+            nlohmann::json e;
+            e["sessionId"] = entry.sessionId;
+            e["url"] = entry.url;
+            const char* p = "normal";
+            switch (entry.priority) {
+                case CrawlPriority::LOW: p = "low"; break;
+                case CrawlPriority::NORMAL: p = "normal"; break;
+                case CrawlPriority::HIGH: p = "high"; break;
+                case CrawlPriority::RETRY: p = "retry"; break;
+            }
+            e["priority"] = p;
+            e["retryCount"] = entry.retryCount;
+            e["queuedAt"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+                entry.queuedAt.time_since_epoch()).count();
+            e["readyAt"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+                entry.readyAt.time_since_epoch()).count();
+            e["ready"] = (entry.readyAt <= nowTime);
+            pendingArr.push_back(e);
+        }
+
+        nlohmann::json response;
+        response["active"] = static_cast<int>(g_crawlerManager->getActiveSessionCount());
+        response["maxConcurrent"] = static_cast<int>(g_crawlerManager->getMaxConcurrentSessions());
+        response["pendingCount"] = static_cast<int>(pending.size());
+        response["pending"] = pendingArr;
+        json(res, response);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getCrawlQueue: " + std::string(e.what()));
+        serverError(res, "Failed to get crawl queue");
     }
 }
 
