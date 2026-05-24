@@ -42,7 +42,7 @@ CrawlerManager::~CrawlerManager() {
     LOG_INFO("CrawlerManager shutdown complete");
 }
 
-std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback) {
+std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback, CrawlPriority priority) {
     // Check if we've reached the maximum concurrent sessions limit
     size_t currentSessions = getActiveSessionCount();
     
@@ -65,7 +65,7 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
     
     std::string sessionId = generateSessionId();
     
-    LOG_INFO("Starting new crawl session: " + sessionId + " for URL: " + url);
+    LOG_INFO("Starting new crawl session: " + sessionId + " for URL: " + url + " (priority=" + std::to_string(static_cast<int>(priority)) + ")");
     LOG_DEBUG("CrawlerManager::startCrawl - Current active sessions: " + std::to_string(currentSessions) + "/" + std::to_string(MAX_CONCURRENT_SESSIONS));
     CrawlLogger::broadcastSessionLog(sessionId, "Starting new crawl session for URL: " + url, "info");
     
@@ -76,7 +76,7 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
         
         // Create crawl session with completion callback
         LOG_DEBUG("CrawlerManager::startCrawl - Creating crawl session for session: " + sessionId);
-        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback));
+        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback), priority);
         
         // Add seed URL to the crawler
         LOG_DEBUG("CrawlerManager::startCrawl - Adding seed URL for session: " + sessionId);
