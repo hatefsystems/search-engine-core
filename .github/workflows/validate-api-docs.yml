@@ -14,19 +14,16 @@ on:
       - 'config/.prettierrc.json'
       - 'scripts/validate-schema.js'
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '18'
         cache: 'npm'
@@ -45,4 +42,4 @@ jobs:
         echo "Checking required API documentation files..."
         test -f docs/api/search_endpoint.md || (echo "❌ Missing docs/api/search_endpoint.md" && exit 1)
         test -f docs/api/search_response.schema.json || (echo "❌ Missing docs/api/search_response.schema.json" && exit 1)
-        echo "✅ All required files exist" 
+        echo "✅ All required files exist"
