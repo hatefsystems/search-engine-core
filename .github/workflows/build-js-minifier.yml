@@ -37,17 +37,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
-    - name: Try to load image from cache
-      id: load-cache
-      run: |
-        if docker pull "${{ inputs.docker_image }}:${{ inputs.docker_tag }}"; then
-          echo "loaded=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "loaded=false" >> "$GITHUB_OUTPUT"
-        fi
-
     - name: Build JS Minifier Service Image
-      if: steps.load-cache.outputs.loaded != 'true'
       uses: docker/build-push-action@v7
       with:
         context: ./js-minifier-service
