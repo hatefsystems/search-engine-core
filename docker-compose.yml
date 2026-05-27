@@ -132,18 +132,17 @@ services:
     # Development: Less aggressive save policy for stability
     command: [
       "redis-stack-server",
-      "--appendonly", "yes",
-      "--appendfsync", "everysec",
+      "--appendonly", "no",
       "--maxmemory", "3gb",
-      "--maxmemory-policy", "allkeys-lfu",
+      "--maxmemory-policy", "noeviction",
       "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed
       "--save", "1800", "100",  # Save every 30 min if 100+ keys changed
       "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed
       "--stop-writes-on-bgsave-error", "no"  # Don't stop writes if background save fails
     ]
     environment:
-      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (corrected from 3221225476)
-      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

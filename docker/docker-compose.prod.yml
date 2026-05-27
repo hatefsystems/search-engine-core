@@ -86,10 +86,9 @@ services:
     # AOF-only persistence is more stable for datasets with frequent updates
     command: [
       "redis-stack-server",
-      "--appendonly", "yes",
-      "--appendfsync", "everysec",
+      "--appendonly", "no",
       "--maxmemory", "3gb",
-      "--maxmemory-policy", "allkeys-lfu",
+      "--maxmemory-policy", "noeviction",
       "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed (reduced from 15 min)
       "--save", "1800", "100",  # Save every 30 min if 100+ keys changed (reduced from 5 min)
       "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed (reduced from 1 min)
@@ -98,8 +97,8 @@ services:
       "--rdbchecksum", "yes"  # Checksum RDB files for integrity
     ]
     environment:
-      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (updated from 4GB)
-      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

@@ -45,7 +45,7 @@ class RedisSync:
         self.incremental_window_hours = int(os.getenv('INCREMENTAL_WINDOW_HOURS', '24'))
         
         # Initialize connections
-        logger.info(f"Connecting to MongoDB: {self.mongo_uri}")
+        logger.info("Connecting to MongoDB")
         self.mongo_client = pymongo.MongoClient(self.mongo_uri)
         self.db = self.mongo_client[self.mongo_db]
         self.collection = self.db['indexed_pages']
@@ -159,45 +159,37 @@ class RedisSync:
         url_hash = str(hash(url))
         return f"{self.key_prefix}{url_hash}"
     
+    def _build_doc(self, page: Dict):
+        """Build Redis document fields from a MongoDB page. Pure function, no Redis calls."""
+        doc_key = self._generate_doc_key(page['url'])
+
+        doc = {
+            'url': self._sanitize_text(page.get('url', ''))[:500],
+            'title': self._sanitize_text(page.get('title', ''))[:200],
+            'domain': self._sanitize_text(page.get('domain', ''))[:100],
+            'score': page.get('contentQuality', 0.0) if page.get('contentQuality') else 0.0,
+            'indexed_at': int(page.get('indexedAt', datetime.now()).timestamp()),
+            'description': self._sanitize_text(page.get('description', ''))[:300] if page.get('description') else '',
+        }
+
+        if page.get('keywords'):
+            sanitized_keywords = [self._sanitize_text(k) for k in page['keywords'][:5]]
+            doc['keywords'] = '|'.join(sanitized_keywords)[:200]
+
+        if page.get('language'):
+            doc['language'] = self._sanitize_text(page['language'])[:10]
+
+        if page.get('category'):
+            doc['category'] = self._sanitize_text(page['category'])[:50]
+
+        return doc_key, doc
+
     def _sync_document(self, page: Dict) -> bool:
-        """Sync only essential search fields to Redis"""
+        """Sync a single document to Redis."""
         try:
-            doc_key = self._generate_doc_key(page['url'])
-
-            # Store ONLY critical search fields (minimal memory footprint)
-            doc = {
-                'url': self._sanitize_text(page.get('url', ''))[:500],  # Truncate long URLs
-                'title': self._sanitize_text(page.get('title', ''))[:200],  # Max 200 chars
-                'domain': self._sanitize_text(page.get('domain', ''))[:100],
-                'score': page.get('contentQuality', 0.0) if page.get('contentQuality') else 0.0,
-                'indexed_at': int(page.get('indexedAt', datetime.now()).timestamp())
-            }
-
-            # Store truncated description for search snippets (300 chars max)
-            if page.get('description'):
-                doc['description'] = self._sanitize_text(page['description'])[:300]
-            else:
-                doc['description'] = ''
-
-            # Store only top 5 keywords
-            if page.get('keywords'):
-                sanitized_keywords = [self._sanitize_text(k) for k in page['keywords'][:5]]
-                doc['keywords'] = '|'.join(sanitized_keywords)[:200]  # Max 200 chars total
-
-            # Optional metadata (small fields)
-            if page.get('language'):
-                doc['language'] = self._sanitize_text(page['language'])[:10]
-
-            if page.get('category'):
-                doc['category'] = self._sanitize_text(page['category'])[:50]
-
-            # DO NOT STORE: content, textContent, full description
-            # Full content should be fetched from MongoDB when user clicks result
-
+            doc_key, doc = self._build_doc(page)
             self.redis_client.hset(doc_key, mapping=doc)
-
             return True
-
         except Exception as e:
             logger.error(f"Failed to sync document {page.get('url')}: {e}")
             return False
@@ -222,22 +214,30 @@ class RedisSync:
             
             logger.info(f"📊 Total documents to sync: {total_docs:,}")
             
-            # Process in batches
-            batch_count = 0
             cursor = self.collection.find(query).sort('indexedAt', -1)
-            
+            pipe = self.redis_client.pipeline(transaction=False)
+            pipe_count = 0
+
             for page in cursor:
-                if self._sync_document(page):
+                try:
+                    doc_key, doc = self._build_doc(page)
+                    pipe.hset(doc_key, mapping=doc)
+                    pipe_count += 1
                     stats['success'] += 1
-                else:
+                except Exception as e:
+                    logger.error(f"Failed to build doc for {page.get('url')}: {e}")
                     stats['failed'] += 1
-                
-                # Log progress every batch
-                if (stats['success'] + stats['failed']) % self.batch_size == 0:
-                    batch_count += 1
+
+                if pipe_count >= self.batch_size:
+                    pipe.execute()
+                    pipe = self.redis_client.pipeline(transaction=False)
+                    pipe_count = 0
                     progress = ((stats['success'] + stats['failed']) / total_docs) * 100
                     logger.info(f"📈 Progress: {stats['success'] + stats['failed']:,}/{total_docs:,} ({progress:.1f}%)")
-            
+
+            if pipe_count > 0:
+                pipe.execute()
+
             duration = time.time() - start_time
             stats['duration_seconds'] = round(duration, 2)
             
@@ -287,20 +287,30 @@ class RedisSync:
                 stats['duration_seconds'] = 0
                 return stats
             
-            # Process documents
             cursor = self.collection.find(query).sort('indexedAt', -1)
-            
+            pipe = self.redis_client.pipeline(transaction=False)
+            pipe_count = 0
+
             for page in cursor:
-                if self._sync_document(page):
+                try:
+                    doc_key, doc = self._build_doc(page)
+                    pipe.hset(doc_key, mapping=doc)
+                    pipe_count += 1
                     stats['success'] += 1
-                else:
+                except Exception as e:
+                    logger.error(f"Failed to build doc for {page.get('url')}: {e}")
                     stats['failed'] += 1
-                
-                # Log progress
-                if (stats['success'] + stats['failed']) % self.batch_size == 0:
+
+                if pipe_count >= self.batch_size:
+                    pipe.execute()
+                    pipe = self.redis_client.pipeline(transaction=False)
+                    pipe_count = 0
                     progress = ((stats['success'] + stats['failed']) / total_docs) * 100
                     logger.info(f"📈 Progress: {stats['success'] + stats['failed']:,}/{total_docs:,} ({progress:.1f}%)")
-            
+
+            if pipe_count > 0:
+                pipe.execute()
+
             duration = time.time() - start_time
             stats['duration_seconds'] = round(duration, 2)
             
@@ -375,12 +385,20 @@ class RedisSync:
         try:
             status = self.get_status()
             
-            # If Redis is empty or significantly out of sync, do full sync
-            if status['redis_count'] == 0 or status['difference'] > (status['mongodb_count'] * 0.1):
-                logger.info("🔄 Redis is empty or significantly out of sync, performing initial full sync...")
+            redis_empty = status['redis_count'] == 0
+            redis_too_low = status['redis_count'] < (status['mongodb_count'] * 0.9)
+
+            if redis_empty:
+                logger.info("🔄 Redis is empty, performing initial full sync...")
+                self.sync_full()
+            elif redis_too_low:
+                logger.info(f"🔄 Redis has fewer documents than MongoDB ({status['redis_count']:,} < {status['mongodb_count']:,}), performing full sync...")
                 self.sync_full()
             else:
-                logger.info("✅ Redis is in sync, skipping initial sync")
+                if status['redis_count'] > status['mongodb_count']:
+                    logger.warning(f"⚠️  Redis has more documents than MongoDB ({status['redis_count']:,} > {status['mongodb_count']:,}) — orphan keys present, skipping full sync")
+                else:
+                    logger.info("✅ Redis is in sync, skipping initial sync")
         except Exception as e:
             logger.error(f"Initial sync failed: {e}")
         
