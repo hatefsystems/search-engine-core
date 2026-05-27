@@ -1630,7 +1630,8 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 	if (pageIt != params.end()) {
 		try {
 			page = std::stoi(pageIt->second);
-			if (page < 1 || page > 1000) page = 1;
+			if (page < 1) page = 1;
+			if (page > 50) page = 50;
 		} catch (...) { page = 1; }
 	}
 	int skip = (page - 1) * limit;
@@ -1793,20 +1794,8 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         
         std::string baseUrl = protocol + host;
         
-        // URL encode the search query for use in URLs
-        std::string encodedSearchQuery = searchQuery;
-        // Simple URL encoding for the search query
-        std::string encoded;
-        for (char c : searchQuery) {
-            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-                encoded += c;
-            } else {
-                std::ostringstream oss;
-                oss << '%' << std::hex << std::uppercase << (unsigned char)c;
-                encoded += oss.str();
-            }
-        }
-        encodedSearchQuery = encoded;
+        // Use the raw percent-encoded query string for URL construction (already correctly encoded)
+        std::string encodedSearchQuery = qIt->second;
 
         // Calculate elapsed time
         auto endTime = std::chrono::high_resolution_clock::now();
@@ -1826,6 +1815,24 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         }
         std::string elapsedTimeStr = timeStream.str();
 
+        // Calculate pagination metadata
+        int totalPages = std::min(50, (int)((totalResults + limit - 1) / limit));
+        bool hasMore = page < totalPages;
+        bool hasPrev = page > 1;
+
+        // Build page_numbers array: positive = page link, 0 = ellipsis sentinel
+        nlohmann::json pageNumbers = nlohmann::json::array();
+        if (totalPages <= 7) {
+            for (int i = 1; i <= totalPages; i++) pageNumbers.push_back(i);
+        } else {
+            pageNumbers.push_back(1);
+            if (page > 4) pageNumbers.push_back(0);
+            for (int i = std::max(2, page - 2); i <= std::min(totalPages - 1, page + 2); i++)
+                pageNumbers.push_back(i);
+            if (page < totalPages - 3) pageNumbers.push_back(0);
+            pageNumbers.push_back(totalPages);
+        }
+
         // Prepare template data
         nlohmann::json templateData = {
             {"t", commonJson},
@@ -1835,7 +1842,14 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
             {"current_lang", langCode},
             {"total_results", std::to_string(totalResults)},
             {"elapsed_time", elapsedTimeStr},
-            {"results", searchResults}
+            {"results", searchResults},
+            {"current_page", page},
+            {"total_pages", totalPages},
+            {"has_more", hasMore},
+            {"has_prev", hasPrev},
+            {"next_page", page + 1},
+            {"prev_page", page - 1},
+            {"page_numbers", pageNumbers}
         };
 
         LOG_DEBUG("Rendering search results template with " + std::to_string(searchResults.size()) + " results");
@@ -1859,6 +1873,173 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
     } catch (const std::exception& e) {
         LOG_ERROR("Error serving search results page: " + std::string(e.what()));
         serverError(res, "Failed to load search results page");
+    }
+}
+
+void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::searchResultsPartial - Serving partial search results");
+
+    try {
+        auto params = parseQuery(req);
+
+        auto qIt = params.find("q");
+        if (qIt == params.end() || qIt->second.empty()) {
+            res->writeStatus("400 Bad Request");
+            res->end();
+            return;
+        }
+
+        std::string searchQuery = urlDecode(qIt->second);
+
+        // Language
+        std::string langCode = getDefaultLocale();
+        auto langIt = params.find("lang");
+        if (langIt != params.end() && !langIt->second.empty()) {
+            std::string metaFile = "locales/" + langIt->second + "/search.json";
+            if (std::filesystem::exists(metaFile)) {
+                langCode = langIt->second;
+            }
+        }
+
+        // Pagination — max 50 pages
+        int page = 2;
+        int limit = 10;
+        auto pageIt = params.find("page");
+        if (pageIt != params.end()) {
+            try {
+                page = std::stoi(pageIt->second);
+                if (page < 2) page = 2;
+                if (page > 50) page = 50;
+            } catch (...) { page = 2; }
+        }
+        int skip = (page - 1) * limit;
+
+        // Load locales for template
+        std::string commonPath = "locales/" + langCode + "/common.json";
+        std::string searchPath = "locales/" + langCode + "/search.json";
+        std::string commonContent = loadFile(commonPath);
+        std::string searchContent = loadFile(searchPath);
+        if (commonContent.empty() || searchContent.empty()) {
+            langCode = getDefaultLocale();
+            commonPath = "locales/" + langCode + "/common.json";
+            searchPath = "locales/" + langCode + "/search.json";
+            commonContent = loadFile(commonPath);
+            searchContent = loadFile(searchPath);
+        }
+        nlohmann::json commonJson = nlohmann::json::parse(commonContent);
+        nlohmann::json searchJson = nlohmann::json::parse(searchContent);
+        jsonDeepMergeMissing(commonJson, searchJson);
+
+        // Redis search
+        std::vector<nlohmann::json> searchResults;
+        int64_t totalResults = 0;
+
+        try {
+            const char* redisEnabled = std::getenv("REDIS_SEARCH_ENABLED");
+            bool useRedis = redisEnabled && (std::string(redisEnabled) == "true" || std::string(redisEnabled) == "1");
+            if (!useRedis) {
+                res->writeStatus("503 Service Unavailable");
+                res->end();
+                return;
+            }
+
+            auto redisStorage = getRedisStorage();
+            if (!redisStorage) {
+                res->writeStatus("503 Service Unavailable");
+                res->end();
+                return;
+            }
+
+            search_engine::storage::SearchQuery searchQuery_obj;
+            searchQuery_obj.query = searchQuery;
+            searchQuery_obj.limit = limit;
+            searchQuery_obj.offset = skip;
+            searchQuery_obj.highlight = false;
+
+            auto redisResult = redisStorage->search(searchQuery_obj);
+            if (!redisResult.success) {
+                res->writeStatus("503 Service Unavailable");
+                res->end();
+                return;
+            }
+
+            totalResults = redisResult.value.totalResults;
+
+            auto sanitizeUtf8 = [](const std::string& input) -> std::string {
+                std::string output;
+                output.reserve(input.size());
+                size_t i = 0;
+                while (i < input.size()) {
+                    unsigned char c = input[i];
+                    if (c < 0x80) { output += c; i++; }
+                    else if ((c & 0xE0) == 0xC0 && i + 1 < input.size() && (input[i+1] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; i += 2; }
+                    else if ((c & 0xF0) == 0xE0 && i + 2 < input.size() && (input[i+1] & 0xC0) == 0x80 && (input[i+2] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; output += input[i+2]; i += 3; }
+                    else if ((c & 0xF8) == 0xF0 && i + 3 < input.size() && (input[i+1] & 0xC0) == 0x80 && (input[i+2] & 0xC0) == 0x80 && (input[i+3] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; output += input[i+2]; output += input[i+3]; i += 4; }
+                    else { i++; }
+                }
+                return output;
+            };
+
+            for (const auto& r : redisResult.value.results) {
+                std::string displayUrl = sanitizeUtf8(r.url);
+                if (displayUrl.rfind("https://", 0) == 0) displayUrl = displayUrl.substr(8);
+                else if (displayUrl.rfind("http://", 0) == 0) displayUrl = displayUrl.substr(7);
+                if (displayUrl.rfind("www.", 0) == 0) displayUrl = displayUrl.substr(4);
+
+                nlohmann::json item;
+                item["url"] = sanitizeUtf8(r.url);
+                item["title"] = sanitizeUtf8(r.title);
+                item["displayurl"] = displayUrl;
+                item["desc"] = r.snippet.empty() ? std::string("") : truncateDescription(sanitizeUtf8(r.snippet), 300);
+                searchResults.push_back(item);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Redis search error in searchResultsPartial: " + std::string(e.what()));
+            res->writeStatus("503 Service Unavailable");
+            res->end();
+            return;
+        }
+
+        // Base URL
+        std::string host = std::string(req->getHeader("host"));
+        std::string protocol = "http://";
+        std::string forwardedProto = std::string(req->getHeader("x-forwarded-proto"));
+        if (!forwardedProto.empty()) protocol = forwardedProto + "://";
+        std::string baseUrl = protocol + host;
+
+        // Use the raw percent-encoded query string for URL construction (already correctly encoded)
+        std::string encodedSearchQuery = qIt->second;
+
+        int totalPages = std::min(50, (int)((totalResults + limit - 1) / limit));
+        bool hasMore = page < totalPages;
+
+        nlohmann::json templateData = {
+            {"t", commonJson},
+            {"base_url", baseUrl},
+            {"search_query_encoded", encodedSearchQuery},
+            {"current_lang", langCode},
+            {"results", searchResults},
+            {"has_more", hasMore},
+            {"next_page", page + 1}
+        };
+
+        std::string renderedHtml = renderTemplate("search_partial.inja", templateData);
+        if (renderedHtml.empty()) {
+            res->writeStatus("500 Internal Server Error");
+            res->end();
+            return;
+        }
+
+        html(res, renderedHtml);
+        LOG_INFO("Served partial results for query: " + searchQuery + " page=" + std::to_string(page));
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in searchResultsPartial: " + std::string(e.what()));
+        res->writeStatus("500 Internal Server Error");
+        res->end();
     }
 }
 

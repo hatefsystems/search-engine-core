@@ -370,10 +370,18 @@ SearchResult RedisSearchStorage::parseSearchResult(const std::vector<std::string
             searchResult.url = value;
         } else if (field == "title") {
             searchResult.title = value;
+        } else if (field == "description") {
+            // Prefer description (meta description) as snippet
+            if (!value.empty()) {
+                searchResult.snippet = value.length() > 300 ?
+                    value.substr(0, 300) + "..." : value;
+            }
         } else if (field == "content") {
-            // Use first 200 characters as snippet
-            searchResult.snippet = value.length() > 200 ? 
-                value.substr(0, 200) + "..." : value;
+            // Use content as fallback if description not yet set
+            if (searchResult.snippet.empty() && !value.empty()) {
+                searchResult.snippet = value.length() > 200 ?
+                    value.substr(0, 200) + "..." : value;
+            }
         } else if (field == "domain") {
             searchResult.domain = value;
         } else if (field == "score") {
@@ -577,7 +585,17 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
         
         // Store number of unique results fetched BEFORE limiting
         int uniqueResultsFetched = response.results.size();
-        
+
+        // Apply offset for pagination
+        if (query.offset > 0) {
+            if (static_cast<size_t>(query.offset) >= response.results.size()) {
+                response.results.clear();
+            } else {
+                response.results.erase(response.results.begin(),
+                                       response.results.begin() + query.offset);
+            }
+        }
+
         // Limit to requested number
         if (response.results.size() > static_cast<size_t>(query.limit)) {
             response.results.resize(query.limit);

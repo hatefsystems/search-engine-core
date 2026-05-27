@@ -27,7 +27,11 @@
     "try_new_search": "Try New Search",
     "language_switch_text": "مشاهده این صفحه به ",
     "language_switch_link": "فارسی",
-    "language_switch_dot": "."
+    "language_switch_dot": ".",
+    "load_more": "More results",
+    "page_prev": "Previous page",
+    "page_next": "Next page",
+    "pagination_label": "Search results pagination"
   },
   "footer": {
     "about": "About",

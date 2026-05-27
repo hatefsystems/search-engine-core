@@ -27,7 +27,11 @@
     "try_new_search": "جستجوی جدید",
     "language_switch_text": "View this page in ",
     "language_switch_link": "English",
-    "language_switch_dot": "."
+    "language_switch_dot": ".",
+    "load_more": "نتایج بیشتر",
+    "page_prev": "صفحه قبل",
+    "page_next": "صفحه بعد",
+    "pagination_label": "صفحه‌بندی نتایج"
   },
   "footer": {
     "about": "درباره ما",

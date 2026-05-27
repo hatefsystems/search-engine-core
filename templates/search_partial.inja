@@ -1,0 +1,15 @@
+{% for result in results %}
+<article class="result-item">
+  <a href="{{ result.url }}" class="result-url" target="_blank" rel="noopener">{{ result.displayurl }}</a>
+  <a href="{{ result.url }}" class="result-title" target="_blank" rel="noopener">{{ result.title }}</a>
+  <p class="result-description">{{ result.desc }}</p>
+</article>
+{% endfor %}
+{% if has_more %}
+<div id="load-more-container" class="load-more-wrap">
+  <button class="load-more-btn"
+    data-href="{{ base_url }}/search/more?q={{ search_query_encoded }}&page={{ next_page }}{% if current_lang != "fa" %}&lang={{ current_lang }}{% endif %}">
+    {{ t.search.load_more }}
+  </button>
+</div>
+{% endif %}
