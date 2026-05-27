@@ -19,6 +19,9 @@ permissions:
   packages: write
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-redis-sync:
     name: 🔄 Build Redis Sync Service
@@ -48,7 +51,7 @@ jobs:
 
     - name: Build Redis Sync Service Image
       if: steps.load-cache.outputs.loaded != 'true'
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./redis-sync-service
         file: ./redis-sync-service/Dockerfile

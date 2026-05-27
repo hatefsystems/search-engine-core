@@ -19,6 +19,9 @@ permissions:
   packages: write
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-app:
     name: 🔍 Build Search Engine
@@ -39,7 +42,7 @@ jobs:
       
 
     - name: Build Final Application Image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./Dockerfile

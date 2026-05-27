@@ -19,6 +19,9 @@ permissions:
   packages: write
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-js-minifier:
     name: 🗜️ Build JS Minifier
@@ -48,7 +51,7 @@ jobs:
 
     - name: Build JS Minifier Service Image
       if: steps.load-cache.outputs.loaded != 'true'
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./js-minifier-service
         file: ./js-minifier-service/Dockerfile

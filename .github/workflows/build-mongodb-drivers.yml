@@ -15,6 +15,9 @@ permissions:
   packages: write
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-drivers:
     name: 🗄️ Build MongoDB Drivers
@@ -44,7 +47,7 @@ jobs:
 
     - name: Build MongoDB Drivers Image
       if: steps.load-cache.outputs.loaded != 'true'
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./docker/Dockerfile.mongodb

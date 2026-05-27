@@ -24,6 +24,9 @@ permissions:
   packages: write
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-crawler-scheduler:
     name: 📅 Build Crawler Scheduler
@@ -79,7 +82,7 @@ jobs:
 
     - name: Build Crawler Scheduler Service Image
       if: steps.check-rebuild.outputs.rebuild_needed == 'true'
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./crawler-scheduler
         file: ./crawler-scheduler/Dockerfile
