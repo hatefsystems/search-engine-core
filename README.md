@@ -1,6 +1,6 @@
 # search-engine-core
 
-[![CI/CD Pipeline](https://github.com/hatefsystems/search-engine-core/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/hatefsystems/search-engine-core/actions/workflows/main.yml)
+[![🚀 CI/CD Pipeline](https://github.com/hatefsystems/search-engine-core/actions/workflows/ci-cd-pipeline.yml/badge.svg)](https://github.com/hatefsystems/search-engine-core/actions/workflows/ci-cd-pipeline.yml)
 
 We are working toward a future where internet search is more open, reliable, and
 aligned with the values and needs of people everywhere. This community-oriented
