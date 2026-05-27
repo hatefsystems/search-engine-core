@@ -78,12 +78,24 @@ docs/
 ├── DOCUMENTATION_ORGANIZATION_SUMMARY.md  # Documentation organization summary
 ├── api/                                   # API endpoint documentation
 │   ├── README.md                          # API documentation index
+│   ├── profile_endpoint.md                # Profile CRUD API
+│   ├── link_blocks_endpoint.md            # Link blocks & analytics API
+│   ├── LINK_BLOCKS_QUICK_START.md         # Link blocks quick start guide
 │   ├── crawler_endpoint.md                # Crawler API documentation
 │   ├── search_endpoint.md                 # Search API documentation
 │   ├── sponsor_endpoint.md                # Sponsor API documentation
 │   ├── website_profile_endpoint.md        # Website profile API
 │   └── WEBSITE_PROFILE_API_SUMMARY.md     # Website profile implementation summary
+├── features/                              # Feature guides and overviews
+│   └── LINK_BLOCKS.md                     # Link blocks system overview
+├── implementation/                        # Implementation summaries
+│   ├── README.md                          # Implementation documentation index
+│   └── LINK_BLOCKS_IMPLEMENTATION.md      # Link blocks implementation summary
+├── testing/                               # Test results and reports
+│   ├── README.md                          # Testing documentation index
+│   └── TEST_RESULTS_LINK_BLOCKS.md        # Link blocks test results
 ├── architecture/                          # System architecture documentation
+│   ├── profile-database-schema.md         # MongoDB collections and schema
 │   ├── content-storage-layer.md           # Storage layer architecture
 │   ├── lazy-connection-handling.md        # Lazy connection initialization
 │   ├── PERFORMANCE_OPTIMIZATIONS.md       # Performance architecture
@@ -92,6 +104,11 @@ docs/
 │   ├── SCHEDULER_INTEGRATION_SUMMARY.md   # Crawler scheduler integration
 │   ├── SCORING_AND_RANKING.md             # Search scoring system
 │   └── SPA_RENDERING.md                   # SPA rendering architecture
+├── privacy/                               # Privacy and compliance
+│   ├── README.md                          # Privacy documentation index
+│   ├── PRIVACY_ARCHITECTURE.md            # Three-tier privacy system
+│   ├── LEGAL_VAULT_PROTOCOL.md            # Secure data handling
+│   └── IMPLEMENTATION_SUMMARY.md          # Privacy implementation
 ├── guides/                                # User and deployment guides
 │   ├── DOCKER_HEALTH_CHECK_BEST_PRACTICES.md # Docker health checks
 │   ├── JS_CACHING_BEST_PRACTICES.md       # Production caching best practices
@@ -108,10 +125,14 @@ docs/
 │   ├── JS_MINIFIER_CLIENT_CHANGELOG.md    # JsMinifierClient version history
 │   ├── MONGODB_CPP_GUIDE.md               # MongoDB C++ driver guide
 │   └── template-development.md            # Template development guide
-└── troubleshooting/                       # Problem-solving and fix guides
-    ├── README.md                          # Troubleshooting guide index
-    ├── FIX_MONGODB_WARNING.md             # MongoDB storage warning fix
-    └── MONGODB_WARNING_ANALYSIS.md        # MongoDB initialization analysis
+├── troubleshooting/                       # Problem-solving and fix guides
+│   ├── README.md                          # Troubleshooting guide index
+│   ├── FLOWER_TIMEZONE_CONFIGURATION.md   # Flower timezone setup
+│   ├── FIX_MONGODB_WARNING.md             # MongoDB storage warning fix
+│   └── MONGODB_WARNING_ANALYSIS.md        # MongoDB initialization analysis
+└── archive/                               # Historical documentation
+    ├── DOCS_ORGANIZATION_COMPLETE.md      # Previous docs reorganization
+    └── DOCUMENTATION_REORGANIZATION.md    # Documentation restructure summary
 ```
 
 ### 🎯 Quick Navigation
@@ -120,10 +141,14 @@ docs/
 
 - **New to the project?** Start with [../README.md](../README.md)
 - **API endpoints?** See [api/README.md](./api/README.md)
+- **Profile system?** See [api/profile_endpoint.md](./api/profile_endpoint.md) and [features/LINK_BLOCKS.md](./features/LINK_BLOCKS.md)
 - **Architecture overview?** See [architecture/](./architecture/)
+- **Implementation details?** Check [implementation/](./implementation/)
+- **Test results?** See [testing/](./testing/)
 - **Working on JS minification?** See [development/JS_MINIFIER_CLIENT_CHANGELOG.md](./development/JS_MINIFIER_CLIENT_CHANGELOG.md)
 - **Implementing caching?** See [guides/JS_CACHING_BEST_PRACTICES.md](./guides/JS_CACHING_BEST_PRACTICES.md)
 - **MongoDB C++ development?** See [development/MONGODB_CPP_GUIDE.md](./development/MONGODB_CPP_GUIDE.md)
+- **Privacy & compliance?** Check [privacy/](./privacy/)
 - **Troubleshooting issues?** Check [troubleshooting/](./troubleshooting/)
 - **Contributing documentation?** Check [DOCUMENTATION_CLEANUP.md](./DOCUMENTATION_CLEANUP.md)
 
@@ -148,6 +173,8 @@ docs/
 #### Microservices
 
 - **JS Minifier** - Node.js microservice for JavaScript minification
+- **Redis Sync** - Python microservice for syncing MongoDB indexed_pages to Redis
+- **Crawler Scheduler** - Celery-based task scheduler for progressive warm-up crawling
 - **Browserless** - Headless Chrome for dynamic content rendering
 - **MongoDB** - Document database for content storage
 - **Redis** - In-memory database for search indexing
@@ -174,6 +201,15 @@ docs/
 │     MongoDB     │    │      Redis       │
 │   (Content)     │    │   (Search Index) │
 └─────────────────┘    └──────────────────┘
+         │                       ▲
+         │                       │
+         └───────────────────────┘
+                    │
+                    ▼
+         ┌──────────────────────┐
+         │   Redis Sync        │
+         │   (Background Sync) │
+         └──────────────────────┘
 ```
 
 ### 🛠️ Development Workflow

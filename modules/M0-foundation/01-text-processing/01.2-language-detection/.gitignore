@@ -1,0 +1,96 @@
+# Python Runtime Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Models (large files - download separately)
+models/*.bin
+models/*.ftz
+models/*.model
+models/custom/*.bin
+models/custom/*.ftz
+
+# Keep model directory structure
+!models/.gitkeep
+!models/README.md
+!models/custom/.gitkeep
+
+# Training Data (large files)
+training_data/*.txt
+training_data/*.json
+training_data/corpus/
+training_data/prepared_*.txt
+
+# Keep training data directory structure
+!training_data/.gitkeep
+!training_data/README.md
+!training_data/sample_corpus.json
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Performance profiling
+*.prof
+*.lprof
+
+# Documentation builds
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# OS specific
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# Benchmarking results
+.benchmarks/
+benchmark_results/
+

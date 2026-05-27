@@ -5,19 +5,23 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
-      - LOG_LEVEL=${LOG_LEVEL:-warning}  # CRITICAL: Production logging (warning, error only)
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for email diagnostics
       - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL:-tcp://redis:6379}
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}
       - SEARCH_REDIS_POOL_SIZE=${SEARCH_REDIS_POOL_SIZE:-16}
       - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
       - MINIFY_JS=${MINIFY_JS:-true}
       - MINIFY_JS_LEVEL=${MINIFY_JS_LEVEL:-advanced}
+      - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true} 
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
       - JS_CACHE_ENABLED=${JS_CACHE_ENABLED:-true}
       - JS_CACHE_TYPE=${JS_CACHE_TYPE:-redis}
       - JS_CACHE_TTL=${JS_CACHE_TTL:-3600}
       - JS_CACHE_REDIS_DB=${JS_CACHE_REDIS_DB:-1}
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
       # SPA Rendering Configuration
       - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
@@ -78,10 +82,23 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    # CRITICAL FIX: Reduced save frequency to prevent fork contention with large datasets
+    # AOF-only persistence is more stable for datasets with frequent updates
+    command: [
+      "redis-stack-server",
+      "--appendonly", "no",
+      "--maxmemory", "3gb",
+      "--maxmemory-policy", "noeviction",
+      "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed (reduced from 15 min)
+      "--save", "1800", "100",  # Save every 30 min if 100+ keys changed (reduced from 5 min)
+      "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed (reduced from 1 min)
+      "--stop-writes-on-bgsave-error", "no",  # Don't stop writes if background save fails
+      "--rdbcompression", "yes",  # Compress RDB files
+      "--rdbchecksum", "yes"  # Checksum RDB files for integrity
+    ]
     environment:
-      - REDIS_MAXMEMORY=536870912  # 512MB in bytes
-      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -92,11 +109,16 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 4G
           cpus: '0.3'
         reservations:
-          memory: 128M
+          memory: 256M
           cpus: '0.1'
+    # System-level settings for Redis fork operations
+    sysctls:
+      - net.core.somaxconn=65535
+      # vm.overcommit_memory=1 removed for WSL2 compatibility
+    stop_grace_period: 60s  # Allow Redis time to finish background saves on shutdown
     logging:
       driver: json-file
       options:
@@ -230,6 +252,48 @@ services:
     networks:
       - search-network
 
+  # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
+  redis-sync:
+    image: ghcr.io/hatefsystems/search-engine-core/redis-sync:latest
+    container_name: redis-sync
+    pull_policy: if_not_present
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-search-engine}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
+      - KEY_PREFIX="doc:"
+      - SYNC_MODE=${REDIS_SYNC_MODE:-full}  # Use 'full' for initial sync, then switch to 'incremental' for ongoing updates
+      - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
+      - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
+      - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
+      - MAX_CONTENT_SIZE=300  # Reduced from 50000 to 300 (only used for description now)
+      - LOG_LEVEL=${REDIS_SYNC_LOG_LEVEL:-INFO}  # Set to DEBUG for detailed sync diagnostics
+    # Resource limits optimized for 8GB RAM / 4 CPU server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - search-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
   # Crawler Scheduler - Progressive Warm-up Task Scheduler (Production)
   crawler-scheduler:
     image: ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest
@@ -238,7 +302,7 @@ services:
     restart: unless-stopped
     command: celery -A app.celery_app worker --beat --loglevel=warning --concurrency=2
     volumes:
-      - crawler_data:/app/data
+      - ${CRAWLER_DATA_DIR:-/root/app/data}:/app/data  # Production host bind mount (configurable via env var)
     environment:
       # Celery Configuration
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
@@ -251,23 +315,27 @@ services:
       # API Configuration
       - API_BASE_URL=${API_BASE_URL:-http://search-engine-core:3000}
       
+      # Timezone Configuration (Auto-detects system timezone by default)
+      - TZ=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # System timezone for Celery worker
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # Optional: Override system timezone (e.g., America/New_York, Europe/London, Asia/Tehran)
+      
       # Warm-up Configuration (Progressive Rate Limiting)
       - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
-      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}
-      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}
-      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-12}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}  # Start hour in configured timezone (0-23)
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-12}      # End hour in configured timezone (inclusive, 0-23)
       
-      # Jitter Configuration (Randomization)
+      # Jitter Configuration (Randomization to avoid exact timing)
       - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
       - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
       
       # Task Configuration
-      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}  # Check for new files every 60 seconds
       - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
       - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
       
       # Logging
-      - LOG_LEVEL=${LOG_LEVEL:-warning}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}  # DEBUG: Enable detailed logging for diagnostics
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:
       resources:
@@ -305,6 +373,9 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/2}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
       - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+      # Timezone Configuration for Flower Dashboard
+      - TZ=${SCHEDULER_TIMEZONE:-Asia/Tehran}
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}
     # Resource limits optimized for 8GB RAM / 4 CPU server
     deploy:
       resources:
@@ -334,6 +405,5 @@ networks:
 volumes:
   mongodb_data:
   redis_data:
-  crawler_data:
 
 

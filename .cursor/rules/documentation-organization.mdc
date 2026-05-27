@@ -1,0 +1,459 @@
+# Documentation Organization Standards
+
+## Documentation Location Rules
+
+### Rule: NO Markdown Files in Project Root (Except README.md)
+
+**CRITICAL:** Only `README.md` should exist in the project root directory. All other markdown files MUST be organized in the `docs/` directory structure.
+
+```bash
+✅ ALLOWED in root:
+- README.md (main project documentation)
+
+❌ FORBIDDEN in root:
+- Any other .md files
+- Implementation summaries
+- Test results
+- Feature documentation
+- Architecture docs
+```
+
+## Documentation Directory Structure
+
+```
+docs/
+├── api/                  # API endpoint documentation
+├── features/            # Feature guides and overviews
+├── implementation/      # Implementation summaries for major features
+├── testing/             # Test results and verification reports
+├── architecture/        # System architecture and design documents
+├── privacy/             # Privacy architecture and compliance
+├── guides/              # User guides and tutorials
+├── development/         # Development setup and guidelines
+├── troubleshooting/     # Common issues and solutions
+└── archive/             # Historical/deprecated documentation
+```
+
+## File Placement Guidelines
+
+### API Documentation → `docs/api/`
+
+**When:** Documenting API endpoints, request/response formats, authentication
+
+**Files:**
+- `{feature}_endpoint.md` - API reference for endpoints
+- `{FEATURE}_QUICK_START.md` - Getting started guides
+- `README.md` - API documentation index
+
+**Example:**
+```bash
+docs/api/profile_endpoint.md
+docs/api/link_blocks_endpoint.md
+docs/api/LINK_BLOCKS_QUICK_START.md
+```
+
+### Feature Overviews → `docs/features/`
+
+**When:** High-level feature documentation for users and developers
+
+**Content:**
+- Feature overview and purpose
+- User-facing capabilities
+- Use cases and examples
+- Configuration options
+- Future enhancements
+
+**Example:**
+```bash
+docs/features/LINK_BLOCKS.md
+docs/features/SEARCH_FILTERS.md
+```
+
+### Implementation Summaries → `docs/implementation/`
+
+**When:** Completing major features (3+ days of work), architectural changes
+
+**Content:**
+- What was built and why
+- Files created/modified
+- Database schema changes
+- API endpoints added
+- Security/privacy implementation
+- Performance characteristics
+- Testing and verification
+- Configuration requirements
+
+**Example:**
+```bash
+docs/implementation/LINK_BLOCKS_IMPLEMENTATION.md
+docs/implementation/PRIVACY_SYSTEM_IMPLEMENTATION.md
+```
+
+### Test Results → `docs/testing/`
+
+**When:** Recording test execution results, verification reports
+
+**Content:**
+- Integration test results
+- Manual verification reports
+- Performance benchmarks
+- Issues found during testing
+- Test coverage summary
+
+**Example:**
+```bash
+docs/testing/TEST_RESULTS_LINK_BLOCKS.md
+docs/testing/PERFORMANCE_BENCHMARK_2026_02.md
+```
+
+### Architecture → `docs/architecture/`
+
+**When:** Documenting system design, data models, technical architecture
+
+**Content:**
+- System architecture diagrams
+- Database schema documentation
+- Design patterns and rationale
+- Component interactions
+- Scalability considerations
+
+**Example:**
+```bash
+docs/architecture/profile-database-schema.md
+docs/architecture/PERFORMANCE_OPTIMIZATIONS.md
+docs/architecture/SPA_RENDERING.md
+```
+
+### Privacy & Compliance → `docs/privacy/`
+
+**When:** Privacy architecture, GDPR/CCPA compliance, data handling
+
+**Content:**
+- Privacy system design
+- Compliance protocols
+- Data encryption methods
+- Anonymization strategies
+- Legal requirements
+
+**Example:**
+```bash
+docs/privacy/PRIVACY_ARCHITECTURE.md
+docs/privacy/LEGAL_VAULT_PROTOCOL.md
+```
+
+### User Guides → `docs/guides/`
+
+**When:** Step-by-step instructions, deployment guides, best practices
+
+**Content:**
+- Deployment guides
+- Configuration tutorials
+- Best practices
+- Usage examples
+- Production recommendations
+
+**Example:**
+```bash
+docs/guides/PRODUCTION_JS_MINIFICATION.md
+docs/guides/DOCKER_HEALTH_CHECK_BEST_PRACTICES.md
+```
+
+### Development Docs → `docs/development/`
+
+**When:** Developer-focused technical documentation
+
+**Content:**
+- Development setup
+- Coding guidelines
+- Technical references (MongoDB, CMake, etc.)
+- Development tools
+- Internal APIs
+
+**Example:**
+```bash
+docs/development/MONGODB_CPP_GUIDE.md
+docs/development/template-development.md
+```
+
+### Troubleshooting → `docs/troubleshooting/`
+
+**When:** Problem-solving guides, debugging, fixes for common issues
+
+**Content:**
+- Issue descriptions and symptoms
+- Root cause analysis
+- Step-by-step solutions
+- Prevention strategies
+- Related issues
+
+**Example:**
+```bash
+docs/troubleshooting/FLOWER_TIMEZONE_CONFIGURATION.md
+docs/troubleshooting/FIX_MONGODB_WARNING.md
+```
+
+### Archive → `docs/archive/`
+
+**When:** Deprecating or superseding documentation
+
+**Content:**
+- Outdated documentation
+- Historical records
+- Previous implementation summaries
+- Deprecated feature docs
+
+**Example:**
+```bash
+docs/archive/DOCS_ORGANIZATION_COMPLETE.md
+docs/archive/OLD_API_v1.md
+```
+
+## Naming Conventions
+
+### File Names
+
+**API Documentation:**
+```bash
+{feature}_endpoint.md           # lowercase with underscore
+{FEATURE}_QUICK_START.md        # UPPERCASE for guides
+```
+
+**Implementation Summaries:**
+```bash
+{FEATURE}_IMPLEMENTATION.md     # UPPERCASE
+```
+
+**Test Results:**
+```bash
+TEST_RESULTS_{FEATURE}.md       # Prefix TEST_RESULTS_
+PERFORMANCE_BENCHMARK_{date}.md
+```
+
+**Architecture:**
+```bash
+{feature}-{aspect}.md           # lowercase with hyphen
+{FEATURE}_SUMMARY.md            # UPPERCASE for summaries
+```
+
+**Troubleshooting:**
+```bash
+FIX_{ISSUE_NAME}.md             # Prefix FIX_ for solutions
+{ISSUE}_ANALYSIS.md             # Suffix _ANALYSIS for deep dives
+{FEATURE}_CONFIGURATION.md      # Configuration guides
+```
+
+### Directory Names
+
+All lowercase, use hyphens for multi-word names (except existing conventions):
+```bash
+api/                    # ✅ single word
+architecture/          # ✅ single word
+implementation/        # ✅ single word
+troubleshooting/       # ✅ single word
+```
+
+## README Files
+
+Every directory MUST have a `README.md` file:
+
+**Required Content:**
+1. **Directory purpose:** What this folder contains
+2. **File list:** Brief description of each file
+3. **When to use:** Guidelines for adding new files
+4. **Related docs:** Links to related documentation
+
+**Template:**
+```markdown
+# [Directory Name]
+
+[Brief description of what this directory contains]
+
+## Contents
+
+### [Category]
+
+**[filename.md](./filename.md)** - Description
+- Key point 1
+- Key point 2
+
+## Purpose
+
+[What types of documentation belong here]
+
+## When to Create [Document Type]
+
+[Guidelines for when to add new files]
+
+## [Document Type] Template
+
+[Optional template for consistency]
+
+## Related Documentation
+
+- **Other Dir:** `docs/other/` - Description
+```
+
+## Documentation Workflow
+
+### Creating New Documentation
+
+1. **Determine type:** What kind of document is this?
+2. **Choose location:** Use guidelines above to select directory
+3. **Check README:** Read the directory's README.md
+4. **Name properly:** Follow naming conventions
+5. **Use template:** If available, use the template in README
+6. **Update README:** Add entry to directory's README.md
+7. **Link from root:** If major, link from `docs/README.md`
+
+### Moving Existing Documentation
+
+```bash
+# ❌ WRONG - Files in project root
+/root/search-engine-core/FEATURE_IMPLEMENTATION.md
+
+# ✅ CORRECT - Organized in docs/
+/root/search-engine-core/docs/implementation/FEATURE_IMPLEMENTATION.md
+```
+
+**Steps:**
+1. Identify current location and file type
+2. Determine correct location using guidelines
+3. Move file: `mv file.md docs/{directory}/`
+4. Update any references to the file
+5. Update directory README.md
+6. Update docs/README.md if needed
+
+### Deprecating Documentation
+
+1. Move to `docs/archive/`
+2. Add deprecation notice at top:
+   ```markdown
+   > **DEPRECATED:** This document has been superseded by [new-doc.md](../new-location/new-doc.md)
+   ```
+3. Remove from current directory's README
+4. Add to archive/README.md with deprecation date
+
+## Cross-Referencing
+
+### Linking Between Docs
+
+**Use relative paths:**
+```markdown
+✅ CORRECT:
+See [API Documentation](../api/endpoint.md)
+See [Feature Guide](../features/FEATURE.md)
+
+❌ WRONG:
+See docs/api/endpoint.md
+See /root/search-engine-core/docs/features/FEATURE.md
+```
+
+### Linking to Implementation
+
+From API docs, always link to:
+1. Implementation summary (if exists)
+2. Feature guide (if exists)
+3. Test results (if exists)
+
+**Example:**
+```markdown
+## References
+
+- **Implementation:** [Link Blocks Implementation](../../implementation/LINK_BLOCKS_IMPLEMENTATION.md)
+- **Feature Guide:** [Link Blocks Overview](../../features/LINK_BLOCKS.md)
+- **Test Results:** [Link Blocks Tests](../../testing/TEST_RESULTS_LINK_BLOCKS.md)
+```
+
+## Documentation Maintenance
+
+### Regular Cleanup (Monthly)
+
+- [ ] Check for .md files in project root (except README.md)
+- [ ] Verify all directories have README.md
+- [ ] Update docs/README.md with new files
+- [ ] Archive outdated documentation
+- [ ] Fix broken cross-references
+- [ ] Update "Last Updated" dates
+
+### After Major Features
+
+When implementing a major feature:
+1. Create implementation summary in `docs/implementation/`
+2. Create API documentation in `docs/api/`
+3. Create feature guide in `docs/features/` (if user-facing)
+4. Document test results in `docs/testing/`
+5. Update `docs/README.md` with new links
+6. Update relevant directory READMEs
+
+### Version Control
+
+- Commit documentation with related code changes
+- Use descriptive commit messages: `docs: add link blocks implementation summary`
+- Keep documentation in sync with code
+
+## Common Mistakes to Avoid
+
+### ❌ Don't Do This
+
+```bash
+# Creating .md files in project root
+touch FEATURE_DOCS.md
+
+# Random file names without convention
+touch my-notes.md
+touch temp-doc.md
+
+# Missing README in new directories
+mkdir docs/new-category/
+# (forgot to create README.md)
+
+# Absolute paths in links
+[Link](file:///root/search-engine-core/docs/api/endpoint.md)
+```
+
+### ✅ Do This Instead
+
+```bash
+# Use proper directory structure
+touch docs/implementation/FEATURE_IMPLEMENTATION.md
+
+# Follow naming conventions
+touch docs/api/feature_endpoint.md
+touch docs/testing/TEST_RESULTS_FEATURE.md
+
+# Always create README
+mkdir docs/new-category/
+touch docs/new-category/README.md
+
+# Use relative paths
+[Link](../api/endpoint.md)
+```
+
+## Quick Reference
+
+| Document Type | Location | Naming | Example |
+|--------------|----------|--------|---------|
+| API Reference | `docs/api/` | `{feature}_endpoint.md` | `profile_endpoint.md` |
+| Quick Start | `docs/api/` | `{FEATURE}_QUICK_START.md` | `LINK_BLOCKS_QUICK_START.md` |
+| Feature Guide | `docs/features/` | `{FEATURE}.md` | `LINK_BLOCKS.md` |
+| Implementation | `docs/implementation/` | `{FEATURE}_IMPLEMENTATION.md` | `LINK_BLOCKS_IMPLEMENTATION.md` |
+| Test Results | `docs/testing/` | `TEST_RESULTS_{FEATURE}.md` | `TEST_RESULTS_LINK_BLOCKS.md` |
+| Architecture | `docs/architecture/` | `{feature}-{aspect}.md` | `profile-database-schema.md` |
+| Privacy Docs | `docs/privacy/` | `{FEATURE}.md` | `PRIVACY_ARCHITECTURE.md` |
+| User Guide | `docs/guides/` | `{FEATURE}_GUIDE.md` | `PRODUCTION_JS_MINIFICATION.md` |
+| Dev Guide | `docs/development/` | `{topic}.md` | `MONGODB_CPP_GUIDE.md` |
+| Troubleshoot | `docs/troubleshooting/` | `FIX_{ISSUE}.md` | `FIX_MONGODB_WARNING.md` |
+| Deprecated | `docs/archive/` | (original name) | `OLD_FEATURE_DOCS.md` |
+
+## Enforcement
+
+- **Pre-commit hook:** Check for .md files in root (except README.md)
+- **CI/CD:** Verify documentation structure in pipeline
+- **Code review:** Ensure documentation is properly placed
+- **Monthly audit:** Review and reorganize as needed
+
+## Related Rules
+
+- **Testing Standards:** `.cursor/rules/testing.mdc` - Test organization
+- **Code Review:** `.cursor/rules/code-review.mdc` - Review checklist
+- **Documentation Style:** `.cursor/rules/documentation.mdc` - Writing standards

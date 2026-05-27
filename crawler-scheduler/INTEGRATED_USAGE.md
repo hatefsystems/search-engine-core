@@ -54,11 +54,15 @@ Add these to your main `.env` file to customize the scheduler:
 ```bash
 # Crawler Scheduler Configuration
 
+# Timezone Configuration
+SCHEDULER_TIMEZONE=America/New_York  # Optional: Override timezone (defaults to system timezone)
+TZ=America/New_York                  # Alternative: Set system TZ variable
+
 # Warm-up Schedule (Progressive Rate Limiting)
 CRAWLER_WARMUP_ENABLED=true
 CRAWLER_WARMUP_SCHEDULE=50,100,200,400,800  # Day 1: 50, Day 2: 100, etc.
-CRAWLER_WARMUP_START_HOUR=10  # Start processing at 10:00 AM
-CRAWLER_WARMUP_END_HOUR=12    # Stop processing at 12:00 PM
+CRAWLER_WARMUP_START_HOUR=10  # Start processing at 10:00 AM (in configured timezone)
+CRAWLER_WARMUP_END_HOUR=12    # Stop processing at 12:00 PM (in configured timezone)
 
 # Jitter (Random Delay)
 CRAWLER_JITTER_MIN=30   # Minimum random delay (seconds)
@@ -77,10 +81,12 @@ FLOWER_BASIC_AUTH=admin:your_secure_password_here
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `SCHEDULER_TIMEZONE` | Auto-detected | Timezone for schedule (e.g., America/New_York, Europe/London, Asia/Tehran) |
+| `TZ` | Auto-detected | Alternative way to set timezone (system-wide) |
 | `CRAWLER_WARMUP_ENABLED` | `true` | Enable progressive rate limiting |
 | `CRAWLER_WARMUP_SCHEDULE` | `50,100,200,400,800` | Daily limits per day |
-| `CRAWLER_WARMUP_START_HOUR` | `10` | Start hour (24h format) |
-| `CRAWLER_WARMUP_END_HOUR` | `12` | End hour (24h format) |
+| `CRAWLER_WARMUP_START_HOUR` | `10` | Start hour in configured timezone (24h format) |
+| `CRAWLER_WARMUP_END_HOUR` | `12` | End hour in configured timezone (24h format) |
 | `CRAWLER_JITTER_MIN` | `30` | Minimum random delay (seconds) |
 | `CRAWLER_JITTER_MAX` | `60` | Maximum random delay (seconds) |
 | `CRAWLER_TASK_INTERVAL` | `60` | Check interval (seconds) |

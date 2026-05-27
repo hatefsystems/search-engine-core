@@ -46,9 +46,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}  # CRITICAL: Configurable logging (debug, info, warning, error, none)
       - BASE_URL=${BASE_URL:-http://localhost:3000}  # Base URL for internal API calls
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017
+      - REDIS_URL=tcp://redis:6379
       - SEARCH_REDIS_URI=tcp://redis:6379
       - SEARCH_REDIS_POOL_SIZE=4
       - SEARCH_INDEX_NAME=search_index
+      - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true}  # Enable Redis-based search (10-100x faster than MongoDB)
       - MINIFY_JS=true
       - MINIFY_JS_LEVEL=none  # Use microservice instead
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
@@ -59,6 +61,8 @@ services:
       - JS_CACHE_REDIS_DB=1
       # - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       # - KAFKA_FRONTIER_TOPIC=crawl.frontier
+      # Crawler configuration
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
       - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
       - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}
@@ -74,6 +78,10 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - FROM_EMAIL=${FROM_EMAIL:-noreply@hatef.ir}
       - FROM_NAME=${FROM_NAME:-Hatef.ir Search Engine}
+      # Privacy & Compliance Configuration (Task 01c)
+      - COMPLIANCE_ENCRYPTION_KEY=${COMPLIANCE_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}  # MUST be 32 bytes for AES-256
+      - MONGODB_COMPLIANCE_URI=${MONGODB_COMPLIANCE_URI:-mongodb://admin:password123@mongodb:27017}  # Default: same as main DB (override for separate instance)
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-change-this-secret-key-in-production}  # For compliance cleanup endpoint
       - EMAIL_SERVICE_ENABLED=${EMAIL_SERVICE_ENABLED:-true}
       - EMAIL_ASYNC_ENABLED=${EMAIL_ASYNC_ENABLED:-false}
     depends_on:
@@ -121,16 +129,31 @@ services:
       - "8001:8001"  # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: ["redis-stack-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    # Development: Less aggressive save policy for stability
+    command: [
+      "redis-stack-server",
+      "--appendonly", "no",
+      "--maxmemory", "3gb",
+      "--maxmemory-policy", "noeviction",
+      "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed
+      "--save", "1800", "100",  # Save every 30 min if 100+ keys changed
+      "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed
+      "--stop-writes-on-bgsave-error", "no"  # Don't stop writes if background save fails
+    ]
     environment:
-      - REDIS_MAXMEMORY=268435456  # 256MB in bytes
-      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    # System-level settings for Redis fork operations
+    sysctls:
+      - net.core.somaxconn=65535
+      # vm.overcommit_memory=1 removed for WSL2 compatibility
+    stop_grace_period: 60s  # Allow Redis time to finish background saves on shutdown
     networks:
       - search-network
 
@@ -218,18 +241,22 @@ services:
       # API Configuration
       - API_BASE_URL=http://core:3000
       
+      # Timezone Configuration (Auto-detects system timezone by default)
+      - TZ=Asia/Tehran  # System timezone for Celery worker
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}  # Optional: Override system timezone (e.g., America/New_York, Europe/London)
+      
       # Warm-up Configuration (Progressive Rate Limiting)
       - WARMUP_ENABLED=${CRAWLER_WARMUP_ENABLED:-true}
-      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}
-      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-10}
-      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}
+      - WARMUP_SCHEDULE=${CRAWLER_WARMUP_SCHEDULE:-50,100,200,400,800}  # Day 1: 50, Day 2: 100, etc.
+      - WARMUP_START_HOUR=${CRAWLER_WARMUP_START_HOUR:-0}   # Start hour in configured timezone (0-23)
+      - WARMUP_END_HOUR=${CRAWLER_WARMUP_END_HOUR:-23}       # End hour in configured timezone (inclusive, 0-23)
       
-      # Jitter Configuration (Randomization)
+      # Jitter Configuration (Randomization to avoid exact timing)
       - JITTER_MIN_SECONDS=${CRAWLER_JITTER_MIN:-30}
       - JITTER_MAX_SECONDS=${CRAWLER_JITTER_MAX:-60}
       
       # Task Configuration
-      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}
+      - TASK_INTERVAL_SECONDS=${CRAWLER_TASK_INTERVAL:-60}  # Check for new files every 60 seconds
       - MAX_RETRIES=${CRAWLER_MAX_RETRIES:-3}
       - RETRY_DELAY_SECONDS=${CRAWLER_RETRY_DELAY:-300}
       
@@ -254,11 +281,39 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/2
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin123}
+      # Timezone Configuration for Flower Dashboard
+      - TZ=Asia/Tehran
+      - SCHEDULER_TIMEZONE=${SCHEDULER_TIMEZONE:-Asia/Tehran}
     networks:
       - search-network
     depends_on:
       - redis
       - crawler-scheduler
+
+  # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
+  redis-sync:
+    build: ./redis-sync-service
+    container_name: redis-sync
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017
+      - MONGODB_DB=search-engine
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - SEARCH_INDEX_NAME=search_index
+      - "KEY_PREFIX=doc:"
+      - SYNC_MODE=${REDIS_SYNC_MODE:-incremental}
+      - SYNC_INTERVAL_SECONDS=${REDIS_SYNC_INTERVAL:-3600}
+      - INCREMENTAL_WINDOW_HOURS=${REDIS_INCREMENTAL_WINDOW:-24}
+      - BATCH_SIZE=${REDIS_SYNC_BATCH_SIZE:-100}
+      - MAX_CONTENT_SIZE=300
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - search-network
+    depends_on:
+      - redis
+      - mongodb
 
 networks:
   search-network:

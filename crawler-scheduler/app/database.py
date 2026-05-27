@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Optional
+from zoneinfo import ZoneInfo
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import DuplicateKeyError
 from app.config import Config
@@ -14,7 +15,17 @@ class Database:
         self.client = MongoClient(Config.MONGODB_URI)
         self.db = self.client[Config.MONGODB_DB]
         self.collection = self.db[Config.MONGODB_COLLECTION]
+        # Get timezone for timezone-aware datetime
+        try:
+            self.timezone = ZoneInfo(Config.TIMEZONE)
+        except Exception as e:
+            logger.warning(f"Failed to load timezone {Config.TIMEZONE}, using UTC: {e}")
+            self.timezone = ZoneInfo('UTC')
         self._ensure_indexes()
+    
+    def _get_current_time(self) -> datetime:
+        """Get current time in configured timezone"""
+        return datetime.now(self.timezone)
     
     def _ensure_indexes(self):
         """Create necessary indexes"""
@@ -43,7 +54,7 @@ class Database:
                 'filename': filename,
                 'status': 'processing',
                 'file_data': file_data,
-                'started_at': datetime.utcnow(),
+                'started_at': self._get_current_time(),
                 'attempts': 1,
                 'error_message': None
             })
@@ -64,7 +75,7 @@ class Database:
                 {
                     '$set': {
                         'status': 'processed',
-                        'processed_at': datetime.utcnow(),
+                        'processed_at': self._get_current_time(),
                         'api_response': api_response
                     }
                 }
@@ -81,7 +92,7 @@ class Database:
                 {
                     '$set': {
                         'status': 'failed',
-                        'failed_at': datetime.utcnow(),
+                        'failed_at': self._get_current_time(),
                         'error_message': error_message
                     },
                     '$inc': {'attempts': 1}
@@ -111,9 +122,11 @@ class Database:
             return {}
     
     def get_daily_processed_count(self) -> int:
-        """Get count of files processed today"""
+        """Get count of files processed today (in configured timezone)"""
         try:
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            # Get start of today in configured timezone
+            now = self._get_current_time()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             count = self.collection.count_documents({
                 'status': 'processed',
                 'processed_at': {'$gte': today_start}
@@ -126,7 +139,7 @@ class Database:
     def get_warmup_day(self) -> int:
         """
         Calculate which day of warm-up we're on (1-based)
-        Based on when first file was processed
+        Based on when first file was processed (in configured timezone)
         """
         try:
             first_doc = self.collection.find_one(
@@ -137,8 +150,17 @@ class Database:
             if not first_doc:
                 return 1  # First day
             
-            first_date = first_doc['processed_at'].date()
-            today = datetime.utcnow().date()
+            # Get dates in configured timezone
+            first_datetime = first_doc['processed_at']
+            # If stored datetime is timezone-aware, convert to our timezone
+            if first_datetime.tzinfo is not None:
+                first_datetime = first_datetime.astimezone(self.timezone)
+            else:
+                # If naive datetime, assume it's in our timezone
+                first_datetime = first_datetime.replace(tzinfo=self.timezone)
+            
+            first_date = first_datetime.date()
+            today = self._get_current_time().date()
             days_diff = (today - first_date).days
             
             return days_diff + 1  # 1-based day number

@@ -191,6 +191,10 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 ├── pages/                      # Frontend source files
 ├── public/                     # Static files served by server
 ├── tests/                      # Comprehensive testing suite
+│   ├── integration/            # Integration tests (API, end-to-end)
+│   │   ├── test_profile_api.sh     # Profile CRUD operations
+│   │   ├── test_link_blocks.sh     # Link blocks & analytics
+│   │   └── test_website_profile_api.sh
 │   ├── crawler/                # Crawler component tests (including SPA tests)
 │   ├── search_core/            # Search API unit tests
 │   └── storage/                # Storage component tests
@@ -198,7 +202,7 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 ├── examples/                   # Usage examples
 │   └── spa_crawler_example.cpp # SPA crawling example
 ├── docker-compose.yml          # Development multi-service orchestration
-└── docker-compose.prod.yml     # Production deployment (uses GHCR images)
+└── docker/docker-compose.prod.yml     # Production deployment (uses GHCR images)
 ```
 
 ## Enhanced Crawler API
@@ -519,11 +523,51 @@ The storage layer now provides sophisticated content handling:
 - **Title Extraction**: Successfully extracts titles from JavaScript-rendered
   pages
 
-## Testing Infrastructure with SPA Support
+## Testing Infrastructure
+
+### Test Organization
+
+```
+tests/
+├── integration/            # Integration tests (Shell scripts)
+│   ├── test_profile_api.sh          # Profile CRUD operations
+│   ├── test_link_blocks.sh          # Link blocks & analytics
+│   ├── test_website_profile_api.sh  # Business profiles
+│   └── test_10_concurrent.sh        # Load testing
+├── crawler/                # Crawler component tests (C++)
+├── search_core/            # Search API unit tests (C++)
+├── storage/                # Storage component tests (C++)
+└── ...                     # Other C++ unit tests
+```
+
+See `tests/integration/README.md` for detailed integration test documentation.
+
+### Running Integration Tests
+
+```bash
+# Run all integration tests
+for test in tests/integration/test_*.sh; do
+    bash "$test"
+done
+
+# Run specific test
+./tests/integration/test_profile_api.sh
+./tests/integration/test_link_blocks.sh
+
+# With verbose output
+TEST_VERBOSE=1 ./tests/integration/test_link_blocks.sh
+```
 
 ### Enhanced Test Coverage
 
-**Crawler Tests** (Enhanced):
+**Integration Tests** (Shell):
+
+- **Profile API**: CRUD operations, authentication, rate limiting
+- **Link Blocks**: Link management, redirects, click analytics
+- **Privacy Controls**: PUBLIC/HIDDEN/DISABLED link behavior
+- **Performance**: Concurrent requests, load testing
+
+**Crawler Tests** (C++):
 
 - **Basic Crawling**: Traditional HTTP crawling functionality
 - **SPA Detection**: Framework detection and content analysis tests
@@ -533,13 +577,13 @@ The storage layer now provides sophisticated content handling:
 - **Timeout Handling**: 30-second timeout validation
 - **Error Recovery**: Graceful fallback when SPA rendering fails
 
-**Integration Tests:**
+**Integration Tests** (End-to-End):
 
 - **End-to-end SPA crawling**: Complete workflow from detection to storage
 - **Multi-framework support**: Testing across React, Vue, Angular sites
 - **Performance benchmarks**: Rendering time and content size metrics
 
-### Running SPA Tests
+### Running C++ Tests
 
 ```bash
 # Build with SPA support
@@ -554,6 +598,15 @@ The storage layer now provides sophisticated content handling:
 # Run with debug logging to see SPA detection
 LOG_LEVEL=DEBUG ./tests/crawler/crawler_tests
 ```
+
+### Test Requirements
+
+- `curl` - HTTP client for API requests
+- `jq` - JSON processor for response parsing
+- Docker and docker-compose (for services)
+- Server running on `localhost:3000`
+
+See `.cursor/rules/testing.mdc` for complete testing standards and best practices.
 
 ## CrawlerManager Architecture
 
@@ -836,8 +889,8 @@ MONGODB_URI=mongodb://admin:your_secure_password_here@mongodb:27017
 EOF
 
 # Deploy
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml pull
+docker compose -f docker/docker-compose.prod.yml up -d
 ```
 
 2. **Start a crawl session**:
@@ -879,7 +932,7 @@ Expected output: `"فروشگاه اینترنتی دیجی‌کالا"` (Digika
 
 ### Using Pre-built Images (Recommended)
 
-The production setup uses `docker-compose.prod.yml` which pulls pre-built images from GitHub Container Registry instead of building from source.
+The production setup uses `docker/docker-compose.prod.yml` which pulls pre-built images from GitHub Container Registry instead of building from source.
 
 #### Required Environment Variables
 
@@ -899,6 +952,12 @@ JS_CACHE_TYPE=redis
 JS_CACHE_TTL=3600
 JS_CACHE_REDIS_DB=1
 
+# Redis Sync Service Configuration (Optional)
+REDIS_SYNC_MODE=incremental  # full or incremental
+REDIS_SYNC_INTERVAL=3600  # Sync interval in seconds (default: 1 hour)
+REDIS_INCREMENTAL_WINDOW=24  # Time window for incremental sync in hours
+REDIS_SYNC_BATCH_SIZE=100  # Batch size for processing
+
 # Optional Configuration
 PORT=3000
 SEARCH_REDIS_URI=tcp://redis:6379
@@ -913,14 +972,17 @@ SEARCH_INDEX_NAME=search_index
 docker login ghcr.io -u your_username -p your_token
 
 # Pull latest images and start services
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml pull
+docker compose -f docker/docker-compose.prod.yml up -d
 
 # Check status
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker/docker-compose.prod.yml ps
 
 # View logs
-docker compose -f docker-compose.prod.yml logs -f search-engine
+docker compose -f docker/docker-compose.prod.yml logs -f search-engine
+
+# View redis-sync logs
+docker compose -f docker/docker-compose.prod.yml logs -f redis-sync
 ```
 
 #### Security Best Practices
@@ -935,6 +997,8 @@ docker compose -f docker-compose.prod.yml logs -f search-engine
 
 - **search-engine-core**: Main application (from GHCR)
 - **js-minifier**: JavaScript minification microservice (from GHCR)
+- **redis-sync**: MongoDB to Redis synchronization service (from GHCR)
+- **crawler-scheduler**: Progressive warm-up task scheduler (from GHCR)
 - **mongodb**: Document database with persistent storage
 - **redis**: Cache and search index with persistent storage
 - **browserless**: Headless Chrome for SPA rendering
@@ -945,7 +1009,7 @@ For high-traffic deployments:
 
 ```bash
 # Scale browserless instances
-docker compose -f docker-compose.prod.yml up -d --scale browserless=3
+docker compose -f docker/docker-compose.prod.yml up -d --scale browserless=3
 
 # Use external managed databases
 # Remove mongodb/redis services and point to managed instances via env vars

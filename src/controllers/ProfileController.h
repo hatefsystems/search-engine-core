@@ -1,0 +1,199 @@
+#ifndef PROFILE_CONTROLLER_H
+#define PROFILE_CONTROLLER_H
+
+#include "../../include/routing/Controller.h"
+#include "../../include/routing/RouteRegistry.h"
+#include "../../include/search_engine/storage/ProfileStorage.h"
+#include "../../include/search_engine/storage/ProfileViewAnalytics.h"
+#include "../../include/search_engine/storage/LegalComplianceLog.h"
+#include "../../include/search_engine/storage/ProfileAuditLog.h"
+#include "../../include/search_engine/storage/AuditLogger.h"
+#include "../../include/search_engine/storage/GeoIPService.h"
+#include "../../include/search_engine/storage/UserAgentParser.h"
+#include "../../include/search_engine/storage/DataEncryption.h"
+#include "../../include/search_engine/storage/LinkBlock.h"
+#include "../../include/search_engine/storage/LinkBlockStorage.h"
+#include "../../include/search_engine/storage/LinkClickAnalytics.h"
+#include "../../include/search_engine/common/SlugCache.h"
+#include "../../include/Logger.h"
+#include "../../include/ApiRateLimiter.h"
+#include <memory>
+
+class ProfileController : public routing::Controller {
+public:
+    ProfileController();
+    ~ProfileController() = default;
+
+    // API Endpoints
+    void createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void restoreProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void listProfiles(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Root-level URL endpoints
+    void getPublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Slug management API endpoints
+    void checkSlugAvailability(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void changeSlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Privacy & compliance endpoints
+    void getPrivacyDashboard(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void cleanupExpiredComplianceLogs(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void cleanupExpiredLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Link block endpoints
+    void redirectLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void updateLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void deleteLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Link analytics endpoints
+    void getLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Image upload endpoints
+    void uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Skills management endpoints
+    void addSkills(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getSkillsAutocomplete(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+private:
+    mutable std::unique_ptr<search_engine::storage::ProfileStorage> storage_;
+    mutable std::unique_ptr<search_engine::common::SlugCache> slugCache_;
+    mutable std::unique_ptr<search_engine::storage::ProfileViewAnalyticsStorage> analyticsStorage_;
+    mutable std::unique_ptr<search_engine::storage::ComplianceStorage> complianceStorage_;
+    mutable std::unique_ptr<search_engine::storage::AuditStorage> auditStorage_;
+    mutable std::unique_ptr<search_engine::storage::LinkBlockStorage> linkBlockStorage_;
+    mutable std::unique_ptr<search_engine::storage::LinkClickAnalyticsStorage> linkClickAnalyticsStorage_;
+    mutable std::unique_ptr<ApiRateLimiter> rateLimiter_;
+    mutable std::unique_ptr<ApiRateLimiter> linkRedirectRateLimiter_;
+
+    // Lazy initialization helpers
+    search_engine::storage::ProfileStorage* getStorage() const;
+    ApiRateLimiter* getRateLimiter() const;
+    search_engine::common::SlugCache* getSlugCache() const;
+    search_engine::storage::ProfileViewAnalyticsStorage* getAnalyticsStorage() const;
+    search_engine::storage::ComplianceStorage* getComplianceStorage() const;
+    search_engine::storage::AuditStorage* getAuditStorage() const;
+    search_engine::storage::LinkBlockStorage* getLinkBlockStorage() const;
+    search_engine::storage::LinkClickAnalyticsStorage* getLinkClickAnalyticsStorage() const;
+    ApiRateLimiter* getLinkRedirectRateLimiter() const;
+
+    // Helper to parse JSON request body
+    search_engine::storage::Profile parseProfileFromJson(const nlohmann::json& json);
+
+    // Helper to convert Profile to JSON response
+    nlohmann::json profileToJson(const search_engine::storage::Profile& profile);
+    
+    // Helper to convert PersonProfile to JSON response
+    nlohmann::json personProfileToJson(const search_engine::storage::PersonProfile& profile);
+
+    // Helper to convert ProfileType enum to string
+    static std::string profileTypeToString(search_engine::storage::ProfileType type);
+
+    // Helper to parse ProfileType enum from string
+    static search_engine::storage::ProfileType stringToProfileType(const std::string& type);
+
+    // Helper for SEO redirects
+    bool checkAndRedirectOldSlug(uWS::HttpResponse<false>* res, const std::string& requestedSlug);
+    
+    // Shared helper for resolving and serving a public profile by slug
+    void servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug);
+    
+    // Helper to render HTML profile page with SEO
+    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile);
+    
+    // Helper to render Inja templates
+    std::string renderTemplate(const std::string& templateName, const nlohmann::json& data);
+    
+    // Privacy & tracking helpers
+    std::string getClientIP(uWS::HttpRequest* req);
+    std::string getUserAgent(uWS::HttpRequest* req);
+    std::string getReferrer(uWS::HttpRequest* req);
+    void recordProfileView(const std::string& profileId, uWS::HttpRequest* req);
+    void recordLinkClick(const std::string& linkId, const std::string& profileId, uWS::HttpRequest* req);
+    
+    // Authentication & ownership helpers
+    static std::string generateOwnerToken();
+    std::string getAuthToken(uWS::HttpRequest* req);
+    bool checkOwnership(const search_engine::storage::Profile& profile, const std::string& token);
+    std::string getCallerIdentity(uWS::HttpRequest* req);
+    
+    // Rate limiting helpers
+    bool checkRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    bool checkLinkRedirectRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Link helpers
+    search_engine::storage::LinkBlock parseLinkFromJson(const nlohmann::json& json);
+    nlohmann::json linkToJson(const search_engine::storage::LinkBlock& link) const;
+    
+    // Image upload helpers
+    std::string saveImageToFile(const std::vector<unsigned char>& imageData, 
+                                const std::string& profileId,
+                                const std::string& imageType,  // "avatar" or "cover"
+                                const std::string& extension);
+    std::string generateSecureFilename(const std::string& profileId, const std::string& extension);
+};
+
+// Route registration
+ROUTE_CONTROLLER(ProfileController) {
+    using namespace routing;
+    LOG_INFO("ProfileController::registerRoutes() called - registering routes");
+
+    // API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles", createProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id", getProfileById, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id", updateProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id", deleteProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/restore", restoreProfile, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles", listProfiles, ProfileController);
+
+    // Slug management API routes
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/check-slug", checkSlugAvailability, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/change-slug", changeSlug, ProfileController);
+    
+    // Privacy & compliance API routes
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/privacy-dashboard", getPrivacyDashboard, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/internal/compliance/cleanup", cleanupExpiredComplianceLogs, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/internal/analytics/cleanup", cleanupExpiredLinkAnalytics, ProfileController);
+
+    // Link block API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/links", createLink, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links", getLinks, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/:linkId", getLinkById, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/links/:linkId", updateLink, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/links/:linkId", deleteLink, ProfileController);
+    
+    // Link analytics API routes
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/analytics", getLinkAnalytics, ProfileController);
+
+    // Image upload API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/avatar", uploadAvatar, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/cover", uploadCover, ProfileController);
+
+    // Skills management API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/skills", addSkills, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/skills/:skillName", removeSkill, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/skills/autocomplete", getSkillsAutocomplete, ProfileController);
+
+    // Legacy profile route
+    REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug", getPublicProfile, ProfileController);
+
+    // Link redirect route (MUST come before /:slug to match first)
+    REGISTER_ROUTE(HttpMethod::GET, "/l/:linkId", redirectLink, ProfileController);
+
+    // Root-level routes (must come after static routes to avoid conflicts)
+    REGISTER_ROUTE(HttpMethod::GET, "/:slug", getPublicProfileBySlug, ProfileController);
+
+    LOG_INFO("ProfileController::registerRoutes() completed - routes registered");
+}
+
+#endif // PROFILE_CONTROLLER_H

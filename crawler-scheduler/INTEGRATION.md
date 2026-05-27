@@ -199,8 +199,8 @@ Open: http://localhost:5555
 ### 4. Add Test File
 
 ```bash
-cp crawler-scheduler/data/pending/example_domain.json \
-   crawler-scheduler/data/pending/test_$(date +%s).json
+cp crawler-scheduler/data/pending/example_domain.txt \
+   crawler-scheduler/data/pending/test_$(date +%s).txt
 ```
 
 Watch processing in Flower dashboard or logs:

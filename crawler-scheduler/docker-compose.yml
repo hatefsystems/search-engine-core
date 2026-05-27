@@ -17,6 +17,11 @@ services:
       - API_BASE_URL=http://core:3000
       - LOG_LEVEL=info
       
+      # Timezone Configuration
+      # - SCHEDULER_TIMEZONE=America/New_York  # Optional: Override system timezone
+      # - TZ=America/New_York                   # Alternative: Set system TZ variable
+      # If not set, will auto-detect system timezone or default to UTC
+      
       # Warm-up Configuration (Progressive Rate Limiting)
       - WARMUP_ENABLED=true
       - WARMUP_SCHEDULE=50,100,200,400,800  # Day 1: 50, Day 2: 100, etc.

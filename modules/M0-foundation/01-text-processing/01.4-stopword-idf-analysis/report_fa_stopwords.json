@@ -1,0 +1,309 @@
+{
+  "metadata": {
+    "language": "fa",
+    "database": "search-engine",
+    "collection": "indexed_pages",
+    "text_field": "textContent",
+    "stanza_enabled": true,
+    "idf_threshold": 2.0,
+    "confidence_threshold": 0.8,
+    "timestamp": "2025-11-19T01:34:59.979039"
+  },
+  "statistics": {
+    "total_documents": 50,
+    "processed_documents": 50,
+    "total_terms": 50,
+    "unique_terms": 1313,
+    "stopwords_detected": 12,
+    "grammar_verified": 245,
+    "start_time": 1763503491.0064514,
+    "end_time": 1763503499.9787202,
+    "duration": 8.97226881980896
+  },
+  "top_stopwords": [
+    {
+      "term": "و",
+      "confidence": 0.99,
+      "idf": 0.0,
+      "pos_tag": "CCONJ",
+      "grammar_verified": true
+    },
+    {
+      "term": "با",
+      "confidence": 0.99,
+      "idf": 0.0,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "در",
+      "confidence": 0.99,
+      "idf": 0.0,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "به",
+      "confidence": 0.99,
+      "idf": 0.0,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "از",
+      "confidence": 0.99,
+      "idf": 1.2682639865946794,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "این",
+      "confidence": 0.99,
+      "idf": 1.376477571234912,
+      "pos_tag": "PRON",
+      "grammar_verified": true
+    },
+    {
+      "term": "برای",
+      "confidence": 0.99,
+      "idf": 1.6359887667199966,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "را",
+      "confidence": 0.99,
+      "idf": 1.6737290947028436,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "است",
+      "confidence": 0.99,
+      "idf": 1.7537718023763802,
+      "pos_tag": "AUX",
+      "grammar_verified": true
+    },
+    {
+      "term": "شما",
+      "confidence": 0.99,
+      "idf": 1.9360933591703349,
+      "pos_tag": "PRON",
+      "grammar_verified": true
+    },
+    {
+      "term": "آن",
+      "confidence": 0.99,
+      "idf": 1.9873866535578852,
+      "pos_tag": "PRON",
+      "grammar_verified": true
+    },
+    {
+      "term": "وی",
+      "confidence": 0.99,
+      "idf": 1.9873866535578852,
+      "pos_tag": "PRON",
+      "grammar_verified": true
+    },
+    {
+      "term": "درباره",
+      "confidence": 0.0,
+      "idf": 0.0,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "ما",
+      "confidence": 0.0,
+      "idf": 0.0,
+      "pos_tag": "PRON",
+      "grammar_verified": true
+    },
+    {
+      "term": "همراه",
+      "confidence": 0.0,
+      "idf": 1.1706255170307633,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "باشید",
+      "confidence": 0.0,
+      "idf": 1.1706255170307633,
+      "pos_tag": "AUX",
+      "grammar_verified": true
+    },
+    {
+      "term": "درمان",
+      "confidence": 0.0,
+      "idf": 1.1941560144409573,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    },
+    {
+      "term": "پی",
+      "confidence": 0.0,
+      "idf": 1.9873866535578852,
+      "pos_tag": "ADP",
+      "grammar_verified": true
+    }
+  ],
+  "pos_distribution": {
+    "NOUN": 173,
+    "CCONJ": 1,
+    "PUNCT": 3,
+    "ADP": 10,
+    "INTJ": 2,
+    "PRON": 5,
+    "PROPN": 33,
+    "AUX": 2,
+    "ADJ": 12,
+    "VERB": 4
+  },
+  "sample_stopwords": {
+    "high_confidence": [
+      {
+        "term": "و",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "CCONJ",
+        "grammar_verified": true
+      },
+      {
+        "term": "با",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "در",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "به",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "از",
+        "confidence": 0.99,
+        "idf": 1.2682639865946794,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "این",
+        "confidence": 0.99,
+        "idf": 1.376477571234912,
+        "pos_tag": "PRON",
+        "grammar_verified": true
+      },
+      {
+        "term": "برای",
+        "confidence": 0.99,
+        "idf": 1.6359887667199966,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "را",
+        "confidence": 0.99,
+        "idf": 1.6737290947028436,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "است",
+        "confidence": 0.99,
+        "idf": 1.7537718023763802,
+        "pos_tag": "AUX",
+        "grammar_verified": true
+      },
+      {
+        "term": "شما",
+        "confidence": 0.99,
+        "idf": 1.9360933591703349,
+        "pos_tag": "PRON",
+        "grammar_verified": true
+      }
+    ],
+    "grammar_verified": [
+      {
+        "term": "و",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "CCONJ",
+        "grammar_verified": true
+      },
+      {
+        "term": "با",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "در",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "به",
+        "confidence": 0.99,
+        "idf": 0.0,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "از",
+        "confidence": 0.99,
+        "idf": 1.2682639865946794,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "این",
+        "confidence": 0.99,
+        "idf": 1.376477571234912,
+        "pos_tag": "PRON",
+        "grammar_verified": true
+      },
+      {
+        "term": "برای",
+        "confidence": 0.99,
+        "idf": 1.6359887667199966,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "را",
+        "confidence": 0.99,
+        "idf": 1.6737290947028436,
+        "pos_tag": "ADP",
+        "grammar_verified": true
+      },
+      {
+        "term": "است",
+        "confidence": 0.99,
+        "idf": 1.7537718023763802,
+        "pos_tag": "AUX",
+        "grammar_verified": true
+      },
+      {
+        "term": "شما",
+        "confidence": 0.99,
+        "idf": 1.9360933591703349,
+        "pos_tag": "PRON",
+        "grammar_verified": true
+      }
+    ]
+  }
+}

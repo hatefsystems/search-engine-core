@@ -54,6 +54,7 @@ You should see:
 - ✅ `redis` - Redis
 - ✅ `browserless` - Chrome
 - ✅ `js-minifier` - JS minifier
+- ✅ `redis-sync` - MongoDB to Redis synchronization service
 - ✅ **`crawler-scheduler-worker`** ← NEW
 - ✅ **`crawler-scheduler-flower`** ← NEW
 

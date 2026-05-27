@@ -9,6 +9,7 @@
 #include <regex>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
 #include <inja/inja.hpp>
 #include <nlohmann/json.hpp>
 
@@ -66,29 +67,50 @@ bool EmailService::sendCrawlingNotification(const NotificationData& data) {
              " (pages: " + std::to_string(data.crawledPagesCount) + ")");
     
     try {
+        // Create a mutable copy to add unsubscribe token
+        NotificationData mutableData = data;
+        
+        // Generate unsubscribe token ONCE (if not already provided)
+        if (mutableData.unsubscribeToken.empty()) {
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                mutableData.unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    mutableData.recipientEmail, 
+                    "", // IP address - not available during email sending
+                    "Email Sending System" // User agent
+                );
+                if (!mutableData.unsubscribeToken.empty()) {
+                    LOG_DEBUG("EmailService: Generated unsubscribe token once for: " + mutableData.recipientEmail);
+                } else {
+                    LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + mutableData.recipientEmail);
+                }
+            }
+        }
+        
         // Generate email content
-        std::string subject = data.subject.empty() ? 
-            "Crawling Complete - " + std::to_string(data.crawledPagesCount) + " pages indexed" : 
-            data.subject;
+        std::string subject = mutableData.subject.empty() ? 
+            "Crawling Complete - " + std::to_string(mutableData.crawledPagesCount) + " pages indexed" : 
+            mutableData.subject;
             
-        std::string htmlContent = data.htmlContent;
-        std::string textContent = data.textContent;
+        std::string htmlContent = mutableData.htmlContent;
+        std::string textContent = mutableData.textContent;
         
         // If no custom content provided, use default template
         if (htmlContent.empty()) {
-            htmlContent = generateDefaultNotificationHTML(data);
+            htmlContent = generateDefaultNotificationHTML(mutableData);
         }
         
         if (textContent.empty()) {
-            textContent = generateDefaultNotificationText(data);
+            textContent = generateDefaultNotificationText(mutableData);
         }
         
         // Embed tracking pixel if enabled
-        if (data.enableTracking) {
-            htmlContent = embedTrackingPixel(htmlContent, data.recipientEmail, "crawling_notification");
+        if (mutableData.enableTracking) {
+            htmlContent = embedTrackingPixel(htmlContent, mutableData.recipientEmail, "crawling_notification");
         }
         
-        return sendHtmlEmail(data.recipientEmail, subject, htmlContent, textContent);
+        // Pass the unsubscribe token to sendHtmlEmail
+        return sendHtmlEmail(mutableData.recipientEmail, subject, htmlContent, textContent, mutableData.unsubscribeToken);
         
     } catch (const std::exception& e) {
         lastError_ = "Exception in sendCrawlingNotification: " + std::string(e.what());
@@ -100,7 +122,8 @@ bool EmailService::sendCrawlingNotification(const NotificationData& data) {
 bool EmailService::sendHtmlEmail(const std::string& to, 
                                 const std::string& subject, 
                                 const std::string& htmlContent, 
-                                const std::string& textContent) {
+                                const std::string& textContent,
+                                const std::string& unsubscribeToken) {
     
     if (!curlHandle_) {
         lastError_ = "CURL not initialized";
@@ -111,22 +134,26 @@ bool EmailService::sendHtmlEmail(const std::string& to,
     LOG_DEBUG("Preparing to send email to: " + to + " with subject: " + subject);
     
     try {
-        // Generate unsubscribe token for List-Unsubscribe headers
-        std::string unsubscribeToken = "";
-        auto unsubscribeService = getUnsubscribeService();
-        if (unsubscribeService) {
-            unsubscribeToken = unsubscribeService->createUnsubscribeToken(
-                to, 
-                "", // IP address - not available during email sending
-                "Email Sending System" // User agent
-            );
-            if (!unsubscribeToken.empty()) {
-                LOG_DEBUG("EmailService: Generated unsubscribe token for email headers: " + to);
+        // Use provided unsubscribe token or generate a new one if not provided
+        std::string finalUnsubscribeToken = unsubscribeToken;
+        if (finalUnsubscribeToken.empty()) {
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                finalUnsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    to, 
+                    "", // IP address - not available during email sending
+                    "Email Sending System" // User agent
+                );
+                if (!finalUnsubscribeToken.empty()) {
+                    LOG_DEBUG("EmailService: Generated new unsubscribe token for email headers: " + to);
+                }
             }
+        } else {
+            LOG_DEBUG("EmailService: Reusing existing unsubscribe token for email headers: " + to);
         }
         
         // Prepare email data
-        std::string emailData = formatEmailHeaders(to, subject, unsubscribeToken) + 
+        std::string emailData = formatEmailHeaders(to, subject, finalUnsubscribeToken) + 
                                formatEmailBody(htmlContent, textContent);
         
         return performSMTPRequest(to, emailData);
@@ -321,26 +348,133 @@ size_t EmailService::readCallback(void* ptr, size_t size, size_t nmemb, void* us
     return toWrite;
 }
 
+std::string EmailService::encodeFromHeader(const std::string& name, const std::string& email) {
+    // RFC 5322 and RFC 2047 compliant From header encoding
+    
+    // Check if name contains only ASCII printable characters (excluding special chars that need quoting)
+    bool needsEncoding = false;
+    bool needsQuoting = false;
+    
+    for (unsigned char c : name) {
+        if (c > 127) {
+            // Non-ASCII character - needs RFC 2047 encoding
+            needsEncoding = true;
+            break;
+        }
+        // Check for special characters that require quoting per RFC 5322
+        if (c == '"' || c == '\\' || c == '(' || c == ')' || c == '<' || c == '>' || 
+            c == '[' || c == ']' || c == ':' || c == ';' || c == '@' || c == ',' || c == '.') {
+            needsQuoting = true;
+        }
+    }
+    
+    if (needsEncoding) {
+        // RFC 2047: Encode as =?UTF-8?B?base64?=
+        std::string encoded = "=?UTF-8?B?";
+        
+        // Base64 encode the name
+        static const char* base64_chars = 
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "0123456789+/";
+        
+        std::string base64;
+        int val = 0;
+        int valb = -6;
+        
+        for (unsigned char c : name) {
+            val = (val << 8) + c;
+            valb += 8;
+            while (valb >= 0) {
+                base64.push_back(base64_chars[(val >> valb) & 0x3F]);
+                valb -= 6;
+            }
+        }
+        if (valb > -6) {
+            base64.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+        }
+        while (base64.size() % 4) {
+            base64.push_back('=');
+        }
+        
+        encoded += base64 + "?= <" + email + ">";
+        return encoded;
+        
+    } else if (needsQuoting || name.find(' ') != std::string::npos) {
+        // Quote the name if it contains spaces or special characters
+        std::string quoted = "\"";
+        for (char c : name) {
+            if (c == '"' || c == '\\') {
+                quoted += '\\'; // Escape quotes and backslashes
+            }
+            quoted += c;
+        }
+        quoted += "\" <" + email + ">";
+        return quoted;
+        
+    } else if (name.empty()) {
+        // No display name, just email
+        return email;
+        
+    } else {
+        // Simple ASCII name without special chars
+        return name + " <" + email + ">";
+    }
+}
+
 std::string EmailService::formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken) {
     std::ostringstream headers;
-    
+
+    // Generate unique Message-ID (RFC 5322 requirement)
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    // Generate random component for uniqueness
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(100000, 999999);
+    std::string randomPart = std::to_string(dis(gen));
+
+    // Extract domain from sender email for Message-ID
+    std::string domain = "notify.hatef.ir"; // Default fallback
+    size_t atPos = config_.fromEmail.find('@');
+    if (atPos != std::string::npos) {
+        domain = config_.fromEmail.substr(atPos + 1);
+    }
+
+    std::string messageId = "<" + std::to_string(timestamp) + "." + randomPart + "@" + domain + ">";
+
+    // RFC 5322 compliant Date header
+    auto timeT = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::gmtime(&timeT);
+    char dateBuffer[100];
+    std::strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S +0000", &tm);
+
+    headers << "Message-ID: " << messageId << "\r\n";
+    headers << "Date: " << dateBuffer << "\r\n";
+    headers << "Return-Path: " << config_.fromEmail << "\r\n";
     headers << "To: " << to << "\r\n";
-    headers << "From: " << config_.fromName << " <" << config_.fromEmail << ">\r\n";
+
+    // RFC 5322 compliant From header with proper encoding
+    headers << "From: " << encodeFromHeader(config_.fromName, config_.fromEmail) << "\r\n";
+
     headers << "Reply-To: info@hatef.ir\r\n";
     headers << "Subject: " << subject << "\r\n";
     headers << "MIME-Version: 1.0\r\n";
-    
+
     // Add List-Unsubscribe headers if unsubscribe token is provided
     if (!unsubscribeToken.empty()) {
         // RFC 8058 compliant List-Unsubscribe header
         headers << "List-Unsubscribe: <https://notify.hatef.ir/u/" << unsubscribeToken << ">, <mailto:unsubscribe+" << unsubscribeToken << "@notify.hatef.ir>\r\n";
-        
+
         // RFC 8058 List-Unsubscribe-Post header for one-click unsubscribe
         headers << "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
-        
+
         LOG_DEBUG("EmailService: Added List-Unsubscribe headers with token: " + unsubscribeToken.substr(0, 8) + "...");
     }
-    
+
+    LOG_DEBUG("EmailService: Generated Message-ID: " + messageId);
+
     return headers.str();
 }
 
@@ -751,22 +885,28 @@ std::string EmailService::renderEmailTemplate(const std::string& templateName, c
             LOG_WARNING("EmailService: sender_name not found in locale file, using default");
         }
         
-        // Generate unsubscribe token
-        auto unsubscribeService = getUnsubscribeService();
-        if (unsubscribeService) {
-            std::string unsubscribeToken = unsubscribeService->createUnsubscribeToken(
-                data.recipientEmail, 
-                "", // IP address - not available during email generation
-                "Email Template System" // User agent
-            );
-            if (!unsubscribeToken.empty()) {
-                templateData["unsubscribeToken"] = unsubscribeToken;
-                LOG_DEBUG("EmailService: Generated unsubscribe token for: " + data.recipientEmail);
-            } else {
-                LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + data.recipientEmail);
-            }
+        // Use existing unsubscribe token from data or generate a new one
+        if (!data.unsubscribeToken.empty()) {
+            templateData["unsubscribeToken"] = data.unsubscribeToken;
+            LOG_DEBUG("EmailService: Using pre-generated unsubscribe token for: " + data.recipientEmail);
         } else {
-            LOG_WARNING("EmailService: UnsubscribeService unavailable, skipping token generation");
+            // Fallback: generate token if not provided (shouldn't happen in normal flow)
+            auto unsubscribeService = getUnsubscribeService();
+            if (unsubscribeService) {
+                std::string unsubscribeToken = unsubscribeService->createUnsubscribeToken(
+                    data.recipientEmail, 
+                    "", // IP address - not available during email generation
+                    "Email Template System" // User agent
+                );
+                if (!unsubscribeToken.empty()) {
+                    templateData["unsubscribeToken"] = unsubscribeToken;
+                    LOG_DEBUG("EmailService: Generated unsubscribe token for: " + data.recipientEmail);
+                } else {
+                    LOG_WARNING("EmailService: Failed to generate unsubscribe token for: " + data.recipientEmail);
+                }
+            } else {
+                LOG_WARNING("EmailService: UnsubscribeService unavailable, skipping token generation");
+            }
         }
         
         // Initialize Inja environment

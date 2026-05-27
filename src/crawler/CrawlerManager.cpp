@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <chrono>
 #include <thread>
+#include <cstdlib>
 
 CrawlerManager::CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage)
     : storage_(storage) {
@@ -44,7 +45,19 @@ CrawlerManager::~CrawlerManager() {
 std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback) {
     // Check if we've reached the maximum concurrent sessions limit
     size_t currentSessions = getActiveSessionCount();
-    constexpr size_t MAX_CONCURRENT_SESSIONS = 5;
+    
+    // Read MAX_CONCURRENT_SESSIONS from environment variable (default: 5)
+    const char* maxSessionsEnv = std::getenv("MAX_CONCURRENT_SESSIONS");
+    size_t MAX_CONCURRENT_SESSIONS = 5; // Default value
+    if (maxSessionsEnv) {
+        try {
+            MAX_CONCURRENT_SESSIONS = std::stoull(maxSessionsEnv);
+        } catch (const std::exception& e) {
+            LOG_WARNING("Invalid MAX_CONCURRENT_SESSIONS value, using default: 5");
+            MAX_CONCURRENT_SESSIONS = 5;
+        }
+    }
+    
     if (currentSessions >= MAX_CONCURRENT_SESSIONS) {
         LOG_WARNING("Maximum concurrent sessions limit reached (" + std::to_string(MAX_CONCURRENT_SESSIONS) + "), rejecting new crawl request for URL: " + url);
         throw std::runtime_error("Maximum concurrent sessions limit reached. Please try again later.");

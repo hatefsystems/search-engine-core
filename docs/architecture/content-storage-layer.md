@@ -18,6 +18,7 @@ The Content Storage Layer implements a sophisticated dual-storage architecture:
 2. **RedisSearch**: Handles full-text search indexing and real-time search
    queries
 3. **ContentStorage**: Unified interface that coordinates both storage systems
+4. **Redis Sync Service**: Background service that synchronizes MongoDB indexed_pages to Redis for optimal search performance
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -298,6 +299,62 @@ URL → MongoDBStorage → {
     └─ Return structured data
 }
 ```
+
+### 4. Redis Synchronization
+
+The **Redis Sync Service** is a background Python microservice that continuously synchronizes data from MongoDB's `indexed_pages` collection to Redis for optimal search performance.
+
+```
+MongoDB (indexed_pages) → Redis Sync Service → Redis (search_index)
+```
+
+**Sync Modes:**
+
+1. **Full Sync**: Syncs all indexed pages from MongoDB to Redis
+   - Performed on initial startup if Redis is empty
+   - Useful for complete index rebuilds
+   - Typical duration: ~45-60 seconds for 11,247 documents
+
+2. **Incremental Sync**: Syncs only recently modified pages
+   - Default mode for continuous operation
+   - Configurable time window (default: 24 hours)
+   - Typical duration: ~5-10 seconds for recent changes
+
+**Features:**
+
+- **Automatic Scheduling**: Continuous sync at configurable intervals (default: 1 hour)
+- **Batch Processing**: Efficient batch processing with progress tracking
+- **Status Monitoring**: Track sync status and document counts
+- **Error Recovery**: Automatic retry on failures
+- **Performance**: 100-300x faster search compared to MongoDB queries
+
+**Configuration:**
+
+The service is configured via environment variables in `docker-compose.yml` or `docker/docker-compose.prod.yml`:
+
+```bash
+# Sync mode: full or incremental
+REDIS_SYNC_MODE=incremental
+
+# Sync interval in seconds (default: 3600 = 1 hour)
+REDIS_SYNC_INTERVAL=3600
+
+# Time window for incremental sync in hours (default: 24)
+REDIS_INCREMENTAL_WINDOW=24
+
+# Batch size for processing (default: 100)
+REDIS_SYNC_BATCH_SIZE=100
+```
+
+**Production Deployment:**
+
+The Redis Sync Service is automatically built and deployed as part of the CI/CD pipeline:
+
+- **Image**: `ghcr.io/hatefsystems/search-engine-core/redis-sync:latest`
+- **Build Workflow**: `.github/workflows/build-redis-sync.yml`
+- **Resource Limits**: 256MB RAM, 0.2 CPU (optimized for 8GB server)
+
+For more details, see `redis-sync-service/README.md`.
 
 ## Configuration
 

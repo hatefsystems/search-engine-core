@@ -37,6 +37,7 @@ public:
         std::string textContent;
         std::string language = "en"; // Default to English
         std::string senderName; // Localized sender name
+        std::string unsubscribeToken; // Unsubscribe token (generate once and reuse)
         bool enableTracking = true; // Enable email tracking pixel by default
         
         // Crawling specific data
@@ -109,7 +110,8 @@ public:
     bool sendHtmlEmail(const std::string& to, 
                        const std::string& subject, 
                        const std::string& htmlContent, 
-                       const std::string& textContent = "");
+                       const std::string& textContent = "",
+                       const std::string& unsubscribeToken = "");
 
     /**
      * @brief Send generic HTML email asynchronously
@@ -157,6 +159,7 @@ private:
     static size_t readCallback(void* ptr, size_t size, size_t nmemb, void* userp);
     
     // Helper methods
+    std::string encodeFromHeader(const std::string& name, const std::string& email);
     std::string formatEmailHeaders(const std::string& to, const std::string& subject, const std::string& unsubscribeToken = "");
     std::string formatEmailBody(const std::string& htmlContent, const std::string& textContent);
     std::string generateBoundary();

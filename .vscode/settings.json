@@ -137,5 +137,9 @@
       "typeindex": "cpp",
       "strstream": "cpp",
       "cfenv": "cpp"
+    },
+    "chat.tools.terminal.autoApprove": {
+      "make": true,
+      "nproc": true
     }
 }

@@ -1,0 +1,94 @@
+╔══════════════════════════════════════════════════════════════════╗
+║         HOW TO TEST YOUR OWN CUSTOM TEXT                         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+🎯 3 EASY WAYS TO TEST YOUR TEXT:
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 1️⃣  COMMAND LINE (Easiest - Just Copy & Paste)                  │
+└──────────────────────────────────────────────────────────────────┘
+
+  cd /root/search-engine-core/ml-pipeline
+  
+  # Test your text (replace with your actual text):
+  python3 interactive_test.py "Your text here"
+  
+  # Test Persian:
+  python3 interactive_test.py "متن فارسی شما"
+  
+  # Test multiple texts:
+  python3 interactive_test.py "Text 1" "Text 2" "Text 3"
+  
+  # Verbose (shows details):
+  python3 interactive_test.py --verbose "Your text"
+  
+  # Interactive mode:
+  python3 interactive_test.py
+  (Then type your text when prompted)
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 2️⃣  PYTEST (For Automated Testing)                               │
+└──────────────────────────────────────────────────────────────────┘
+
+  # Edit this file: tests/test_custom_text.py
+  # Find line with: custom_texts = [
+  # Add your texts: "Your custom text here",
+  
+  # Then run:
+  pytest tests/test_custom_text.py::test_your_custom_text -v -s
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 3️⃣  PYTHON CODE (Programmatic)                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+  from text_processing import normalize_universal
+  
+  result = normalize_universal("Your text here")
+  print(f"Output: {result.text}")
+  print(f"Script: {result.script}")
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    QUICK EXAMPLES                                ║
+╚══════════════════════════════════════════════════════════════════╝
+
+# English:
+python3 interactive_test.py "Hello World!"
+
+# Persian:
+python3 interactive_test.py "سلام دنیا چطور هستید؟"
+
+# Arabic:
+python3 interactive_test.py "مرحبا بالعالم"
+
+# Chinese:
+python3 interactive_test.py "你好世界"
+
+# Mixed:
+python3 interactive_test.py "Hello سلام 你好"
+
+# With spaces:
+python3 interactive_test.py --verbose "Text  with   extra    spaces"
+
+╔══════════════════════════════════════════════════════════════════╗
+║                FILES CREATED FOR YOU                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📄 interactive_test.py         - Command-line tool (use this!)
+📄 tests/test_custom_text.py   - Pytest tests (edit & run)
+📄 CUSTOM_TEXT_TESTING.md      - Full documentation
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    TRY IT NOW!                                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Just run:
+
+  python3 interactive_test.py "Your text here"
+
+Or for interactive mode:
+
+  python3 interactive_test.py
+
+Type 'examples' to see sample texts in different languages.
+
+Happy Testing! 🎉

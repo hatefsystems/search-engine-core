@@ -1,12 +1,74 @@
 import os
 from typing import List
 
+
+def _detect_timezone() -> str:
+    """
+    Detect timezone from system or environment configuration
+    
+    Priority Order:
+    1. SCHEDULER_TIMEZONE environment variable (if set, overrides system)
+    2. TZ environment variable (if set, overrides system)  
+    3. System timezone from /etc/timezone (Ubuntu/Debian default)
+    4. System timezone from /etc/localtime symlink (modern Linux)
+    5. UTC (fallback if all detection fails)
+    
+    This means: System timezone is used by default, but can be overridden
+    by setting SCHEDULER_TIMEZONE or TZ environment variables.
+    """
+    detected_from = None
+    
+    # Priority 1: SCHEDULER_TIMEZONE environment variable (explicit override)
+    env_tz = os.getenv('SCHEDULER_TIMEZONE', '').strip()
+    if env_tz:
+        detected_from = f"SCHEDULER_TIMEZONE environment variable"
+        print(f"[Config] Timezone: {env_tz} (from {detected_from})")
+        return env_tz
+    
+    # Priority 2: TZ environment variable (system-wide override)
+    try:
+        if 'TZ' in os.environ and os.environ['TZ'].strip():
+            tz = os.environ['TZ'].strip()
+            detected_from = "TZ environment variable"
+            print(f"[Config] Timezone: {tz} (from {detected_from})")
+            return tz
+        
+        # Priority 3: Read from /etc/timezone (Ubuntu 24/Debian standard)
+        if os.path.exists('/etc/timezone'):
+            with open('/etc/timezone', 'r') as f:
+                tz = f.read().strip()
+                if tz:
+                    detected_from = "system /etc/timezone file"
+                    print(f"[Config] Timezone: {tz} (auto-detected from {detected_from})")
+                    return tz
+        
+        # Priority 4: Read from /etc/localtime symlink (modern Linux systems)
+        if os.path.islink('/etc/localtime'):
+            link = os.readlink('/etc/localtime')
+            # Extract timezone from path like /usr/share/zoneinfo/Asia/Tehran
+            if '/zoneinfo/' in link:
+                tz = link.split('/zoneinfo/')[-1]
+                detected_from = "system /etc/localtime symlink"
+                print(f"[Config] Timezone: {tz} (auto-detected from {detected_from})")
+                return tz
+    except Exception as e:
+        print(f"[Config] Warning: Failed to detect system timezone: {e}")
+    
+    # Default to UTC if all detection methods fail
+    detected_from = "default fallback"
+    print(f"[Config] Timezone: UTC (using {detected_from})")
+    return 'UTC'
+
+
 class Config:
     """Configuration for crawler scheduler"""
     
     # Celery Configuration
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/1')
     CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/1')
+    
+    # Timezone Configuration
+    TIMEZONE = _detect_timezone()
     
     # MongoDB Configuration
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://admin:password123@mongodb_test:27017')

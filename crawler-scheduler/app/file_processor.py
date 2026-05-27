@@ -31,7 +31,7 @@ class FileProcessor:
                 return []
             
             # Get all JSON files
-            json_files = list(pending_dir.glob('*.json'))
+            json_files = list(pending_dir.glob('*.txt'))
             
             # Filter out already processed files
             unprocessed_files = [

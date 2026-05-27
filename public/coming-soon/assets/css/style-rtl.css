@@ -131,7 +131,7 @@ h1 {
 
 @media only screen and (max-width: 767px) {
   input.notify-me {
-    color: #3a3535;
+    color: #363636;
     padding: 7.5px 5px !important;
     font-size: 11px;
     font-weight: 500;
@@ -143,7 +143,7 @@ h1 {
 }
 
 input.notify-me {
-  color: #fff;
+  color: #363636;
   padding: 7.5px 20px;
   font-size: 12px;
   font-weight: 500;

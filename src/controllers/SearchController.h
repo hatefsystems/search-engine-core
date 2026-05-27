@@ -3,6 +3,7 @@
 #include "../../include/search_core/SearchClient.hpp"
 #include "../../include/search_engine/crawler/models/CrawlResult.h"
 #include "../../include/search_engine/storage/EmailService.h"
+#include "../../include/search_engine/storage/RedisSearchStorage.h"
 #include <memory>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -59,8 +60,12 @@ private:
     // Localized email subject loading
     std::string loadLocalizedSubject(const std::string& language, int pageCount) const;
 
+    // Redis storage access (lazy initialization)
+    search_engine::storage::RedisSearchStorage* getRedisStorage() const;
+
 private:
     mutable std::unique_ptr<search_engine::storage::EmailService> emailService_;
+    mutable std::unique_ptr<search_engine::storage::RedisSearchStorage> redisStorage_;
 };
 
 // Route registration

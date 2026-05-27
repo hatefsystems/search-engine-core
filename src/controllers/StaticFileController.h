@@ -7,6 +7,9 @@ class StaticFileController : public routing::Controller {
 public:
     // Handles all static file requests
     void serveStatic(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Handles uploaded image requests
+    void serveUpload(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
 private:
     void setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content);
@@ -17,8 +20,9 @@ private:
     std::string getLastModifiedHeader(const std::string& filePath);
 };
 
-// Route registration - catch-all route for static files
+// Route registration - serve static files from /assets/* prefix
 ROUTE_CONTROLLER(StaticFileController) {
     using namespace routing;
-    REGISTER_ROUTE(HttpMethod::GET, "/*", serveStatic, StaticFileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/assets/*", serveStatic, StaticFileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/uploads/*", serveUpload, StaticFileController);
 } 

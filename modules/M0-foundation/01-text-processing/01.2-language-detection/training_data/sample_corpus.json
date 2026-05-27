@@ -1,0 +1,73 @@
+{
+    "en": [
+        "The quick brown fox jumps over the lazy dog",
+        "This is a sample English sentence for training",
+        "Language detection is an important task in NLP",
+        "Machine learning models can be trained on text data",
+        "FastText is a powerful tool for language identification"
+    ],
+    "fa": [
+        "روباه قهوه‌ای سریع از روی سگ تنبل می‌پرد",
+        "این یک جمله نمونه فارسی برای آموزش است",
+        "تشخیص زبان یک وظیفه مهم در پردازش زبان طبیعی است",
+        "مدل‌های یادگیری ماشین می‌توانند روی داده‌های متنی آموزش ببینند",
+        "فست‌تکست یک ابزار قدرتمند برای شناسایی زبان است"
+    ],
+    "ar": [
+        "الثعلب البني السريع يقفز فوق الكلب الكسول",
+        "هذه جملة عربية نموذجية للتدريب",
+        "اكتشاف اللغة مهمة مهمة في معالجة اللغة الطبيعية",
+        "يمكن تدريب نماذج التعلم الآلي على البيانات النصية",
+        "FastText أداة قوية لتحديد اللغة"
+    ],
+    "zh": [
+        "敏捷的棕色狐狸跳过懒狗",
+        "这是一个用于训练的示例中文句子",
+        "语言检测是自然语言处理中的重要任务",
+        "机器学习模型可以在文本数据上进行训练",
+        "FastText是一个强大的语言识别工具"
+    ],
+    "ru": [
+        "Быстрая коричневая лиса прыгает через ленивую собаку",
+        "Это образец русского предложения для обучения",
+        "Определение языка — важная задача в обработке естественного языка",
+        "Модели машинного обучения можно обучать на текстовых данных",
+        "FastText — мощный инструмент для идентификации языка"
+    ],
+    "es": [
+        "El rápido zorro marrón salta sobre el perro perezoso",
+        "Esta es una oración de muestra en español para entrenamiento",
+        "La detección de idioma es una tarea importante en PNL",
+        "Los modelos de aprendizaje automático se pueden entrenar con datos de texto",
+        "FastText es una herramienta poderosa para la identificación de idiomas"
+    ],
+    "fr": [
+        "Le rapide renard brun saute par-dessus le chien paresseux",
+        "Ceci est un exemple de phrase française pour l'entraînement",
+        "La détection de langue est une tâche importante en NLP",
+        "Les modèles d'apprentissage automatique peuvent être entraînés sur des données textuelles",
+        "FastText est un outil puissant pour l'identification des langues"
+    ],
+    "de": [
+        "Der schnelle braune Fuchs springt über den faulen Hund",
+        "Dies ist ein deutscher Beispielsatz zum Training",
+        "Spracherkennung ist eine wichtige Aufgabe in der NLP",
+        "Machine-Learning-Modelle können auf Textdaten trainiert werden",
+        "FastText ist ein leistungsstarkes Tool zur Sprachidentifikation"
+    ],
+    "ja": [
+        "素早い茶色のキツネが怠け者の犬を飛び越える",
+        "これはトレーニング用の日本語のサンプル文です",
+        "言語検出はNLPにおける重要なタスクです",
+        "機械学習モデルはテキストデータでトレーニングできます",
+        "FastTextは言語識別のための強力なツールです"
+    ],
+    "ko": [
+        "빠른 갈색 여우가 게으른 개를 뛰어넘습니다",
+        "이것은 훈련을 위한 한국어 샘플 문장입니다",
+        "언어 감지는 NLP의 중요한 작업입니다",
+        "기계 학습 모델은 텍스트 데이터로 훈련할 수 있습니다",
+        "FastText는 언어 식별을 위한 강력한 도구입니다"
+    ]
+}
+

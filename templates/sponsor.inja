@@ -19,7 +19,7 @@
         type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
     {% endif %}
-    <link rel="stylesheet" href="/sponsor.css">
+    <link rel="stylesheet" href="/assets/sponsor.css">
 </head>
 
 <body>
@@ -328,7 +328,7 @@
             </div>
             <div id="btc-desc" class="btc-box">
                 <div class="qr" aria-hidden="true">
-                    <img src="bitcoin-wallet.png" alt="Bitcoin QR Code" width="120" height="120">
+                    <img src="/assets/bitcoin-wallet.png" alt="Bitcoin QR Code" width="120" height="120">
                 </div>
                 <div>
                     <p class="muted">{{ t.sponsor.btc_modal_desc }}</p>
@@ -343,7 +343,7 @@
         </div>
     </dialog>
 
-    <script src="/sponsor.js" defer></script>
+    <script src="/assets/sponsor.js" defer></script>
 </body>
 
 </html>
