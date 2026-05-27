@@ -1,7 +1,7 @@
 {% for result in results %}
 <article class="result-item">
-  <a href="{{ result.url }}" class="result-url" target="_blank" rel="noopener">{{ result.displayurl }}</a>
-  <a href="{{ result.url }}" class="result-title" target="_blank" rel="noopener">{{ result.title }}</a>
+  <a href="{{ result.url }}" class="result-url">{{ result.displayurl }}</a>
+  <a href="{{ result.url }}" class="result-title">{{ result.title }}</a>
   <p class="result-description">{{ result.desc }}</p>
 </article>
 {% endfor %}
