@@ -9,6 +9,7 @@
 #include <chrono>
 #include <functional>
 #include "Crawler.h"
+#include "SessionAnalyticsStore.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
 #include "../storage/ContentStorage.h"
@@ -33,19 +34,29 @@ struct CrawlSession {
     std::atomic<bool> isCompleted{false};
     std::thread crawlThread;
     CrawlCompletionCallback completionCallback;
-    
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
+    // Seed URL and domain (captured at start so the analytics record can
+    // reference them after the crawler is gone). #15
+    std::string seedUrl;
+    std::string seedDomain;
+    // Wall-clock start moment of the underlying crawl thread (distinct from
+    // createdAt, which is set when the session struct is constructed). #15
+    std::chrono::system_clock::time_point startedAt;
+
+    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance,
                  CrawlCompletionCallback callback = nullptr)
         : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
           completionCallback(std::move(callback)) {}
-    
+
     CrawlSession(CrawlSession&& other) noexcept
         : id(std::move(other.id))
         , crawler(std::move(other.crawler))
         , createdAt(other.createdAt)
         , isCompleted(other.isCompleted.load())
         , crawlThread(std::move(other.crawlThread))
-        , completionCallback(std::move(other.completionCallback)) {}
+        , completionCallback(std::move(other.completionCallback))
+        , seedUrl(std::move(other.seedUrl))
+        , seedDomain(std::move(other.seedDomain))
+        , startedAt(other.startedAt) {}
     
     CrawlSession(const CrawlSession&) = delete;
     CrawlSession& operator=(const CrawlSession&) = delete;
@@ -77,8 +88,12 @@ public:
     
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
-    
-    
+
+    // Access to the session-analytics store (issue #15). Always non-null;
+    // defaults to in-memory store created in the constructor.
+    ISessionAnalyticsStore* getAnalyticsStore() const { return analyticsStore_.get(); }
+
+
     // Limit concurrent sessions to prevent MongoDB connection issues
     static constexpr size_t MAX_CONCURRENT_SESSIONS = 5;
 
@@ -89,9 +104,16 @@ private:
     std::atomic<uint64_t> sessionCounter_{0};
     std::thread cleanupThread_;
     std::atomic<bool> shouldStop_{false};
+    // Owned analytics store — captures a SessionMetricsRecord for every
+    // session that completes (success or failure). #15
+    std::unique_ptr<ISessionAnalyticsStore> analyticsStore_;
     std::string generateSessionId();
     void cleanupWorker();
     std::unique_ptr<Crawler> createCrawler(const CrawlConfig& config, const std::string& sessionId = "");
+    // Build a SessionMetricsRecord from a completed session and push it
+    // into the analytics store. #15
+    void recordSessionAnalytics(const CrawlSession& session,
+                                const std::vector<CrawlResult>& results);
 };
 
 

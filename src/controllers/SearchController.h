@@ -23,6 +23,12 @@ public:
     void addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // Supports 'force' parameter
     void getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getCrawlDetails(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // New endpoint
+
+    // Session analytics (issue #15)
+    void getAnalyticsSessions(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getAnalyticsSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getAnalyticsCompare(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getAnalyticsTrends(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     
     // SPA detection
     void detectSpa(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -77,5 +83,10 @@ ROUTE_CONTROLLER(SearchController) {
     REGISTER_ROUTE(HttpMethod::POST, "/api/crawl/add-site", addSiteToCrawl, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/status", getCrawlStatus, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/details", getCrawlDetails, SearchController); // New endpoint
+    // Session analytics endpoints (#15)
+    REGISTER_ROUTE(HttpMethod::GET, "/api/analytics/sessions", getAnalyticsSessions, SearchController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/analytics/sessions/detail", getAnalyticsSession, SearchController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/analytics/sessions/compare", getAnalyticsCompare, SearchController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/analytics/sessions/trends", getAnalyticsTrends, SearchController);
     REGISTER_ROUTE(HttpMethod::POST, "/api/spa/detect", detectSpa, SearchController);
-} 
+}
