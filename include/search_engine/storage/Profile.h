@@ -18,6 +18,21 @@ enum class ProfileType {
 std::string profileTypeToString(ProfileType type);
 ProfileType stringToProfileType(const std::string& str);
 
+// Skill structure with proficiency level
+struct SkillWithLevel {
+    std::string name;
+    std::string level;        // BEGINNER, INTERMEDIATE, EXPERT
+    std::string category;     // TECHNICAL, BUSINESS, CREATIVE, OTHER
+};
+
+// Header privacy settings
+struct HeaderPrivacy {
+    bool showEmail = false;
+    bool showPhone = false;
+    bool showLocation = true;
+    bool showAvailability = true;
+};
+
 struct Profile {
     // Unique identifier (MongoDB ObjectId will be auto-generated)
     std::optional<std::string> id;
@@ -50,10 +65,26 @@ struct Profile {
 
 // PersonProfile extends Profile with person-specific fields
 struct PersonProfile : public Profile {
+    // Header Information
+    std::optional<std::string> displayName;           // Preferred display name
+    std::optional<std::string> englishName;           // English name variant
+    std::optional<std::string> tagline;               // Professional headline (max 120 chars)
+    std::optional<std::string> professionalSummary;   // Detailed bio (max 2000 chars)
+    std::optional<std::string> location;              // City, Country
+    std::vector<std::string> languages;               // Spoken languages
+    
+    // Images
+    std::optional<std::string> avatarUrl;             // Avatar image path/URL
+    std::optional<std::string> coverImageUrl;         // Cover image path/URL
+    
+    // Availability
+    std::optional<std::string> availabilityStatus;    // AVAILABLE, BUSY, NOT_AVAILABLE
+    
     // Professional Info
     std::optional<std::string> title;              // Job title (e.g., "Software Engineer")
     std::optional<std::string> company;            // Current company
-    std::vector<std::string> skills;               // Skills list
+    std::vector<std::string> skills;               // Skills list (legacy, use skillsWithLevel)
+    std::vector<SkillWithLevel> skillsWithLevel;   // Skills with proficiency and category
     std::optional<std::string> experienceLevel;    // "Entry", "Mid", "Senior", "Executive"
 
     // Education
@@ -68,6 +99,9 @@ struct PersonProfile : public Profile {
     // Contact (will be encrypted in later tasks)
     std::optional<std::string> email;              // Contact email
     std::optional<std::string> phone;              // Phone number
+
+    // Privacy Settings
+    HeaderPrivacy privacy;                         // Field-level privacy controls
 
     // Validation method
     bool isValid() const;

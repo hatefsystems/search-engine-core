@@ -56,6 +56,15 @@ public:
     // Link analytics endpoints
     void getLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
+    // Image upload endpoints
+    void uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Skills management endpoints
+    void addSkills(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getSkillsAutocomplete(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
 private:
     mutable std::unique_ptr<search_engine::storage::ProfileStorage> storage_;
     mutable std::unique_ptr<search_engine::common::SlugCache> slugCache_;
@@ -83,6 +92,9 @@ private:
 
     // Helper to convert Profile to JSON response
     nlohmann::json profileToJson(const search_engine::storage::Profile& profile);
+    
+    // Helper to convert PersonProfile to JSON response
+    nlohmann::json personProfileToJson(const search_engine::storage::PersonProfile& profile);
 
     // Helper to convert ProfileType enum to string
     static std::string profileTypeToString(search_engine::storage::ProfileType type);
@@ -122,6 +134,13 @@ private:
     // Link helpers
     search_engine::storage::LinkBlock parseLinkFromJson(const nlohmann::json& json);
     nlohmann::json linkToJson(const search_engine::storage::LinkBlock& link) const;
+    
+    // Image upload helpers
+    std::string saveImageToFile(const std::vector<unsigned char>& imageData, 
+                                const std::string& profileId,
+                                const std::string& imageType,  // "avatar" or "cover"
+                                const std::string& extension);
+    std::string generateSecureFilename(const std::string& profileId, const std::string& extension);
 };
 
 // Route registration
@@ -155,6 +174,15 @@ ROUTE_CONTROLLER(ProfileController) {
     
     // Link analytics API routes
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/analytics", getLinkAnalytics, ProfileController);
+
+    // Image upload API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/avatar", uploadAvatar, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/cover", uploadCover, ProfileController);
+
+    // Skills management API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/skills", addSkills, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/skills/:skillName", removeSkill, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/skills/autocomplete", getSkillsAutocomplete, ProfileController);
 
     // Legacy profile route
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug", getPublicProfile, ProfileController);

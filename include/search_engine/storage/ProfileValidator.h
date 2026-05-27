@@ -98,6 +98,15 @@ private:
     
     // Company sizes allowed for business profiles
     static const std::vector<std::string> VALID_COMPANY_SIZES;
+    
+    // Availability statuses for person profiles
+    static const std::vector<std::string> VALID_AVAILABILITY_STATUSES;
+    
+    // Skill proficiency levels
+    static const std::vector<std::string> VALID_SKILL_LEVELS;
+    
+    // Skill categories
+    static const std::vector<std::string> VALID_SKILL_CATEGORIES;
 };
 
 } // namespace storage

@@ -24,6 +24,18 @@ const std::vector<std::string> ProfileValidator::VALID_COMPANY_SIZES = {
     "1-10", "11-50", "51-200", "201-1000", "1000+"
 };
 
+const std::vector<std::string> ProfileValidator::VALID_AVAILABILITY_STATUSES = {
+    "AVAILABLE", "BUSY", "NOT_AVAILABLE"
+};
+
+const std::vector<std::string> ProfileValidator::VALID_SKILL_LEVELS = {
+    "BEGINNER", "INTERMEDIATE", "EXPERT"
+};
+
+const std::vector<std::string> ProfileValidator::VALID_SKILL_CATEGORIES = {
+    "TECHNICAL", "BUSINESS", "CREATIVE", "OTHER"
+};
+
 ValidationResult ProfileValidator::validate(const Profile& profile) {
     std::vector<std::string> errors;
     std::vector<std::string> warnings;
@@ -77,6 +89,54 @@ ValidationResult ProfileValidator::validatePersonFields(const PersonProfile& pro
     // Check profile type
     if (profile.type != ProfileType::PERSON) {
         errors.push_back("Profile type must be PERSON for PersonProfile");
+    }
+    
+    // Validate header fields
+    if (profile.tagline.has_value()) {
+        if (profile.tagline.value().length() > 120) {
+            errors.push_back("Tagline exceeds maximum length of 120 characters");
+        }
+    }
+    
+    if (profile.professionalSummary.has_value()) {
+        if (profile.professionalSummary.value().length() > 2000) {
+            errors.push_back("Professional summary exceeds maximum length of 2000 characters");
+        }
+    }
+    
+    if (profile.avatarUrl.has_value() && !profile.avatarUrl.value().empty()) {
+        if (!isValidUrl(profile.avatarUrl.value())) {
+            errors.push_back("Invalid avatar URL format");
+        }
+    }
+    
+    if (profile.coverImageUrl.has_value() && !profile.coverImageUrl.value().empty()) {
+        if (!isValidUrl(profile.coverImageUrl.value())) {
+            errors.push_back("Invalid cover image URL format");
+        }
+    }
+    
+    if (profile.availabilityStatus.has_value()) {
+        const std::string& status = profile.availabilityStatus.value();
+        if (std::find(VALID_AVAILABILITY_STATUSES.begin(), VALID_AVAILABILITY_STATUSES.end(), status) 
+            == VALID_AVAILABILITY_STATUSES.end()) {
+            errors.push_back("Invalid availability status. Must be one of: AVAILABLE, BUSY, NOT_AVAILABLE");
+        }
+    }
+    
+    // Validate skills with level
+    for (const auto& skill : profile.skillsWithLevel) {
+        if (skill.name.empty()) {
+            errors.push_back("Skill name cannot be empty");
+        }
+        if (std::find(VALID_SKILL_LEVELS.begin(), VALID_SKILL_LEVELS.end(), skill.level) 
+            == VALID_SKILL_LEVELS.end()) {
+            errors.push_back("Invalid skill level for '" + skill.name + "'. Must be one of: BEGINNER, INTERMEDIATE, EXPERT");
+        }
+        if (std::find(VALID_SKILL_CATEGORIES.begin(), VALID_SKILL_CATEGORIES.end(), skill.category) 
+            == VALID_SKILL_CATEGORIES.end()) {
+            errors.push_back("Invalid skill category for '" + skill.name + "'. Must be one of: TECHNICAL, BUSINESS, CREATIVE, OTHER");
+        }
     }
     
     // Validate experienceLevel if present

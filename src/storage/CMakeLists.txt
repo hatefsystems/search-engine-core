@@ -306,6 +306,14 @@ install(TARGETS common
     RUNTIME DESTINATION bin
 )
 
+# Also install skills as part of StorageTargets since common depends on it
+install(TARGETS skills
+    EXPORT StorageTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
 if(REDIS_AVAILABLE)
     install(TARGETS RedisSearchStorage
         EXPORT StorageTargets

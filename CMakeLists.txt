@@ -92,14 +92,38 @@ add_library(common STATIC
     src/common/UrlCanonicalizer.cpp
     src/common/SlugGenerator.cpp
     src/common/SlugCache.cpp
+    src/common/Base64.cpp
+    src/common/ImageValidator.cpp
+    src/common/SkillNormalizer.cpp
 )
 target_include_directories(common 
     PUBLIC 
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
+
+# Create skills library first (before common)
+add_library(skills STATIC
+    src/skills/SkillsData.cpp
+)
+target_include_directories(skills 
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+# Install skills library
+install(TARGETS skills
+    EXPORT SkillsTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Link skills to common (since common depends on skills)
 target_link_libraries(common
     PUBLIC
+        skills
         ${CURL_LIBRARIES}
         CURL::libcurl
 )
@@ -187,6 +211,7 @@ add_executable(server ${MAIN_SOURCES} ${HEADERS})
 target_link_libraries(server
     PRIVATE
         common
+        skills
         storage
         SponsorStorage
         ProfileStorage

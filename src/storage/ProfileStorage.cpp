@@ -770,6 +770,45 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     }
 
     // PersonProfile-specific fields (optional)
+    
+    // Header Information
+    if (profile.displayName) {
+        builder.append(kvp("displayName", profile.displayName.value()));
+    }
+    if (profile.englishName) {
+        builder.append(kvp("englishName", profile.englishName.value()));
+    }
+    if (profile.tagline) {
+        builder.append(kvp("tagline", profile.tagline.value()));
+    }
+    if (profile.professionalSummary) {
+        builder.append(kvp("professionalSummary", profile.professionalSummary.value()));
+    }
+    if (profile.location) {
+        builder.append(kvp("location", profile.location.value()));
+    }
+    if (!profile.languages.empty()) {
+        auto languagesArray = bsoncxx::builder::basic::array{};
+        for (const auto& lang : profile.languages) {
+            languagesArray.append(lang);
+        }
+        builder.append(kvp("languages", languagesArray));
+    }
+    
+    // Images
+    if (profile.avatarUrl) {
+        builder.append(kvp("avatarUrl", profile.avatarUrl.value()));
+    }
+    if (profile.coverImageUrl) {
+        builder.append(kvp("coverImageUrl", profile.coverImageUrl.value()));
+    }
+    
+    // Availability
+    if (profile.availabilityStatus) {
+        builder.append(kvp("availabilityStatus", profile.availabilityStatus.value()));
+    }
+    
+    // Professional Info
     if (profile.title) {
         builder.append(kvp("title", profile.title.value()));
     }
@@ -782,6 +821,19 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
             skillsArray.append(skill);
         }
         builder.append(kvp("skills", skillsArray));
+    }
+    
+    // Skills with level
+    if (!profile.skillsWithLevel.empty()) {
+        auto skillsLevelArray = bsoncxx::builder::basic::array{};
+        for (const auto& skill : profile.skillsWithLevel) {
+            auto skillDoc = bsoncxx::builder::basic::document{};
+            skillDoc.append(kvp("name", skill.name));
+            skillDoc.append(kvp("level", skill.level));
+            skillDoc.append(kvp("category", skill.category));
+            skillsLevelArray.append(skillDoc);
+        }
+        builder.append(kvp("skillsWithLevel", skillsLevelArray));
     }
     if (profile.experienceLevel) {
         builder.append(kvp("experienceLevel", profile.experienceLevel.value()));
@@ -810,6 +862,14 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
         std::string encryptedPhone = DataEncryption::encrypt(profile.phone.value(), encryptionKey_);
         builder.append(kvp("phone", encryptedPhone));
     }
+
+    // Privacy Settings
+    auto privacyDoc = bsoncxx::builder::basic::document{};
+    privacyDoc.append(kvp("showEmail", profile.privacy.showEmail));
+    privacyDoc.append(kvp("showPhone", profile.privacy.showPhone));
+    privacyDoc.append(kvp("showLocation", profile.privacy.showLocation));
+    privacyDoc.append(kvp("showAvailability", profile.privacy.showAvailability));
+    builder.append(kvp("privacy", privacyDoc));
 
     return builder.extract();
 }
@@ -869,6 +929,48 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     }
 
     // PersonProfile-specific fields
+    
+    // Header Information
+    if (doc["displayName"]) {
+        profile.displayName = std::string(doc["displayName"].get_string().value);
+    }
+    if (doc["englishName"]) {
+        profile.englishName = std::string(doc["englishName"].get_string().value);
+    }
+    if (doc["tagline"]) {
+        profile.tagline = std::string(doc["tagline"].get_string().value);
+    }
+    if (doc["professionalSummary"]) {
+        profile.professionalSummary = std::string(doc["professionalSummary"].get_string().value);
+    }
+    if (doc["location"]) {
+        profile.location = std::string(doc["location"].get_string().value);
+    }
+    if (doc["languages"] && doc["languages"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> languages;
+        auto languagesArray = doc["languages"].get_array();
+        for (const auto& element : languagesArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                languages.push_back(std::string(element.get_string().value));
+            }
+        }
+        profile.languages = languages;
+    }
+    
+    // Images
+    if (doc["avatarUrl"]) {
+        profile.avatarUrl = std::string(doc["avatarUrl"].get_string().value);
+    }
+    if (doc["coverImageUrl"]) {
+        profile.coverImageUrl = std::string(doc["coverImageUrl"].get_string().value);
+    }
+    
+    // Availability
+    if (doc["availabilityStatus"]) {
+        profile.availabilityStatus = std::string(doc["availabilityStatus"].get_string().value);
+    }
+    
+    // Professional Info
     if (doc["title"]) {
         profile.title = std::string(doc["title"].get_string().value);
     }
@@ -884,6 +986,29 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
             }
         }
         profile.skills = skills;
+    }
+    
+    // Skills with level
+    if (doc["skillsWithLevel"] && doc["skillsWithLevel"].type() == bsoncxx::type::k_array) {
+        std::vector<SkillWithLevel> skillsWithLevel;
+        auto skillsArray = doc["skillsWithLevel"].get_array();
+        for (const auto& element : skillsArray.value) {
+            if (element.type() == bsoncxx::type::k_document) {
+                auto skillDoc = element.get_document().view();
+                SkillWithLevel skill;
+                if (skillDoc["name"]) {
+                    skill.name = std::string(skillDoc["name"].get_string().value);
+                }
+                if (skillDoc["level"]) {
+                    skill.level = std::string(skillDoc["level"].get_string().value);
+                }
+                if (skillDoc["category"]) {
+                    skill.category = std::string(skillDoc["category"].get_string().value);
+                }
+                skillsWithLevel.push_back(skill);
+            }
+        }
+        profile.skillsWithLevel = skillsWithLevel;
     }
     if (doc["experienceLevel"]) {
         profile.experienceLevel = std::string(doc["experienceLevel"].get_string().value);
@@ -911,6 +1036,23 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     if (doc["phone"]) {
         std::string encryptedPhone = std::string(doc["phone"].get_string().value);
         profile.phone = DataEncryption::decrypt(encryptedPhone, encryptionKey_);
+    }
+
+    // Privacy Settings
+    if (doc["privacy"] && doc["privacy"].type() == bsoncxx::type::k_document) {
+        auto privacyDoc = doc["privacy"].get_document().view();
+        if (privacyDoc["showEmail"]) {
+            profile.privacy.showEmail = privacyDoc["showEmail"].get_bool().value;
+        }
+        if (privacyDoc["showPhone"]) {
+            profile.privacy.showPhone = privacyDoc["showPhone"].get_bool().value;
+        }
+        if (privacyDoc["showLocation"]) {
+            profile.privacy.showLocation = privacyDoc["showLocation"].get_bool().value;
+        }
+        if (privacyDoc["showAvailability"]) {
+            profile.privacy.showAvailability = privacyDoc["showAvailability"].get_bool().value;
+        }
     }
 
     return profile;

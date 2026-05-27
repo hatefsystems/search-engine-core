@@ -4,12 +4,18 @@
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/storage/AuditLogger.h"
 #include "../../include/search_engine/seo/SEOGenerator.h"
+#include "../../include/search_engine/common/Base64.h"
+#include "../../include/search_engine/common/ImageValidator.h"
+#include "../../include/search_engine/common/SkillNormalizer.h"
+#include "../../include/search_engine/skills/SkillsData.h"
 #include <nlohmann/json.hpp>
 #include <inja/inja.hpp>
 #include <chrono>
 #include <sstream>
 #include <iomanip>
 #include <random>
+#include <fstream>
+#include <filesystem>
 
 ProfileController::ProfileController() {
     // Empty constructor - use lazy initialization pattern
@@ -535,6 +541,97 @@ nlohmann::json ProfileController::profileToJson(const search_engine::storage::Pr
     return json;
 }
 
+nlohmann::json ProfileController::personProfileToJson(const search_engine::storage::PersonProfile& profile) {
+    // Start with base profile fields
+    nlohmann::json json = profileToJson(static_cast<const search_engine::storage::Profile&>(profile));
+    
+    // Add PersonProfile-specific fields
+    if (profile.displayName) {
+        json["displayName"] = profile.displayName.value();
+    }
+    if (profile.englishName) {
+        json["englishName"] = profile.englishName.value();
+    }
+    if (profile.tagline) {
+        json["tagline"] = profile.tagline.value();
+    }
+    if (profile.professionalSummary) {
+        json["professionalSummary"] = profile.professionalSummary.value();
+    }
+    if (profile.location) {
+        json["location"] = profile.location.value();
+    }
+    if (!profile.languages.empty()) {
+        json["languages"] = profile.languages;
+    }
+    if (profile.avatarUrl) {
+        json["avatarUrl"] = profile.avatarUrl.value();
+    }
+    if (profile.coverImageUrl) {
+        json["coverImageUrl"] = profile.coverImageUrl.value();
+    }
+    if (profile.availabilityStatus) {
+        json["availabilityStatus"] = profile.availabilityStatus.value();
+    }
+    if (profile.title) {
+        json["title"] = profile.title.value();
+    }
+    if (profile.company) {
+        json["company"] = profile.company.value();
+    }
+    if (!profile.skills.empty()) {
+        json["skills"] = profile.skills;
+    }
+    if (!profile.skillsWithLevel.empty()) {
+        nlohmann::json skillsArray = nlohmann::json::array();
+        for (const auto& skill : profile.skillsWithLevel) {
+            nlohmann::json skillJson = {
+                {"name", skill.name},
+                {"level", skill.level}
+            };
+            if (!skill.category.empty()) {
+                skillJson["category"] = skill.category;
+            }
+            skillsArray.push_back(skillJson);
+        }
+        json["skillsWithLevel"] = skillsArray;
+    }
+    if (profile.experienceLevel) {
+        json["experienceLevel"] = profile.experienceLevel.value();
+    }
+    if (profile.education) {
+        json["education"] = profile.education.value();
+    }
+    if (profile.school) {
+        json["school"] = profile.school.value();
+    }
+    if (profile.linkedinUrl) {
+        json["linkedinUrl"] = profile.linkedinUrl.value();
+    }
+    if (profile.githubUrl) {
+        json["githubUrl"] = profile.githubUrl.value();
+    }
+    if (profile.portfolioUrl) {
+        json["portfolioUrl"] = profile.portfolioUrl.value();
+    }
+    if (profile.email) {
+        json["email"] = profile.email.value();
+    }
+    if (profile.phone) {
+        json["phone"] = profile.privacy.showPhone ? profile.phone.value() : "";
+    }
+    
+    // Privacy settings
+    json["privacy"] = nlohmann::json{
+        {"showEmail", profile.privacy.showEmail},
+        {"showPhone", profile.privacy.showPhone},
+        {"showLocation", profile.privacy.showLocation},
+        {"showAvailability", profile.privacy.showAvailability}
+    };
+    
+    return json;
+}
+
 std::string ProfileController::profileTypeToString(search_engine::storage::ProfileType type) {
     switch (type) {
         case search_engine::storage::ProfileType::PERSON: return "PERSON";
@@ -599,6 +696,8 @@ void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 auto result = getStorage()->store(profile);
 
                 if (result.success) {
+                    profile.id = result.value;
+
                     // Audit log: record profile creation
                     try {
                         std::string userId = getCallerIdentity(req);
@@ -670,14 +769,37 @@ void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpR
             return;
         }
 
+        // First, get the basic profile to check the type
         auto result = getStorage()->findById(id);
 
         if (result.success) {
-            nlohmann::json response = {
-                {"success", true},
-                {"message", result.message},
-                {"data", profileToJson(result.value)}
-            };
+            nlohmann::json response;
+            
+            // If it's a PERSON profile, get the full PersonProfile data
+            if (result.value.type == search_engine::storage::ProfileType::PERSON) {
+                auto personResult = getStorage()->findPersonById(id);
+                if (personResult.success && personResult.value.has_value()) {
+                    response = {
+                        {"success", true},
+                        {"message", personResult.message},
+                        {"data", personProfileToJson(personResult.value.value())}
+                    };
+                } else {
+                    response = {
+                        {"success", true},
+                        {"message", result.message},
+                        {"data", profileToJson(result.value)}
+                    };
+                }
+            } else {
+                // For non-person profiles, use the basic profileToJson
+                response = {
+                    {"success", true},
+                    {"message", result.message},
+                    {"data", profileToJson(result.value)}
+                };
+            }
+            
             json(res, response);
         } else {
             notFound(res, result.message);
@@ -2280,3 +2402,500 @@ void ProfileController::cleanupExpiredLinkAnalytics(uWS::HttpResponse<false>* re
         serverError(res, "Internal server error");
     }
 }
+
+// ==================== Image Upload Endpoints ====================
+
+void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    std::string buffer;
+
+    if (profileId.empty()) {
+        badRequest(res, "Profile ID is required");
+        return;
+    }
+
+    res->onAborted([res]() {
+        LOG_DEBUG("Avatar upload request aborted");
+    });
+
+    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        buffer.append(data.data(), data.length());
+
+        if (last) {
+            try {
+                // Parse JSON body
+                auto jsonBody = nlohmann::json::parse(buffer);
+
+                if (!jsonBody.contains("image") || !jsonBody["image"].is_string()) {
+                    badRequest(res, "Image data is required (base64 encoded)");
+                    return;
+                }
+
+                // Get existing profile
+                auto profileResult = getStorage()->findPersonById(profileId);
+                if (!profileResult.success || !profileResult.value.has_value()) {
+                    notFound(res, "Profile not found");
+                    return;
+                }
+
+                auto personProfile = profileResult.value.value();
+
+                // Check ownership
+                std::string authToken = getAuthToken(req);
+                if (!checkOwnership(personProfile, authToken)) {
+                    res->writeStatus("403 Forbidden");
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Forbidden: You don't have permission to upload avatar"},
+                        {"error", "FORBIDDEN"}
+                    };
+                    json(res, errorResponse);
+                    return;
+                }
+
+                // Decode base64 image
+                std::string base64Data = jsonBody["image"].get<std::string>();
+                
+                // Remove data URI prefix if present (e.g., "data:image/png;base64,")
+                size_t commaPos = base64Data.find(',');
+                if (commaPos != std::string::npos) {
+                    base64Data = base64Data.substr(commaPos + 1);
+                }
+
+                std::vector<unsigned char> imageData = search_engine::common::Base64::decode(base64Data);
+
+                // Validate image
+                auto imageInfo = search_engine::common::ImageValidator::validate(
+                    imageData, 
+                    search_engine::common::ImageValidator::MAX_AVATAR_SIZE
+                );
+
+                if (!imageInfo.isValid) {
+                    badRequest(res, "Invalid image: unsupported format or exceeds size limit (5 MB)");
+                    return;
+                }
+
+                // Save image to file
+                std::string extension = search_engine::common::ImageValidator::getExtension(imageInfo.type);
+                std::string filePath = saveImageToFile(imageData, profileId, "avatar", extension);
+
+                // Update profile with avatar URL
+                personProfile.avatarUrl = filePath;
+                auto updateResult = getStorage()->update(personProfile);
+
+                if (updateResult.success) {
+                    nlohmann::json response = {
+                        {"success", true},
+                        {"message", "Avatar uploaded successfully"},
+                        {"data", {
+                            {"avatarUrl", filePath},
+                            {"size", (int)imageInfo.size},
+                            {"mimeType", imageInfo.mimeType}
+                        }}
+                    };
+                    json(res, response);
+                    LOG_INFO("Avatar uploaded for profile: " + profileId);
+                } else {
+                    serverError(res, "Failed to update profile with avatar URL");
+                }
+
+            } catch (const nlohmann::json::exception& e) {
+                LOG_ERROR("JSON parse error in uploadAvatar: " + std::string(e.what()));
+                badRequest(res, "Invalid JSON");
+            } catch (const std::exception& e) {
+                LOG_ERROR("Error in uploadAvatar: " + std::string(e.what()));
+                serverError(res, "Failed to upload avatar");
+            }
+        }
+    });
+}
+
+void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    std::string buffer;
+
+    if (profileId.empty()) {
+        badRequest(res, "Profile ID is required");
+        return;
+    }
+
+    res->onAborted([res]() {
+        LOG_DEBUG("Cover upload request aborted");
+    });
+
+    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        buffer.append(data.data(), data.length());
+
+        if (last) {
+            try {
+                // Parse JSON body
+                auto jsonBody = nlohmann::json::parse(buffer);
+
+                if (!jsonBody.contains("image") || !jsonBody["image"].is_string()) {
+                    badRequest(res, "Image data is required (base64 encoded)");
+                    return;
+                }
+
+                // Get existing profile
+                auto profileResult = getStorage()->findPersonById(profileId);
+                if (!profileResult.success || !profileResult.value.has_value()) {
+                    notFound(res, "Profile not found");
+                    return;
+                }
+
+                auto personProfile = profileResult.value.value();
+
+                // Check ownership
+                std::string authToken = getAuthToken(req);
+                if (!checkOwnership(personProfile, authToken)) {
+                    res->writeStatus("403 Forbidden");
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Forbidden: You don't have permission to upload cover image"},
+                        {"error", "FORBIDDEN"}
+                    };
+                    json(res, errorResponse);
+                    return;
+                }
+
+                // Decode base64 image
+                std::string base64Data = jsonBody["image"].get<std::string>();
+                
+                // Remove data URI prefix if present
+                size_t commaPos = base64Data.find(',');
+                if (commaPos != std::string::npos) {
+                    base64Data = base64Data.substr(commaPos + 1);
+                }
+
+                std::vector<unsigned char> imageData = search_engine::common::Base64::decode(base64Data);
+
+                // Validate image
+                auto imageInfo = search_engine::common::ImageValidator::validate(
+                    imageData, 
+                    search_engine::common::ImageValidator::MAX_COVER_SIZE
+                );
+
+                if (!imageInfo.isValid) {
+                    badRequest(res, "Invalid image: unsupported format or exceeds size limit (10 MB)");
+                    return;
+                }
+
+                // Save image to file
+                std::string extension = search_engine::common::ImageValidator::getExtension(imageInfo.type);
+                std::string filePath = saveImageToFile(imageData, profileId, "cover", extension);
+
+                // Update profile with cover URL
+                personProfile.coverImageUrl = filePath;
+                auto updateResult = getStorage()->update(personProfile);
+
+                if (updateResult.success) {
+                    nlohmann::json response = {
+                        {"success", true},
+                        {"message", "Cover image uploaded successfully"},
+                        {"data", {
+                            {"coverImageUrl", filePath},
+                            {"size", (int)imageInfo.size},
+                            {"mimeType", imageInfo.mimeType}
+                        }}
+                    };
+                    json(res, response);
+                    LOG_INFO("Cover image uploaded for profile: " + profileId);
+                } else {
+                    serverError(res, "Failed to update profile with cover URL");
+                }
+
+            } catch (const nlohmann::json::exception& e) {
+                LOG_ERROR("JSON parse error in uploadCover: " + std::string(e.what()));
+                badRequest(res, "Invalid JSON");
+            } catch (const std::exception& e) {
+                LOG_ERROR("Error in uploadCover: " + std::string(e.what()));
+                serverError(res, "Failed to upload cover image");
+            }
+        }
+    });
+}
+
+// ==================== Image Upload Helpers ====================
+
+std::string ProfileController::saveImageToFile(
+    const std::vector<unsigned char>& imageData,
+    const std::string& profileId,
+    const std::string& imageType,
+    const std::string& extension
+) {
+    // Create uploads directory if it doesn't exist
+    std::string uploadsDir = "uploads/" + imageType + "s";
+    std::filesystem::create_directories(uploadsDir);
+
+    // Generate secure filename
+    std::string filename = generateSecureFilename(profileId, extension);
+    std::string filePath = uploadsDir + "/" + filename;
+
+    // Write file
+    std::ofstream outFile(filePath, std::ios::binary);
+    if (!outFile) {
+        throw std::runtime_error("Failed to create file: " + filePath);
+    }
+
+    outFile.write(reinterpret_cast<const char*>(imageData.data()), imageData.size());
+    outFile.close();
+
+    LOG_DEBUG("Saved " + imageType + " image to: " + filePath);
+
+    // Return relative URL path
+    return "/" + filePath;
+}
+
+std::string ProfileController::generateSecureFilename(
+    const std::string& profileId,
+    const std::string& extension
+) {
+    // Generate timestamp
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    // Generate random hash
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 15);
+
+    std::stringstream ss;
+    for (int i = 0; i < 8; i++) {
+        ss << std::hex << dis(gen);
+    }
+
+    // Format: {profileId}_{timestamp}_{hash}.{ext}
+    return profileId + "_" + std::to_string(timestamp) + "_" + ss.str() + "." + extension;
+}
+
+// ==================== Skills Management Endpoints ====================
+
+void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    std::string buffer;
+
+    if (profileId.empty()) {
+        badRequest(res, "Profile ID is required");
+        return;
+    }
+
+    res->onAborted([res]() {
+        LOG_DEBUG("Add skills request aborted");
+    });
+
+    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        buffer.append(data.data(), data.length());
+
+        if (last) {
+            try {
+                // Parse JSON body
+                auto jsonBody = nlohmann::json::parse(buffer);
+
+                if (!jsonBody.contains("skills") || !jsonBody["skills"].is_array()) {
+                    badRequest(res, "Skills array is required");
+                    return;
+                }
+
+                // Get existing profile
+                auto profileResult = getStorage()->findPersonById(profileId);
+                if (!profileResult.success || !profileResult.value.has_value()) {
+                    notFound(res, "Profile not found");
+                    return;
+                }
+
+                auto personProfile = profileResult.value.value();
+
+                // Check ownership
+                std::string authToken = getAuthToken(req);
+                if (!checkOwnership(personProfile, authToken)) {
+                    res->writeStatus("403 Forbidden");
+                    nlohmann::json errorResponse = {
+                        {"success", false},
+                        {"message", "Forbidden: You don't have permission to modify skills"},
+                        {"error", "FORBIDDEN"}
+                    };
+                    json(res, errorResponse);
+                    return;
+                }
+
+                // Parse skills from request
+                for (const auto& skillJson : jsonBody["skills"]) {
+                    if (!skillJson.contains("name") || !skillJson["name"].is_string()) {
+                        continue;
+                    }
+
+                    search_engine::storage::SkillWithLevel skill;
+                    skill.name = search_engine::skills::SkillNormalizer::normalize(
+                        skillJson["name"].get<std::string>()
+                    );
+                    
+                    skill.level = skillJson.contains("level") && skillJson["level"].is_string()
+                        ? skillJson["level"].get<std::string>()
+                        : "INTERMEDIATE";
+                    
+                    skill.category = skillJson.contains("category") && skillJson["category"].is_string()
+                        ? skillJson["category"].get<std::string>()
+                        : search_engine::skills::SkillNormalizer::getCategory(skill.name);
+
+                    // Check for duplicates
+                    bool isDuplicate = false;
+                    for (const auto& existingSkill : personProfile.skillsWithLevel) {
+                        if (existingSkill.name == skill.name) {
+                            isDuplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!isDuplicate) {
+                        personProfile.skillsWithLevel.push_back(skill);
+                    }
+                }
+
+                // Update profile
+                auto updateResult = getStorage()->update(personProfile);
+
+                if (updateResult.success) {
+                    nlohmann::json response = {
+                        {"success", true},
+                        {"message", "Skills added successfully"},
+                        {"data", {
+                            {"skillsCount", (int)personProfile.skillsWithLevel.size()}
+                        }}
+                    };
+                    json(res, response);
+                    LOG_INFO("Skills added to profile: " + profileId);
+                } else {
+                    serverError(res, "Failed to update profile with skills");
+                }
+
+            } catch (const nlohmann::json::exception& e) {
+                LOG_ERROR("JSON parse error in addSkills: " + std::string(e.what()));
+                badRequest(res, "Invalid JSON");
+            } catch (const std::exception& e) {
+                LOG_ERROR("Error in addSkills: " + std::string(e.what()));
+                serverError(res, "Failed to add skills");
+            }
+        }
+    });
+}
+
+void ProfileController::removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (checkRateLimit(res, req)) {
+        return;
+    }
+    
+    std::string profileId = std::string(req->getParameter(0));
+    std::string skillName = std::string(req->getParameter(1));
+
+    if (profileId.empty() || skillName.empty()) {
+        badRequest(res, "Profile ID and skill name are required");
+        return;
+    }
+
+    try {
+        // Get existing profile
+        auto profileResult = getStorage()->findPersonById(profileId);
+        if (!profileResult.success || !profileResult.value.has_value()) {
+            notFound(res, "Profile not found");
+            return;
+        }
+
+        auto personProfile = profileResult.value.value();
+
+        // Check ownership
+        std::string authToken = getAuthToken(req);
+        if (!checkOwnership(personProfile, authToken)) {
+            res->writeStatus("403 Forbidden");
+            nlohmann::json errorResponse = {
+                {"success", false},
+                {"message", "Forbidden: You don't have permission to modify skills"},
+                {"error", "FORBIDDEN"}
+            };
+            json(res, errorResponse);
+            return;
+        }
+
+        // Remove skill
+        auto& skills = personProfile.skillsWithLevel;
+        auto it = std::remove_if(skills.begin(), skills.end(),
+            [&skillName](const search_engine::storage::SkillWithLevel& s) {
+                return s.name == skillName;
+            });
+
+        if (it != skills.end()) {
+            skills.erase(it, skills.end());
+
+            // Update profile
+            auto updateResult = getStorage()->update(personProfile);
+
+            if (updateResult.success) {
+                nlohmann::json response = {
+                    {"success", true},
+                    {"message", "Skill removed successfully"},
+                    {"data", {
+                        {"skillsCount", (int)personProfile.skillsWithLevel.size()}
+                    }}
+                };
+                json(res, response);
+                LOG_INFO("Skill removed from profile: " + profileId);
+            } else {
+                serverError(res, "Failed to update profile");
+            }
+        } else {
+            notFound(res, "Skill not found in profile");
+        }
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in removeSkill: " + std::string(e.what()));
+        serverError(res, "Failed to remove skill");
+    }
+}
+
+void ProfileController::getSkillsAutocomplete(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    try {
+        // Get query parameter
+        std::string query = std::string(req->getQuery("q"));
+
+        if (query.empty()) {
+            badRequest(res, "Query parameter 'q' is required");
+            return;
+        }
+
+        // Get limit parameter (default: 10)
+        std::string limitStr = std::string(req->getQuery("limit"));
+        int limit = limitStr.empty() ? 10 : std::stoi(limitStr);
+        limit = std::min(limit, 50); // Max 50 results
+
+        // Autocomplete skills
+        auto results = search_engine::skills::SkillNormalizer::autocomplete(query, limit);
+
+        nlohmann::json response = {
+            {"success", true},
+            {"message", "Skills autocomplete results"},
+            {"data", {
+                {"query", query},
+                {"results", results},
+                {"count", results.size()}
+            }}
+        };
+
+        json(res, response);
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getSkillsAutocomplete: " + std::string(e.what()));
+        serverError(res, "Failed to get autocomplete results");
+    }
+}
+

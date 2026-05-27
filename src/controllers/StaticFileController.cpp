@@ -332,4 +332,61 @@ std::string StaticFileController::getLastModifiedHeader(const std::string& fileP
         LOG_WARNING("Failed to get last modified time for " + filePath + ": " + std::string(e.what()));
         return "";
     }
-} 
+}
+
+// ==================== Upload Serving ====================
+
+void StaticFileController::serveUpload(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    std::string path = std::string(req->getUrl());
+    
+    LOG_DEBUG("Serving uploaded file: " + path);
+    
+    // Remove "/uploads" prefix to get the actual path
+    if (path.find("/uploads") == 0) {
+        path = path.substr(8); // Remove "/uploads" (8 characters)
+    }
+    
+    // Construct full file path
+    std::string filePath = "uploads" + path;
+    
+    // Security: prevent directory traversal
+    if (path.find("..") != std::string::npos) {
+        notFound(res, "Invalid path");
+        return;
+    }
+    
+    // Check if file exists
+    if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath)) {
+        LOG_WARNING("Upload file not found: " + path);
+        notFound(res, "File not found");
+        return;
+    }
+    
+    // Read file content
+    std::string content = readFile(filePath);
+    if (content.empty() && std::filesystem::file_size(filePath) > 0) {
+        serverError(res, "Failed to read file");
+        return;
+    }
+    
+    // Determine MIME type
+    std::string mimeType = getMimeType(filePath);
+    
+    // Set response headers
+    res->writeStatus("200 OK")
+       ->writeHeader("Content-Type", mimeType);
+    
+    // Set cache headers for uploads (long cache time since filenames are unique)
+    res->writeHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res->writeHeader("ETag", generateETag(content));
+    res->writeHeader("Last-Modified", getLastModifiedHeader(filePath));
+    
+    // Add security headers
+    res->writeHeader("X-Content-Type-Options", "nosniff");
+    
+    // Send content
+    res->end(content);
+    
+    LOG_INFO("Served uploaded file: " + path + " (" + std::to_string(content.length()) + " bytes)");
+}
+ 
