@@ -27,7 +27,9 @@ enhanced crawler capabilities.
 - `GET /api/pulse/top-queries` - Public-safe top query scores
 - `GET /api/pulse/rising` - Public-safe rising query scores
 - `GET /api/pulse/zero-results` - Public-safe no-result opportunities
-- `GET /api/pulse/query?q=...` - Relative 24-hour query trend
+- `GET /api/pulse/query?q=...` - Relative query trend for the selected range
+- Pulse endpoints support `range=today|week|month|year|all` and do not expose
+  exact raw search counts
 - See: [pulse_endpoint.md](./pulse_endpoint.md)
 
 ### Enhanced Crawler API

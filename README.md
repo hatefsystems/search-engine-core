@@ -14,8 +14,9 @@ of all.
 
 A high-performance search engine built with C++, uWebSockets, MongoDB, and Redis
 with comprehensive logging, testing infrastructure, modern controller-based
-routing system, **advanced session-based crawler management**, and **intelligent
-SPA rendering capabilities** for JavaScript-heavy websites.
+routing system, **advanced session-based crawler management**, **intelligent
+SPA rendering capabilities** for JavaScript-heavy websites, and **Pulse
+lightweight public search analytics**.
 
 ## ⚡ **Latest Performance Optimizations**
 
@@ -84,6 +85,21 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 - **Flexible Configuration**: Runtime configuration of SPA rendering, timeouts,
   and content extraction
 
+### 📊 **Pulse Public Search Analytics**
+
+- **Public Pulse Page**: Persian RTL page at `/نبض` with optional `/pulse`
+  fallback
+- **Relative Scores**: Public APIs expose product-safe scores from 0 to 100
+  instead of exact raw search counts
+- **Date Ranges**: Supports `today`, `week`, `month`, `year`, and `all` views
+  for summary, top, rising, zero-result, and query trend data
+- **Separate Analytics Storage**: Uses a dedicated MongoDB database
+  (`hatef_pulse` by default), separate from search indexing storage
+- **Search-Safe Collection**: Analytics writes are best-effort, queued, and never
+  allowed to fail the search response path
+- **Lightweight UI**: Mobile-first page with minimal JavaScript and no external
+  charting dependency
+
 ### 🚀 **Advanced JavaScript Minification & Caching System**
 
 - **Microservice Architecture**: Dedicated Node.js minification service with Terser
@@ -128,6 +144,7 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   ├── controllers/            # Controller-based routing system
 │   │   ├── HomeController.cpp  # Home page, sponsor API, and coming soon handling
 │   │   ├── SearchController.cpp # Search functionality and crawler APIs
+│   │   ├── PulseController.cpp # Pulse public page and analytics APIs
 │   │   ├── StaticFileController.cpp # Static file serving with caching
 │   │   └── CacheController.cpp # Cache monitoring and management
 │   ├── routing/                # Routing infrastructure
@@ -149,10 +166,12 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   │   ├── SearchClient.cpp    # RedisSearch interface with connection pooling
 │   │   ├── QueryParser.cpp     # Query parsing with AST generation
 │   │   └── Scorer.cpp          # Result ranking and scoring configuration
+│   ├── pulse/                  # Pulse analytics queue, normalization, and scoring
 │   └── storage/                # Data persistence with comprehensive logging
 │       ├── MongoDBStorage.cpp  # MongoDB operations with CRUD logging
 │       ├── RedisSearchStorage.cpp # Redis search indexing with operation logging
 │       ├── ContentStorage.cpp  # Unified storage with detailed flow logging
+│       ├── PulseAnalyticsStorage.cpp # Pulse MongoDB aggregates and public reads
 │       └── SponsorStorage.cpp  # Sponsor data management with MongoDB integration
 ├── js-minifier-service/        # JavaScript minification microservice
 │   ├── enhanced-server.js      # Enhanced minification server with multiple methods
@@ -176,7 +195,9 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │       │      ├── CrawlConfig.h
 │       │      ├── CrawlResult.h
 │       │      └── FailureType.h
+│       ├── pulse/              # Pulse analytics event, normalizer, and score models
 │       └── storage/            # Storage API headers
+│          ├── PulseAnalyticsStorage.h # Pulse analytics storage interface
 │          ├── SponsorProfile.h # Sponsor data model
 │          └── SponsorStorage.h # Sponsor storage interface
 ├── docs/                       # Comprehensive documentation
@@ -186,9 +207,11 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   ├── development/            # Development guides
 │   │   └── MONGODB_CPP_GUIDE.md # MongoDB C++ development patterns
 │   └── api/                    # REST API documentation
+│      ├── pulse_endpoint.md    # Pulse public analytics API
 │      ├── sponsor_endpoint.md  # Sponsor API documentation
 │      └── README.md            # API overview
 ├── pages/                      # Frontend source files
+├── templates/                  # Server-rendered templates, including pulse.inja
 ├── public/                     # Static files served by server
 ├── tests/                      # Comprehensive testing suite
 │   ├── integration/            # Integration tests (API, end-to-end)
@@ -196,6 +219,7 @@ SPA rendering capabilities** for JavaScript-heavy websites.
 │   │   ├── test_link_blocks.sh     # Link blocks & analytics
 │   │   └── test_website_profile_api.sh
 │   ├── crawler/                # Crawler component tests (including SPA tests)
+│   ├── pulse/                  # Pulse normalization and scoring tests
 │   ├── search_core/            # Search API unit tests
 │   └── storage/                # Storage component tests
 ├── config/                     # Configuration files
@@ -445,6 +469,14 @@ The search engine features a modern, attribute-based routing system inspired by
   - `GET /api/crawl/details` - Detailed crawl results
   - `POST /api/spa/detect` - SPA detection endpoint
   - `POST /api/spa/render` - Direct SPA rendering
+- **PulseController**:
+  - `GET /نبض` - Primary Persian RTL Pulse page
+  - `GET /pulse` - Optional English fallback Pulse page
+  - `GET /api/pulse/summary` - Relative activity summary
+  - `GET /api/pulse/top-queries` - Public-safe top query scores
+  - `GET /api/pulse/rising` - Public-safe rising query scores
+  - `GET /api/pulse/zero-results` - Public-safe zero-result opportunities
+  - `GET /api/pulse/query?q=...` - Relative query trend
 - **StaticFileController**: Static file serving with proper MIME types
 
 ## Search Engine API (search_core)

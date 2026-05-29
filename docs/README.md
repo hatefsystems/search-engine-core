@@ -15,6 +15,7 @@ Welcome to the Search Engine Core documentation. This directory contains compreh
 
 - **[api/README.md](./api/README.md)** - API documentation index
 - **[api/crawler_endpoint.md](./api/crawler_endpoint.md)** - Web crawler API endpoints
+- **[api/pulse_endpoint.md](./api/pulse_endpoint.md)** - Pulse public analytics API and `/نبض` route
 - **[api/search_endpoint.md](./api/search_endpoint.md)** - Search API endpoints
 - **[api/sponsor_endpoint.md](./api/sponsor_endpoint.md)** - Sponsor management API
 - **[api/website_profile_endpoint.md](./api/website_profile_endpoint.md)** - Website profile API
@@ -81,6 +82,7 @@ docs/
 │   ├── profile_endpoint.md                # Profile CRUD API
 │   ├── link_blocks_endpoint.md            # Link blocks & analytics API
 │   ├── LINK_BLOCKS_QUICK_START.md         # Link blocks quick start guide
+│   ├── pulse_endpoint.md                  # Pulse public analytics API
 │   ├── crawler_endpoint.md                # Crawler API documentation
 │   ├── search_endpoint.md                 # Search API documentation
 │   ├── sponsor_endpoint.md                # Sponsor API documentation
@@ -166,6 +168,7 @@ docs/
 #### Core Components
 
 - **Search Engine** - C++20 implementation with RedisSearch integration
+- **Pulse** - Lightweight public search analytics backed by a separate MongoDB database
 - **Web Crawler** - Multi-threaded web crawler with content parsing
 - **Storage Layer** - MongoDB and Redis storage backends
 - **API Server** - uWebSockets-based HTTP/WebSocket server
