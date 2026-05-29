@@ -23,9 +23,10 @@ public:
     void searchResultsPartial(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     
     // Crawl management
-    void addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // Supports 'force' parameter
+    void addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // Supports 'force' and 'priority' parameters (#14)
     void getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getCrawlDetails(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // New endpoint
+    void getCrawlQueue(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // List pending sessions (#14)
     
     // SPA detection
     void detectSpa(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -81,5 +82,6 @@ ROUTE_CONTROLLER(SearchController) {
     REGISTER_ROUTE(HttpMethod::POST, "/api/crawl/add-site", addSiteToCrawl, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/status", getCrawlStatus, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/details", getCrawlDetails, SearchController); // New endpoint
+    REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/queue", getCrawlQueue, SearchController); // Pending session queue (#14)
     REGISTER_ROUTE(HttpMethod::POST, "/api/spa/detect", detectSpa, SearchController);
 } 

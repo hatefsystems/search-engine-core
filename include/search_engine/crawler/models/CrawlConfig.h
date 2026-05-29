@@ -30,6 +30,13 @@ struct CrawlConfig {
     std::chrono::milliseconds baseRetryDelay{1000};
     float backoffMultiplier = 2.0f;
     std::chrono::milliseconds maxRetryDelay{30000};
+
+    // Session-level retry policy (separate from URL-level above).
+    // Used by CrawlerManager when a whole crawl session fails wholesale.
+    // Default 0 == disabled (preserves prior behavior).
+    int maxSessionRetries = 0;
+    std::chrono::milliseconds sessionRetryBaseDelay{30000};
+    std::chrono::milliseconds sessionRetryMaxDelay{600000}; // 10 min cap
     
     // Maximum session duration to prevent infinite crawling (default: 10 minutes)
     std::chrono::minutes maxSessionDuration{10};
