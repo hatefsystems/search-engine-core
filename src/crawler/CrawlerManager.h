@@ -11,6 +11,7 @@
 #include "Crawler.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
+#include "../../include/search_engine/auth/User.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
 
 // Forward declaration for completion callback
@@ -33,19 +34,22 @@ struct CrawlSession {
     std::atomic<bool> isCompleted{false};
     std::thread crawlThread;
     CrawlCompletionCallback completionCallback;
-    
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
-                 CrawlCompletionCallback callback = nullptr)
+    std::string userId;  // Owner; empty = no owner (legacy / anonymous). #13
+
+    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance,
+                 CrawlCompletionCallback callback = nullptr,
+                 std::string ownerUserId = "")
         : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
-          completionCallback(std::move(callback)) {}
-    
+          completionCallback(std::move(callback)), userId(std::move(ownerUserId)) {}
+
     CrawlSession(CrawlSession&& other) noexcept
         : id(std::move(other.id))
         , crawler(std::move(other.crawler))
         , createdAt(other.createdAt)
         , isCompleted(other.isCompleted.load())
         , crawlThread(std::move(other.crawlThread))
-        , completionCallback(std::move(other.completionCallback)) {}
+        , completionCallback(std::move(other.completionCallback))
+        , userId(std::move(other.userId)) {}
     
     CrawlSession(const CrawlSession&) = delete;
     CrawlSession& operator=(const CrawlSession&) = delete;
@@ -65,26 +69,27 @@ public:
      * @param completionCallback Optional callback to execute when crawl completes
      * @return Session ID of the started crawl
      */
-    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false, 
-                          CrawlCompletionCallback completionCallback = nullptr);
-    
-    // Get crawl results by session ID
+    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false,
+                          CrawlCompletionCallback completionCallback = nullptr,
+                          const std::string& ownerUserId = "");
+
     std::vector<CrawlResult> getCrawlResults(const std::string& sessionId);
-    
-    // Get crawl status by session ID
     std::string getCrawlStatus(const std::string& sessionId);
-    
-    // Stop a specific crawl session
     bool stopCrawl(const std::string& sessionId);
-    
-    // Get all active sessions
     std::vector<std::string> getActiveSessions();
-    
-    // Clean up completed sessions (called periodically)
     void cleanupCompletedSessions();
-    
-    // Get session count for monitoring
     size_t getActiveSessionCount();
+
+    std::vector<CrawlResult> getCrawlResults(const std::string& sessionId,
+                                             const search_engine::auth::AuthContext& ctx);
+    std::string getCrawlStatus(const std::string& sessionId,
+                               const search_engine::auth::AuthContext& ctx);
+    bool stopCrawl(const std::string& sessionId,
+                   const search_engine::auth::AuthContext& ctx);
+    std::vector<std::string> getActiveSessions(const search_engine::auth::AuthContext& ctx);
+
+    static bool canAccess(const std::string& sessionOwnerId,
+                          const search_engine::auth::AuthContext& ctx);
     
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }

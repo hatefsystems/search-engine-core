@@ -75,6 +75,8 @@ set(STORAGE_SOURCES
     LinkBlock.cpp
     LinkBlockStorage.cpp
     LinkClickAnalyticsStorage.cpp
+    ../auth/PasswordHasher.cpp
+    ../auth/Jwt.cpp
     ../infrastructure.cpp
 )
 

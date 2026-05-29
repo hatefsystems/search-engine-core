@@ -131,6 +131,7 @@ file(GLOB_RECURSE MAIN_SOURCES "src/*.cpp" "src/main.cpp")
 # Remove crawler sources, storage sources, test sources, and common sources from MAIN_SOURCES
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*crawler/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*storage/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*src/auth/.*\\.cpp$")  # compiled into storage lib (#13)
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*common/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*scoring/.*\\.cpp$")
