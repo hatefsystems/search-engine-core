@@ -11,6 +11,7 @@
 #include "Crawler.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
+#include "../auth/User.h"
 #include "../storage/ContentStorage.h"
 
 // Forward declaration for completion callback
@@ -33,19 +34,24 @@ struct CrawlSession {
     std::atomic<bool> isCompleted{false};
     std::thread crawlThread;
     CrawlCompletionCallback completionCallback;
-    
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
-                 CrawlCompletionCallback callback = nullptr)
+    // Owner of this session. Empty string means "system / anonymous"
+    // (legacy behaviour); when set, only the owner or admins can access. #13
+    std::string userId;
+
+    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance,
+                 CrawlCompletionCallback callback = nullptr,
+                 std::string ownerUserId = "")
         : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
-          completionCallback(std::move(callback)) {}
-    
+          completionCallback(std::move(callback)), userId(std::move(ownerUserId)) {}
+
     CrawlSession(CrawlSession&& other) noexcept
         : id(std::move(other.id))
         , crawler(std::move(other.crawler))
         , createdAt(other.createdAt)
         , isCompleted(other.isCompleted.load())
         , crawlThread(std::move(other.crawlThread))
-        , completionCallback(std::move(other.completionCallback)) {}
+        , completionCallback(std::move(other.completionCallback))
+        , userId(std::move(other.userId)) {}
     
     CrawlSession(const CrawlSession&) = delete;
     CrawlSession& operator=(const CrawlSession&) = delete;
@@ -65,15 +71,35 @@ public:
      * @param completionCallback Optional callback to execute when crawl completes
      * @return Session ID of the started crawl
      */
-    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false, 
-                          CrawlCompletionCallback completionCallback = nullptr);
-    
+    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false,
+                          CrawlCompletionCallback completionCallback = nullptr,
+                          const std::string& ownerUserId = "");
+
     std::vector<CrawlResult> getCrawlResults(const std::string& sessionId);
     std::string getCrawlStatus(const std::string& sessionId);
     bool stopCrawl(const std::string& sessionId);
     std::vector<std::string> getActiveSessions();
     void cleanupCompletedSessions();
     size_t getActiveSessionCount();
+
+    // ---- User-aware variants (issue #13) ----
+    // Each returns the same data as the legacy variant if the AuthContext is
+    // an admin OR the session is owned by ctx.userId. Otherwise returns the
+    // "not found" / "not authorised" equivalent (empty results, "not_found"
+    // status, false for stopCrawl). Empty owner on a session = anyone may
+    // access (back-compat for legacy callers).
+    std::vector<CrawlResult> getCrawlResults(const std::string& sessionId,
+                                             const search_engine::auth::AuthContext& ctx);
+    std::string getCrawlStatus(const std::string& sessionId,
+                               const search_engine::auth::AuthContext& ctx);
+    bool stopCrawl(const std::string& sessionId,
+                   const search_engine::auth::AuthContext& ctx);
+    std::vector<std::string> getActiveSessions(const search_engine::auth::AuthContext& ctx);
+
+    // Helper exposed for controllers and tests: is `ctx` allowed to touch
+    // the session owned by `sessionOwnerId`?
+    static bool canAccess(const std::string& sessionOwnerId,
+                          const search_engine::auth::AuthContext& ctx);
     
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }

@@ -42,7 +42,7 @@ CrawlerManager::~CrawlerManager() {
     LOG_INFO("CrawlerManager shutdown complete");
 }
 
-std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback) {
+std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig& config, bool force, CrawlCompletionCallback completionCallback, const std::string& ownerUserId) {
     // Check if we've reached the maximum concurrent sessions limit
     size_t currentSessions = getActiveSessionCount();
     
@@ -76,7 +76,7 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
         
         // Create crawl session with completion callback
         LOG_DEBUG("CrawlerManager::startCrawl - Creating crawl session for session: " + sessionId);
-        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback));
+        auto session = std::make_unique<CrawlSession>(sessionId, std::move(crawler), std::move(completionCallback), ownerUserId);
         
         // Add seed URL to the crawler
         LOG_DEBUG("CrawlerManager::startCrawl - Adding seed URL for session: " + sessionId);
@@ -410,6 +410,77 @@ std::unique_ptr<Crawler> CrawlerManager::createCrawler(const CrawlConfig& config
             CrawlLogger::broadcastLog("🤖 SPA rendering enabled for session with browserless URL: " + config.browserlessUrl, "info");
         }
     }
-    
+
     return crawler;
+}
+
+// =====================================================================
+// User-aware (issue #13): same semantics as the legacy variants but only
+// returns data if the calling user owns the session or is an admin.
+// Sessions with empty ownerUserId (created via legacy startCrawl path)
+// remain accessible to any caller to preserve back-compat for internal
+// callers (Celery scheduler, system jobs).
+// =====================================================================
+
+bool CrawlerManager::canAccess(const std::string& sessionOwnerId,
+                               const search_engine::auth::AuthContext& ctx) {
+    if (sessionOwnerId.empty()) return true;          // legacy / system session
+    if (ctx.isAdmin()) return true;
+    return ctx.userId == sessionOwnerId;
+}
+
+std::vector<CrawlResult> CrawlerManager::getCrawlResults(
+    const std::string& sessionId, const search_engine::auth::AuthContext& ctx) {
+    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    auto it = sessions_.find(sessionId);
+    if (it == sessions_.end()) return {};
+    if (!canAccess(it->second->userId, ctx)) {
+        LOG_WARNING("Access denied to session " + sessionId + " for user " + ctx.userId);
+        return {};
+    }
+    return it->second->crawler->getResults();
+}
+
+std::string CrawlerManager::getCrawlStatus(
+    const std::string& sessionId, const search_engine::auth::AuthContext& ctx) {
+    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    auto it = sessions_.find(sessionId);
+    if (it == sessions_.end()) return "not_found";
+    if (!canAccess(it->second->userId, ctx)) {
+        // Don't leak existence to non-owners.
+        return "not_found";
+    }
+    if (it->second->isCompleted) return "completed";
+    auto results = it->second->crawler->getResults();
+    if (results.empty()) return "starting";
+    bool hasActive = false;
+    for (const auto& r : results) {
+        if (r.crawlStatus == "queued" || r.crawlStatus == "downloading") { hasActive = true; break; }
+    }
+    return hasActive ? "crawling" : "completed";
+}
+
+bool CrawlerManager::stopCrawl(const std::string& sessionId,
+                               const search_engine::auth::AuthContext& ctx) {
+    {
+        std::lock_guard<std::mutex> lock(sessionsMutex_);
+        auto it = sessions_.find(sessionId);
+        if (it == sessions_.end()) return false;
+        if (!canAccess(it->second->userId, ctx)) {
+            LOG_WARNING("stopCrawl denied for user " + ctx.userId + " on session " + sessionId);
+            return false;
+        }
+    }
+    return stopCrawl(sessionId);
+}
+
+std::vector<std::string> CrawlerManager::getActiveSessions(
+    const search_engine::auth::AuthContext& ctx) {
+    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::vector<std::string> out;
+    for (const auto& [id, s] : sessions_) {
+        if (s->isCompleted) continue;
+        if (canAccess(s->userId, ctx)) out.push_back(id);
+    }
+    return out;
 } 

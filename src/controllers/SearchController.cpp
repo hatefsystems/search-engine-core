@@ -2,6 +2,8 @@
 #include "../../include/Logger.h"
 #include "../../include/search_engine/crawler/Crawler.h"
 #include "../../include/search_engine/crawler/CrawlerManager.h"
+#include "AuthController.h"
+#include "../../include/search_engine/auth/User.h"
 #include "../../include/search_engine/crawler/PageFetcher.h"
 #include "../../include/search_engine/crawler/models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
@@ -194,10 +196,21 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
     }
     
     LOG_INFO("IP Address: " + ipAddress + ", User Agent: " + userAgent);
-    
+
+    // Extract auth context BEFORE the async data callback — the request
+    // pointer is not safe to dereference inside onData. #13
+    auto authCtx = AuthController::extractAuth(req);
+    if (!authCtx.has_value()) {
+        res->writeStatus("401 Unauthorized")
+           ->writeHeader("Content-Type", "application/json")
+           ->end("{\"error\":\"authentication required\"}");
+        return;
+    }
+    search_engine::auth::AuthContext ctx = *authCtx;
+
     // Read the request body
     std::string buffer;
-    res->onData([this, res, req, buffer = std::move(buffer), requestStartTime, ipAddress, userAgent](std::string_view data, bool last) mutable {
+    res->onData([this, res, req, buffer = std::move(buffer), requestStartTime, ipAddress, userAgent, ctx](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
         
         LOG_INFO("addSiteToCrawl: Received data chunk, length: " + std::to_string(data.length()) + ", last: " + (last ? "true" : "false") + ", buffer size: " + std::to_string(buffer.size()));
@@ -271,12 +284,14 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 
                 // Start new crawl session
                 if (g_crawlerManager) {
-                    // Stop previous sessions if requested
+                    // Stop previous sessions if requested. Only the caller's
+                    // own active sessions are visible/stoppable here (admins
+                    // can stop everyone's). #13
                     if (stopPreviousSessions) {
-                        auto activeSessions = g_crawlerManager->getActiveSessions();
-                        LOG_INFO("Stopping " + std::to_string(activeSessions.size()) + " active sessions before starting new crawl");
+                        auto activeSessions = g_crawlerManager->getActiveSessions(ctx);
+                        LOG_INFO("Stopping " + std::to_string(activeSessions.size()) + " active sessions for user " + ctx.userId);
                         for (const auto& activeSessionId : activeSessions) {
-                            g_crawlerManager->stopCrawl(activeSessionId);
+                            g_crawlerManager->stopCrawl(activeSessionId, ctx);
                         }
                     }
                     
@@ -317,8 +332,9 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                         };
                     }
                     
-                    // Start new crawl session with completion callback
-                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback);
+                    // Start new crawl session — owner = authenticated user. #13
+                    std::string sessionId = g_crawlerManager->startCrawl(
+                        url, config, force, emailCallback, ctx.userId);
                     
                     LOG_INFO("Started new crawl session: " + sessionId + " for URL: " + url + 
                              " (maxPages: " + std::to_string(maxPages) + 
@@ -587,8 +603,18 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
 
 void SearchController::getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
     LOG_INFO("SearchController::getCrawlStatus called");
-    
+
     try {
+        // Authentication required for any access to session data. #13
+        auto authCtx = AuthController::extractAuth(req);
+        if (!authCtx.has_value()) {
+            res->writeStatus("401 Unauthorized")
+               ->writeHeader("Content-Type", "application/json")
+               ->end("{\"error\":\"authentication required\"}");
+            return;
+        }
+        const search_engine::auth::AuthContext& ctx = *authCtx;
+
         // Parse query parameters
         auto params = parseQuery(req);
         
@@ -615,20 +641,20 @@ void SearchController::getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRe
         
         if (g_crawlerManager) {
             if (sessionIdIt != params.end()) {
-                // Get status for specific session
+                // Get status for specific session (ownership-checked) #13
                 std::string sessionId = sessionIdIt->second;
-                std::string status = g_crawlerManager->getCrawlStatus(sessionId);
-                
+                std::string status = g_crawlerManager->getCrawlStatus(sessionId, ctx);
+
                 if (status == "not_found") {
-                    badRequest(res, "Session not found");
+                    notFound(res, "Session not found");
                     return;
                 }
-                
+
                 response["sessionId"] = sessionId;
                 response["status"] = status;
-                
+
                 if (includeResults) {
-                    auto results = g_crawlerManager->getCrawlResults(sessionId);
+                    auto results = g_crawlerManager->getCrawlResults(sessionId, ctx);
                     nlohmann::json resultsArray = nlohmann::json::array();
                     
                     // Get the most recent results (up to maxResults)
@@ -661,25 +687,25 @@ void SearchController::getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRe
                     response["totalCrawled"] = static_cast<int>(results.size());
                 }
             } else {
-                // Get status for all active sessions
-                auto activeSessions = g_crawlerManager->getActiveSessions();
-                
+                // Get status for active sessions visible to this user. #13
+                auto activeSessions = g_crawlerManager->getActiveSessions(ctx);
+
                 response["activeSessions"] = activeSessions.size();
                 response["lastUpdate"] = std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count();
-                
+
                 nlohmann::json sessionsArray = nlohmann::json::array();
                 for (const auto& sessionId : activeSessions) {
                     nlohmann::json sessionJson = {
                         {"sessionId", sessionId},
-                        {"status", g_crawlerManager->getCrawlStatus(sessionId)}
+                        {"status", g_crawlerManager->getCrawlStatus(sessionId, ctx)}
                     };
-                    
+
                     if (includeResults) {
-                        auto results = g_crawlerManager->getCrawlResults(sessionId);
+                        auto results = g_crawlerManager->getCrawlResults(sessionId, ctx);
                         sessionJson["totalCrawled"] = static_cast<int>(results.size());
                     }
-                    
+
                     sessionsArray.push_back(sessionJson);
                 }
                 
