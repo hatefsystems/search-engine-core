@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="{{ t.language.code }}" dir="{{ t.language.direction }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ t.meta.title }}</title>
+    <meta name="description" content="{{ t.meta.description }}" />
+    <meta name="theme-color" content="#f7faf8" />
+    <link rel="preload" href="{{ base_url }}/assets/css/pulse.css?v=range-1" as="style" />
+    <link rel="stylesheet" href="{{ base_url }}/assets/css/pulse.css?v=range-1" />
+  </head>
+  <body>
+    <main
+      id="pulse-app"
+      class="pulse-shell"
+      data-api-base="{{ api_base }}"
+      data-loading="{{ t.copy.loading }}"
+      data-empty="{{ t.copy.empty }}"
+      data-score="{{ t.copy.score }}"
+      data-no-trend="{{ t.copy.noTrend }}"
+    >
+      <header class="pulse-header">
+        <nav class="pulse-nav" aria-label="{{ t.copy.title }}">
+          <a href="{{ base_url }}/" class="pulse-brand">{{ t.copy.home }}</a>
+          <a href="{{ base_url }}/" class="pulse-link">{{ t.copy.search }}</a>
+        </nav>
+
+        <div class="pulse-title-block">
+          <p class="pulse-kicker">{{ t.copy.today }}</p>
+          <h1>{{ t.copy.title }}</h1>
+          <p>{{ t.copy.subtitle }}</p>
+        </div>
+      </header>
+
+      <nav class="pulse-ranges" aria-label="{{ t.copy.rangeLabel }}">
+        <button type="button" data-range="today">{{ t.copy.rangeToday }}</button>
+        <button type="button" data-range="week">{{ t.copy.rangeWeek }}</button>
+        <button type="button" data-range="month">{{ t.copy.rangeMonth }}</button>
+        <button type="button" data-range="year">{{ t.copy.rangeYear }}</button>
+        <button type="button" data-range="all">{{ t.copy.rangeAll }}</button>
+      </nav>
+
+      <section class="pulse-summary" aria-label="{{ t.copy.today }}">
+        <article class="pulse-score" data-summary-card="activity">
+          <span>{{ t.copy.activity }}</span>
+          <strong>0</strong>
+        </article>
+        <article class="pulse-score" data-summary-card="success">
+          <span>{{ t.copy.success }}</span>
+          <strong>0</strong>
+        </article>
+        <article class="pulse-score" data-summary-card="opportunity">
+          <span>{{ t.copy.opportunity }}</span>
+          <strong>0</strong>
+        </article>
+        <article class="pulse-score" data-summary-card="speed">
+          <span>{{ t.copy.speed }}</span>
+          <strong>0</strong>
+        </article>
+      </section>
+
+      <p class="pulse-note">{{ t.copy.relativeNote }}</p>
+
+      <section class="pulse-grid">
+        <article class="pulse-panel">
+          <div class="pulse-panel-head">
+            <h2>{{ t.copy.topSearches }}</h2>
+          </div>
+          <div class="pulse-list" data-list="top">
+            <p class="pulse-empty">{{ t.copy.loading }}</p>
+          </div>
+        </article>
+
+        <article class="pulse-panel">
+          <div class="pulse-panel-head">
+            <h2>{{ t.copy.risingSearches }}</h2>
+          </div>
+          <div class="pulse-list" data-list="rising">
+            <p class="pulse-empty">{{ t.copy.loading }}</p>
+          </div>
+        </article>
+
+        <article class="pulse-panel">
+          <div class="pulse-panel-head">
+            <h2>{{ t.copy.zeroResults }}</h2>
+          </div>
+          <div class="pulse-list" data-list="zero">
+            <p class="pulse-empty">{{ t.copy.loading }}</p>
+          </div>
+        </article>
+
+        <article class="pulse-panel pulse-trend-panel">
+          <div class="pulse-panel-head">
+            <h2>{{ t.copy.trendTitle }}</h2>
+          </div>
+          <div class="pulse-trend" data-trend>
+            <p class="pulse-empty">{{ t.copy.recentSafe }}</p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="{{ base_url }}/assets/js/pulse.js?v=range-1" defer></script>
+  </body>
+</html>

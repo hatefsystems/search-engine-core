@@ -6,6 +6,7 @@ enhanced crawler capabilities.
 ## Files
 
 - **search_endpoint.md** - REST API specification for the `/search` endpoint
+- **pulse_endpoint.md** - Pulse analytics API and public route specification
 - **crawler_endpoint.md** - Comprehensive crawler API documentation with SPA
   rendering support
 - **search_response.schema.json** - JSON Schema definition for the search
@@ -19,6 +20,15 @@ enhanced crawler capabilities.
 - `GET /api/search` - Full-text search functionality with Redis backend
 - Support for pagination, domain filtering, and advanced query syntax
 - See: [search_endpoint.md](./search_endpoint.md)
+
+### Pulse API
+
+- `GET /api/pulse/summary` - Public relative search activity summary
+- `GET /api/pulse/top-queries` - Public-safe top query scores
+- `GET /api/pulse/rising` - Public-safe rising query scores
+- `GET /api/pulse/zero-results` - Public-safe no-result opportunities
+- `GET /api/pulse/query?q=...` - Relative 24-hour query trend
+- See: [pulse_endpoint.md](./pulse_endpoint.md)
 
 ### Enhanced Crawler API
 

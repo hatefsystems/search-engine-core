@@ -1,0 +1,354 @@
+:root {
+  color-scheme: light;
+  --pulse-bg: #f7faf8;
+  --pulse-surface: #ffffff;
+  --pulse-text: #162019;
+  --pulse-muted: #66736a;
+  --pulse-border: #dce7df;
+  --pulse-accent: #0f7b63;
+  --pulse-accent-2: #245f8f;
+  --pulse-warm: #b66a2c;
+  --pulse-soft: #eef6f2;
+  --pulse-shadow: 0 10px 24px rgba(22, 32, 25, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--pulse-bg);
+  color: var(--pulse-text);
+  font-family: Vazirmatn, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+}
+
+.pulse-shell {
+  width: min(1180px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 20px 0 40px;
+}
+
+.pulse-header {
+  display: grid;
+  gap: 30px;
+  padding: 8px 0 20px;
+}
+
+.pulse-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+}
+
+.pulse-brand {
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.pulse-link {
+  border: 1px solid var(--pulse-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--pulse-muted);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.pulse-title-block {
+  max-width: 780px;
+}
+
+.pulse-kicker {
+  margin: 0 0 8px;
+  color: var(--pulse-accent);
+  font-weight: 800;
+}
+
+.pulse-title-block h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 7vw, 5.25rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.pulse-title-block p:last-child {
+  max-width: 620px;
+  margin: 14px 0 0;
+  color: var(--pulse-muted);
+  font-size: 1.06rem;
+}
+
+.pulse-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 18px;
+}
+
+.pulse-ranges button {
+  min-height: 38px;
+  border: 1px solid var(--pulse-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: var(--pulse-surface);
+  color: var(--pulse-muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pulse-ranges button:hover,
+.pulse-ranges button:focus-visible,
+.pulse-ranges button.is-active {
+  border-color: var(--pulse-accent);
+  background: var(--pulse-soft);
+  color: var(--pulse-accent);
+}
+
+.pulse-ranges button:focus-visible {
+  outline: 2px solid var(--pulse-accent);
+  outline-offset: 2px;
+}
+
+.pulse-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.pulse-score,
+.pulse-panel {
+  background: var(--pulse-surface);
+  border: 1px solid var(--pulse-border);
+  border-radius: 8px;
+  box-shadow: var(--pulse-shadow);
+}
+
+.pulse-score {
+  min-height: 112px;
+  padding: 18px;
+  display: grid;
+  align-content: space-between;
+}
+
+.pulse-score span {
+  color: var(--pulse-muted);
+  font-size: 0.9rem;
+}
+
+.pulse-score strong {
+  font-size: 2.25rem;
+  line-height: 1;
+  color: var(--pulse-accent);
+}
+
+.pulse-note {
+  margin: 16px 0 24px;
+  color: var(--pulse-muted);
+  font-size: 0.94rem;
+}
+
+.pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pulse-panel {
+  min-height: 280px;
+  padding: 18px;
+}
+
+.pulse-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pulse-panel h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.pulse-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pulse-item {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--pulse-border);
+  background: transparent;
+  color: var(--pulse-text);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pulse-item:hover,
+.pulse-item:focus-visible {
+  color: var(--pulse-accent);
+}
+
+.pulse-item:focus-visible {
+  outline: 2px solid var(--pulse-accent);
+  outline-offset: 3px;
+}
+
+.pulse-item:last-child {
+  border-bottom: 0;
+}
+
+.pulse-query {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.pulse-bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulse-soft);
+}
+
+.pulse-bar span {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--score-width, 0%);
+  border-radius: inherit;
+  background: var(--pulse-accent);
+}
+
+.pulse-item:nth-child(2n) .pulse-bar span {
+  background: var(--pulse-accent-2);
+}
+
+.pulse-item:nth-child(3n) .pulse-bar span {
+  background: var(--pulse-warm);
+}
+
+.pulse-empty {
+  margin: 28px 0 0;
+  color: var(--pulse-muted);
+}
+
+.pulse-trend {
+  min-height: 210px;
+}
+
+.pulse-trend-title {
+  margin: 0 0 14px;
+  color: var(--pulse-muted);
+  font-weight: 700;
+}
+
+.pulse-sparkline {
+  width: 100%;
+  height: 156px;
+  display: block;
+  border: 1px solid var(--pulse-border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(15, 123, 99, 0.08), rgba(255, 255, 255, 0));
+}
+
+.pulse-sparkline polyline {
+  fill: none;
+  stroke: var(--pulse-accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pulse-spark-point {
+  fill: var(--pulse-surface);
+  stroke: var(--pulse-accent);
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+.pulse-spark-point:hover,
+.pulse-spark-point:focus {
+  fill: var(--pulse-accent);
+  outline: none;
+}
+
+.pulse-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(22, 32, 25, 0.94);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+}
+
+.pulse-tooltip.is-visible {
+  opacity: 1;
+}
+
+[dir="rtl"] .pulse-bar span {
+  left: auto;
+  right: 0;
+}
+
+@media (max-width: 860px) {
+  .pulse-summary,
+  .pulse-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pulse-score {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pulse-shell {
+    width: min(100% - 20px, 1180px);
+    padding-top: 12px;
+  }
+
+  .pulse-title-block h1 {
+    font-size: 2.35rem;
+  }
+
+  .pulse-panel {
+    padding: 14px;
+  }
+
+  .pulse-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

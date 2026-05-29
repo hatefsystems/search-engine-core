@@ -9,6 +9,7 @@
 #include "../../include/search_engine/storage/ApiRequestLog.h"
 #include "../../include/search_engine/storage/EmailService.h"
 #include "../../include/search_engine/storage/EmailLogsStorage.h"
+#include "../../include/search_engine/pulse/PulseAnalyticsService.h"
 #include "../../include/inja/inja.hpp"
 #include <filesystem>
 #include <fstream>
@@ -516,6 +517,37 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
             return;
         }
     }
+
+    std::string decodedQuery = urlDecode(qIt->second);
+    std::string userAgent = std::string(req->getHeader("user-agent"));
+    std::string requestAddress = std::string(req->getHeader("x-forwarded-for"));
+    if (requestAddress.empty()) {
+        requestAddress = std::string(req->getHeader("x-real-ip"));
+    }
+    if (requestAddress.empty()) {
+        requestAddress = "unknown";
+    }
+
+    auto elapsedMs = [&requestStartTime]() -> double {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - requestStartTime);
+        return duration.count() / 1000.0;
+    };
+
+    auto recordPulse = [&](search_engine::pulse::PulseSearchStatus status, int64_t resultCount, double latencyMs) noexcept {
+        try {
+            search_engine::pulse::PulseAnalyticsService::instance().recordSearchEvent(
+                decodedQuery,
+                resultCount,
+                latencyMs,
+                status,
+                userAgent,
+                requestAddress
+            );
+        } catch (...) {
+            LOG_WARNING("Pulse analytics hook skipped after unexpected error");
+        }
+    };
     
     try {
         // Get index name from environment or use default
@@ -539,8 +571,7 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         searchArgs.push_back("content");
         searchArgs.push_back("score");
         
-        // Execute search (URL decode the query first)
-        std::string decodedQuery = urlDecode(qIt->second);
+        // Execute search
         std::string rawResult = g_searchClient->search(searchIndex, decodedQuery, searchArgs);
         
         // Parse and format response
@@ -561,6 +592,10 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
                  ", totalTime=" + std::to_string(totalSeconds) + "s");
         
         json(res, response);
+        int64_t resultCount = response["meta"].value("total", 0);
+        recordPulse(resultCount > 0 ? search_engine::pulse::PulseSearchStatus::Ok : search_engine::pulse::PulseSearchStatus::Empty,
+                    resultCount,
+                    totalDuration.count() / 1000.0);
         
     } catch (const SearchError& e) {
         LOG_ERROR("Search error: " + std::string(e.what()));
@@ -576,11 +611,14 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
             response["results"] = nlohmann::json::array();
             
             json(res, response);
+            recordPulse(search_engine::pulse::PulseSearchStatus::Empty, 0, elapsedMs());
         } else {
+            recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
             serverError(res, "Search operation failed");
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Unexpected error: " + std::string(e.what()));
+        recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
         serverError(res, "An unexpected error occurred");
     }
 }
@@ -1635,6 +1673,40 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 		} catch (...) { page = 1; }
 	}
 	int skip = (page - 1) * limit;
+
+    std::string userAgent = std::string(req->getHeader("user-agent"));
+    std::string requestAddress = std::string(req->getHeader("x-forwarded-for"));
+    if (requestAddress.empty()) {
+        requestAddress = std::string(req->getHeader("x-real-ip"));
+    }
+    if (requestAddress.empty()) {
+        requestAddress = "unknown";
+    }
+
+    auto elapsedMs = [&startTime]() -> double {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+        return duration.count() / 1000.0;
+    };
+
+    bool shouldRecordPulse = page == 1;
+    auto recordPulse = [&](search_engine::pulse::PulseSearchStatus status, int64_t resultCount, double latencyMs) noexcept {
+        if (!shouldRecordPulse) {
+            return;
+        }
+        try {
+            search_engine::pulse::PulseAnalyticsService::instance().recordSearchEvent(
+                searchQuery,
+                resultCount,
+                latencyMs,
+                status,
+                userAgent,
+                requestAddress
+            );
+        } catch (...) {
+            LOG_WARNING("Pulse analytics hook skipped after unexpected search page error");
+        }
+    };
 	
 	try {
 		// Try Redis first if enabled
@@ -1673,21 +1745,25 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 						LOG_INFO("Redis search for page successful: found " + std::to_string(totalResults) + " results");
 					} else {
 						LOG_ERROR("Redis search failed for page: " + redisResult.message);
+                        recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 						serverError(res, "Search service temporarily unavailable");
 						return;
 					}
 				} else {
 					LOG_ERROR("Redis storage not initialized for page");
+                    recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 					serverError(res, "Search service not available");
 					return;
 				}
 			} catch (const std::exception& e) {
 				LOG_ERROR("Exception during Redis search for page: " + std::string(e.what()));
+                recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 				serverError(res, "Search error occurred");
 				return;
 			}
 		} else {
 			LOG_ERROR("REDIS_SEARCH_ENABLED is not set - page requires Redis");
+            recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 			serverError(res, "Search service not enabled");
 			return;
 		}
@@ -1864,6 +1940,9 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         }
         
         html(res, renderedHtml);
+        recordPulse(totalResults > 0 ? search_engine::pulse::PulseSearchStatus::Ok : search_engine::pulse::PulseSearchStatus::Empty,
+                    totalResults,
+                    duration.count() / 1000.0);
         LOG_INFO("Successfully served search results page for query: " + searchQuery + 
                  " (results: " + std::to_string(searchResults.size()) + ", lang: " + langCode + ")");
         
@@ -2318,4 +2397,4 @@ std::string SearchController::loadLocalizedSubject(const std::string& language, 
         LOG_ERROR("SearchController: Exception loading localized subject for language " + language + ": " + e.what());
         return "Crawling Complete - " + std::to_string(pageCount) + " pages indexed"; // Default fallback
     }
-} 
+}

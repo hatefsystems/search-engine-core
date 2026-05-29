@@ -51,6 +51,13 @@ services:
       - SEARCH_REDIS_POOL_SIZE=4
       - SEARCH_INDEX_NAME=search_index
       - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true}  # Enable Redis-based search (10-100x faster than MongoDB)
+      - PULSE_ANALYTICS_ENABLED=${PULSE_ANALYTICS_ENABLED:-true}
+      - PULSE_MONGODB_URI=${PULSE_MONGODB_URI:-mongodb://admin:password123@mongodb:27017/?authSource=admin}
+      - PULSE_MONGODB_DATABASE=${PULSE_MONGODB_DATABASE:-hatef_pulse}
+      - PULSE_RAW_RETENTION_DAYS=${PULSE_RAW_RETENTION_DAYS:-14}
+      - PULSE_FLUSH_INTERVAL_SECONDS=${PULSE_FLUSH_INTERVAL_SECONDS:-5}
+      - PULSE_MAX_QUEUE_SIZE=${PULSE_MAX_QUEUE_SIZE:-1000}
+      - PULSE_PUBLIC_MIN_EVENTS=${PULSE_PUBLIC_MIN_EVENTS:-3}
       - MINIFY_JS=true
       - MINIFY_JS_LEVEL=none  # Use microservice instead
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
@@ -321,4 +328,4 @@ networks:
 
 volumes:
   mongodb_data:
-  redis_data: 
+  redis_data:

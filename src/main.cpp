@@ -11,6 +11,7 @@
 // Include all controllers to trigger their static initialization
 #include "controllers/HomeController.h"
 #include "controllers/SearchController.h"
+#include "controllers/PulseController.h"
 #include "controllers/StaticFileController.h"
 #include "controllers/UnsubscribeController.h"
 #include "controllers/WebsiteProfileController.h"
@@ -264,4 +265,3 @@ int main() {
 
     return 0;
 }
-

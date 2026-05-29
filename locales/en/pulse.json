@@ -1,0 +1,37 @@
+{
+  "language": {
+    "code": "en",
+    "direction": "ltr"
+  },
+  "meta": {
+    "title": "Hatef Pulse",
+    "description": "Search activity signals for Persian-language searches"
+  },
+  "copy": {
+    "title": "Hatef Pulse",
+    "subtitle": "Search activity signals for Persian-language searches",
+    "home": "Hatef",
+    "search": "Search",
+    "today": "Today",
+    "rangeLabel": "Time range",
+    "rangeToday": "Today",
+    "rangeWeek": "Past week",
+    "rangeMonth": "Past month",
+    "rangeYear": "Past year",
+    "rangeAll": "All",
+    "activity": "Search activity",
+    "success": "Successful searches",
+    "opportunity": "No-result opportunities",
+    "speed": "Response speed",
+    "topSearches": "Top searches today",
+    "risingSearches": "Rising searches",
+    "zeroResults": "No-result opportunities",
+    "trendTitle": "Selected range trend",
+    "relativeNote": "Public values are relative scores, not exact search counts.",
+    "empty": "There is not enough data yet",
+    "recentSafe": "Safe recent topics appear without exact counts.",
+    "loading": "Loading...",
+    "score": "Score",
+    "noTrend": "No meaningful trend exists for this query yet."
+  }
+}
