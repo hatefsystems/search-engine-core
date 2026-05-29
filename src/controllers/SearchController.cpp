@@ -2,6 +2,9 @@
 #include "../../include/Logger.h"
 #include "../../include/search_engine/crawler/Crawler.h"
 #include "../../include/search_engine/crawler/CrawlerManager.h"
+#include "../../include/search_engine/crawler/SessionAnalytics.h"
+#include "../../include/search_engine/crawler/SessionAnalyticsStore.h"
+#include "../../include/search_engine/crawler/SessionMetricsRecord.h"
 #include "../../include/search_engine/crawler/PageFetcher.h"
 #include "../../include/search_engine/crawler/models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
@@ -793,6 +796,265 @@ void SearchController::getCrawlDetails(uWS::HttpResponse<false>* res, uWS::HttpR
     } catch (const std::exception& e) {
         LOG_ERROR(std::string("Error in getCrawlDetails: ") + e.what());
         serverError(res, "Failed to get crawl details");
+    }
+}
+
+// ============================================================================
+// Session analytics endpoints (issue #15)
+// ============================================================================
+
+namespace {
+    int64_t toEpochMs(std::chrono::system_clock::time_point tp) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            tp.time_since_epoch()).count();
+    }
+
+    nlohmann::json sessionRecordToJson(const SessionMetricsRecord& r) {
+        nlohmann::json j;
+        j["sessionId"] = r.sessionId;
+        j["seedUrl"] = r.seedUrl;
+        j["seedDomain"] = r.seedDomain;
+        j["startedAtMs"] = toEpochMs(r.startedAt);
+        j["finishedAtMs"] = toEpochMs(r.finishedAt);
+        j["durationMs"] = r.durationMs;
+        j["totalUrls"] = r.totalUrls;
+        j["successfulUrls"] = r.successfulUrls;
+        j["failedUrls"] = r.failedUrls;
+        j["retriedUrls"] = r.retriedUrls;
+        j["totalRetryAttempts"] = r.totalRetryAttempts;
+        j["totalBytes"] = r.totalBytes;
+        j["successRate"] = r.getSuccessRate();
+        j["failureRate"] = r.getFailureRate();
+        j["retryRate"] = r.getRetryRate();
+        j["throughputUrlsPerSec"] = r.getThroughput();
+        j["latency"] = {
+            {"avgMs", r.avgLatencyMs},
+            {"p50Ms", r.p50LatencyMs},
+            {"p95Ms", r.p95LatencyMs},
+            {"p99Ms", r.p99LatencyMs},
+            {"maxMs", r.maxLatencyMs}
+        };
+        // status code map (key as string for JSON)
+        nlohmann::json codes = nlohmann::json::object();
+        for (const auto& [code, count] : r.statusCodeCounts) {
+            codes[std::to_string(code)] = count;
+        }
+        j["statusCodeCounts"] = codes;
+        nlohmann::json failTypes = nlohmann::json::object();
+        for (const auto& [ft, count] : r.failureTypeCounts) {
+            failTypes[std::to_string(ft)] = count;
+        }
+        j["failureTypeCounts"] = failTypes;
+        return j;
+    }
+
+    nlohmann::json summaryToJson(const SessionAnalytics::AggregateSummary& s) {
+        return {
+            {"sessionCount", s.sessionCount},
+            {"totalUrls", s.totalUrls},
+            {"successfulUrls", s.successfulUrls},
+            {"failedUrls", s.failedUrls},
+            {"retriedUrls", s.retriedUrls},
+            {"totalRetryAttempts", s.totalRetryAttempts},
+            {"totalBytes", s.totalBytes},
+            {"avgSuccessRate", s.avgSuccessRate},
+            {"avgRetryRate", s.avgRetryRate},
+            {"avgThroughputUrlsPerSec", s.avgThroughput},
+            {"avgDurationMs", s.avgDurationMs},
+            {"avgLatencyMs", s.avgLatencyMs}
+        };
+    }
+
+    // Split "a,b,c" into {"a","b","c"}.
+    std::vector<std::string> splitCsv(const std::string& s) {
+        std::vector<std::string> out;
+        std::string cur;
+        for (char c : s) {
+            if (c == ',') {
+                if (!cur.empty()) { out.push_back(cur); cur.clear(); }
+            } else {
+                cur += c;
+            }
+        }
+        if (!cur.empty()) out.push_back(cur);
+        return out;
+    }
+}
+
+// GET /api/analytics/sessions?limit=N
+void SearchController::getAnalyticsSessions(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::getAnalyticsSessions called");
+    try {
+        if (!g_crawlerManager) { serverError(res, "CrawlerManager not initialized"); return; }
+        auto store = g_crawlerManager->getAnalyticsStore();
+        if (!store) { serverError(res, "Analytics store not initialized"); return; }
+
+        auto params = parseQuery(req);
+        size_t limit = 0;
+        auto lit = params.find("limit");
+        if (lit != params.end()) {
+            try { limit = std::stoull(lit->second); } catch (...) { limit = 0; }
+        }
+
+        auto records = store->getAll(limit);
+        nlohmann::json arr = nlohmann::json::array();
+        for (const auto& r : records) arr.push_back(sessionRecordToJson(r));
+
+        auto summary = SessionAnalytics::summarize(records);
+        nlohmann::json response;
+        response["count"] = arr.size();
+        response["storeSize"] = store->size();
+        response["summary"] = summaryToJson(summary);
+        response["sessions"] = arr;
+        json(res, response);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getAnalyticsSessions: " + std::string(e.what()));
+        serverError(res, "Failed to get analytics sessions");
+    }
+}
+
+// GET /api/analytics/sessions/detail?sessionId=...
+void SearchController::getAnalyticsSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::getAnalyticsSession called");
+    try {
+        if (!g_crawlerManager) { serverError(res, "CrawlerManager not initialized"); return; }
+        auto store = g_crawlerManager->getAnalyticsStore();
+        if (!store) { serverError(res, "Analytics store not initialized"); return; }
+
+        auto params = parseQuery(req);
+        auto sit = params.find("sessionId");
+        if (sit == params.end() || sit->second.empty()) {
+            badRequest(res, "sessionId query parameter is required");
+            return;
+        }
+        auto rec = store->get(sit->second);
+        if (!rec.has_value()) {
+            notFound(res, "Session metrics not found");
+            return;
+        }
+        json(res, sessionRecordToJson(*rec));
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getAnalyticsSession: " + std::string(e.what()));
+        serverError(res, "Failed to get session analytics");
+    }
+}
+
+// GET /api/analytics/sessions/compare?ids=a,b,c
+void SearchController::getAnalyticsCompare(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::getAnalyticsCompare called");
+    try {
+        if (!g_crawlerManager) { serverError(res, "CrawlerManager not initialized"); return; }
+        auto store = g_crawlerManager->getAnalyticsStore();
+        if (!store) { serverError(res, "Analytics store not initialized"); return; }
+
+        auto params = parseQuery(req);
+        auto iit = params.find("ids");
+        if (iit == params.end() || iit->second.empty()) {
+            badRequest(res, "ids query parameter required (comma-separated session ids)");
+            return;
+        }
+        auto ids = splitCsv(iit->second);
+        if (ids.size() < 2) {
+            badRequest(res, "At least 2 session ids required for comparison");
+            return;
+        }
+
+        std::vector<SessionMetricsRecord> records;
+        nlohmann::json missing = nlohmann::json::array();
+        for (const auto& id : ids) {
+            auto rec = store->get(id);
+            if (rec.has_value()) records.push_back(*rec);
+            else missing.push_back(id);
+        }
+        if (records.size() < 2) {
+            nlohmann::json err;
+            err["error"] = "Need at least 2 found sessions to compare";
+            err["missing"] = missing;
+            json(res, err);
+            return;
+        }
+
+        // Pairwise compare against records[0] for a "vs baseline" view.
+        nlohmann::json pairwise = nlohmann::json::array();
+        for (size_t i = 1; i < records.size(); ++i) {
+            auto c = SessionAnalytics::compare(records[0], records[i]);
+            pairwise.push_back({
+                {"baseline", c.sessionA},
+                {"other", c.sessionB},
+                {"successRateDelta", c.successRateDelta},
+                {"retryRateDelta", c.retryRateDelta},
+                {"throughputDelta", c.throughputDelta},
+                {"durationDeltaMs", c.durationDeltaMs},
+                {"avgLatencyDeltaMs", c.avgLatencyDeltaMs}
+            });
+        }
+
+        nlohmann::json response;
+        response["summary"] = summaryToJson(SessionAnalytics::summarize(records));
+        response["missing"] = missing;
+        nlohmann::json sessionsArr = nlohmann::json::array();
+        for (const auto& r : records) sessionsArr.push_back(sessionRecordToJson(r));
+        response["sessions"] = sessionsArr;
+        response["pairwise"] = pairwise;
+        json(res, response);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getAnalyticsCompare: " + std::string(e.what()));
+        serverError(res, "Failed to compare sessions");
+    }
+}
+
+// GET /api/analytics/sessions/trends?windowMs=86400000&bucketMs=3600000
+void SearchController::getAnalyticsTrends(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::getAnalyticsTrends called");
+    try {
+        if (!g_crawlerManager) { serverError(res, "CrawlerManager not initialized"); return; }
+        auto store = g_crawlerManager->getAnalyticsStore();
+        if (!store) { serverError(res, "Analytics store not initialized"); return; }
+
+        auto params = parseQuery(req);
+        // Defaults: last 24 hours, hourly buckets.
+        int64_t windowMs = 24LL * 60 * 60 * 1000;
+        int64_t bucketMs = 60LL * 60 * 1000;
+        auto wit = params.find("windowMs");
+        if (wit != params.end()) {
+            try { windowMs = std::stoll(wit->second); } catch (...) {}
+        }
+        auto bit = params.find("bucketMs");
+        if (bit != params.end()) {
+            try { bucketMs = std::stoll(bit->second); } catch (...) {}
+        }
+        if (windowMs <= 0 || bucketMs <= 0) {
+            badRequest(res, "windowMs and bucketMs must be positive");
+            return;
+        }
+
+        auto now = std::chrono::system_clock::now();
+        auto windowStart = now - std::chrono::milliseconds(windowMs);
+        auto records = store->getInWindow(windowStart, now);
+
+        auto buckets = SessionAnalytics::trends(records, windowStart, now,
+                                                std::chrono::milliseconds(bucketMs));
+        nlohmann::json bucketsArr = nlohmann::json::array();
+        for (const auto& b : buckets) {
+            bucketsArr.push_back({
+                {"bucketStartMs", b.bucketStartMs},
+                {"bucketEndMs", b.bucketEndMs},
+                {"summary", summaryToJson(b.summary)}
+            });
+        }
+
+        nlohmann::json response;
+        response["windowMs"] = windowMs;
+        response["bucketMs"] = bucketMs;
+        response["windowStartMs"] = toEpochMs(windowStart);
+        response["windowEndMs"] = toEpochMs(now);
+        response["totalSessionsInWindow"] = records.size();
+        response["overallSummary"] = summaryToJson(SessionAnalytics::summarize(records));
+        response["buckets"] = bucketsArr;
+        json(res, response);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in getAnalyticsTrends: " + std::string(e.what()));
+        serverError(res, "Failed to compute trends");
     }
 }
 
