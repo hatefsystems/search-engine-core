@@ -355,7 +355,7 @@ result = detector.is_stopword("test", "tlh")  # Klingon
 
 ### Non-Stopword POS Tags (Content Words)
 - `NOUN` - Noun (cat, quantum, API)
-- `PROPN` - Proper noun (London, Google)
+- `PROPN` - Proper noun (London, Maria)
 - `VERB` - Verb (run, think, build)
 - `ADJ` - Adjective (quick, brown)
 - `ADV` - Adverb (quickly, very)
@@ -444,4 +444,3 @@ All original acceptance criteria **EXCEEDED**:
 **Version:** 0.2.0  
 **Status:** ✅ Production Ready  
 **Last Updated:** 2025-11-18
-

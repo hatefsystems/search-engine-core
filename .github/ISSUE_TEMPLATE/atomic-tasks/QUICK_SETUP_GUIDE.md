@@ -1,20 +1,16 @@
 # 🚀 Quick Setup Guide for Remaining Atomic Tasks
 
-## 📊 Status: 22/82 Tasks Created (27%)
+## 📊 Status: Current Task Tree Available
 
-### ✅ Completed (22 tasks):
-- **M0 Foundation:** 6/6 tasks ✅
-- **M1 Retrieval:** 6/6 tasks ✅
-- **M2 Content Understanding:** 9/9 tasks ✅
-- **Template:** 1 task template ✅
+The milestone task documents have now been generated. Treat this guide as a scaffolding and quality-check reference, not the source of truth for current task counts.
 
-### ⏳ Remaining (60 tasks):
-- **M3 Semantic:** 0/7 tasks (samples provided below)
-- **M4 Intent:** 0/5 tasks
-- **M5 Quality:** 0/5 tasks
-- **M6 Ranking:** 0/14 tasks (08: 6 tasks, 09: 8 tasks)
-- **M7-M8 Learning:** 0/11 tasks (10: 5 tasks, 11: 6 tasks)
-- **M9 Production:** 0/17 tasks (12: 5, 13: 7, 14: 5)
+### Current Source of Truth
+- **Task tracker:** `README-atomic-tasks.md`
+- **Roadmap assessment:** `ROADMAP_ASSESSMENT.md`
+- **Recursive documentation audit:** `DOCUMENTATION_AUDIT.md`
+- **Current milestone task docs:** 85
+- **Top-level Markdown docs:** 10
+- **Future vertical idea docs:** 1
 
 ---
 
@@ -43,6 +39,15 @@ Look at completed tasks (M0-M2) for examples of:
 ---
 
 ## 📋 Task Breakdown Reference
+
+### M1.5: Search Quality Evaluation Baseline (5 tasks, 20 days)
+Based on the revised roadmap assessment:
+
+1. **02.7** Query Set and Judgments (4d) - Versioned query set and graded relevance labels
+2. **02.8** Offline Metrics Harness (4d) - NDCG, MRR, recall, duplicate, spam, stale-result, and zero-result reporting
+3. **02.9** Persian and Iran Relevance Suite (4d) - Local query buckets and Persian-specific failure tracking
+4. **02.10** Crawl and Freshness Baseline (4d) - Crawl quality, canonicalization, and freshness feature contracts
+5. **02.11** Regression Gates and Reporting (4d) - Required quality report for every quality-impacting task
 
 ### M3: Embeddings & Semantics (7 tasks, 30 days)
 Based on `05_embeddings_semantics.md`:
@@ -73,18 +78,15 @@ Based on `07_quality_spam_detection.md`:
 4. **07.4** Safe-list Management (4d) - Whitelist known good sites
 5. **07.5** Validation & Deploy (4d) - Impact testing
 
-### M6: Ranking & Query Pipeline (14 tasks, 60 days)
+### M6: Ranking & Query Pipeline (12 tasks, 52 days)
 
-#### 08: Ranking Fusion (6 tasks, 26 days)
+#### 08: Ranking Fusion (4 tasks, 18 days)
 Based on `08_ranking_fusion.md`:
 
 1. **08.1** Feature Gathering (4d) - Collect all signals
 2. **08.2** Score Fusion Algorithm (5d) - Weighted combination
 3. **08.3** MMR Diversification (4d) - Reduce domain repetition
 4. **08.4** Parameter Tuning (5d) - Optimize weights
-5. **08.5** Feature Store (4d) - Centralized feature access
-6. **08.6** A/B Testing Framework (4d) - Safe experimentation
-
 #### 09: Query Pipeline (8 tasks, 34 days)
 Based on `09_query_pipeline.md`:
 
@@ -97,7 +99,7 @@ Based on `09_query_pipeline.md`:
 7. **09.7** Re-ranking & Diversification (5d) - FinalScore
 8. **09.8** Caching & Optimization (4d) - <300ms P95
 
-### M7-M8: Evaluation & Learning (11 tasks, 46 days)
+### M7-M8: Evaluation & Learning (10 tasks, 43 days)
 
 #### 10: Metrics (5 tasks, 21 days)
 Based on `10_metrics_evaluation.md`:
@@ -108,7 +110,7 @@ Based on `10_metrics_evaluation.md`:
 4. **10.4** Daily Reports (4d) - Automated analytics
 5. **10.5** SLI/SLO Definition (4d) - Performance targets
 
-#### 11: Click Modeling (6 tasks, 25 days)
+#### 11: Click Modeling (5 tasks, 22 days)
 Based on `11_click_modeling_online_learning.md`:
 
 1. **11.1** Click Logging (4d) - Impression/click collection
@@ -116,9 +118,7 @@ Based on `11_click_modeling_online_learning.md`:
 3. **11.3** Click Model Training (5d) - Full UBM/DBN
 4. **11.4** Pairwise LTR (5d) - LambdaMART/GBDT
 5. **11.5** Nightly Model Updates (4d) - Automated retraining
-6. **11.6** Interleaving Validation (3d) - Impact measurement
-
-### M9: Production Operations (17 tasks, 70 days)
+### M9: Production Operations (20 tasks, 90 days)
 
 #### 12: Performance & Caching (5 tasks, 21 days)
 Based on `12_performance_caching.md`:
@@ -149,6 +149,13 @@ Based on `14_security_compliance.md`:
 4. **14.4** Secrets Management (4d) - Vault integration
 5. **14.5** Security Review (4d) - Penetration testing
 
+#### 15: Documentation (5 tasks, 20 days)
+1. **15.1** Architecture Diagrams (4d) - Architecture and dataflow diagrams
+2. **15.2** API Specification (4d) - OpenAPI and API examples
+3. **15.3** Feature Glossary (4d) - Ranking signal documentation
+4. **15.4** Troubleshooting Runbooks (4d) - Operational runbooks
+5. **15.5** Onboarding Documentation (4d) - New engineer onboarding
+
 ---
 
 ## 🎨 Creating Tasks Efficiently
@@ -161,7 +168,7 @@ Based on `14_security_compliance.md`:
 5. **Copy file structure** from similar completed task (01.1, 01.2, or 01.3)
 
 ### Option 2: Batch Creation (Faster)
-Use the provided breakdown above to create multiple tasks at once:
+Use the provided breakdown above to add future or variant tasks when the roadmap changes:
 
 ```bash
 # Example for M3
@@ -261,18 +268,19 @@ cp interactive_test.py [new-task]/  # Then customize
 ## 🎯 Priority Order for Creation
 
 ### Phase 1: Critical Path (Create First)
-1. M3 tasks (needed for spell correction)
-2. M6.09 tasks (query pipeline)
-3. M9.12-13 tasks (production readiness)
+1. M1.5 tasks (needed for measurable quality gates)
+2. M3 tasks (needed for spell correction)
+3. M6.09 tasks (query pipeline)
+4. M9.12-13 tasks (production readiness)
 
 ### Phase 2: ML & Features
-4. M4 tasks (intent)
-5. M5 tasks (quality)
-6. M6.08 tasks (ranking fusion)
+5. M5 tasks (quality and spam)
+6. M4 tasks (intent)
+7. M6.08 tasks (ranking fusion)
 
 ### Phase 3: Learning & Operations
-7. M7-M8 tasks (metrics & learning)
-8. M9.14 tasks (security)
+8. M7-M8 tasks (metrics & learning)
+9. M9.14-15 tasks (security and documentation)
 
 ---
 
@@ -388,4 +396,3 @@ def test_throughput():
 ---
 
 **Remember: Quality over speed! Each task should be actionable and celebration-worthy! 🎉**
-

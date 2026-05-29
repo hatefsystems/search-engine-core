@@ -5,7 +5,7 @@
 
 This document provides the **strategic overview** of the entire project.
 
-**📁 For detailed implementation tasks:** See [atomic-tasks/](./atomic-tasks/) directory (68 atomic tasks across 9 milestones)
+**📁 For detailed implementation tasks:** See [atomic-tasks/](./atomic-tasks/) directory (85 milestone task documents across the full roadmap)
 
 **Use this document for:**
 - ✅ Strategic planning and milestone sequencing
@@ -20,7 +20,7 @@ This document provides the **strategic overview** of the entire project.
 - ✅ Detailed implementation guidance (3-5 day chunks)
 - ✅ Code examples and technical specifications
 
-**Current Status:** 16/16 main tasks broken down into 68 atomic tasks ✅
+**Current Status:** 17 roadmap areas broken down into 85 milestone task documents ✅
 
 ---
 
@@ -48,6 +48,7 @@ This document provides the **strategic overview** of the entire project.
 ## Milestones (suggested)
 - **M0 – Bootstrap** (6 atomic tasks): Normalization + language detection + minimal index.
 - **M1 – Retrieval Baseline** (6 atomic tasks): Weighted BM25 + char n‑gram fallback + dedup/quality gate.
+- **M1.5 – Search Quality Evaluation Baseline** (5 atomic tasks): Query sets, judgments, Persian/Iran relevance suite, crawl/freshness baseline, regression gates.
 - **M2 – Authority & Structure** (9 atomic tasks): Link graph (HostRank) + schema/ISBN/price extractors.
 - **M3 – Synonyms & Embeddings** (7 atomic tasks): Co‑occurrence → PPMI/SVD; train subword embeddings; nightly lexicon.
 - **M4 – Intent & Verticals** (5 atomic tasks): Weakly‑supervised classifier for Info/Trans/Nav + vertical detectors (Book/Product/Article…).
@@ -55,27 +56,28 @@ This document provides the **strategic overview** of the entire project.
 - **M6 – Rank Fusion & Diversification** (12 atomic tasks): Feature fusion, MMR diversification, parameter tuning (proxy objective).
 - **M7 – Metrics & Dashboards** (5 atomic tasks): Proxy metrics, then click‑based; interleaving.
 - **M8 – Click Model & Online Learning** (5 atomic tasks): DCTR/UBM/DBN + pairwise LTR; nightly updates.
-- **M9 – Performance & SRE** (15 atomic tasks): P95≤300ms, caching, feature store, load tests; SLOs/runbooks; documentation.
+- **M9 – Performance, SRE & Documentation** (20 atomic tasks): P95≤300ms, caching, feature store, load tests; SLOs/runbooks; security; documentation.
 
 ---
 
 ## Implementation Status
 
-This epic has been broken down into **68 atomic tasks** organized across **9 milestones + Security**:
+This epic has been broken down into **85 milestone task documents** organized across the execution roadmap:
 
 | Milestone | Atomic Tasks | Focus Area | Status |
 |-----------|--------------|------------|--------|
 | [M0-foundation](./atomic-tasks/M0-foundation/) | 6 tasks | Text processing, language detection, stopwords | 🔵 Ready |
 | [M1-retrieval](./atomic-tasks/M1-retrieval/) | 6 tasks | BM25, n-gram, indexing, deduplication | 🔵 Ready |
+| [M1.5-evaluation](./atomic-tasks/M1.5-evaluation/) | 5 tasks | Query sets, judgments, metrics, Persian/Iran relevance, crawl/freshness gates | 🔵 Ready |
 | [M2-content-understanding](./atomic-tasks/M2-content-understanding/) | 9 tasks | Link graph, HostRank, Schema.org extraction | 🔵 Ready |
 | [M3-semantic](./atomic-tasks/M3-semantic/) | 7 tasks | Embeddings, PPMI/SVD, spell correction | 🔵 Ready |
 | [M4-intent](./atomic-tasks/M4-intent/) | 5 tasks | Intent classification, vertical detectors | 🔵 Ready |
 | [M5-quality](./atomic-tasks/M5-quality/) | 5 tasks | Spam detection, quality scoring | 🔵 Ready |
 | [M6-ranking](./atomic-tasks/M6-ranking/) | 12 tasks | Ranking fusion, MMR, query pipeline | 🔵 Ready |
 | [M7-M8-learning](./atomic-tasks/M7-M8-learning/) | 10 tasks | Metrics, click modeling, online learning | 🔵 Ready |
-| [M9-production](./atomic-tasks/M9-production/) | 15 tasks | Performance, DevOps, Security, Documentation | 🔵 Ready |
+| [M9-production](./atomic-tasks/M9-production/) | 20 tasks | Performance, DevOps, Security, Documentation | 🔵 Ready |
 
-**Total:** 68 atomic tasks × 3-5 days each = 240-340 working days (estimated)
+**Total:** 85 milestone task documents × 3-5 days each = roughly 330-400 working days (estimated, before parallelization)
 
 **📊 Progress Tracking:** See [atomic-tasks/README-atomic-tasks.md](./atomic-tasks/README-atomic-tasks.md) for detailed progress tracker.
 
@@ -96,7 +98,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 
 ## High‑Level Tasks & Sub‑Tasks (GitHub‑ready)
 
-> **📝 Note:** These 16 high-level tasks have been broken down into **68 detailed atomic tasks** (3-5 days each).
+> **📝 Note:** These roadmap areas have been broken down into **85 detailed milestone task documents** (3-5 days each).
 > 
 > For implementation, use the [atomic-tasks/](./atomic-tasks/) directory which provides:
 > - Detailed step-by-step implementation guides
@@ -162,6 +164,28 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 - Field weight adjustment based on stopword density improves ranking precision by ≥5%.
 - Cross-language deduplication reduces near-duplicates by ≥ 60% without hurting recall > 2%.
 - P95 retrieval latency ≤ 80ms for BM25 top-200 across all supported languages.
+
+---
+
+### 2.5) Search Quality Evaluation Baseline (M1.5)
+**🔗 Atomic Tasks:** [M1.5-evaluation/02-search-quality-baseline/](./atomic-tasks/M1.5-evaluation/02-search-quality-baseline/) (5 tasks)
+
+**Issue Title:** `[M1.5][eval] Search quality baseline, Persian/Iran relevance suite, and regression gates`
+
+**Description:** Build the quality measurement loop immediately after the lexical retrieval baseline. This milestone prevents advanced ranking, semantic expansion, spam, and freshness changes from being accepted without evidence.
+
+**Tasks**
+- [ ] Build a versioned query set with relevance judgments.
+- [ ] Implement offline metrics and bucketed reporting.
+- [ ] Add Persian/Iran-local relevance suite.
+- [ ] Define crawl/freshness baseline metrics.
+- [ ] Add regression gates and quality report templates.
+
+**Acceptance Criteria**
+- Every quality-impacting task has a baseline comparison artifact.
+- Persian/Iran-local quality has separate metrics and failure reports.
+- Crawl/freshness problems can be separated from ranking problems.
+- Relevance, latency, spam exposure, duplicates, stale results, and zero-result regressions are visible before M2/M3/M6 work is accepted.
 
 ---
 
@@ -567,4 +591,3 @@ Labels: kind/research, area/eval, priority/P2, status/backlog
 - Dashboards show SLO compliance for 14 consecutive days across all supported languages.
 - Interleaving confirms ≥ 10% CTR@Top‑3 lift vs. BM25-only baseline for multilingual queries.
 - Runbooks exercised; one full rollback drill passed for universal multilingual system.
-

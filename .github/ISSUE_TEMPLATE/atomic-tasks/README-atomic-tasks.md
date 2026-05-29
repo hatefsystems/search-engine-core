@@ -2,15 +2,18 @@
 
 > **Philosophy:** Every task should be completable in 3-5 days, fully testable, and celebration-worthy!
 
+> **Roadmap Assessment:** See [ROADMAP_ASSESSMENT.md](./ROADMAP_ASSESSMENT.md) for the neutral search-quality gap analysis and priority recommendations.
+> **Documentation Audit:** See [DOCUMENTATION_AUDIT.md](./DOCUMENTATION_AUDIT.md) for the recursive folder review and task-quality recommendations.
+
 ## 📊 Overall Progress
 
 ```
-Total Tasks: 82 atomic tasks
+Total Milestone Task Docs: 85 atomic task documents
 Completed: 0 (0%)
 In Progress: 0
-Remaining: 82
+Remaining: 85
 
-Estimated Time: 6-9 months with team of 3-4
+Estimated Time: 7-10 months with team of 3-4
 ```
 
 ---
@@ -42,6 +45,21 @@ Estimated Time: 6-9 months with team of 3-4
 | 02.4 Deduplication | 4d | ⏳ | 02.5 |
 | 02.5 Quality Gate | 3d | ⏳ | 02.6 |
 | 02.6 Performance Optimization | 4d | ⏳ | 🎉 **M1 COMPLETE!** |
+
+---
+
+### M1.5: Search Quality Evaluation Baseline (5 tasks, 20 days) ⏳
+**Goal:** Add the quality loop before advanced ranking work
+
+| Task | Duration | Status | Blocks |
+|------|----------|--------|--------|
+| 02.7 Query Set and Judgments | 4d | ⏳ | M2/M3/M6 |
+| 02.8 Offline Metrics Harness | 4d | ⏳ | 08.3, 08.4, 10.1 |
+| 02.9 Persian and Iran Relevance Suite | 4d | ⏳ | 09.2, 09.5 |
+| 02.10 Crawl and Freshness Baseline | 4d | ⏳ | 03.1, 03.5, 14.1 |
+| 02.11 Regression Gates and Reporting | 4d | ⏳ | All quality-impacting tasks |
+
+**🎉 M1.5 Celebration:** Every future ranking change is measurable!
 
 ---
 
@@ -116,18 +134,16 @@ Estimated Time: 6-9 months with team of 3-4
 
 ---
 
-### M6: Ranking & Query Pipeline (14 tasks, 60 days) ⏳
+### M6: Ranking & Query Pipeline (12 tasks, 52 days) ⏳
 **Goal:** End-to-end query processing with multi-signal ranking
 
-#### 08: Ranking Fusion (6 tasks, 26 days)
+#### 08: Ranking Fusion (4 tasks, 18 days)
 | Task | Duration | Status |
 |------|----------|--------|
 | 08.1 Feature Gathering | 4d | ⏳ |
 | 08.2 Score Fusion Algorithm | 5d | ⏳ |
 | 08.3 MMR Diversification | 4d | ⏳ |
 | 08.4 Parameter Tuning | 5d | ⏳ |
-| 08.5 Feature Store | 4d | ⏳ |
-| 08.6 A/B Testing Framework | 4d | ⏳ |
 
 #### 09: Query Pipeline (8 tasks, 34 days)
 | Task | Duration | Status | Feature |
@@ -145,7 +161,7 @@ Estimated Time: 6-9 months with team of 3-4
 
 ---
 
-### M7-M8: Evaluation & Learning (11 tasks, 46 days) ⏳
+### M7-M8: Evaluation & Learning (10 tasks, 43 days) ⏳
 **Goal:** Metrics + click modeling + online learning
 
 #### 10: Metrics & Evaluation (5 tasks, 21 days)
@@ -157,7 +173,7 @@ Estimated Time: 6-9 months with team of 3-4
 | 10.4 Daily Reports | 4d | ⏳ |
 | 10.5 SLI/SLO Definition | 4d | ⏳ |
 
-#### 11: Click Modeling (6 tasks, 25 days)
+#### 11: Click Modeling (5 tasks, 22 days)
 | Task | Duration | Status |
 |------|----------|--------|
 | 11.1 Click Logging | 4d | ⏳ |
@@ -165,14 +181,13 @@ Estimated Time: 6-9 months with team of 3-4
 | 11.3 Click Model Training (DCTR/UBM) | 5d | ⏳ |
 | 11.4 Pairwise LTR | 5d | ⏳ |
 | 11.5 Nightly Model Updates | 4d | ⏳ |
-| 11.6 Interleaving Validation | 3d | ⏳ |
 
 **🎉 M7-M8 Celebration:** Learning from users!
 
 ---
 
-### M9: Production Operations (17 tasks, 70 days) ⏳
-**Goal:** Performance, DevOps, Security
+### M9: Production Operations (20 tasks, 90 days) ⏳
+**Goal:** Performance, DevOps, Security, Documentation
 
 #### 12: Performance & Caching (5 tasks, 21 days)
 | Task | Duration | Status |
@@ -203,14 +218,23 @@ Estimated Time: 6-9 months with team of 3-4
 | 14.4 Secrets Management | 4d | ⏳ |
 | 14.5 Security Review | 4d | ⏳ |
 
+#### 15: Documentation (5 tasks, 20 days)
+| Task | Duration | Status |
+|------|----------|--------|
+| 15.1 Architecture Diagrams | 4d | ⏳ |
+| 15.2 API Specification | 4d | ⏳ |
+| 15.3 Feature Glossary | 4d | ⏳ |
+| 15.4 Troubleshooting Runbooks | 4d | ⏳ |
+| 15.5 Onboarding Documentation | 4d | ⏳ |
+
 **🎉 M9 Celebration:** Production-ready! 🚀**
 
 ---
 
 ## 🎊 Major Celebration Milestones
 
-### 🥉 Bronze (M0-M1 Complete, ~47 days)
-**Achievement:** Foundation + Core Retrieval  
+### 🥉 Bronze (M0-M1.5 Complete, ~67 days)
+**Achievement:** Foundation + Core Retrieval + Quality Baseline
 **Demo:** Search works with basic BM25!  
 **Reward:** Team lunch celebration 🍕
 
@@ -226,7 +250,7 @@ Estimated Time: 6-9 months with team of 3-4
 
 ### 💎 Diamond (M0-M9 Complete, ~334 days)
 **Achievement:** Production-ready search engine  
-**Demo:** Competing with Google!  
+**Demo:** Production-grade relevance demo!
 **Reward:** Major celebration event 🎉🎉🎉
 
 ---
@@ -269,6 +293,7 @@ atomic-tasks/
 │       ├── 01.5-batch-jobs.md ✅
 │       └── 01.6-cpp-integration.md ✅
 ├── M1-retrieval/
+├── M1.5-evaluation/
 ├── M2-content-understanding/
 ├── M3-semantic/
 ├── M4-intent/
@@ -318,8 +343,7 @@ Focus on: **M9** (Operations)
 
 ---
 
-**Remember: Every small task is a step toward building the best search engine! 🚀**
+**Remember: Every small task is a step toward measurable production-grade search quality! 🚀**
 
 _Last Updated: [Date]_
-_Progress: 0/82 (0%)_
-
+_Progress: 0/85 (0%)_

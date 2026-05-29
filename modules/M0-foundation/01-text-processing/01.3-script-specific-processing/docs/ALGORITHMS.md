@@ -956,7 +956,7 @@ SCRIPT_PATTERNS = {
 ### Implementation Examples
 
 **Real-World Implementations:**
-- **[Google's Text Normalization](https://github.com/google/text-normalization)** - Google's text normalization library
+- **[ICU Text Transforms](https://unicode-org.github.io/icu/userguide/transforms/)** - Unicode text transform and normalization tools
 - **[Facebook's FastText](https://fasttext.cc/)** - Text classification and language detection
 - **[OpenNLP](https://opennlp.apache.org/)** - Apache OpenNLP for text processing
 

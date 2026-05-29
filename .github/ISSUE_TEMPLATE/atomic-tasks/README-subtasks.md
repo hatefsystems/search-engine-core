@@ -1,7 +1,7 @@
 # 📋 Universal Multilingual Search Engine - Subtask Breakdown
 
 ## Overview
-This document provides a detailed breakdown of the 14 core components that form our universal multilingual search engine. Each component is designed to work seamlessly across any language/script worldwide.
+This document provides a detailed breakdown of the core components that form our universal multilingual search engine. Each component is designed to work seamlessly across any language/script worldwide.
 
 ## 🏗️ Architecture Overview
 
@@ -26,6 +26,12 @@ Auto-detected     Universal       Fusion        Online Updates
 |-----------|------|----------|----------|--------|
 | **02. Retrieval Engine** | `02_core_retrieval_engine.md` | C++ | P0 | Ready |
 | **Description:** BM25 + character n-gram fallback supporting any detected language | | | | |
+
+### Phase 1.5: Search Quality Evaluation Baseline (M1.5)
+| Component | File | Language | Priority | Status |
+|-----------|------|----------|----------|--------|
+| **02.7-02.11 Evaluation Baseline** | `M1.5-evaluation/` | Python/docs | P0 | Ready |
+| **Description:** Query sets, judgments, Persian/Iran relevance suite, crawl/freshness baseline, and regression gates | | | | |
 
 ### Phase 2: Content Understanding (M2)
 | Component | File | Language | Priority | Status |
@@ -123,4 +129,4 @@ Auto-detected     Universal       Fusion        Online Updates
 
 ---
 
-*This breakdown represents a comprehensive, production-ready multilingual search engine that can compete with major search providers while maintaining full universality.*
+*This breakdown represents a comprehensive, production-grade multilingual search engine roadmap with measurable quality gates and full universality.*
