@@ -18,13 +18,13 @@ Auto-detected     Universal       Fusion        Online Updates
 ### Phase 0: Foundation (M0)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **01. Universal Text Processing** | `01_language_text_processing.md` | Python/C++ | P0 | Ready |
+| **01. Universal Text Processing** | `M0-foundation/01-text-processing/` | Python/C++ | P0 | Ready |
 | **Description:** Automatic language detection and normalization for any Unicode script | | | | |
 
 ### Phase 1: Core Retrieval (M1)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **02. Retrieval Engine** | `02_core_retrieval_engine.md` | C++ | P0 | Ready |
+| **02. Retrieval Engine** | `M1-retrieval/02-core-retrieval/` | C++ | P0 | Ready |
 | **Description:** BM25 + character n-gram fallback supporting any detected language | | | | |
 
 ### Phase 1.5: Search Quality Evaluation Baseline (M1.5)
@@ -36,48 +36,48 @@ Auto-detected     Universal       Fusion        Online Updates
 ### Phase 2: Content Understanding (M2)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **03. Link Graph & Authority** | `03_link_graph_authority.md` | Python/C++ | P1 | Ready |
-| **04. Structured Data Extraction** | `04_structured_data_extraction.md` | Python/C++ | P1 | Ready |
+| **03. Link Graph & Authority** | `M2-content-understanding/03-link-graph/` | Python/C++ | P1 | Ready |
+| **04. Structured Data Extraction** | `M2-content-understanding/04-structured-data/` | Python/C++ | P1 | Ready |
 | **Description:** Universal authority scoring and structured content parsing from any language websites | | | | |
 
 ### Phase 3: Semantic Understanding (M3)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **05. Embeddings & Semantics** | `05_embeddings_semantics.md` | Python/C++ | P1 | Ready |
+| **05. Embeddings & Semantics** | `M3-semantic/05-embeddings/` | Python/C++ | P1 | Ready |
 | **Description:** Multilingual subword embeddings and semantic analysis for any language | | | | |
 
 ### Phase 4: Query Understanding (M4)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **06. Intent Classification** | `06_intent_classification.md` | Python/C++ | P1 | Ready |
+| **06. Intent Classification** | `M4-intent/06-classification/` | Python/C++ | P1 | Ready |
 | **Description:** Universal query intent detection (Info/Trans/Nav) across languages | | | | |
 
 ### Phase 5: Quality Control (M5)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **07. Spam & Quality Detection** | `07_quality_spam_detection.md` | Python/C++ | P1 | Ready |
+| **07. Spam & Quality Detection** | `M5-quality/07-spam-detection/` | Python/C++ | P1 | Ready |
 | **Description:** Language-agnostic spam detection and quality scoring | | | | |
 
 ### Phase 6: Ranking & Fusion (M6)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **08. Ranking Fusion** | `08_ranking_fusion.md` | Python/C++ | P1 | Ready |
-| **09. Query Pipeline** | `09_query_pipeline.md` | C++ | P0 | Ready |
+| **08. Ranking Fusion** | `M6-ranking/08-ranking-fusion/` | Python/C++ | P1 | Ready |
+| **09. Query Pipeline** | `M6-ranking/09-query-pipeline/` | C++ | P0 | Ready |
 | **Description:** Multi-signal ranking fusion and end-to-end query processing | | | | |
 
 ### Phase 7-8: Learning & Evaluation (M7-M8)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **10. Metrics & Evaluation** | `10_metrics_evaluation.md` | Python | P1 | Ready |
-| **11. Click Modeling** | `11_click_modeling_online_learning.md` | Python/C++ | P1 | Ready |
+| **10. Metrics & Evaluation** | `M7-M8-learning/10-metrics/` | Python | P1 | Ready |
+| **11. Click Modeling** | `M7-M8-learning/11-click-modeling/` | Python/C++ | P1 | Ready |
 | **Description:** Universal evaluation metrics and click-based online learning | | | | |
 
 ### Phase 9: Production & Operations (M9)
 | Component | File | Language | Priority | Status |
 |-----------|------|----------|----------|--------|
-| **12. Performance & Caching** | `12_performance_caching.md` | C++ | P0 | Ready |
-| **13. DevOps & Deployment** | `13_devops_deployment.md` | Infrastructure | P0 | Ready |
-| **14. Security & Compliance** | `14_security_compliance.md` | C++ | P0 | Ready |
+| **12. Performance & Caching** | `M9-production/12-performance/` | C++ | P0 | Ready |
+| **13. DevOps & Deployment** | `M9-production/13-devops/` | Infrastructure | P0 | Ready |
+| **14. Security & Compliance** | `M9-production/14-security/` | C++ | P0 | Ready |
 | **Description:** Production-ready performance, monitoring, and security for any language | | | | |
 
 ## 🎯 Key Features

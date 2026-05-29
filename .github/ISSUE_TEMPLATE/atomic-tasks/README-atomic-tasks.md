@@ -338,12 +338,12 @@ Focus on: **M9** (Operations)
 ## 📞 Need Help?
 
 - **Task Details:** Read individual task files in `atomic-tasks/`
-- **Technical Questions:** Check parent task files (`01_language_text_processing.md`)
+- **Technical Questions:** Check the relevant milestone folder, starting with `M0-foundation/`, `M1-retrieval/`, `M1.5-evaluation/`, and continuing through `M9-production/`.
 - **Architecture:** See main epic `automated_multilingual_ranking_pipeline_epic_git_hub_task_breakdown.md`
 
 ---
 
 **Remember: Every small task is a step toward measurable production-grade search quality! 🚀**
 
-_Last Updated: [Date]_
+_Last Updated: 2026-05-29_
 _Progress: 0/85 (0%)_

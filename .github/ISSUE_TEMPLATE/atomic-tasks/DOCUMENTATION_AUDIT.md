@@ -19,17 +19,17 @@ The corrected roadmap introduces M1.5 immediately after M1 so the project has qu
 
 | Folder | Status | Main Finding | Required Follow-Up |
 |---|---|---|---|
-| Top-level guides | Needs cleanup | Counts and readiness language drifted from the actual tree. | Keep `README-atomic-tasks.md`, the epic, and this audit as source-of-truth docs. |
+| Top-level guides | Cleaned up | Counts, internal links, and obsolete parent-file references are aligned with the current tree. | Keep `README-atomic-tasks.md`, the epic, and this audit as source-of-truth docs. |
 | M0 foundation | Strong | Good coverage for Unicode, language detection, script handling, and stopword/IDF. | Keep Persian edge cases in every downstream test. |
-| M1 retrieval | Strong but incomplete without evaluation | BM25, n-gram, indexing, dedup, quality gate, and latency are the right baseline. | Complete M1.5 before M2/M3/M6 quality-impacting work. |
+| M1 retrieval | Strong but incomplete without evaluation | BM25, n-gram, indexing, dedup, quality gate, and latency are the right baseline; early retrieval tasks now require evidence artifacts. | Complete M1.5 before M2/M3/M6 quality-impacting work. |
 | M1.5 evaluation | Added | Provides the missing quality loop. | Treat as P0 and keep artifacts versioned. |
-| M2 content understanding | Directionally good | Link and structured-data tasks exist, but acceptance criteria are thin in several files. | Add canonicalization, nofollow/sponsored/ugc, stale links, and spam-aware authority checks when implementing. |
+| M2 content understanding | Improved | Link and structured-data tasks exist, and link-graph tasks now require explicit evidence artifacts. | Add canonicalization, nofollow/sponsored/ugc, stale links, and spam-aware authority checks when implementing. |
 | M3 semantic | Good but risky | Semantic expansion and embeddings can harm precision without gates. | Require expansion caps, per-query failure review, and M1.5 evaluation reports. |
 | M4 intent | Good | Weak labels and vertical detection are useful. | Add confusion matrices and Persian/Iran-local vertical coverage. |
 | M5 quality/spam | Good base | Unsupervised spam models are planned, but adversarial SEO is under-specified. | Add scraped content, doorway pages, keyword stuffing, redirects, cloaking, and false-demotion review. |
-| M6 ranking/query pipeline | Important but should not run blind | FinalScore, MMR, query expansion, spell correction, and pipeline tasks are valuable. | Every task must include baseline comparison, latency impact, and failure examples. |
+| M6 ranking/query pipeline | Important but should not run blind | FinalScore, MMR, query expansion, spell correction, and pipeline tasks are valuable; language routing now requires explicit routing and latency evidence. | Every task must include baseline comparison, latency impact, and failure examples. |
 | M7-M8 evaluation/learning | Valuable but too late in original order | Dashboards, interleaving, click models, and LTR are necessary for mature quality. | Keep full M7/M8 later, but use M1.5 as the early offline version. |
-| M9 production/security/docs | Broad coverage | Performance, DevOps, security, and documentation are present; documentation task files use issue front matter. | Add M9 documentation tasks to the central tracker and keep robots/privacy/security from being delayed until launch. |
+| M9 production/security/docs | Cleaned up | Performance, DevOps, security, and documentation are present; documentation task files now have explicit H1 titles and SLO tasks require quality-aware evidence. | Keep robots/privacy/security from being delayed until launch. |
 | Future real estate vertical | Useful future idea | Good example of a local vertical. | Only start after M1.5 and base ranking are measurable. |
 
 ## Quality Standards For Every Task
@@ -66,7 +66,6 @@ Every task that can affect search quality must now include:
 
 ## Remaining Documentation Risks
 
-- Some older guide text still describes task creation as incomplete even though the tree now contains the planned task files. Those guides should be treated as historical scaffolding, not the source of truth.
-- Some task files include optimistic quality targets without saying exactly which dataset proves the target. M1.5 fixes the policy; individual task implementations must attach the report artifact.
-- Several M2 link/structured-data acceptance criteria are brief. They are acceptable for planning, but implementation PRs should expand them before coding.
-
+- Some task files still include optimistic quality targets that require real corpora, crawl data, and judgment sets to prove. M1.5 defines the policy; implementation PRs must attach the report artifact.
+- Some late-stage learning tasks depend on query logs and click feedback that the project cannot manufacture from documentation alone.
+- The docs should eventually be enforced by CI with Markdown linting and internal-link checks so link drift does not return.
