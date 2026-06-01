@@ -3,6 +3,6 @@ flower==2.0.1
 redis==4.6.0
 pymongo==4.6.3
 requests==2.33.0
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 jdatetime==4.1.1
 
