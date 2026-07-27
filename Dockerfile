@@ -51,7 +51,8 @@ RUN echo "Searching for MongoDB driver files:" && \
 
 # Build and install uSockets with SSL support
 WORKDIR /deps
-RUN git clone --depth 1 https://github.com/uNetworking/uSockets.git
+ARG USOCKETS_TAG=v0.8.6
+RUN git clone --depth 1 --branch ${USOCKETS_TAG} https://github.com/uNetworking/uSockets.git
 WORKDIR /deps/uSockets
 RUN make WITH_OPENSSL=1 -j$(nproc) && \
     mkdir -p /usr/local/include/uSockets && \
@@ -61,9 +62,10 @@ RUN make WITH_OPENSSL=1 -j$(nproc) && \
 
 # Clone and build uWebSockets
 WORKDIR /deps
-RUN git clone --recurse-submodules https://github.com/uNetworking/uWebSockets.git
+ARG UWEBSOCKETS_TAG=v20.74.0
+RUN git clone --depth 1 --branch ${UWEBSOCKETS_TAG} --recurse-submodules https://github.com/uNetworking/uWebSockets.git
 WORKDIR /deps/uWebSockets
-RUN make -j$(nproc) WITH_EXAMPLES=0
+RUN make -j1 WITH_EXAMPLES=0 examples=
 
 # Install uWebSockets headers to system include path
 RUN mkdir -p /usr/local/include/uwebsockets && \
