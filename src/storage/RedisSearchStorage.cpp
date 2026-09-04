@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/RedisSearchStorage.h"
 #include "../../include/Logger.h"
 #include "../../include/search_engine/pulse/PulseQueryNormalizer.h"
+#include <openssl/sha.h>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -32,10 +33,15 @@ namespace {
         return escaped;
     }
     
-    // Helper function to generate a hash from URL for key
+    // Helper function to generate a deterministic hash from URL for key (SHA-256 first 16 hex chars)
     std::string urlToKey(const std::string& url) {
-        std::hash<std::string> hasher;
-        return std::to_string(hasher(url));
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+        SHA256(reinterpret_cast<const unsigned char*>(url.data()), url.size(), hash);
+        std::ostringstream oss;
+        for (int i = 0; i < 8; ++i) {
+            oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+        }
+        return oss.str();
     }
     
     // Helper function to convert time_point to Unix timestamp
@@ -614,9 +620,14 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
             response.results.resize(query.limit);
         }
         
-        // Use total count from Redis, not fetched count
-        // Note: This might include duplicates across tiers, but gives accurate total matches
-        response.totalResults = totalResultsFromRedis;
+        // If all matching results from Redis were within our fetch bounds (up to 1000 across tiers),
+        // all candidate documents were fetched and deduplicated by URL.
+        // Therefore, uniqueResultsFetched is the true total count of distinct results.
+        if (totalResultsFromRedis <= 1000) {
+            response.totalResults = uniqueResultsFetched;
+        } else {
+            response.totalResults = std::max(static_cast<int64_t>(totalResultsFromRedis), static_cast<int64_t>(uniqueResultsFetched));
+        }
         
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);

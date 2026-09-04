@@ -4,7 +4,9 @@ Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
 """
 import os
 import re
+import sys
 import time
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -188,8 +190,8 @@ class RedisSync:
         return ' '.join(content)
     
     def _generate_doc_key(self, url: str) -> str:
-        """Generate Redis key for document"""
-        url_hash = str(hash(url))
+        """Generate Redis key for document using deterministic SHA-256 (first 16 hex chars)"""
+        url_hash = hashlib.sha256(url.encode('utf-8')).hexdigest()[:16]
         return f"{self.key_prefix}{url_hash}"
     
     def _build_doc(self, page: Dict):
@@ -439,7 +441,12 @@ class RedisSync:
                 self.sync_full()
             else:
                 if status['redis_count'] > status['mongodb_count']:
-                    logger.warning(f"⚠️  Redis has more documents than MongoDB ({status['redis_count']:,} > {status['mongodb_count']:,}) — orphan keys present, skipping full sync")
+                    if os.getenv('REDIS_AUTO_CLEAR_ORPHANS', 'false').lower() in ('true', '1'):
+                        logger.warning(f"⚠️  Redis has more documents than MongoDB ({status['redis_count']:,} > {status['mongodb_count']:,}) — auto-clearing orphan keys and running full sync...")
+                        self.clear_index()
+                        self.sync_full()
+                    else:
+                        logger.warning(f"⚠️  Redis has more documents than MongoDB ({status['redis_count']:,} > {status['mongodb_count']:,}) — orphan keys present, skipping full sync. Pass --clear or set REDIS_AUTO_CLEAR_ORPHANS=true to rebuild clean index.")
                 else:
                     logger.info("✅ Redis is in sync, skipping initial sync")
         except Exception as e:
@@ -474,6 +481,12 @@ def main():
     """Main entry point"""
     try:
         sync_service = RedisSync()
+        if '--clear' in sys.argv or '--resync' in sys.argv:
+            logger.info("Command line flag --clear provided, clearing index and running full sync...")
+            sync_service.clear_index()
+            sync_service.sync_full()
+            sync_service.get_status()
+            return
         sync_service.run()
     except Exception as e:
         logger.error(f"Fatal error: {e}")

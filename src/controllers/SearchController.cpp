@@ -1176,6 +1176,7 @@ nlohmann::json SearchController::parseRedisSearchResponse(const std::string& raw
         response["meta"]["pageSize"] = limit;
         
         // Parse each result (skip the count, then pairs of docId and fields)
+        std::unordered_set<std::string> seenUrls;
         for (size_t i = 1; i < redisResponse.size(); i += 2) {
             if (i + 1 >= redisResponse.size()) break;
             
@@ -1216,8 +1217,20 @@ nlohmann::json SearchController::parseRedisSearchResponse(const std::string& raw
                     }
                 }
                 
+                std::string resUrl = result["url"].get<std::string>();
+                if (!resUrl.empty()) {
+                    if (seenUrls.find(resUrl) != seenUrls.end()) {
+                        continue;
+                    }
+                    seenUrls.insert(resUrl);
+                }
                 response["results"].push_back(result);
             }
+        }
+        
+        // Safeguard total count if first page has fewer than limit results
+        if (page == 1 && response["results"].size() < static_cast<size_t>(limit) && totalResults > static_cast<int>(response["results"].size())) {
+            response["meta"]["total"] = response["results"].size();
         }
         
     } catch (const std::exception& e) {
@@ -1896,6 +1909,12 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
             timeStream << std::fixed << std::setprecision(1) << elapsedSeconds;
         }
         std::string elapsedTimeStr = timeStream.str();
+
+        // Safeguard: on first page, if fewer than limit results are returned,
+        // totalResults cannot exceed the number of actual results.
+        if (page == 1 && searchResults.size() < static_cast<size_t>(limit) && totalResults > static_cast<int64_t>(searchResults.size())) {
+            totalResults = searchResults.size();
+        }
 
         // Calculate pagination metadata
         int totalPages = std::min(50, (int)((totalResults + limit - 1) / limit));

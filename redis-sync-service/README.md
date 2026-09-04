@@ -26,6 +26,14 @@ Python microservice for syncing MongoDB `indexed_pages` collection to Redis for 
 | `SYNC_MODE` | `full` | Sync mode: `full` or `incremental` |
 | `SYNC_INTERVAL_SECONDS` | `3600` | Sync interval in seconds (default: 1 hour) |
 | `INCREMENTAL_WINDOW_HOURS` | `24` | Time window for incremental sync (hours) |
+| `REDIS_AUTO_CLEAR_ORPHANS` | `false` | When true, automatically drops index and re-syncs if Redis document count exceeds MongoDB |
+
+## Key Generation Architecture
+
+To ensure consistency across process restarts and prevent duplicate/orphan documents:
+- Document keys are generated using a deterministic SHA-256 hash: `doc:<sha256(url)[:16]>`.
+- This matches the C++ engine implementation in `src/storage/RedisSearchStorage.cpp::urlToKey()`.
+- Avoids Python's randomized built-in `hash()` which causes duplicate keys across process restarts.
 
 ## Usage
 
@@ -48,6 +56,9 @@ The service is automatically built and published to GitHub Container Registry as
 ```bash
 # Full sync
 docker exec redis-sync python sync.py
+
+# Clean re-index (drop old index + documents, and rebuild from MongoDB)
+docker exec redis-sync python sync.py --clear
 
 # Check logs
 docker logs -f redis-sync

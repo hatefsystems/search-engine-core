@@ -18,6 +18,13 @@ This directory contains troubleshooting documentation, fix guides, and problem-s
   - Solution explanation
   - Related files and code references
 
+### Search & Redis Issues
+
+- **[SEARCH_RESULT_COUNT_MISMATCH.md](./SEARCH_RESULT_COUNT_MISMATCH.md)** - Fix for mismatch between reported total results and rendered items
+  - Root cause analysis: non-deterministic key generation, Redis raw count vs deduplicated set
+  - Deterministic SHA-256 key hashing in Python (`sync.py`) and C++ (`RedisSearchStorage.cpp`)
+  - Verification with automated `--clear` re-sync and live search checks
+
 ## 🔍 Common Issues
 
 ### MongoDB Connection Issues
@@ -27,6 +34,14 @@ This directory contains troubleshooting documentation, fix guides, and problem-s
 **Solution:** See [FIX_MONGODB_WARNING.md](./FIX_MONGODB_WARNING.md)
 
 **Root Cause:** Lazy initialization race condition in ContentStorage class
+
+### Search Result Count Mismatch
+
+**Symptom:** Total results counter says N items found, but fewer items are displayed on page
+
+**Solution:** See [SEARCH_RESULT_COUNT_MISMATCH.md](./SEARCH_RESULT_COUNT_MISMATCH.md)
+
+**Root Cause:** Non-deterministic key hashing in `sync.py` creating orphan duplicates in Redis and raw Redis count used prior to deduplication.
 
 ---
 
