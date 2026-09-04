@@ -10,6 +10,7 @@
 #include "../../include/search_engine/storage/EmailService.h"
 #include "../../include/search_engine/storage/EmailLogsStorage.h"
 #include "../../include/search_engine/pulse/PulseAnalyticsService.h"
+#include "../../include/search_engine/pulse/PulseQueryNormalizer.h"
 #include "../../include/inja/inja.hpp"
 #include <filesystem>
 #include <fstream>
@@ -571,8 +572,13 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         searchArgs.push_back("content");
         searchArgs.push_back("score");
         
+        std::string normalizedQuery = search_engine::pulse::PulseQueryNormalizer::normalize(decodedQuery);
+        if (normalizedQuery.empty()) {
+            normalizedQuery = decodedQuery;
+        }
+
         // Execute search
-        std::string rawResult = g_searchClient->search(searchIndex, decodedQuery, searchArgs);
+        std::string rawResult = g_searchClient->search(searchIndex, normalizedQuery, searchArgs);
         
         // Parse and format response
         nlohmann::json response = parseRedisSearchResponse(rawResult, page, limit);

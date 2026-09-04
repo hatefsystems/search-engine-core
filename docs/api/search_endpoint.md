@@ -20,6 +20,28 @@ GET /search
 | `limit`         | integer                  | ❌       | 10      | Number of results per page                         | Min: 1, Max: 100             |
 | `domain_filter` | comma-separated string[] | ❌       | —       | Optional whitelist of domains to filter results by | e.g., "example.com,test.org" |
 
+## Query Normalization & Preprocessing
+
+All search queries undergo symmetric text normalization before index lookup:
+
+1. **Arabic-to-Persian Letter Unification:**
+   - Arabic Yeh (`ي`, U+064A) and Alef Maksura (`ى`, U+0649) → Persian Yeh (`ی`, U+06CC)
+   - Arabic Kaf (`ك`, U+0643) → Persian Kaf (`ک`, U+06A9)
+   - Teh Marbuta (`ة`, U+0629) → Heh (`ه`, U+0647)
+   - Hamza forms (`أ`, `إ`, `آ`) → Bare Alef (`ا`, U+0627), `ؤ` → `و`, `ئ` → `ی`
+2. **Numeral Normalization:**
+   - Persian/Eastern Arabic digits (`۰-۹`, U+06F0–U+06F9) → ASCII digits (`0-9`)
+   - Arabic-Indic digits (`٠-٩`, U+0660–U+0669) → ASCII digits (`0-9`)
+3. **Diacritic & Tatweel Stripping:**
+   - Harakat (Fatha, Damma, Kasra, Tanwin, Shadda, Sukun) are stripped completely
+   - Tatweel/Kashida (`ـ`, U+0640) used for text stretching is removed
+4. **Whitespace & Control Characters:**
+   - Zero-Width Non-Joiner (ZWNJ, `\u200c`) and ZWJ (`\u200d`) are normalized to standard delimiter space
+   - Zero-width space, BOM, and soft-hyphens are stripped
+   - Multiple whitespace sequences are collapsed to a single space, and leading/trailing spaces are trimmed
+
+> **Symmetric Matching:** Because documents are normalized with the exact same rules at index time (both during live crawl and batch sync), a query for `كتاب` or `کتاب` returns the exact same matching document set.
+
 ## Response Format
 
 ### Success Response (200 OK)

@@ -3,6 +3,7 @@
 Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
 """
 import os
+import re
 import time
 import logging
 from datetime import datetime, timedelta
@@ -132,6 +133,38 @@ class RedisSync:
         except Exception as e:
             logger.warning(f"Failed to sanitize text: {e}")
             return ""
+
+    # Persian / Arabic normalization mapping (matches PulseQueryNormalizer)
+    PERSIAN_CHAR_MAP = str.maketrans({
+        # Arabic to Persian letters
+        'ي': 'ی', 'ى': 'ی', 'ك': 'ک', 'ة': 'ه',
+        'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ؤ': 'و', 'ئ': 'ی',
+        # Arabic/Persian digits to ASCII
+        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+        '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+        '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+        # Tatweel / Kashida
+        '\u0640': '',
+        # Arabic diacritics (harakat)
+        '\u064b': '', '\u064c': '', '\u064d': '',
+        '\u064e': '', '\u064f': '', '\u0650': '',
+        '\u0651': '', '\u0652': '',
+        # Special zero-width / invisible characters
+        '\u200c': ' ',  # ZWNJ -> space
+        '\u200d': ' ',  # ZWJ -> space
+        '\u200b': '',   # Zero-width space
+        '\ufeff': '',   # BOM
+        '\u00ad': '',   # Soft hyphen
+    })
+
+    def _normalize_text(self, text: str) -> str:
+        """Normalize Persian/Arabic characters, digits, diacritics, and whitespace."""
+        if not text:
+            return ""
+        translated = text.translate(self.PERSIAN_CHAR_MAP)
+        # Collapse multiple whitespace characters into single space
+        return re.sub(r'\s+', ' ', translated).strip()
     
     def _extract_content(self, page: Dict) -> str:
         """Extract searchable content from page"""
@@ -163,17 +196,27 @@ class RedisSync:
         """Build Redis document fields from a MongoDB page. Pure function, no Redis calls."""
         doc_key = self._generate_doc_key(page['url'])
 
+        raw_title = self._sanitize_text(page.get('title', ''))
+        raw_desc = self._sanitize_text(page.get('description', '')) if page.get('description') else ''
+
+        norm_title = self._normalize_text(raw_title)
+        norm_desc = self._normalize_text(raw_desc)
+
         doc = {
             'url': self._sanitize_text(page.get('url', ''))[:500],
-            'title': self._sanitize_text(page.get('title', ''))[:200],
+            'title': (norm_title if norm_title else raw_title)[:200],
             'domain': self._sanitize_text(page.get('domain', ''))[:100],
             'score': page.get('contentQuality', 0.0) if page.get('contentQuality') else 0.0,
             'indexed_at': int(page.get('indexedAt', datetime.now()).timestamp()),
-            'description': self._sanitize_text(page.get('description', ''))[:300] if page.get('description') else '',
+            'description': (norm_desc if norm_desc else raw_desc)[:300],
         }
 
         if page.get('keywords'):
-            sanitized_keywords = [self._sanitize_text(k) for k in page['keywords'][:5]]
+            sanitized_keywords = [
+                self._normalize_text(self._sanitize_text(k))
+                for k in page['keywords'][:5]
+                if k
+            ]
             doc['keywords'] = '|'.join(sanitized_keywords)[:200]
 
         if page.get('language'):

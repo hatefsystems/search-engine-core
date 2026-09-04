@@ -21,6 +21,11 @@ Welcome to the Search Engine Core documentation. This directory contains compreh
 - **[api/website_profile_endpoint.md](./api/website_profile_endpoint.md)** - Website profile API
 - **[api/WEBSITE_PROFILE_API_SUMMARY.md](./api/WEBSITE_PROFILE_API_SUMMARY.md)** - Implementation summary
 
+#### Search Quality & Roadmap
+
+- **[SEARCH_QUALITY_IMPLEMENTATION_PROGRESS.md](./SEARCH_QUALITY_IMPLEMENTATION_PROGRESS.md)** - Code-verified search quality audit & implementation progress across milestones M0–M9
+- **[SEARCH_ENGINE_QUALITY_ROADMAP.md](./SEARCH_ENGINE_QUALITY_ROADMAP.md)** - Persian & global search quality roadmap, baseline benchmarks, and milestone plan
+
 #### Architecture Documentation
 
 - **[architecture/content-storage-layer.md](./architecture/content-storage-layer.md)** - MongoDB and Redis storage architecture

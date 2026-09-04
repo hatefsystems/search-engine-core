@@ -155,7 +155,16 @@ std::string PulseQueryNormalizer::normalizeCharacters(std::string value) {
         {"\xE2\x80\x8D", " "}, // ZWJ
         {"\xE2\x80\x8B", ""},  // Zero-width space
         {"\xEF\xBB\xBF", ""},  // BOM
-        {"\xC2\xAD", ""}       // Soft hyphen
+        {"\xC2\xAD", ""},      // Soft hyphen
+        {"\xD9\x80", ""},      // Tatweel / Kashida (ـ)
+        {"\xD9\x8B", ""},      // Fathatan (ً)
+        {"\xD9\x8C", ""},      // Dammatan (ٌ)
+        {"\xD9\x8D", ""},      // Kasratan (ٍ)
+        {"\xD9\x8E", ""},      // Fatha (َ)
+        {"\xD9\x8F", ""},      // Damma (ُ)
+        {"\xD9\x90", ""},      // Kasra (ِ)
+        {"\xD9\x91", ""},      // Shadda (ّ)
+        {"\xD9\x92", ""}       // Sukun (ْ)
     };
 
     for (const auto& [from, to] : replacements) {

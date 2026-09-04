@@ -11,6 +11,11 @@ TEST_CASE("Pulse query normalization handles Persian search variants", "[pulse][
     REQUIRE(PulseQueryNormalizer::normalize("می‌روم") == "می روم");
     REQUIRE(PulseQueryNormalizer::normalize("خبرهای ۱۴۰۵، اقتصاد") == "خبرهای 1405 اقتصاد");
     REQUIRE(PulseQueryNormalizer::normalize("HATEF   Search!") == "hatef search");
+    REQUIRE(PulseQueryNormalizer::normalize("كتاب") == "کتاب");
+    REQUIRE(PulseQueryNormalizer::normalize("علي") == "علی");
+    REQUIRE(PulseQueryNormalizer::normalize("كِتَابٌ") == "کتاب");
+    REQUIRE(PulseQueryNormalizer::normalize("کــــتاب") == "کتاب");
+    REQUIRE(PulseQueryNormalizer::normalize("شماره ١٢٣۴۵") == "شماره 12345");
 }
 
 TEST_CASE("Pulse language estimate is lightweight and script based", "[pulse][normalizer]") {

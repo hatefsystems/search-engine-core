@@ -76,6 +76,7 @@ set(STORAGE_SOURCES
     LinkBlockStorage.cpp
     LinkClickAnalyticsStorage.cpp
     PulseAnalyticsStorage.cpp
+    ../pulse/PulseQueryNormalizer.cpp
     ../infrastructure.cpp
 )
 
@@ -110,6 +111,7 @@ set(STORAGE_HEADERS
     ../../include/search_engine/storage/LinkBlockStorage.h
     ../../include/search_engine/storage/LinkClickAnalytics.h
     ../../include/search_engine/storage/PulseAnalyticsStorage.h
+    ../../include/search_engine/pulse/PulseQueryNormalizer.h
     ../../include/infrastructure.h
 )
 
@@ -186,7 +188,7 @@ target_include_directories(MongoDBStorage
 target_link_libraries(MongoDBStorage PUBLIC common mongo::bsoncxx_shared mongo::mongocxx_shared mongodb_instance)
 
 if(REDIS_AVAILABLE)
-    add_library(RedisSearchStorage STATIC RedisSearchStorage.cpp ../infrastructure.cpp)
+    add_library(RedisSearchStorage STATIC RedisSearchStorage.cpp ../pulse/PulseQueryNormalizer.cpp ../infrastructure.cpp)
     target_include_directories(RedisSearchStorage 
         PUBLIC 
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
