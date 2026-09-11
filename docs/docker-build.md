@@ -8,12 +8,12 @@ the runtime's dynamic libraries. Integration services are not started.
 
 ## Images and versioning
 
-| Image | Contents | Rebuilt when |
-| --- | --- | --- |
-| `mongodb-drivers` | MongoDB C 2.1.1 and C++ 4.1.2 drivers | MongoDB inputs or Ubuntu change |
-| `build-deps` | Drivers, CMake 3.31.8, compilers and project/test dependencies | Build inputs or its parent change |
-| `runtime-base` | Ubuntu runtime packages and shared libraries from build-deps | Runtime inputs or its parent change |
-| Repository root image | Server, public files, locales, templates and start script | Application inputs change |
+| Image                 | Contents                                                       | Rebuilt when                        |
+| --------------------- | -------------------------------------------------------------- | ----------------------------------- |
+| `mongodb-drivers`     | MongoDB C 2.1.1 and C++ 4.1.2 drivers                          | MongoDB inputs or Ubuntu change     |
+| `build-deps`          | Drivers, CMake 3.31.8, compilers and project/test dependencies | Build inputs or its parent change   |
+| `runtime-base`        | Ubuntu runtime packages and shared libraries from build-deps   | Runtime inputs or its parent change |
+| Repository root image | Server, public files, locales, templates and start script      | Application inputs change           |
 
 Base tags are `deps-<sha256>` hashes of the relevant Dockerfile, locked versions,
 platform, parent identity, build orchestration script, and `cache_version`.
