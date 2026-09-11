@@ -11,7 +11,8 @@ if [[ -z "${BUILD_BASE_IMAGE:-}" || -z "${RUNTIME_BASE_IMAGE:-}" ]]; then
     set +a
 fi
 
-docker buildx build --builder default --platform linux/amd64 --load \
+# Use the active context, just as dependency preparation does.
+docker buildx build --platform linux/amd64 --load \
     --progress=plain --file Dockerfile \
     --build-arg "BUILD_BASE_IMAGE=$BUILD_BASE_IMAGE" \
     --build-arg "RUNTIME_BASE_IMAGE=$RUNTIME_BASE_IMAGE" \

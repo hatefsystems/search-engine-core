@@ -97,6 +97,42 @@ class RegistryTests(unittest.TestCase):
                              "ghcr.io/owner/repo/build-deps@" + digest)
 
 
+class DockerContextTests(unittest.TestCase):
+    """Model the named Docker context created by setup-docker-action."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        directory = Path(temporary.name)
+        docker = directory / "docker"
+        docker.write_text("""#!/usr/bin/env python3
+import os, sys
+assert os.environ['DOCKER_CONTEXT'] == 'ci-docker-context'
+args = sys.argv[1:]
+if '--builder' in args and args[args.index('--builder') + 1] == 'default':
+    sys.stderr.write('ERROR: use docker --context=default buildx to switch context\\n')
+    sys.exit(1)
+""")
+        docker.chmod(0o755)
+        environment = patch.dict(os.environ, {
+            "PATH": str(directory) + os.pathsep + os.environ["PATH"],
+            "DOCKER_CONTEXT": "ci-docker-context",
+            "BUILD_BASE_IMAGE": "example/build:1",
+            "RUNTIME_BASE_IMAGE": "example/runtime:1",
+        })
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def test_dependency_and_core_builds_use_the_active_context(self):
+        for push in (False, True):
+            with self.subTest(push=push):
+                images.build_image("Dockerfile", "example/test:context", {}, push=push)
+
+    def test_local_build_uses_the_same_context_as_dependency_preparation(self):
+        subprocess.run(["bash", str(ROOT / "scripts/build-docker.sh")],
+                       cwd=ROOT, check=True)
+
+
 class PipelineTests(unittest.TestCase):
     def options(self, **kwargs):
         values = dict(push=False, force=False, offline=False, repository="owner/repo",

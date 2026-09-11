@@ -57,10 +57,12 @@ References: [GHCR access and visibility](https://docs.github.com/en/packages/lea
 
 ## Local builds
 
-Docker with Buildx's **default Docker driver**, Python 3 and access to public
+Docker with an active Buildx builder using the **Docker driver**, Python 3 and access to public
 registries are required. Locally loaded base images must remain in the same
 daemon as the application build. Do not use a separate docker-container builder
-for this path. CI enables the containerd image store for registry cache export;
+for this path. Build commands inherit the active Docker context and builder,
+including the named context selected by `setup-docker-action` in CI; they do not
+force the `default` context or builder. CI enables the containerd image store for registry cache export;
 local builds do not export registry caches and work without that setting.
 
 Run `bash scripts/build-docker.sh` to resolve/build bases and build

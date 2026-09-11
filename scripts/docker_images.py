@@ -93,7 +93,9 @@ def require_publish_context():
 
 
 def build_image(filename, tag, build_args, *, push=False, force=False, cache=None):
-    command = ["docker", "buildx", "build", "--builder", "default",
+    # setup-docker-action can select a named context. Keep its Docker driver
+    # and daemon instead of forcing the builder attached to the default context.
+    command = ["docker", "buildx", "build",
                "--platform", locked_versions()["platform"], "--progress", "plain",
                "--provenance=false", "--file", filename, "--tag", tag]
     command += ["--push"] if push else ["--load"]
