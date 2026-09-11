@@ -1,53 +1,75 @@
-name: 🔍 Build Search Engine
+name: Build Search Engine
 
 on:
   workflow_call:
     inputs:
-      docker_image:
-        required: true
-        type: string
-      docker_tag:
-        required: true
-        type: string
       cache_version:
-        required: false
         type: string
         default: '1'
+      force_rebuild:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
   packages: write
-  actions: write
 
 jobs:
   build-app:
-    name: 🔍 Build Search Engine
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 120
+    # Serialize all core publishers, including runs with different dependency
+    # hashes that share a MongoDB parent. PR validation has a separate group.
+    concurrency:
+      group: core-images-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.number || 'publish' }}
+      cancel-in-progress: false
+    env:
+      CACHE_VERSION: ${{ inputs.cache_version }}
+      FORCE_REBUILD: ${{ inputs.force_rebuild }}
+      BUILD_JOBS: '2'
+      PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check build orchestration
+        run: |
+          python3 -m unittest discover -s tests/ci -v
+          bash -n scripts/build-docker.sh scripts/verify-runtime.sh
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
-      
+      # The Docker driver can consume images loaded earlier in the same job.
+      # The containerd store enables registry cache export with this driver.
+      - uses: docker/setup-docker-action@v5
+        with:
+          daemon-config: |
+            {"features": {"containerd-snapshotter": true}}
 
-    - name: Build Final Application Image
-      uses: docker/build-push-action@v7
-      with:
-        context: .
-        file: ./Dockerfile
-        tags: ${{ inputs.docker_image }}:${{ inputs.docker_tag }}
-        load: true
-        push: true
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BASE_IMAGE=ghcr.io/${{ github.repository }}/mongodb-drivers:latest
-          CACHEBUST=${{ inputs.cache_version }}
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+
+      - name: Log in to GHCR for publication
+        if: env.PUBLISH_IMAGES == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare dependency images
+        run: |
+          if [ "$PUBLISH_IMAGES" = true ]; then
+            python3 scripts/docker_images.py prepare --push
+          else
+            python3 scripts/docker_images.py prepare
+          fi
+
+      - name: Check public access to dependency images
+        if: env.PUBLISH_IMAGES == 'true'
+        run: python3 scripts/docker_images.py verify-public
+
+      - name: Compile, run short tests and verify runtime
+        run: python3 scripts/docker_images.py build
+
+      - name: Publish verified core image
+        if: env.PUBLISH_IMAGES == 'true'
+        run: python3 scripts/docker_images.py publish

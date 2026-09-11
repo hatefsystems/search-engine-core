@@ -1,0 +1,69 @@
+# syntax=docker/dockerfile:1
+ARG MONGODB_BASE_IMAGE
+FROM ${MONGODB_BASE_IMAGE}
+ARG BUILD_JOBS=2
+ARG CMAKE_VERSION
+ARG CATCH2_COMMIT
+ARG UWEBSOCKETS_COMMIT
+ARG USOCKETS_COMMIT
+ARG GUMBO_COMMIT
+ARG HIREDIS_COMMIT
+ARG REDIS_PLUS_PLUS_COMMIT
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip curl autotools-dev autoconf automake libtool-bin \
+    libgtest-dev libcurl4-openssl-dev libwebsocketpp-dev libboost-system-dev \
+    libboost-thread-dev libasio-dev librdkafka-dev && \
+    rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp/dependencies
+RUN wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh" && \
+    sh "cmake-${CMAKE_VERSION}-linux-x86_64.sh" --skip-license --prefix=/usr/local && \
+    rm "cmake-${CMAKE_VERSION}-linux-x86_64.sh" && cmake --version
+# Gumbo requires shared GTest. Keep test libraries out of /usr/local/lib,
+# which is the source of the application's runtime library bundle.
+RUN cmake -S /usr/src/googletest -B gtest-build \
+        -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr && \
+    cmake --build gtest-build --parallel "${BUILD_JOBS}" && \
+    cmake --install gtest-build && ldconfig && rm -rf gtest-build
+RUN git init uWebSockets && cd uWebSockets && \
+    git remote add origin https://github.com/uNetworking/uWebSockets.git && \
+    git fetch --depth 1 origin "${UWEBSOCKETS_COMMIT}" && git checkout --detach FETCH_HEAD && \
+    git submodule update --init --depth 1 uSockets && \
+    test "$(git -C uSockets rev-parse HEAD)" = "${USOCKETS_COMMIT}" && \
+    make -C uSockets WITH_OPENSSL=1 -j"${BUILD_JOBS}" && \
+    mkdir -p /usr/local/include/uwebsockets /usr/local/include/usockets && \
+    cp -r src/. /usr/local/include/uwebsockets/ && \
+    cp -r uSockets/src/. /usr/local/include/usockets/ && \
+    cp uSockets/uSockets.a /usr/local/lib/libuSockets.a && \
+    ln -s usockets /usr/local/include/uSockets && \
+    ln -s usockets/libusockets.h /usr/local/include/libusockets.h && \
+    cd .. && rm -rf uWebSockets
+RUN git init Catch2 && cd Catch2 && \
+    git remote add origin https://github.com/catchorg/Catch2.git && \
+    git fetch --depth 1 origin "${CATCH2_COMMIT}" && git checkout --detach FETCH_HEAD && \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+        -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib && \
+    cmake --build build --parallel "${BUILD_JOBS}" && cmake --install build && \
+    cd .. && rm -rf Catch2
+RUN git init gumbo && cd gumbo && \
+    git remote add origin https://github.com/google/gumbo-parser.git && \
+    git fetch --depth 1 origin "${GUMBO_COMMIT}" && git checkout --detach FETCH_HEAD && \
+    ./autogen.sh && ./configure && make -j"${BUILD_JOBS}" && make check && make install && \
+    cd .. && rm -rf gumbo
+RUN git init hiredis && cd hiredis && \
+    git remote add origin https://github.com/redis/hiredis.git && \
+    git fetch --depth 1 origin "${HIREDIS_COMMIT}" && git checkout --detach FETCH_HEAD && \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_LIBDIR=lib -DENABLE_SSL=ON -DDISABLE_TESTS=ON && \
+    cmake --build build --parallel "${BUILD_JOBS}" && cmake --install build && \
+    cd .. && rm -rf hiredis
+RUN git init redis-plus-plus && cd redis-plus-plus && \
+    git remote add origin https://github.com/sewenew/redis-plus-plus.git && \
+    git fetch --depth 1 origin "${REDIS_PLUS_PLUS_COMMIT}" && git checkout --detach FETCH_HEAD && \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_PREFIX_PATH=/usr/local \
+        -DCMAKE_CXX_STANDARD=20 -DREDIS_PLUS_PLUS_CXX_STANDARD=20 \
+        -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_BUILD_STATIC=ON \
+        -DREDIS_PLUS_PLUS_BUILD_SHARED=ON && \
+    cmake --build build --parallel "${BUILD_JOBS}" && cmake --install build && \
+    cd .. && rm -rf redis-plus-plus && ldconfig
+WORKDIR /deps

@@ -25,26 +25,22 @@ permissions:
   actions: write
 
 jobs:
-  build-drivers:
-    uses: ./.github/workflows/build-mongodb-drivers.yml
-    with:
-      docker_image: ghcr.io/${{ github.repository }}/mongodb-drivers
-      docker_tag: latest
-
   build-js-minifier:
-    needs: build-drivers
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/build-js-minifier.yml
     with:
       docker_image: ghcr.io/${{ github.repository }}/js-minifier
       docker_tag: latest
 
   build-redis-sync:
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/build-redis-sync.yml
     with:
       docker_image: ghcr.io/${{ github.repository }}/redis-sync
       docker_tag: latest
 
   build-crawler-scheduler:
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/build-crawler-scheduler.yml
     with:
       docker_image: ghcr.io/${{ github.repository }}/crawler-scheduler
@@ -53,10 +49,8 @@ jobs:
       force_rebuild: ${{ inputs.force_rebuild }}
 
   build-app:
-    needs: [build-drivers, build-js-minifier]
     uses: ./.github/workflows/build-search-engine.yml
     with:
-      docker_image: ghcr.io/${{ github.repository }}
-      docker_tag: latest
       cache_version: ${{ inputs.cache_version }}
+      force_rebuild: ${{ inputs.force_rebuild }}
 

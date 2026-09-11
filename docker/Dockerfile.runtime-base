@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1
+ARG UBUNTU_IMAGE
+ARG BUILD_BASE_IMAGE
+FROM ${BUILD_BASE_IMAGE} AS libraries
+RUN mkdir /runtime-libs && \
+    find /usr/local/lib -maxdepth 1 -name '*.so*' -exec cp -a {} /runtime-libs/ \;
+
+FROM ${UBUNTU_IMAGE}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash coreutils sed ca-certificates libc-bin libstdc++6 libgcc-s1 \
+    libssl3 zlib1g libuv1 libcurl4 libboost-system1.74.0 libboost-thread1.74.0 \
+    librdkafka1 && rm -rf /var/lib/apt/lists/*
+COPY --from=libraries /runtime-libs/ /usr/local/lib/
+RUN ldconfig
+WORKDIR /app

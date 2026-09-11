@@ -1,60 +1,28 @@
-# Use Ubuntu 22.04 as base image
-FROM ubuntu:22.04
-
-# Avoid interactive prompts during package installation
+# syntax=docker/dockerfile:1
+ARG UBUNTU_IMAGE
+FROM ${UBUNTU_IMAGE}
+ARG MONGO_C_VERSION
+ARG MONGO_CXX_VERSION
+ARG BUILD_JOBS=2
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install required packages
-RUN apt-get update
-
-RUN apt-get install -y \
-    wget \
-    gnupg \
-    lsb-release \
-    build-essential \
-    cmake \
-    git \
-    pkg-config \
-    libssl-dev \
-    zlib1g-dev \
-    libuv1-dev \
-    nlohmann-json3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create working directory for MongoDB drivers
-WORKDIR /mongodb
-
-# Download and install MongoDB C Driver
-RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/2.1.1/mongo-c-driver-2.1.1.tar.gz \
-    && tar xzf mongo-c-driver-2.1.1.tar.gz \
-    && cd mongo-c-driver-2.1.1 \
-    && mkdir cmake-build \
-    && cd cmake-build \
-    && cmake .. \
-    && cmake --build . \
-    && cmake --build . --target install \
-    && cd ../.. \
-    && rm -rf mongo-c-driver-2.1.1.tar.gz mongo-c-driver-2.1.1
-
-# Download and install MongoDB C++ Driver
-RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r4.1.2/mongo-cxx-driver-r4.1.2.tar.gz \
-    && tar xzf mongo-cxx-driver-r4.1.2.tar.gz \
-    && cd mongo-cxx-driver-r4.1.2 \
-    && mkdir cmake-build \
-    && cd cmake-build \
-    && cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
-        -DCMAKE_PREFIX_PATH=/usr/local \
-        -DBSONCXX_POLY_USE_BOOST=0 \
-        -DCMAKE_CXX_STANDARD=20 \
-    && cmake --build . \
-    && cmake --build . --target install \
-    && cd ../.. \
-    && rm -rf mongo-cxx-driver-r4.1.2.tar.gz mongo-cxx-driver-r4.1.2
-
-# Clean up build directories
-RUN rm -rf /mongodb
-
-# Set working directory
-WORKDIR /app 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates wget build-essential cmake git pkg-config \
+    libssl-dev zlib1g-dev libuv1-dev nlohmann-json3-dev && \
+    rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp/mongodb
+RUN wget -q "https://github.com/mongodb/mongo-c-driver/releases/download/${MONGO_C_VERSION}/mongo-c-driver-${MONGO_C_VERSION}.tar.gz" && \
+    tar xzf "mongo-c-driver-${MONGO_C_VERSION}.tar.gz" && \
+    cmake -S "mongo-c-driver-${MONGO_C_VERSION}" -B c-build \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_LIBDIR=lib -DENABLE_TESTS=OFF && \
+    cmake --build c-build --parallel "${BUILD_JOBS}" && \
+    cmake --install c-build && rm -rf ./*
+RUN wget -q "https://github.com/mongodb/mongo-cxx-driver/releases/download/r${MONGO_CXX_VERSION}/mongo-cxx-driver-r${MONGO_CXX_VERSION}.tar.gz" && \
+    tar xzf "mongo-cxx-driver-r${MONGO_CXX_VERSION}.tar.gz" && \
+    cmake -S "mongo-cxx-driver-r${MONGO_CXX_VERSION}" -B cxx-build \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_PREFIX_PATH=/usr/local \
+        -DBSONCXX_POLY_USE_BOOST=0 -DCMAKE_CXX_STANDARD=20 -DBUILD_TESTING=OFF && \
+    cmake --build cxx-build --parallel "${BUILD_JOBS}" && \
+    cmake --install cxx-build && ldconfig && rm -rf ./*
+WORKDIR /app
