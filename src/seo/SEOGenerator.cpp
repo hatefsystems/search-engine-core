@@ -71,11 +71,11 @@ nlohmann::json SEOGenerator::generatePersonSchema(
     }
 
     // Add contact information (only if public)
-    if (profile.email.has_value() && !profile.email.value().empty()) {
+    if (profile.privacy.showEmail && profile.email.has_value() && !profile.email.value().empty()) {
         schema["email"] = profile.email.value();
     }
 
-    if (profile.phone.has_value() && !profile.phone.value().empty()) {
+    if (profile.privacy.showPhone && profile.phone.has_value() && !profile.phone.value().empty()) {
         schema["telephone"] = profile.phone.value();
     }
 
@@ -331,12 +331,17 @@ std::string SEOGenerator::truncateText(const std::string& text, size_t maxLength
         return text;
     }
 
+    if (maxLength <= 3) return std::string(maxLength, '.');
+
     // Find last space before maxLength to avoid cutting words
     size_t truncateAt = text.rfind(' ', maxLength - 3);
     if (truncateAt == std::string::npos || truncateAt < maxLength / 2) {
         truncateAt = maxLength - 3;
     }
 
+    // Never split a UTF-8 character in Persian metadata.
+    while (truncateAt > 0 && (static_cast<unsigned char>(text[truncateAt]) & 0xC0) == 0x80)
+        --truncateAt;
     return text.substr(0, truncateAt) + "...";
 }
 

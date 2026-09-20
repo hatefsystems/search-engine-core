@@ -3,8 +3,9 @@
 The core is built on GitHub-hosted `ubuntu-latest` runners for `linux/amd64`.
 All base images and registry layer caches live under `ghcr.io/<owner>/<repo>`.
 Application behavior, Debug compilation, and test compilation are unchanged.
-CI additionally runs the existing SlugGenerator and SlugCache tests and checks
-the runtime's dynamic libraries. Integration services are not started.
+CI runs the slug, public profile, editor, profile validator, and SEO generator
+tests and checks the runtime's dynamic libraries. Database integration services
+are not started during the image build.
 
 ## Images and versioning
 
@@ -57,38 +58,58 @@ References: [GHCR access and visibility](https://docs.github.com/en/packages/lea
 
 ## Local builds
 
-Docker with an active Buildx builder using the **Docker driver**, Python 3 and access to public
-registries are required. Locally loaded base images must remain in the same
-daemon as the application build. Do not use a separate docker-container builder
-for this path. Build commands inherit the active Docker context and builder,
-including the named context selected by `setup-docker-action` in CI; they do not
-force the `default` context or builder. CI enables the containerd image store for registry cache export;
-local builds do not export registry caches and work without that setting.
+For normal development, run:
 
-Run `bash scripts/build-docker.sh` to resolve/build bases and build
-`searchenginecore:latest`. Set `BUILD_JOBS` to adjust compilation parallelism
-(default 2 to limit memory usage). Set `IMAGE_TAG` to change the local output tag.
+```bash
+docker compose up
+```
 
-For explicit base references and Compose:
+The search-engine service builds the application using the published `build-deps`
+and `runtime-base` defaults in `Dockerfile`. Both are pinned to matching GHCR
+digests, verified against the dependency tags from the current lock. Missing base
+images are downloaded; dependency Dockerfiles are not built locally. No base-image
+variables, generated env file, or `prepare` command are needed. The application's
+existing `.env` is still used for its runtime configuration.
+
+`pull_policy: build` rechecks the application build on every `up`, including when
+an application image already exists. Docker reuses unchanged layers; changing only
+web assets does not recompile C++. The core targets `linux/amd64`, matching the
+published bases. Other Compose services retain their existing build behavior.
+
+`bash scripts/build-docker.sh` builds just the core as `searchenginecore:latest`
+with the same Dockerfile defaults. Set `BUILD_JOBS` to adjust compilation parallelism
+(default 2), or `IMAGE_TAG` to change this helper's local output tag. Direct
+`docker build .` also uses the published bases.
+
+For an explicitly selected pair, optionally set nonempty `BUILD_BASE_IMAGE` and
+`RUNTIME_BASE_IMAGE` in the environment (or `.env` for Compose). CI continues to
+supply its own resolved digests, so these development defaults do not change CI's
+dependency selection. Keep both Dockerfile defaults together when updating them:
+first publish a matching pair through CI, then replace their two digest references.
+They intentionally do not follow mutable `latest` tags.
+
+### Explicit dependency maintenance
+
+Developers changing the dependency definitions can still opt into building bases:
 
 ```bash
 python3 scripts/docker_images.py prepare --env-file build/docker-bases.env
 set -a
 source build/docker-bases.env
 set +a
-docker compose build search-engine
-docker compose up -d search-engine
+docker compose up
 ```
 
-The env file contains only image references. It does not replace the application's
-existing `.env`. Regenerate it after dependency changes. Both `BUILD_BASE_IMAGE`
-and `RUNTIME_BASE_IMAGE` are required when invoking the main Dockerfile directly;
-the previous single `BASE_IMAGE` argument is no longer supported.
+Only this explicit maintenance path requires Python 3 and an active Buildx builder
+using the Docker driver, so locally loaded parents and their children use the same
+Docker daemon. It inherits the active context, including the named context selected
+by `setup-docker-action` in CI. CI enables the containerd image store for registry
+cache export; local builds do not export registry caches.
 
-Use `--repository owner/repo` with the prepare command when building a fork.
-Use `prepare --offline --env-file build/docker-bases.env` to skip GHCR lookups
-and build all bases locally. This still downloads Ubuntu, packages and source
-dependencies; it is not a network-disconnected build.
+Use `--repository owner/repo` with `prepare` for another repository, or `--offline`
+to skip GHCR lookups and build all bases locally. The latter still downloads Ubuntu,
+packages and source dependencies; it is not a network-disconnected build. The
+previous single `BASE_IMAGE` argument is no longer supported.
 
 ## Updates, cache and validation
 
@@ -107,11 +128,13 @@ dependencies; it is not a network-disconnected build.
   removing images. No automatic deletion policy is installed by this change.
 - BuildKit layer caching is retained. A source change still recompiles the C++
   project; persistent ccache/object caching is outside this change. Asset-only
-  changes occur after compilation and preserve the compile/test layers.
+  changes occur after compilation and preserve the compile layers. Template
+  changes rerun the profile rendering tests; other asset changes preserve the
+  test layers.
 - Workflow summaries record each base's preparation, core compile/test/validation,
   and publication duration. Compare a bootstrap run with a source-only run and
   an asset-only run. Source-only runs must reuse all three bases; asset-only runs
-  must also reuse compile/test layers. No unmeasured speedup percentage is claimed.
+  must also reuse compile layers. Template edits rerun rendering tests. No unmeasured speedup percentage is claimed.
 
 Run `python3 -m unittest discover -s tests/ci -v` for hash propagation, missing
 manifest vs. registry failure handling, local PR bootstrap and publication gates.

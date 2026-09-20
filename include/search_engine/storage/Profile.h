@@ -56,6 +56,8 @@ struct Profile {
     std::optional<std::chrono::system_clock::time_point> deletedAt;  // Soft delete timestamp (if set, profile is deleted)
 
     // Ownership and authentication (optional for backward compatibility)
+    std::optional<std::string> ownerTokenHash; // New keys are stored only as SHA-256 hashes
+    int64_t version = 0; // Optimistic concurrency; legacy documents start at zero
     std::optional<std::string> ownerToken;  // Authentication token for profile ownership
     std::optional<std::string> ownerId;     // Future: User ID from auth system
 

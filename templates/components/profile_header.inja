@@ -1,0 +1,47 @@
+<header class="profile-header">
+    <div class="profile-cover" aria-hidden="true">
+        {% if existsIn(profile, "coverImageUrl") and profile.coverImageUrl != "" %}
+        <img src="{{ profile.coverImageUrl }}" alt="" class="profile-image" data-profile-image decoding="async">
+        {% endif %}
+    </div>
+    <div class="profile-heading">
+        <div class="profile-avatar" role="img" aria-label="تصویر پروفایل {{ headerName }}">
+            <svg class="avatar-placeholder" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                <circle cx="50" cy="36" r="17" fill="currentColor"/>
+                <path d="M18 89c0-24 14-34 32-34s32 10 32 34" fill="currentColor"/>
+            </svg>
+            {% if existsIn(profile, "avatarUrl") and profile.avatarUrl != "" %}
+            <img src="{{ profile.avatarUrl }}" alt="تصویر پروفایل {{ headerName }}" class="profile-image" data-profile-image decoding="async">
+            {% endif %}
+        </div>
+        <div class="profile-identity">
+            <h1 dir="auto">{{ headerName }}</h1>
+            {% if existsIn(profile, "englishName") and profile.englishName != "" %}
+            <p class="english-name"><bdi lang="en" dir="ltr">{{ profile.englishName }}</bdi></p>
+            {% endif %}
+            {% if existsIn(profile, "tagline") and profile.tagline != "" %}
+            <p class="profile-tagline" dir="auto">{{ profile.tagline }}</p>
+            {% endif %}
+            {% if (existsIn(profile, "location") and profile.location != "") or availabilityLabel != "" %}
+            <ul class="profile-details" aria-label="اطلاعات عمومی">
+                {% if existsIn(profile, "location") and profile.location != "" %}
+                <li>موقعیت: <bdi>{{ profile.location }}</bdi></li>
+                {% endif %}
+                {% if availabilityLabel != "" %}
+                <li class="availability">{{ availabilityLabel }}</li>
+                {% endif %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+    {% if length(headerSkills) > 0 %}
+    <section class="profile-skills" aria-labelledby="skills-heading">
+        <h2 id="skills-heading">مهارت‌ها و تخصص‌ها</h2>
+        <ul class="skills-list">
+            {% for skill in headerSkills %}
+            <li class="skill-tag"><bdi>{{ skill.name }}</bdi>{% if skill.levelLabel != "" %}<span class="skill-level">{{ skill.levelLabel }}</span>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+</header>

@@ -1,25 +1,26 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
+#include "../../include/search_engine/common/ProfileSlug.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
 
 using namespace search_engine::common;
 
 TEST_CASE("SlugGenerator - Basic Slug Generation", "[sluggenerator][basic]") {
     SECTION("Simple ASCII names") {
-        REQUIRE(SlugGenerator::generateSlug("John Doe") == "john-doe");
-        REQUIRE(SlugGenerator::generateSlug("Test User") == "test-user");
-        REQUIRE(SlugGenerator::generateSlug("Hello World") == "hello-world");
+        REQUIRE(SlugGenerator::generateSlug("John Doe") == "john.doe");
+        REQUIRE(SlugGenerator::generateSlug("Test User") == "test.user");
+        REQUIRE(SlugGenerator::generateSlug("Hello World") == "hello.world");
     }
 
     SECTION("Names with special characters") {
-        REQUIRE(SlugGenerator::generateSlug("John's Profile") == "johns-profile");
-        REQUIRE(SlugGenerator::generateSlug("User@Example.com") == "userexample-com");
-        REQUIRE(SlugGenerator::generateSlug("Test.User_Name") == "test-user-name");
+        REQUIRE(SlugGenerator::generateSlug("John's Profile") == "johns.profile");
+        REQUIRE(SlugGenerator::generateSlug("User@Example.com") == "userexample.com");
+        REQUIRE(SlugGenerator::generateSlug("Test.User_Name") == "test.user.name");
     }
 
     SECTION("Names with numbers") {
         REQUIRE(SlugGenerator::generateSlug("User123") == "user123");
-        REQUIRE(SlugGenerator::generateSlug("Test 2023") == "test-2023");
+        REQUIRE(SlugGenerator::generateSlug("Test 2023") == "test.2023");
     }
 
     SECTION("Empty and whitespace names") {
@@ -37,15 +38,15 @@ TEST_CASE("SlugGenerator - Basic Slug Generation", "[sluggenerator][basic]") {
 
 TEST_CASE("SlugGenerator - Unicode and Persian Support", "[sluggenerator][unicode][persian]") {
     SECTION("Persian names") {
-        REQUIRE(SlugGenerator::generateSlug("علی رضایی") == "علی-رضایی");
-        REQUIRE(SlugGenerator::generateSlug("محمد علی") == "محمد-علی");
-        REQUIRE(SlugGenerator::generateSlug("فاطمه کریمی") == "فاطمه-کریمی");
+        REQUIRE(SlugGenerator::generateSlug("علی رضایی") == "علی.رضایی");
+        REQUIRE(SlugGenerator::generateSlug("محمد علی") == "محمد.علی");
+        REQUIRE(SlugGenerator::generateSlug("فاطمه کریمی") == "فاطمه.کریمی");
     }
 
     SECTION("Mixed Persian-English names") {
-        REQUIRE(SlugGenerator::generateSlug("Ali رضایی") == "ali-رضایی");
-        REQUIRE(SlugGenerator::generateSlug("علی Reza") == "علی-reza");
-        REQUIRE(SlugGenerator::generateSlug("Ali رضا 123") == "ali-رضا-123");
+        REQUIRE(SlugGenerator::generateSlug("Ali رضایی") == "ali.رضایی");
+        REQUIRE(SlugGenerator::generateSlug("علی Reza") == "علی.reza");
+        REQUIRE(SlugGenerator::generateSlug("Ali رضا 123") == "ali.رضا.123");
     }
 
     SECTION("Persian normalization") {
@@ -62,18 +63,18 @@ TEST_CASE("SlugGenerator - Unicode and Persian Support", "[sluggenerator][unicod
 TEST_CASE("SlugGenerator - Collision Resolution", "[sluggenerator][collision]") {
     SECTION("Basic collision resolution") {
         auto existsFunc = [](const std::string& slug) {
-            return slug == "john-doe";
+            return slug == "john.doe";
         };
 
-        REQUIRE(SlugGenerator::resolveSlugConflict("john-doe", existsFunc) == "john-doe-2");
+        REQUIRE(SlugGenerator::resolveSlugConflict("john.doe", existsFunc) == "john.doe.2");
     }
 
     SECTION("Multiple collisions") {
         auto existsFunc = [](const std::string& slug) {
-            return slug == "test" || slug == "test-2" || slug == "test-3";
+            return slug == "test" || slug == "test.2" || slug == "test.3";
         };
 
-        REQUIRE(SlugGenerator::resolveSlugConflict("test", existsFunc) == "test-4");
+        REQUIRE(SlugGenerator::resolveSlugConflict("test", existsFunc) == "test.4");
     }
 
     SECTION("No collision") {
@@ -81,15 +82,15 @@ TEST_CASE("SlugGenerator - Collision Resolution", "[sluggenerator][collision]") 
             return false; // Nothing exists
         };
 
-        REQUIRE(SlugGenerator::resolveSlugConflict("available-slug", existsFunc) == "available-slug");
+        REQUIRE(SlugGenerator::resolveSlugConflict("available.slug", existsFunc) == "available.slug");
     }
 
     SECTION("Collision with existing numbered slugs") {
         auto existsFunc = [](const std::string& slug) {
-            return slug == "user" || slug == "user-2" || slug == "user-3" || slug == "user-4";
+            return slug == "user" || slug == "user.2" || slug == "user.3" || slug == "user.4";
         };
 
-        REQUIRE(SlugGenerator::resolveSlugConflict("user", existsFunc) == "user-5");
+        REQUIRE(SlugGenerator::resolveSlugConflict("user", existsFunc) == "user.5");
     }
 }
 
@@ -135,19 +136,19 @@ TEST_CASE("SlugGenerator - Edge Cases", "[sluggenerator][edge-cases]") {
     }
 
     SECTION("Mixed special and valid characters") {
-        REQUIRE(SlugGenerator::generateSlug("John@Doe.com") == "johndoe-com");
-        REQUIRE(SlugGenerator::generateSlug("Test.User_123") == "test-user-123");
+        REQUIRE(SlugGenerator::generateSlug("John@Doe.com") == "johndoe.com");
+        REQUIRE(SlugGenerator::generateSlug("Test.User_123") == "test.user.123");
     }
 
     SECTION("Multiple spaces and hyphens") {
-        REQUIRE(SlugGenerator::generateSlug("John    Doe") == "john-doe");
-        REQUIRE(SlugGenerator::generateSlug("test--user") == "test-user");
+        REQUIRE(SlugGenerator::generateSlug("John    Doe") == "john.doe");
+        REQUIRE(SlugGenerator::generateSlug("test--user") == "test.user");
         REQUIRE(SlugGenerator::generateSlug("---test---") == "test");
     }
 
     SECTION("Unicode edge cases") {
         REQUIRE(SlugGenerator::generateSlug("тест") == "test"); // Cyrillic
-        REQUIRE(SlugGenerator::generateSlug("José María") == "jose-maria"); // Spanish accents
+        REQUIRE(SlugGenerator::generateSlug("José María") == "jose.maria"); // Spanish accents
         REQUIRE(SlugGenerator::generateSlug("Müller") == "mueller"); // German umlaut (canonical: ü → ue)
     }
 }
@@ -184,7 +185,7 @@ TEST_CASE("SlugGenerator - Normalization Consistency", "[sluggenerator][normaliz
         std::string result1 = SlugGenerator::generateSlug(input);
         std::string result2 = SlugGenerator::generateSlug(input);
         REQUIRE(result1 == result2);
-        REQUIRE(result1 == "john-doe-company");
+        REQUIRE(result1 == "john.doe.company");
     }
 
     SECTION("Case insensitive") {
@@ -193,9 +194,9 @@ TEST_CASE("SlugGenerator - Normalization Consistency", "[sluggenerator][normaliz
     }
 
     SECTION("Trimming and cleaning") {
-        REQUIRE(SlugGenerator::generateSlug("  John Doe  ") == "john-doe");
-        REQUIRE(SlugGenerator::generateSlug("-John-Doe-") == "john-doe");
-        REQUIRE(SlugGenerator::generateSlug("John   Doe") == "john-doe");
+        REQUIRE(SlugGenerator::generateSlug("  John Doe  ") == "john.doe");
+        REQUIRE(SlugGenerator::generateSlug("-John-Doe-") == "john.doe");
+        REQUIRE(SlugGenerator::generateSlug("John   Doe") == "john.doe");
     }
 }
 
@@ -203,26 +204,26 @@ TEST_CASE("SlugGenerator - Integration Tests", "[sluggenerator][integration]") {
     SECTION("Complete workflow") {
         // Generate slug
         std::string slug = SlugGenerator::generateSlug("علی Reza & Company!");
-        REQUIRE(slug == "علی-reza-company");
+        REQUIRE(slug == "علی.reza.company");
 
         // Check if reserved
         REQUIRE_FALSE(SlugGenerator::isReservedSlug(slug));
 
         // Resolve collision
-        auto existsFunc = [](const std::string& s) { return s == "علی-reza-company"; };
+        auto existsFunc = [](const std::string& s) { return s == "علی.reza.company"; };
         std::string resolved = SlugGenerator::resolveSlugConflict(slug, existsFunc);
-        REQUIRE(resolved == "علی-reza-company-2");
+        REQUIRE(resolved == "علی.reza.company.2");
     }
 
     SECTION("Real-world examples") {
         std::vector<std::pair<std::string, std::string>> testCases = {
-            {"محمد علی رضایی", "محمد-علی-رضایی"},
-            {"John Smith Jr.", "john-smith-jr"},
-            {"Tech Corp & Co.", "tech-corp-co"},
-            {"José María González", "jose-maria-gonzalez"},
-            {"Михаил Горбачёв", "mikhail-gorbachev"},
-            {"李小明", "li小明"}, // Limited Chinese support - untransliterated chars preserved
-            {"Yamada Taro", "yamada-taro"}
+            {"محمد علی رضایی", "محمد.علی.رضایی"},
+            {"John Smith Jr.", "john.smith.jr"},
+            {"Tech Corp & Co.", "tech.corp.co"},
+            {"José María González", "jose.maria.gonzalez"},
+            {"Михаил Горбачёв", "mikhail.gorbachev"},
+            {"李小明", "li"}, // Limited Chinese support - unsupported identifier characters removed
+            {"Yamada Taro", "yamada.taro"}
         };
 
         for (const auto& [input, expected] : testCases) {
@@ -295,7 +296,7 @@ TEST_CASE("SlugGenerator - Slug Length Enforcement", "[sluggenerator][validation
         name += " b";  // Would become "aaa...a-b" at 101 chars
         std::string slug = SlugGenerator::generateSlug(name);
         REQUIRE(slug.length() <= 100);
-        REQUIRE(slug.back() != '-');
+        REQUIRE(slug.back() != '.');
     }
 }
 
@@ -314,4 +315,21 @@ TEST_CASE("SlugGenerator - Arabic/Persian Numeral Conversion", "[sluggenerator][
         // Persian text preserved, numerals converted to ASCII
         REQUIRE(result.find("123") != std::string::npos);
     }
+}
+
+TEST_CASE("SlugGenerator - Canonical dots and Unicode length", "[sluggenerator][unicode]") {
+    REQUIRE(SlugGenerator::generateSlug("..هاتف   رستمخانی..") == "هاتف.رستمخانی");
+    REQUIRE(SlugGenerator::generateSlug("هاتف\t\n رستمخانی") == "هاتف.رستمخانی");
+    REQUIRE(SlugGenerator::generateSlug("هاتف‌ رستمخانی") == "هاتف.رستمخانی");
+    REQUIRE(SlugGenerator::generateSlug("هاتف .-_ رستمخانی") == "هاتف.رستمخانی");
+    std::string longName;
+    for (int i = 0; i < 101; ++i) longName += "ه";
+    auto slug = SlugGenerator::generateSlug(longName);
+    REQUIRE(slug.size() == 200);
+    REQUIRE(isValidProfileSlug(slug));
+    auto numbered = SlugGenerator::resolveSlugConflict(slug, [&slug](const auto& value) { return value == slug; });
+    REQUIRE(isValidProfileSlug(numbered));
+    REQUIRE(numbered.ends_with(".2"));
+    REQUIRE(SlugGenerator::isReservedSlug("api.docs"));
+    REQUIRE(SlugGenerator::isReservedSlug("api-docs"));
 }

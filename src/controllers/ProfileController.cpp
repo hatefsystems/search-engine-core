@@ -1,6 +1,10 @@
 #include "ProfileController.h"
+#include "../../include/search_engine/profile/ProfileEditor.h"
 #include "../../include/Logger.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
+#include "../../include/search_engine/common/ProfileSlug.h"
+#include "../../include/search_engine/profile/PublicProfile.h"
+#include "../../include/search_engine/profile/ProfileJson.h"
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/storage/AuditLogger.h"
 #include "../../include/search_engine/seo/SEOGenerator.h"
@@ -164,7 +168,7 @@ std::string ProfileController::renderTemplate(const std::string& templateName, c
         inja::Environment env("templates/");
         
         // Render the template with data
-        std::string result = env.render_file(templateName, data);
+        std::string result = env.render_file(templateName, search_engine::profile::profileTemplateData(data));
         LOG_DEBUG("Successfully rendered template: " + templateName);
         return result;
         
@@ -174,7 +178,8 @@ std::string ProfileController::renderTemplate(const std::string& templateName, c
     }
 }
 
-void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile) {
+void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile,
+    const search_engine::storage::PersonProfile* person) {
     try {
         LOG_DEBUG("Rendering profile page for: " + profile.slug);
         
@@ -205,33 +210,17 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
         std::string profileType;
         
         if (profile.type == search_engine::storage::ProfileType::PERSON) {
-            // Cast to PersonProfile to access person-specific fields
-            // Note: This is a simplified approach; in production, you'd want proper type handling
-            search_engine::storage::PersonProfile personProfile;
-            // Copy base profile fields
-            personProfile.id = profile.id;
-            personProfile.slug = profile.slug;
-            personProfile.name = profile.name;
-            personProfile.type = profile.type;
-            personProfile.bio = profile.bio;
-            personProfile.isPublic = profile.isPublic;
-            personProfile.previousSlugs = profile.previousSlugs;
-            personProfile.slugChangedAt = profile.slugChangedAt;
-            personProfile.createdAt = profile.createdAt;
-            personProfile.updatedAt = profile.updatedAt;
-            personProfile.deletedAt = profile.deletedAt;
-            personProfile.ownerToken = profile.ownerToken;
-            personProfile.ownerId = profile.ownerId;
-            
-            // For now, use empty person-specific fields
-            // In production, these would come from the database
-            personProfile.skills = {};
-            
+            if (!person) throw std::runtime_error("Full personal profile is required");
+            auto seoPerson = *person;
+            if (seoPerson.displayName && !seoPerson.displayName->empty())
+                seoPerson.name = *seoPerson.displayName;
+            if (!seoPerson.skillsWithLevel.empty()) {
+                seoPerson.skills.clear();
+                for (const auto& skill : seoPerson.skillsWithLevel)
+                    seoPerson.skills.push_back(skill.name);
+            }
             jsonld = search_engine::seo::SEOGenerator::generatePersonSchema(
-                personProfile, 
-                baseUrl, 
-                linksArray
-            );
+                seoPerson, baseUrl, linksArray);
             templateName = "profile_person.inja";
             profileType = "person";
         } else {
@@ -278,9 +267,9 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
         
         // Prepare template data
         nlohmann::json templateData = {
-            {"profile", profileToJson(profile)},
+            {"profile", person ? personProfileToJson(*person) : profileToJson(profile)},
             {"links", linksArray},
-            {"jsonld", jsonld.dump(2)},  // Pretty print JSON-LD
+            {"jsonld", jsonld},
             {"openGraph", openGraph},
             {"twitterCard", twitterCard},
             {"baseUrl", baseUrl},
@@ -290,13 +279,21 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
             }}
         };
         
+        if (person) {
+            search_engine::profile::addPersonHeaderData(templateData);
+            for (auto& tag : templateData["openGraph"]) {
+                if (tag["property"] == "og:locale") tag["content"] = "fa_IR";
+            }
+        }
+
         // Render template
         std::string html = renderTemplate(templateName, templateData);
         
         // Send HTML response
         res->writeHeader("Content-Type", "text/html; charset=utf-8");
-        res->writeHeader("Cache-Control", "public, max-age=300"); // Cache for 5 minutes
-        res->end(html);
+        res->writeHeader("Cache-Control", "no-cache, must-revalidate");
+        res->writeHeader("Vary", "Accept");
+        res->writeHeader("Server", "HatefEngine 1.0")->end(html);
         
         LOG_DEBUG("Successfully rendered profile page for: " + profile.slug);
         
@@ -308,56 +305,35 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
 
 // ==================== Authentication & Ownership Helpers ====================
 
-std::string ProfileController::generateOwnerToken() {
-    // Generate a secure random token (64 hex characters = 32 bytes)
-    std::random_device rd;
-    std::stringstream ss;
-    ss << std::hex;
-    for (int i = 0; i < 32; i++) {
-        ss << std::setw(2) << std::setfill('0') << (rd() % 256);
-    }
-    return ss.str();
+std::string ProfileController::generateOwnerToken() { return search_engine::profile::newOwnerKey(); }
+
+bool ProfileController::secureCookies() const {
+    const char* base = std::getenv("BASE_URL");
+    return base && std::string(base).rfind("https://", 0) == 0;
+}
+
+bool ProfileController::sameOrigin(uWS::HttpRequest* req) {
+    const auto origin = std::string(req->getHeader("origin"));
+    const auto host = std::string(req->getHeader("host"));
+    return !origin.empty() && !host.empty() && origin == (secureCookies() ? "https://" : "http://") + host;
 }
 
 std::string ProfileController::getAuthToken(uWS::HttpRequest* req) {
-    // Try Authorization header first (Bearer token)
-    std::string authHeader = std::string(req->getHeader("authorization"));
-    if (!authHeader.empty() && authHeader.find("Bearer ") == 0) {
-        return authHeader.substr(7); // Remove "Bearer " prefix
-    }
-    
-    // Try x-profile-token header
-    std::string profileToken = std::string(req->getHeader("x-profile-token"));
-    if (!profileToken.empty()) {
-        return profileToken;
-    }
-    
-    return "";
+    const std::string auth(req->getHeader("authorization"));
+    if (auth.rfind("Bearer ", 0) == 0) return auth.substr(7);
+    const std::string header(req->getHeader("x-profile-token"));
+    if (!header.empty()) return header;
+    const auto method = req->getMethod();
+    if (method != "get" && method != "head" && !sameOrigin(req)) return "";
+    return search_engine::profile::readCookie(req->getHeader("cookie"), std::string(req->getParameter(0)));
 }
 
 bool ProfileController::checkOwnership(const search_engine::storage::Profile& profile, const std::string& token) {
-    // Require ownership token for all mutating operations
-    if (!profile.ownerToken || profile.ownerToken.value().empty()) {
-        // Profiles without tokens should be migrated; deny access for safety
-        LOG_WARNING("Profile " + profile.id.value_or("unknown") + " has no owner token - denying access");
-        return false;
-    }
-    
-    // If token is empty but profile has ownerToken, deny access
-    if (token.empty()) {
-        return false;
-    }
-    
-    // Check if tokens match
-    return profile.ownerToken.value() == token;
+    return search_engine::profile::ownsProfile(profile, token);
 }
 
 std::string ProfileController::getCallerIdentity(uWS::HttpRequest* req) {
-    std::string token = getAuthToken(req);
-    if (!token.empty()) {
-        return "token:" + token.substr(0, 8) + "..."; // Return first 8 chars for logging
-    }
-    return "anonymous";
+    return getAuthToken(req).empty() ? "anonymous" : "profile-owner";
 }
 
 bool ProfileController::checkRateLimit(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
@@ -503,133 +479,18 @@ search_engine::storage::Profile ProfileController::parseProfileFromJson(const nl
 
     // Validate slug format
     if (!search_engine::storage::ProfileStorage::isValidSlug(profile.slug)) {
-        throw std::invalid_argument("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        throw std::invalid_argument(search_engine::common::profileSlugValidationError(profile.slug));
     }
 
     return profile;
 }
 
 nlohmann::json ProfileController::profileToJson(const search_engine::storage::Profile& profile) {
-    nlohmann::json json;
-
-    // Required fields
-    json["id"] = profile.id.value_or("");
-    json["slug"] = profile.slug;
-    json["name"] = profile.name;
-    json["type"] = profileTypeToString(profile.type);
-    json["isPublic"] = profile.isPublic;
-
-    // Optional fields
-    if (profile.bio) {
-        json["bio"] = profile.bio.value();
-    }
-
-    // Format createdAt timestamp as ISO 8601 string
-    auto time_t = std::chrono::system_clock::to_time_t(profile.createdAt);
-    std::stringstream ss;
-    ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
-    json["createdAt"] = ss.str();
-
-    // Format updatedAt timestamp as ISO 8601 string if present
-    if (profile.updatedAt) {
-        auto updated_time_t = std::chrono::system_clock::to_time_t(profile.updatedAt.value());
-        std::stringstream updated_ss;
-        updated_ss << std::put_time(std::gmtime(&updated_time_t), "%Y-%m-%dT%H:%M:%SZ");
-        json["updatedAt"] = updated_ss.str();
-    }
-
-    return json;
+    return search_engine::profile::profileToJson(profile);
 }
 
 nlohmann::json ProfileController::personProfileToJson(const search_engine::storage::PersonProfile& profile) {
-    // Start with base profile fields
-    nlohmann::json json = profileToJson(static_cast<const search_engine::storage::Profile&>(profile));
-    
-    // Add PersonProfile-specific fields
-    if (profile.displayName) {
-        json["displayName"] = profile.displayName.value();
-    }
-    if (profile.englishName) {
-        json["englishName"] = profile.englishName.value();
-    }
-    if (profile.tagline) {
-        json["tagline"] = profile.tagline.value();
-    }
-    if (profile.professionalSummary) {
-        json["professionalSummary"] = profile.professionalSummary.value();
-    }
-    if (profile.location) {
-        json["location"] = profile.location.value();
-    }
-    if (!profile.languages.empty()) {
-        json["languages"] = profile.languages;
-    }
-    if (profile.avatarUrl) {
-        json["avatarUrl"] = profile.avatarUrl.value();
-    }
-    if (profile.coverImageUrl) {
-        json["coverImageUrl"] = profile.coverImageUrl.value();
-    }
-    if (profile.availabilityStatus) {
-        json["availabilityStatus"] = profile.availabilityStatus.value();
-    }
-    if (profile.title) {
-        json["title"] = profile.title.value();
-    }
-    if (profile.company) {
-        json["company"] = profile.company.value();
-    }
-    if (!profile.skills.empty()) {
-        json["skills"] = profile.skills;
-    }
-    if (!profile.skillsWithLevel.empty()) {
-        nlohmann::json skillsArray = nlohmann::json::array();
-        for (const auto& skill : profile.skillsWithLevel) {
-            nlohmann::json skillJson = {
-                {"name", skill.name},
-                {"level", skill.level}
-            };
-            if (!skill.category.empty()) {
-                skillJson["category"] = skill.category;
-            }
-            skillsArray.push_back(skillJson);
-        }
-        json["skillsWithLevel"] = skillsArray;
-    }
-    if (profile.experienceLevel) {
-        json["experienceLevel"] = profile.experienceLevel.value();
-    }
-    if (profile.education) {
-        json["education"] = profile.education.value();
-    }
-    if (profile.school) {
-        json["school"] = profile.school.value();
-    }
-    if (profile.linkedinUrl) {
-        json["linkedinUrl"] = profile.linkedinUrl.value();
-    }
-    if (profile.githubUrl) {
-        json["githubUrl"] = profile.githubUrl.value();
-    }
-    if (profile.portfolioUrl) {
-        json["portfolioUrl"] = profile.portfolioUrl.value();
-    }
-    if (profile.email) {
-        json["email"] = profile.email.value();
-    }
-    if (profile.phone) {
-        json["phone"] = profile.privacy.showPhone ? profile.phone.value() : "";
-    }
-    
-    // Privacy settings
-    json["privacy"] = nlohmann::json{
-        {"showEmail", profile.privacy.showEmail},
-        {"showPhone", profile.privacy.showPhone},
-        {"showLocation", profile.privacy.showLocation},
-        {"showAvailability", profile.privacy.showAvailability}
-    };
-    
-    return json;
+    return search_engine::profile::personProfileToJson(profile);
 }
 
 std::string ProfileController::profileTypeToString(search_engine::storage::ProfileType type) {
@@ -646,114 +507,6 @@ search_engine::storage::ProfileType ProfileController::stringToProfileType(const
     throw std::invalid_argument("Invalid profile type: " + type + ". Must be PERSON or BUSINESS.");
 }
 
-void ProfileController::createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    // Check rate limit
-    if (checkRateLimit(res, req)) {
-        return;
-    }
-    
-    std::string buffer;
-
-    res->onData([this, res, req, buffer = std::move(buffer)](std::string_view data, bool last) mutable {
-        buffer.append(data.data(), data.length());
-
-        if (last) {
-            try {
-                // Parse JSON body
-                auto jsonBody = nlohmann::json::parse(buffer);
-
-                // Parse profile from JSON
-                auto profile = parseProfileFromJson(jsonBody);
-
-                // Set creation timestamp
-                profile.createdAt = std::chrono::system_clock::now();
-
-                // Generate owner token for authentication
-                profile.ownerToken = generateOwnerToken();
-
-                // Validate profile using ProfileValidator
-                auto validationResult = search_engine::storage::ProfileValidator::validate(profile);
-                
-                if (!validationResult.isValid) {
-                    // Return 400 with structured error response
-                    nlohmann::json errorResponse = {
-                        {"success", false},
-                        {"message", "Validation failed"},
-                        {"errors", validationResult.errors}
-                    };
-                    
-                    if (!validationResult.warnings.empty()) {
-                        errorResponse["warnings"] = validationResult.warnings;
-                    }
-                    
-                    res->writeStatus("400 Bad Request");
-                    this->json(res, errorResponse);
-                    LOG_WARNING("Profile validation failed: " + std::to_string(validationResult.errors.size()) + " errors");
-                    return;
-                }
-
-                // Save to database
-                auto result = getStorage()->store(profile);
-
-                if (result.success) {
-                    profile.id = result.value;
-
-                    // Audit log: record profile creation
-                    try {
-                        std::string userId = getCallerIdentity(req);
-                        std::string ipAddress = getClientIP(req);
-                        std::string userAgent = getUserAgent(req);
-                        
-                        search_engine::storage::AuditLogger::logProfileCreate(
-                            profile, userId, ipAddress, userAgent, getAuditStorage()
-                        );
-                    } catch (const std::exception& e) {
-                        LOG_WARNING("Failed to record audit log: " + std::string(e.what()));
-                    }
-                    
-                    nlohmann::json response = {
-                        {"success", true},
-                        {"message", result.message},
-                        {"data", profileToJson(profile)}
-                    };
-                    
-                    // Include ownerToken in response (only returned once on creation)
-                    if (profile.ownerToken) {
-                        response["ownerToken"] = profile.ownerToken.value();
-                    }
-                    
-                    // Include warnings if present
-                    if (!validationResult.warnings.empty()) {
-                        response["warnings"] = validationResult.warnings;
-                    }
-                    
-                    this->json(res, response);
-                    LOG_INFO("Profile created with slug: " + profile.slug);
-                } else {
-                    if (result.message.find("already taken") != std::string::npos) {
-                        badRequest(res, result.message);
-                    } else {
-                        serverError(res, result.message);
-                    }
-                }
-
-            } catch (const nlohmann::json::parse_error& e) {
-                LOG_ERROR("JSON parse error in createProfile: " + std::string(e.what()));
-                badRequest(res, "Invalid JSON format");
-            } catch (const std::invalid_argument& e) {
-                LOG_ERROR("Validation error in createProfile: " + std::string(e.what()));
-                badRequest(res, std::string(e.what()));
-            } catch (const std::exception& e) {
-                LOG_ERROR("Error in createProfile: " + std::string(e.what()));
-                serverError(res, "Internal server error");
-            }
-        }
-    });
-
-    res->onAborted([]() {
-        LOG_WARNING("Client disconnected during createProfile request");
-    });
-}
 
 void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
     // Check rate limit
@@ -774,15 +527,29 @@ void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpR
 
         if (result.success) {
             nlohmann::json response;
+
+            const bool isOwner = checkOwnership(result.value, getAuthToken(req));
+            if (!result.value.isPublic && !isOwner) {
+                this->json(res, {{"success", false}, {"message", "Profile is private"},
+                    {"error", "PROFILE_PRIVATE"}}, "403 Forbidden");
+                return;
+            }
             
             // If it's a PERSON profile, get the full PersonProfile data
             if (result.value.type == search_engine::storage::ProfileType::PERSON) {
                 auto personResult = getStorage()->findPersonById(id);
                 if (personResult.success && personResult.value.has_value()) {
+                    if (!personResult.value->isPublic && !isOwner) {
+                        this->json(res, {{"success", false}, {"message", "Profile is private"},
+                            {"error", "PROFILE_PRIVATE"}}, "403 Forbidden");
+                        return;
+                    }
+                    const auto person = isOwner ? *personResult.value :
+                        search_engine::profile::publicPersonProfile(*personResult.value);
                     response = {
                         {"success", true},
                         {"message", personResult.message},
-                        {"data", personProfileToJson(personResult.value.value())}
+                        {"data", personProfileToJson(person)}
                     };
                 } else {
                     response = {
@@ -800,6 +567,9 @@ void ProfileController::getProfileById(uWS::HttpResponse<false>* res, uWS::HttpR
                 };
             }
             
+            response["canEdit"] = isOwner;
+            res->writeStatus("200 OK");
+            res->writeHeader("Cache-Control", "private, no-store");
             json(res, response);
         } else {
             notFound(res, result.message);
@@ -835,9 +605,10 @@ void ProfileController::getPublicProfile(uWS::HttpResponse<false>* res, uWS::Htt
 
 void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
     // Check rate limit
-    if (checkRateLimit(res, req)) {
-        return;
-    }
+    const std::string capturedToken = getAuthToken(req);
+    const std::string callerIp = getClientIP(req);
+    const std::string callerAgent = getUserAgent(req);
+    if (capturedToken.empty() && checkRateLimit(res, req)) return;
     
     std::string buffer;
     std::string profileId = std::string(req->getParameter(0));
@@ -847,7 +618,10 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
         return;
     }
 
-    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    res->onData([this, res, capturedToken, callerIp, callerAgent, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        if (buffer.size() + data.size() > 65536) {
+            res->writeStatus("413 Payload Too Large"); res->writeHeader("Server", "HatefEngine 1.0")->end(); return;
+        }
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -866,7 +640,7 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 auto existingProfile = existingResult.value;
 
                 // Check ownership (authentication)
-                std::string authToken = getAuthToken(req);
+                std::string authToken = capturedToken;
                 if (!checkOwnership(existingProfile, authToken)) {
                     res->writeStatus("403 Forbidden");
                     nlohmann::json errorResponse = {
@@ -876,6 +650,13 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                     };
                     this->json(res, errorResponse);
                     LOG_WARNING("Unauthorized update attempt on profile: " + profileId);
+                    return;
+                }
+
+                if (existingProfile.type == search_engine::storage::ProfileType::PERSON) {
+                    auto full = getStorage()->findPersonById(profileId);
+                    if (!full.success || !full.value) { notFound(res, "Profile not found"); return; }
+                    savePersonPatch(res, *full.value, jsonBody);
                     return;
                 }
 
@@ -931,9 +712,9 @@ void ProfileController::updateProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
                 if (updateResult.success) {
                     // Audit log: record profile update
                     try {
-                        std::string userId = getCallerIdentity(req);
-                        std::string ipAddress = getClientIP(req);
-                        std::string userAgent = getUserAgent(req);
+                        std::string userId = std::string("profile-owner");
+                        std::string ipAddress = callerIp;
+                        std::string userAgent = callerAgent;
                         
                         search_engine::storage::AuditLogger::logProfileUpdate(
                             oldProfile, existingProfile, userId, ipAddress, userAgent, getAuditStorage()
@@ -1047,7 +828,7 @@ void ProfileController::deleteProfile(uWS::HttpResponse<false>* res, uWS::HttpRe
 
             // Return 204 No Content for successful deletion
             res->writeStatus("204 No Content");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             LOG_INFO("Profile deleted with ID: " + id);
         } else {
             notFound(res, result.message);
@@ -1175,14 +956,14 @@ void ProfileController::listProfiles(uWS::HttpResponse<false>* res, uWS::HttpReq
         if (result.success) {
             nlohmann::json profilesArray = nlohmann::json::array();
             for (const auto& profile : result.value) {
-                profilesArray.push_back(profileToJson(profile));
+                if (profile.isPublic) profilesArray.push_back(profileToJson(profile));
             }
 
             nlohmann::json response = {
                 {"success", true},
                 {"message", result.message},
                 {"data", profilesArray},
-                {"count", static_cast<int>(result.value.size())}
+                {"count", static_cast<int>(profilesArray.size())}
             };
             json(res, response);
         } else {
@@ -1204,13 +985,6 @@ void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uW
     try {
         std::string slug = std::string(req->getParameter(0));
 
-        // Check for reserved paths first
-        if (slug.empty() || search_engine::common::SlugGenerator::isReservedSlug(slug)) {
-            // Return 404 for reserved paths - do not leave the connection hanging
-            notFound(res, "Not found");
-            return;
-        }
-
         servePublicProfileBySlug(res, req, slug);
 
     } catch (const std::exception& e) {
@@ -1219,119 +993,101 @@ void ProfileController::getPublicProfileBySlug(uWS::HttpResponse<false>* res, uW
     }
 }
 
-void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug) {
-    // Check for SEO redirects first
-    if (checkAndRedirectOldSlug(res, slug)) {
-        return; // Redirect was issued
+void ProfileController::servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& rawSlug) {
+    // Both public route aliases decode exactly once, before any cache or DB access.
+    const auto decoded = search_engine::common::decodeProfileSlug(rawSlug, true);
+    if (!decoded) {
+        badRequest(res, "Invalid profile slug or URL encoding");
+        return;
     }
-
-    // Content negotiation: Check Accept header
-    std::string acceptHeader = std::string(req->getHeader("accept"));
-    bool wantsJson = acceptHeader.find("application/json") != std::string::npos;
-    
-    // If no Accept header is specified, default to HTML for browsers
-    if (acceptHeader.empty()) {
-        wantsJson = false;
+    const auto& slug = *decoded;
+    if (search_engine::common::SlugGenerator::isReservedSlug(slug)) {
+        notFound(res, "Not found");
+        return;
     }
-
-    // Check cache first for better performance
-    auto cachedProfileId = getSlugCache()->get(slug);
-    if (cachedProfileId.has_value()) {
-        // Get profile by ID from cache hit
-        auto result = getStorage()->findById(cachedProfileId.value());
-        if (result.success) {
-            const auto& profile = result.value;
-
-            // Check if profile is public
-            if (!profile.isPublic) {
-                res->writeStatus("403 Forbidden");
-                if (wantsJson) {
-                    nlohmann::json errorResponse = {
-                        {"success", false},
-                        {"message", "Profile is private"},
-                        {"error", "PROFILE_PRIVATE"}
-                    };
-                    json(res, errorResponse);
-                } else {
-                    res->writeHeader("Content-Type", "text/html; charset=utf-8");
-                    res->end("<html><body><h1>403 Forbidden</h1><p>This profile is private.</p></body></html>");
-                }
-                return;
-            }
-
-            // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
-            recordProfileView(profile.id.value_or(""), req);
-
-            // Return JSON or HTML based on Accept header
-            if (wantsJson) {
-                nlohmann::json response = {
-                    {"success", true},
-                    {"message", "Profile found (cached)"},
-                    {"data", profileToJson(profile)}
-                };
-                this->json(res, response);
-            } else {
-                // Render HTML page with SEO
-                renderProfilePage(res, profile);
-            }
+    const auto canonical = search_engine::common::canonicalProfileSlug(slug).value();
+    if (canonical != slug) {
+        auto target = getStorage()->findBySlug(canonical);
+        if (!target.success) { serverError(res, "Failed to resolve canonical profile"); return; }
+        if (target.value) {
+            res->writeStatus("301 Moved Permanently")
+                ->writeHeader("Location", "/" + search_engine::common::encodeProfileSlug(canonical))
+                ->writeHeader("Cache-Control", "no-cache, must-revalidate")
+                ->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
+        }
+    }
+    if (checkAndRedirectOldSlug(res, slug)) return;
+
+    const bool wantsJson = req->getHeader("accept").find("application/json") != std::string_view::npos;
+    auto missing = [&]() {
+        if (wantsJson) { notFound(res, "Profile not found"); return; }
+        auto available = getStorage()->checkSlugAvailability(canonical);
+        if (!available.success) { serverError(res, "امکان بررسی آدرس وجود ندارد."); return; }
+        renderProfileEntry(res, canonical, available.value ? "missing" : "unavailable");
+    };
+    std::optional<search_engine::storage::Profile> resolved;
+    bool cached = false;
+    const auto cachedId = getSlugCache()->get(slug);
+    if (cachedId) {
+        const auto result = getStorage()->findById(*cachedId);
+        if (result.success && result.value.slug == slug && !result.value.deletedAt) {
+            resolved = result.value;
+            cached = true;
         } else {
-            // Cache miss - remove invalid cache entry
             getSlugCache()->remove(slug);
         }
     }
-
-    // Cache miss - lookup from database
-    auto result = getStorage()->findBySlug(slug);
-
-    // Cache successful lookups
-    if (result.success && result.value.has_value()) {
-        getSlugCache()->put(slug, result.value.value().id.value_or(""));
-    }
-
-    if (result.success && result.value.has_value()) {
-        const auto& profile = result.value.value();
-
-        // Check if profile is public
-        if (!profile.isPublic) {
-            res->writeStatus("403 Forbidden");
-            if (wantsJson) {
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Profile is private"},
-                    {"error", "PROFILE_PRIVATE"}
-                };
-                json(res, errorResponse);
-            } else {
-                res->writeHeader("Content-Type", "text/html; charset=utf-8");
-                res->end("<html><body><h1>403 Forbidden</h1><p>This profile is private.</p></body></html>");
-            }
+    if (!resolved) {
+        const auto result = getStorage()->findBySlug(slug);
+        if (!result.success) {
+            serverError(res, "Failed to load profile");
             return;
         }
+        if (!result.value) { missing(); return; }
+        resolved = *result.value;
+        getSlugCache()->put(slug, resolved->id.value_or(""));
+    }
 
-        // Record profile view (Tier 1 + Tier 2) - privacy-first analytics
-        recordProfileView(profile.id.value_or(""), req);
-
-        // Return JSON or HTML based on Accept header
-        if (wantsJson) {
-            nlohmann::json response = {
-                {"success", true},
-                {"message", result.message},
-                {"data", profileToJson(profile)}
-            };
-            json(res, response);
-        } else {
-            // Render HTML page with SEO
-            renderProfilePage(res, profile);
+    std::optional<search_engine::storage::PersonProfile> person;
+    if (resolved->type == search_engine::storage::ProfileType::PERSON) {
+        const auto result = getStorage()->findPersonById(resolved->id.value_or(""));
+        if (!result.success) {
+            serverError(res, "Failed to load personal profile");
+            return;
         }
+        if (!result.value || result.value->deletedAt || result.value->slug != slug) {
+            getSlugCache()->remove(slug);
+            missing();
+            return;
+        }
+        person = search_engine::profile::publicPersonProfile(*result.value);
+    }
+    const search_engine::storage::Profile& profile = person ?
+        static_cast<const search_engine::storage::Profile&>(*person) : *resolved;
+    if (!profile.isPublic) {
+        res->writeStatus("403 Forbidden");
+        res->writeHeader("Cache-Control", "no-cache, must-revalidate");
+        res->writeHeader("Vary", "Accept");
+        if (wantsJson) {
+            this->json(res, {{"success", false}, {"message", "Profile is private"}, {"error", "PROFILE_PRIVATE"}}, "403 Forbidden");
+        } else {
+            renderProfileEntry(res, slug, "private");
+        }
+        return;
+    }
+    recordProfileView(profile.id.value_or(""), req);
+    if (wantsJson) {
+        res->writeStatus("200 OK");
+        res->writeHeader("Cache-Control", "no-cache, must-revalidate");
+        res->writeHeader("Vary", "Accept");
+        this->json(res, {
+            {"success", true},
+            {"message", cached ? "Profile found (cached)" : "Profile found"},
+            {"data", person ? personProfileToJson(*person) : profileToJson(profile)}
+        });
     } else {
-        if (wantsJson) {
-            notFound(res, "Profile not found");
-        } else {
-            res->writeStatus("404 Not Found");
-            res->writeHeader("Content-Type", "text/html; charset=utf-8");
-            res->end("<html><body><h1>404 Not Found</h1><p>Profile not found.</p></body></html>");
-        }
+        renderProfilePage(res, profile, person ? &*person : nullptr);
     }
 }
 
@@ -1344,6 +1100,10 @@ void ProfileController::checkSlugAvailability(uWS::HttpResponse<false>* res, uWS
             badRequest(res, "Slug parameter is required");
             return;
         }
+
+        const auto normalized = search_engine::common::canonicalProfileSlug(slug);
+        if (!normalized) { badRequest(res, search_engine::common::profileSlugValidationError(slug)); return; }
+        slug = *normalized;
 
         // Check if slug is reserved
         if (search_engine::common::SlugGenerator::isReservedSlug(slug)) {
@@ -1370,9 +1130,9 @@ void ProfileController::checkSlugAvailability(uWS::HttpResponse<false>* res, uWS
         if (result.success && !result.value) {
             // Generate some suggestions
             std::vector<std::string> suggestions;
-            suggestions.push_back(slug + "-2");
-            suggestions.push_back(slug + "-pro");
-            suggestions.push_back(slug + "-official");
+            suggestions.push_back(search_engine::common::truncateProfileSlug(slug, 98) + ".2");
+            suggestions.push_back(search_engine::common::truncateProfileSlug(slug, 96) + ".pro");
+            suggestions.push_back(search_engine::common::truncateProfileSlug(slug, 91) + ".official");
 
             response["suggestions"] = suggestions;
         }
@@ -1405,7 +1165,10 @@ void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpReque
         return;
     }
 
-    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -1431,7 +1194,7 @@ void ProfileController::changeSlug(uWS::HttpResponse<false>* res, uWS::HttpReque
                 auto profile = existingResult.value;
 
                 // Check ownership (authentication)
-                std::string authToken = getAuthToken(req);
+                std::string authToken = capturedToken;
                 if (!checkOwnership(profile, authToken)) {
                     res->writeStatus("403 Forbidden");
                     nlohmann::json errorResponse = {
@@ -1486,11 +1249,11 @@ bool ProfileController::checkAndRedirectOldSlug(uWS::HttpResponse<false>* res, c
         if (result.success && result.value.has_value()) {
             const auto& profile = result.value.value();
             // Found a match! Issue 301 redirect to current slug
-            std::string redirectUrl = "/" + profile.slug;
+            std::string redirectUrl = "/" + search_engine::common::encodeProfileSlug(profile.slug);
             res->writeStatus("301 Moved Permanently");
             res->writeHeader("Location", redirectUrl);
             res->writeHeader("Content-Type", "text/html");
-            res->end("<html><body><h1>301 Moved Permanently</h1><p>The profile has moved to <a href=\"" + redirectUrl + "\">" + redirectUrl + "</a></p></body></html>");
+            res->writeHeader("Server", "HatefEngine 1.0")->end("<html><body><h1>301 Moved Permanently</h1><p>The profile has moved to <a href=\"" + redirectUrl + "\">" + redirectUrl + "</a></p></body></html>");
 
             LOG_INFO("SEO redirect: " + requestedSlug + " -> " + profile.slug + " (profile ID: " + (profile.id ? profile.id.value() : "unknown") + ")");
             return true;
@@ -1895,7 +1658,7 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         auto linkResult = getLinkBlockStorage()->findById(linkId);
         if (!linkResult.success || !linkResult.value.has_value()) {
             res->writeStatus("404 Not Found");
-            res->end("Link not found");
+            res->writeHeader("Server", "HatefEngine 1.0")->end("Link not found");
             return;
         }
         
@@ -1904,7 +1667,7 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         // Check if link is active
         if (!link.isActive || link.privacy == search_engine::storage::LinkPrivacy::DISABLED) {
             res->writeStatus("404 Not Found");
-            res->end("Link not available");
+            res->writeHeader("Server", "HatefEngine 1.0")->end("Link not available");
             return;
         }
         
@@ -1912,7 +1675,7 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         auto profileResult = getStorage()->findById(link.profileId);
         if (!profileResult.success || !profileResult.value.isPublic) {
             res->writeStatus("404 Not Found");
-            res->end("Link not available");
+            res->writeHeader("Server", "HatefEngine 1.0")->end("Link not available");
             return;
         }
         
@@ -1925,14 +1688,14 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         // Perform redirect (secure: only to stored URL)
         res->writeStatus("302 Found");
         res->writeHeader("Location", link.url);
-        res->end();
+        res->writeHeader("Server", "HatefEngine 1.0")->end();
         
         LOG_INFO("Link redirect: " + linkId + " -> " + link.url);
         
     } catch (const std::exception& e) {
         LOG_ERROR("Error in redirectLink: " + std::string(e.what()));
         res->writeStatus("500 Internal Server Error");
-        res->end("Internal server error");
+        res->writeHeader("Server", "HatefEngine 1.0")->end("Internal server error");
     }
 }
 
@@ -1951,7 +1714,10 @@ void ProfileController::createLink(uWS::HttpResponse<false>* res, uWS::HttpReque
         LOG_WARNING("Request aborted during createLink");
     });
     
-    res->onData([this, res, req, profileId, &buffer](std::string_view chunk, bool isFinal) {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, profileId, buffer = std::move(buffer)](std::string_view chunk, bool isFinal) mutable {
         buffer.append(chunk.data(), chunk.size());
         
         if (!isFinal) {
@@ -1969,7 +1735,7 @@ void ProfileController::createLink(uWS::HttpResponse<false>* res, uWS::HttpReque
                 return;
             }
             
-            std::string token = getAuthToken(req);
+            std::string token = capturedToken;
             if (!checkOwnership(profileResult.value, token)) {
                 res->writeStatus("403 Forbidden");
                 nlohmann::json errorResponse = {
@@ -2122,7 +1888,10 @@ void ProfileController::updateLink(uWS::HttpResponse<false>* res, uWS::HttpReque
         LOG_WARNING("Request aborted during updateLink");
     });
     
-    res->onData([this, res, req, profileId, linkId, &buffer](std::string_view chunk, bool isFinal) {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, profileId, linkId, buffer = std::move(buffer)](std::string_view chunk, bool isFinal) mutable {
         buffer.append(chunk.data(), chunk.size());
         
         if (!isFinal) {
@@ -2137,7 +1906,7 @@ void ProfileController::updateLink(uWS::HttpResponse<false>* res, uWS::HttpReque
                 return;
             }
             
-            std::string token = getAuthToken(req);
+            std::string token = capturedToken;
             if (!checkOwnership(profileResult.value, token)) {
                 res->writeStatus("403 Forbidden");
                 nlohmann::json errorResponse = {
@@ -2422,7 +2191,13 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
         LOG_DEBUG("Avatar upload request aborted");
     });
 
-    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        if (buffer.size() + data.size() > 15 * 1024 * 1024) {
+            res->writeStatus("413 Payload Too Large")->writeHeader("Server", "HatefEngine 1.0")->end(); return;
+        }
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -2445,7 +2220,7 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                 auto personProfile = profileResult.value.value();
 
                 // Check ownership
-                std::string authToken = getAuthToken(req);
+                std::string authToken = capturedToken;
                 if (!checkOwnership(personProfile, authToken)) {
                     res->writeStatus("403 Forbidden");
                     nlohmann::json errorResponse = {
@@ -2457,6 +2232,12 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                     return;
                 }
 
+                if (!jsonBody.contains("version") || !jsonBody["version"].is_number_integer()) {
+                    badRequest(res, "نسخهٔ اطلاعات لازم است."); return;
+                }
+                if (jsonBody["version"].get<int64_t>() != personProfile.version) {
+                    json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return;
+                }
                 // Decode base64 image
                 std::string base64Data = jsonBody["image"].get<std::string>();
                 
@@ -2485,7 +2266,7 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
 
                 // Update profile with avatar URL
                 personProfile.avatarUrl = filePath;
-                auto updateResult = getStorage()->update(personProfile);
+                auto updateResult = getStorage()->updatePersonFields(personProfile, {"avatarUrl"}, personProfile.version);
 
                 if (updateResult.success) {
                     nlohmann::json response = {
@@ -2493,6 +2274,7 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                         {"message", "Avatar uploaded successfully"},
                         {"data", {
                             {"avatarUrl", filePath},
+                            {"version", personProfile.version + 1},
                             {"size", (int)imageInfo.size},
                             {"mimeType", imageInfo.mimeType}
                         }}
@@ -2500,7 +2282,7 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                     json(res, response);
                     LOG_INFO("Avatar uploaded for profile: " + profileId);
                 } else {
-                    serverError(res, "Failed to update profile with avatar URL");
+                    json(res, {{"message", "ذخیرهٔ تصویر انجام نشد."}}, updateResult.message == "VERSION_CONFLICT" ? "409 Conflict" : "500 Internal Server Error");
                 }
 
             } catch (const nlohmann::json::exception& e) {
@@ -2531,7 +2313,13 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
         LOG_DEBUG("Cover upload request aborted");
     });
 
-    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+        if (buffer.size() + data.size() > 15 * 1024 * 1024) {
+            res->writeStatus("413 Payload Too Large")->writeHeader("Server", "HatefEngine 1.0")->end(); return;
+        }
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -2554,7 +2342,7 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                 auto personProfile = profileResult.value.value();
 
                 // Check ownership
-                std::string authToken = getAuthToken(req);
+                std::string authToken = capturedToken;
                 if (!checkOwnership(personProfile, authToken)) {
                     res->writeStatus("403 Forbidden");
                     nlohmann::json errorResponse = {
@@ -2566,6 +2354,12 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                     return;
                 }
 
+                if (!jsonBody.contains("version") || !jsonBody["version"].is_number_integer()) {
+                    badRequest(res, "نسخهٔ اطلاعات لازم است."); return;
+                }
+                if (jsonBody["version"].get<int64_t>() != personProfile.version) {
+                    json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return;
+                }
                 // Decode base64 image
                 std::string base64Data = jsonBody["image"].get<std::string>();
                 
@@ -2594,7 +2388,7 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
 
                 // Update profile with cover URL
                 personProfile.coverImageUrl = filePath;
-                auto updateResult = getStorage()->update(personProfile);
+                auto updateResult = getStorage()->updatePersonFields(personProfile, {"coverImageUrl"}, personProfile.version);
 
                 if (updateResult.success) {
                     nlohmann::json response = {
@@ -2602,6 +2396,7 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                         {"message", "Cover image uploaded successfully"},
                         {"data", {
                             {"coverImageUrl", filePath},
+                            {"version", personProfile.version + 1},
                             {"size", (int)imageInfo.size},
                             {"mimeType", imageInfo.mimeType}
                         }}
@@ -2609,7 +2404,7 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                     json(res, response);
                     LOG_INFO("Cover image uploaded for profile: " + profileId);
                 } else {
-                    serverError(res, "Failed to update profile with cover URL");
+                    json(res, {{"message", "ذخیرهٔ تصویر انجام نشد."}}, updateResult.message == "VERSION_CONFLICT" ? "409 Conflict" : "500 Internal Server Error");
                 }
 
             } catch (const nlohmann::json::exception& e) {
@@ -2695,7 +2490,10 @@ void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpReques
         LOG_DEBUG("Add skills request aborted");
     });
 
-    res->onData([this, res, req, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
+    const std::string capturedToken = getAuthToken(req);
+    const std::string capturedIp = getClientIP(req);
+    const std::string capturedAgent = getUserAgent(req);
+    res->onData([this, res, capturedToken, capturedIp, capturedAgent, buffer = std::move(buffer), profileId](std::string_view data, bool last) mutable {
         buffer.append(data.data(), data.length());
 
         if (last) {
@@ -2718,7 +2516,7 @@ void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpReques
                 auto personProfile = profileResult.value.value();
 
                 // Check ownership
-                std::string authToken = getAuthToken(req);
+                std::string authToken = capturedToken;
                 if (!checkOwnership(personProfile, authToken)) {
                     res->writeStatus("403 Forbidden");
                     nlohmann::json errorResponse = {
@@ -2730,6 +2528,8 @@ void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpReques
                     return;
                 }
 
+                if (!jsonBody.contains("version") || !jsonBody["version"].is_number_integer()) { badRequest(res, "نسخهٔ اطلاعات لازم است."); return; }
+                if (jsonBody["version"].get<int64_t>() != personProfile.version) { json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return; }
                 // Parse skills from request
                 for (const auto& skillJson : jsonBody["skills"]) {
                     if (!skillJson.contains("name") || !skillJson["name"].is_string()) {
@@ -2764,13 +2564,18 @@ void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpReques
                 }
 
                 // Update profile
-                auto updateResult = getStorage()->update(personProfile);
+                nlohmann::json skills = nlohmann::json::array();
+                for (const auto& skill : personProfile.skillsWithLevel) skills.push_back({{"name", skill.name}, {"level", skill.level}});
+                auto checked = personProfile;
+                search_engine::profile::applyEditorPatch(checked, {{"skillsWithLevel", skills}});
+                auto updateResult = getStorage()->updatePersonFields(checked, {"skills", "skillsWithLevel"}, personProfile.version);
 
                 if (updateResult.success) {
                     nlohmann::json response = {
                         {"success", true},
                         {"message", "Skills added successfully"},
                         {"data", {
+                            {"version", personProfile.version + 1},
                             {"skillsCount", (int)personProfile.skillsWithLevel.size()}
                         }}
                     };
@@ -2827,6 +2632,9 @@ void ProfileController::removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequ
             return;
         }
 
+        const auto expected = std::string(req->getHeader("if-match"));
+        if (expected.empty()) { badRequest(res, "نسخهٔ اطلاعات در If-Match لازم است."); return; }
+        if (expected != std::to_string(personProfile.version)) { json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return; }
         // Remove skill
         auto& skills = personProfile.skillsWithLevel;
         auto it = std::remove_if(skills.begin(), skills.end(),
@@ -2838,20 +2646,21 @@ void ProfileController::removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequ
             skills.erase(it, skills.end());
 
             // Update profile
-            auto updateResult = getStorage()->update(personProfile);
+            auto updateResult = getStorage()->updatePersonFields(personProfile, {"skillsWithLevel"}, personProfile.version);
 
             if (updateResult.success) {
                 nlohmann::json response = {
                     {"success", true},
                     {"message", "Skill removed successfully"},
                     {"data", {
+                        {"version", personProfile.version + 1},
                         {"skillsCount", (int)personProfile.skillsWithLevel.size()}
                     }}
                 };
                 json(res, response);
                 LOG_INFO("Skill removed from profile: " + profileId);
             } else {
-                serverError(res, "Failed to update profile");
+                json(res, {{"message", "ذخیره انجام نشد."}}, updateResult.message == "VERSION_CONFLICT" ? "409 Conflict" : "500 Internal Server Error");
             }
         } else {
             notFound(res, "Skill not found in profile");
@@ -2898,4 +2707,3 @@ void ProfileController::getSkillsAutocomplete(uWS::HttpResponse<false>* res, uWS
         serverError(res, "Failed to get autocomplete results");
     }
 }
-

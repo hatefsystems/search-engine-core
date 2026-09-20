@@ -1,4 +1,5 @@
 #include "../../include/search_engine/common/SlugGenerator.h"
+#include "../../include/search_engine/common/ProfileSlug.h"
 #include <algorithm>
 #include <cctype>
 #include <regex>
@@ -21,20 +22,13 @@ std::string SlugGenerator::generateSlug(const std::string& name) {
     std::string cleaned = cleanForSlug(transliterated);
 
     // Ensure minimum length
-    if (cleaned.empty() || cleaned == "-") {
+    if (cleaned.empty() || cleaned == ".") {
         return "profile";
     }
 
-    // Truncate to maximum length
-    if (cleaned.length() > 100) {
-        cleaned = cleaned.substr(0, 100);
-        // Remove trailing hyphen if truncation created one
-        if (!cleaned.empty() && cleaned.back() == '-') {
-            cleaned.pop_back();
-        }
-    }
+    // Count Unicode characters and never split a UTF-8 sequence.
+    return truncateProfileSlug(cleaned);
 
-    return cleaned;
 }
 
 std::string SlugGenerator::resolveSlugConflict(const std::string& baseSlug,
@@ -46,7 +40,7 @@ std::string SlugGenerator::resolveSlugConflict(const std::string& baseSlug,
 
     // Try numbered variations
     for (int i = 2; i <= 100; ++i) {
-        std::string candidate = baseSlug + "-" + std::to_string(i);
+        std::string candidate = truncateProfileSlug(baseSlug, 100 - 1 - std::to_string(i).size()) + "." + std::to_string(i);
         if (!exists(candidate)) {
             return candidate;
         }
@@ -56,14 +50,15 @@ std::string SlugGenerator::resolveSlugConflict(const std::string& baseSlug,
     auto now = std::chrono::system_clock::now();
     auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()).count();
-    return baseSlug + "-" + std::to_string(timestamp % 1000000);
+    const auto suffix = std::to_string(timestamp % 1000000);
+    return truncateProfileSlug(baseSlug, 99 - suffix.size()) + "." + suffix;
 }
 
 bool SlugGenerator::isReservedSlug(const std::string& slug) {
     if (slug.empty()) return true;
 
-    std::string lowerSlug = slug;
-    std::transform(lowerSlug.begin(), lowerSlug.end(), lowerSlug.begin(), ::tolower);
+    std::string lowerSlug = canonicalProfileSlug(slug).value_or(slug);
+    std::transform(lowerSlug.begin(), lowerSlug.end(), lowerSlug.begin(), [](unsigned char c) { return std::tolower(c); });
 
     const auto& reserved = getReservedWords();
     return reserved.find(lowerSlug) != reserved.end();
@@ -209,55 +204,26 @@ std::string SlugGenerator::removeCombiningMarks(const std::string& input) {
 }
 
 std::string SlugGenerator::cleanForSlug(const std::string& input) {
-    if (input.empty()) return "";
-
-    std::string result = input;
-
-    // Replace spaces and common separators with hyphens
-    std::replace(result.begin(), result.end(), ' ', '-');
-    std::replace(result.begin(), result.end(), '_', '-');
-    std::replace(result.begin(), result.end(), '.', '-');
-    std::replace(result.begin(), result.end(), ',', '-');
-
-    // Remove other special characters, keep only letters, numbers, and hyphens
-    result.erase(std::remove_if(result.begin(), result.end(),
-                                [](char c) {
-                                    return !(std::isalnum(static_cast<unsigned char>(c)) ||
-                                           c == '-' ||
-                                           static_cast<unsigned char>(c) >= 0x80); // Keep Unicode
-                                }),
-                 result.end());
-
-    // Collapse multiple hyphens
-    result = collapseHyphens(result);
-
-    // Remove leading/trailing hyphens
-    if (!result.empty() && result.front() == '-') {
-        result.erase(0, 1);
+    std::string result;
+    for (size_t offset = 0; offset < input.size();) {
+        const auto start = offset;
+        auto point = nextSlugCodePoint(input, offset);
+        if (!point) continue;
+        if (isProfileSlugLetterOrDigit(*point)) result.append(input, start, offset - start);
+        else if (*point == '.' || *point == '-' || *point == '_' || *point == ',' ||
+                 (*point < 128 && std::isspace(static_cast<unsigned char>(*point))) ||
+                 *point == 0x00A0 || (*point >= 0x2000 && *point <= 0x200C) ||
+                 *point == 0x202F || *point == 0x3000) result += '.';
     }
-    if (!result.empty() && result.back() == '-') {
-        result.pop_back();
-    }
-
-    return result;
+    return collapseDots(result);
 }
 
-std::string SlugGenerator::collapseHyphens(const std::string& input) {
+std::string SlugGenerator::collapseDots(const std::string& input) {
     std::string result;
-    bool lastWasHyphen = false;
-
     for (char c : input) {
-        if (c == '-') {
-            if (!lastWasHyphen) {
-                result += c;
-                lastWasHyphen = true;
-            }
-        } else {
-            result += c;
-            lastWasHyphen = false;
-        }
+        if (c != '.' || (!result.empty() && result.back() != '.')) result += c;
     }
-
+    if (!result.empty() && result.back() == '.') result.pop_back();
     return result;
 }
 
@@ -281,6 +247,7 @@ const std::unordered_set<std::string>& SlugGenerator::getReservedWords() {
         "jpg", "jpeg", "png", "gif", "svg", "webp", "pdf",
 
         // Common directories
+        "robots.txt", "sitemap.xml", "favicon.ico",
         "assets", "static", "public", "private", "temp", "tmp",
         "cache", "logs", "backup", "archive",
 
@@ -289,13 +256,13 @@ const std::unordered_set<std::string>& SlugGenerator::getReservedWords() {
         "site", "sites", "domain", "url", "link", "links",
 
         // Status and error pages
-        "error", "404", "403", "500", "maintenance", "coming-soon",
+        "error", "404", "403", "500", "maintenance", "coming.soon",
 
         // Common names that might conflict
         "www", "mail", "email", "smtp", "ftp", "ssh", "ssl",
 
         // Reserved for future features
-        "blog", "news", "feed", "rss", "atom", "api-docs",
+        "blog", "news", "feed", "rss", "atom", "api.docs",
         "documentation", "docs", "wiki", "forum", "community"
     };
 

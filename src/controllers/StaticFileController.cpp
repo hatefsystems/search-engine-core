@@ -160,6 +160,11 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
         notFound(res, "Invalid path");
         return;
     }
+
+    // Support bundled assets under public/assets as well as legacy public/* URLs.
+    if (!std::filesystem::exists(filePath)) {
+        filePath = "public/assets" + path;
+    }
     
     // Check if file exists
     if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath)) {
@@ -238,7 +243,7 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     }
     
     // Send content
-    res->end(content);
+    res->writeHeader("Server", "HatefEngine 1.0")->end(content);
     
     LOG_INFO("Served static file: " + path + " (" + std::to_string(content.length()) + " bytes)");
 }
@@ -385,8 +390,7 @@ void StaticFileController::serveUpload(uWS::HttpResponse<false>* res, uWS::HttpR
     res->writeHeader("X-Content-Type-Options", "nosniff");
     
     // Send content
-    res->end(content);
+    res->writeHeader("Server", "HatefEngine 1.0")->end(content);
     
     LOG_INFO("Served uploaded file: " + path + " (" + std::to_string(content.length()) + " bytes)");
 }
- 

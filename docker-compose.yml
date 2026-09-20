@@ -33,12 +33,16 @@ services:
   #   networks:
   #     - search-network
   search-engine:
+    platform: linux/amd64
+    # Recheck the application build on up; unchanged layers stay cached.
+    pull_policy: build
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        BUILD_BASE_IMAGE: ${BUILD_BASE_IMAGE:?Run scripts/docker_images.py prepare --env-file build/docker-bases.env first}
-        RUNTIME_BASE_IMAGE: ${RUNTIME_BASE_IMAGE:?Run scripts/docker_images.py prepare --env-file build/docker-bases.env first}
+        # Optional overrides. Unset values use the published defaults in Dockerfile.
+        BUILD_BASE_IMAGE:
+        RUNTIME_BASE_IMAGE:
         BUILD_JOBS: ${BUILD_JOBS:-2}
     container_name: core
     restart: unless-stopped

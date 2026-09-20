@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include <regex>
+#include "../../include/search_engine/profile/ProfileEditor.h"
 #include <chrono>
 #include <algorithm>
 
@@ -42,28 +43,17 @@ ValidationResult ProfileValidator::validate(const Profile& profile) {
     
     // Required field: slug
     if (profile.slug.empty()) {
-        errors.push_back("Slug is required");
+        errors.push_back(search_engine::common::profileSlugValidationError(profile.slug));
     } else {
         // Validate slug format
-        if (!isValidSlug(profile.slug)) {
-            errors.push_back("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
-        }
-        
-        // Check slug length
-        if (profile.slug.length() > 50) {
-            errors.push_back("Slug exceeds maximum length of 50 characters");
-        }
-        
-        // Check for double hyphens (warning, not error)
-        if (profile.slug.find("--") != std::string::npos) {
-            warnings.push_back("Slug contains consecutive hyphens (--) which may affect readability");
-        }
+        const auto slugError = search_engine::common::profileSlugValidationError(profile.slug);
+        if (!slugError.empty()) errors.push_back(slugError);
     }
     
     // Required field: name
-    if (profile.name.empty()) {
+    if (profile.name.empty() && (profile.isPublic || profile.type != ProfileType::PERSON)) {
         errors.push_back("Name is required");
-    } else if (profile.name.length() > 200) {
+    } else if (search_engine::profile::textLength(profile.name) > 200) {
         errors.push_back("Name exceeds maximum length of 200 characters");
     }
     
@@ -71,7 +61,7 @@ ValidationResult ProfileValidator::validate(const Profile& profile) {
     if (profile.bio.has_value()) {
         if (profile.bio.value().empty()) {
             warnings.push_back("Bio is empty; consider removing or adding content");
-        } else if (profile.bio.value().length() > 500) {
+        } else if (search_engine::profile::textLength(profile.bio.value()) > 500) {
             errors.push_back("Bio exceeds maximum length of 500 characters");
         }
     }
@@ -93,30 +83,30 @@ ValidationResult ProfileValidator::validatePersonFields(const PersonProfile& pro
     
     // Validate header fields
     if (profile.tagline.has_value()) {
-        if (profile.tagline.value().length() > 120) {
+        if (search_engine::profile::textLength(profile.tagline.value()) > 120) {
             errors.push_back("Tagline exceeds maximum length of 120 characters");
         }
     }
     
     if (profile.professionalSummary.has_value()) {
-        if (profile.professionalSummary.value().length() > 2000) {
+        if (search_engine::profile::textLength(profile.professionalSummary.value()) > 2000) {
             errors.push_back("Professional summary exceeds maximum length of 2000 characters");
         }
     }
     
     if (profile.avatarUrl.has_value() && !profile.avatarUrl.value().empty()) {
-        if (!isValidUrl(profile.avatarUrl.value())) {
+        if (profile.avatarUrl->rfind("/uploads/", 0) != 0 && !isValidUrl(profile.avatarUrl.value())) {
             errors.push_back("Invalid avatar URL format");
         }
     }
     
     if (profile.coverImageUrl.has_value() && !profile.coverImageUrl.value().empty()) {
-        if (!isValidUrl(profile.coverImageUrl.value())) {
+        if (profile.coverImageUrl->rfind("/uploads/", 0) != 0 && !isValidUrl(profile.coverImageUrl.value())) {
             errors.push_back("Invalid cover image URL format");
         }
     }
     
-    if (profile.availabilityStatus.has_value()) {
+    if (profile.availabilityStatus.has_value() && !profile.availabilityStatus->empty()) {
         const std::string& status = profile.availabilityStatus.value();
         if (std::find(VALID_AVAILABILITY_STATUSES.begin(), VALID_AVAILABILITY_STATUSES.end(), status) 
             == VALID_AVAILABILITY_STATUSES.end()) {

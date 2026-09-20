@@ -235,7 +235,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
         
         res->writeStatus("503 Service Unavailable")
            ->writeHeader("Content-Type", "application/json")
-           ->end(errorResponse.dump());
+           ->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
         return;
     }
     
@@ -259,7 +259,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
         
         res->writeStatus("400 Bad Request")
            ->writeHeader("Content-Type", "application/json")
-           ->end(errorResponse.dump());
+           ->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
         
         LOG_WARNING("Search request rejected: missing 'q' parameter");
         return;
@@ -281,7 +281,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
         
         res->writeStatus("400 Bad Request")
            ->writeHeader("Content-Type", "application/json")
-           ->end(errorResponse.dump());
+           ->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
         
         LOG_WARNING("Search request rejected: " + paginationParams.error);
         return;
@@ -358,7 +358,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
            ->writeHeader("Access-Control-Allow-Origin", "*")  // CORS support
            ->writeHeader("Access-Control-Allow-Methods", "GET, OPTIONS")
            ->writeHeader("Access-Control-Allow-Headers", "Content-Type")
-           ->end(response.dump());
+           ->writeHeader("Server", "HatefEngine 1.0")->end(response.dump());
            
     } catch (const SearchError& e) {
         LOG_ERROR("Search error: " + std::string(e.what()));
@@ -377,7 +377,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
             res->writeStatus("200 OK")
                ->writeHeader("Content-Type", "application/json")
                ->writeHeader("Access-Control-Allow-Origin", "*")
-               ->end(response.dump());
+               ->writeHeader("Server", "HatefEngine 1.0")->end(response.dump());
         } else {
             // Other search errors
             json errorResponse = {
@@ -392,7 +392,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
             
             res->writeStatus("500 Internal Server Error")
                ->writeHeader("Content-Type", "application/json")
-               ->end(errorResponse.dump());
+               ->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Unexpected error: " + std::string(e.what()));
@@ -409,7 +409,7 @@ void handleSearch(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
         
         res->writeStatus("500 Internal Server Error")
            ->writeHeader("Content-Type", "application/json")
-           ->end(errorResponse.dump());
+           ->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
     }
 }
 

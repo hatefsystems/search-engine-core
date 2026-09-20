@@ -74,6 +74,7 @@ public:
     Result<std::optional<PersonProfile>> findPersonById(const std::string& id);
     Result<std::optional<PersonProfile>> findPersonBySlug(const std::string& slug);
     Result<bool> update(const PersonProfile& profile);
+    Result<bool> updatePersonFields(const PersonProfile& profile, const std::vector<std::string>& fields, int64_t expectedVersion);
 
     // BusinessProfile storage operations
     Result<std::string> store(const BusinessProfile& profile);

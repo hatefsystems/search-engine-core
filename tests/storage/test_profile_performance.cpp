@@ -11,6 +11,14 @@ using namespace search_engine::storage;
 
 // Performance test helper namespace
 namespace {
+    // Soft-deleted slugs remain reserved. Give each test process its own database
+    // so aggregate and individually discovered CTest runs cannot reuse fixtures.
+    const std::string& performanceTestDatabase() {
+        static const std::string name = "test-search-engine-perf-" + std::to_string(
+            std::chrono::high_resolution_clock::now().time_since_epoch().count());
+        return name;
+    }
+
     Profile createTestProfile(const std::string& slug, const std::string& name) {
         Profile profile;
         profile.slug = slug;
@@ -23,12 +31,12 @@ namespace {
     }
     
     std::string generateRandomSlug(int index) {
-        return "perf-test-" + std::to_string(index);
+        return "perf.test." + std::to_string(index);
     }
 }
 
 TEST_CASE("ProfileStorage - Performance: Slug Lookup Speed", "[profilestorage][performance]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", performanceTestDatabase());
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
@@ -114,7 +122,7 @@ TEST_CASE("ProfileStorage - Performance: Slug Lookup Speed", "[profilestorage][p
 }
 
 TEST_CASE("ProfileStorage - Performance: Batch Operations", "[profilestorage][performance]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", performanceTestDatabase());
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
@@ -232,7 +240,7 @@ TEST_CASE("ProfileViewAnalyticsStorage - Performance: Analytics Queries", "[anal
 }
 
 TEST_CASE("ProfileStorage - Performance: Concurrent Operations", "[profilestorage][performance][concurrent]") {
-    ProfileStorage storage("mongodb://admin:password123@localhost:27017", "test-search-engine-perf");
+    ProfileStorage storage("mongodb://admin:password123@localhost:27017", performanceTestDatabase());
     
     // Skip tests if MongoDB is not available
     auto connectionTest = storage.testConnection();
@@ -261,9 +269,11 @@ TEST_CASE("ProfileStorage - Performance: Concurrent Operations", "[profilestorag
         std::atomic<int> successCount{0};
         
         for (int i = 0; i < 10; i++) {
-            threads.emplace_back([&storage, &slugs, &successCount]() {
+            threads.emplace_back([&slugs, &successCount]() {
+                // A mongocxx::client must not be shared by concurrent threads.
+                ProfileStorage worker("mongodb://admin:password123@localhost:27017", performanceTestDatabase());
                 for (const auto& slug : slugs) {
-                    auto result = storage.findBySlug(slug);
+                    auto result = worker.findBySlug(slug);
                     if (result.success && result.value.has_value()) {
                         successCount++;
                     }

@@ -1,0 +1,86 @@
+:root {
+    color-scheme: light;
+    --profile-accent: #59419b;
+    --profile-muted: #60576e;
+    --profile-border: #e8e2f1;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 32px 20px;
+    min-height: 100vh;
+    font-family: "Vazirmatn FD", Tahoma, sans-serif;
+    line-height: 1.8;
+    color: #292334;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+h1, h2, p { margin: 0; }
+a { color: var(--profile-accent); }
+a:focus-visible { outline: 3px solid var(--profile-accent); outline-offset: 4px; }
+.profile-page {
+    width: 100%;
+    max-width: 800px;
+    margin-inline: auto;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 16px 50px #2d1b5133;
+    overflow-wrap: anywhere;
+}
+.profile-cover {
+    height: 220px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(120deg, #b9a9ed, #7563c7 55%, #543889);
+}
+.profile-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-image[hidden] { display: none; }
+.profile-heading { position: relative; display: flex; gap: 24px; padding: 0 32px 24px; }
+.profile-avatar {
+    position: relative;
+    flex: 0 0 136px;
+    width: 136px;
+    height: 136px;
+    margin-block-start: -48px;
+    border: 5px solid white;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f1edf7;
+    color: #b2a9c2;
+}
+.profile-avatar .profile-image { position: absolute; inset: 0; }
+.avatar-placeholder { width: 100%; height: 100%; display: block; }
+.profile-identity { min-width: 0; flex: 1; padding-block-start: 20px; text-align: start; }
+.profile-identity h1 { font-size: clamp(1.6rem, 4vw, 2.15rem); line-height: 1.5; font-weight: 800; }
+.english-name { color: var(--profile-muted); font-size: .95rem; margin-block-start: 2px; }
+.profile-tagline { margin-block-start: 12px; font-size: 1.05rem; }
+.profile-details { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 0; margin: 16px 0 0; list-style: none; font-size: .9rem; color: var(--profile-muted); }
+.availability { padding-inline: 10px; border-radius: 8px; background: #f2eefb; color: #513580; }
+.profile-skills { padding: 0 32px 28px; border-block-end: 1px solid var(--profile-border); }
+.profile-skills h2 { font-size: .95rem; margin-block-end: 12px; color: var(--profile-muted); }
+.skills-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.skill-tag { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 100%; padding: 5px 12px; border: 1px solid var(--profile-border); border-radius: 10px; background: #faf8fe; color: #503985; font-size: .9rem; }
+.skill-tag bdi { min-width: 0; }
+.skill-level { font-size: .75rem; color: var(--profile-muted); }
+.content { padding: 28px 32px; }
+.profile-section + .profile-section { margin-block-start: 28px; }
+.profile-section h2 { color: var(--profile-accent); font-size: 1.15rem; margin-block-end: 16px; }
+.bio { white-space: pre-line; }
+.info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.info-item { padding: 14px 16px; background: #f8f6fc; border-radius: 10px; min-width: 0; }
+.info-label { font-size: .8rem; color: var(--profile-muted); margin-block-end: 4px; }
+.links-section { display: grid; gap: 12px; }
+.link-block { display: block; padding: 14px 18px; border: 1px solid var(--profile-border); border-radius: 10px; text-decoration: none; }
+.link-block:hover { background: #f8f6fc; border-color: var(--profile-accent); }
+.link-block-title { font-weight: 600; }
+.link-block-url { font-size: .85rem; color: var(--profile-muted); text-align: start; }
+.profile-footer { padding: 20px; border-block-start: 1px solid var(--profile-border); text-align: center; font-size: .8rem; color: var(--profile-muted); }
+@media (max-width: 600px) {
+    body { padding: 16px 12px; }
+    .profile-cover { height: 156px; }
+    .profile-heading { flex-direction: column; gap: 0; padding-inline: 20px; }
+    .profile-avatar { flex-basis: auto; width: 112px; height: 112px; margin-block-start: -40px; }
+    .profile-identity { padding-block-start: 12px; }
+    .profile-skills, .content { padding-inline: 20px; }
+    .info-grid { grid-template-columns: minmax(0, 1fr); }
+}

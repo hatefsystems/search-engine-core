@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>ساخت و ویرایش صفحه | هاتف</title>
+<link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
+<link rel="stylesheet" href="/assets/css/profile-editor.css">
+<script type="module" src="/assets/js/profile-editor.js"></script>
+</head>
+<body data-state="{{ state }}" data-slug="{{ slug }}" data-profile-id="{{ profileId }}">
+<header class="editor-topbar"><a class="brand" href="/">هاتف</a><span class="topbar-title">صفحهٔ شخصی شما</span><span id="save-status" role="status" aria-live="polite">آمادهٔ شروع</span></header>
+<main class="editor-main">
+<section id="start-panel" class="gate-panel" {% if state != "new" %}hidden{% endif %}>
+<p class="eyebrow">اولین قدم، همین‌جاست</p><h1>جایی برای معرفی شما</h1>
+<p>با ساخت پیش‌نویس شروع کنید. هر چیزی که می‌نویسید خودکار ذخیره می‌شود.</p>
+<div class="address" dir="auto">/{{ slug }}</div>
+<button type="button" class="button primary" id="start" disabled>شروع ساخت صفحه</button>
+<p class="hint">صفحه تا انتخاب «انتشار صفحه» خصوصی می‌ماند.</p>
+</section>
+<section id="login-panel" class="gate-panel" hidden>
+<p class="eyebrow">خوش برگشتید</p><h1>ورود برای ویرایش</h1><p>کلید اختصاصی این صفحه را وارد کنید.</p>
+<form id="login-form"><label for="owner-key">کلید دسترسی</label><input id="owner-key" type="password" dir="ltr" autocomplete="off" spellcheck="false" required maxlength="256">
+<button class="button primary" type="submit">ورود به صفحهٔ من</button></form>
+<p class="hint">شناسه یا آدرس صفحه جایگزین کلید نیست. در این نسخه بازیابی کلید گم‌شده وجود ندارد.</p>
+</section>
+<div id="notice" class="notice" role="alert" hidden></div>
+<section id="key-panel" class="key-panel" hidden>
+<h2>کلید صفحهٔ شما آماده است</h2><p>این کلید دسترسی ویرایش صفحهٔ شماست. آن را نگه دارید و در اختیار دیگران نگذارید.</p>
+<output id="new-key" dir="ltr"></output><div class="actions"><button type="button" id="copy-key" class="button secondary">کپی کلید</button><button type="button" id="download-key" class="button secondary">دانلود کلید</button><button type="button" id="dismiss-key" class="button quiet">کلید را نگه داشتم</button></div>
+</section>
+<section id="workspace" hidden>
+<div class="workspace-heading"><div><p class="eyebrow">معرفی شما، با کلمات خودتان</p><h1>صفحهٔ من</h1><p class="hint address-inline" dir="auto">/{{ slug }}</p></div>
+<div class="actions"><a id="view-page" class="button secondary" href="/{{ encodedSlug }}" target="_blank" rel="noopener">مشاهدهٔ صفحه</a><button id="publish" class="button primary" type="button">انتشار صفحه</button><button id="logout" class="button quiet" type="button">خروج از دسترسی ویرایش</button></div></div>
+<div id="conflict" class="notice" hidden><p>اطلاعات در جای دیگری تغییر کرده است. نوشته‌های شما حفظ شده‌اند.</p><button id="reload-version" type="button" class="button secondary">بارگیری نسخهٔ جدید و مقایسه</button><div id="conflict-review" hidden><pre id="server-version"></pre><button id="keep-local" class="button secondary" type="button">ذخیرهٔ تغییرات من روی نسخهٔ جدید</button><button id="use-server" class="button quiet" type="button">استفاده از نسخهٔ جدید</button></div></div>
+<div class="mobile-tabs" role="tablist" aria-label="فرم و پیش‌نمایش"><button role="tab" type="button" id="form-tab" aria-controls="profile-form" aria-selected="true">اطلاعات صفحه</button><button role="tab" type="button" id="preview-tab" aria-controls="preview" aria-selected="false">پیش‌نمایش</button></div>
+<div class="editor-columns">
+<form id="profile-form" class="form-card" novalidate>
+<section class="form-section"><h2>تصویر اولین آشنایی</h2><p class="hint">عکس و کاور دلخواهتان را اضافه کنید.</p><div class="upload-grid">
+<div><label class="upload-control" for="avatar-file">انتخاب عکس پروفایل<input id="avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp"></label><span class="hint">حداکثر ۵ مگابایت</span><button type="button" class="text-button" data-clear="avatarUrl">حذف عکس</button></div>
+<div><label class="upload-control" for="cover-file">انتخاب تصویر کاور<input id="cover-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp"></label><span class="hint">حداکثر ۱۰ مگابایت</span><button type="button" class="text-button" data-clear="coverImageUrl">حذف کاور</button></div>
+</div></section>
+<section class="form-section"><h2>از خودتان بگویید</h2>
+<label for="profile-name">نام و نام خانوادگی <span class="hint">فقط فارسی</span></label><input id="profile-name" name="name" dir="rtl" autocomplete="name" placeholder="نام شما">
+<div class="field-grid"><div><label for="profile-title">عنوان شغلی</label><input id="profile-title" name="title" dir="auto" placeholder="مثلاً توسعه‌دهندهٔ نرم‌افزار"></div><div><label for="profile-company">شرکت</label><input id="profile-company" name="company" dir="auto" placeholder="نام شرکت یا مجموعه"></div></div>
+<label for="profile-bio">معرفی کوتاه</label><textarea id="profile-bio" name="bio" rows="5" dir="auto" placeholder="به چه کاری علاقه دارید و چه چیزی شما را معرفی می‌کند؟"></textarea>
+<div class="field-grid"><div><label for="profile-location">شهر</label><input id="profile-location" name="location" dir="auto" placeholder="مثلاً تهران"></div><div><label for="profile-availability">وضعیت همکاری</label><select id="profile-availability" name="availabilityStatus"><option value="">انتخاب نکرده‌ام</option><option value="AVAILABLE">آماده همکاری</option><option value="BUSY">مشغول به کار</option><option value="NOT_AVAILABLE">فعلاً در دسترس نیست</option></select></div></div>
+</section>
+<section class="form-section"><h2>مهارت‌های شما</h2><p class="hint">نام مهارت را بنویسید و سطح آن را انتخاب کنید.</p><div id="skills-editor"></div><button class="button secondary" type="button" id="add-skill">+ افزودن مهارت</button></section>
+<p class="form-footnote">تغییرات خودکار ذخیره می‌شوند. قبل از اولین انتشار فقط خودتان صفحه را می‌بینید.</p>
+</form>
+<aside id="preview" class="preview-column" aria-label="پیش‌نمایش زنده"><div class="preview-caption"><span>پیش‌نمایش زنده</span><span id="publication-label">پیش‌نویس خصوصی</span></div>
+<div class="preview-card"><div class="preview-cover"><img id="preview-cover" alt="" hidden></div><div class="preview-identity"><div class="preview-avatar"><span aria-hidden="true">●</span><img id="preview-avatar" alt="تصویر پروفایل" hidden></div><h2 id="preview-name">نام شما</h2><p id="preview-title" dir="auto"></p><p id="preview-company" dir="auto"></p><div id="preview-location" class="hint" dir="auto"></div><span id="preview-availability" class="badge"></span></div><section id="preview-about"><h3>دربارهٔ من</h3><p id="preview-bio" dir="auto"></p></section><div id="preview-skills" class="preview-skills"></div></div>
+<p class="hint">همین حالا شکل صفحه‌تان را ببینید؛ ذخیرهٔ اطلاعات در پس‌زمینه انجام می‌شود.</p></aside>
+</div></section></main>
+</body></html>

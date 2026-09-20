@@ -37,14 +37,15 @@ std::string injectNonce(const std::string& content, const std::string& nonce) {
 void Controller::json(uWS::HttpResponse<false>* res, const nlohmann::json& data, const std::string& status) {
     res->writeStatus(status)
        ->writeHeader("Content-Type", "application/json")
+       ->writeHeader("Cache-Control", "private, no-store")
        ->writeHeader("Access-Control-Allow-Origin", "*")
-       ->end(data.dump());
+       ->writeHeader("Server", "HatefEngine 1.0")->end(data.dump());
 }
 
 void Controller::text(uWS::HttpResponse<false>* res, const std::string& content, const std::string& status) {
     res->writeStatus(status)
        ->writeHeader("Content-Type", "text/plain")
-       ->end(content);
+       ->writeHeader("Server", "HatefEngine 1.0")->end(content);
 }
 
 void Controller::html(uWS::HttpResponse<false>* res, const std::string& content, const std::string& status) {
@@ -74,7 +75,7 @@ void Controller::html(uWS::HttpResponse<false>* res, const std::string& content,
        ->writeHeader("Referrer-Policy", "strict-origin-when-cross-origin")
        ->writeHeader("Cross-Origin-Opener-Policy", "same-origin")
        ->writeHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-       ->end(processedContent);
+       ->writeHeader("Server", "HatefEngine 1.0")->end(processedContent);
 }
 
 void Controller::notFound(uWS::HttpResponse<false>* res, const std::string& message) {

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <iomanip>
 #include <regex>
 #include <sstream>
@@ -237,4 +238,3 @@ std::string PulseQueryNormalizer::lowercaseAscii(std::string value) {
 
 } // namespace pulse
 } // namespace search_engine
-

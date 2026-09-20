@@ -13,7 +13,9 @@
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
-#include <regex>
+#include "../../include/search_engine/common/ProfileSlug.h"
+
+#include <set>
 
 using bsoncxx::builder::stream::document;
 using bsoncxx::builder::stream::finalize;
@@ -93,16 +95,7 @@ ProfileType ProfileStorage::stringToProfileType(const std::string& type) {
 }
 
 bool ProfileStorage::isValidSlug(const std::string& slug) {
-    if (slug.empty()) return false;
-
-    // Enforce maximum length
-    if (slug.length() > 100) return false;
-
-    // Regex pattern for Persian letters (U+0600-U+06FF) + English letters + numbers + hyphens
-    // Pattern: ^[\u0600-\u06FFa-zA-Z0-9-]+$
-    static const std::regex slugRegex("^[\u0600-\u06FFa-zA-Z0-9-]+$", std::regex_constants::extended);
-
-    return std::regex_match(slug, slugRegex);
+    return search_engine::common::isValidProfileSlug(slug);
 }
 
 bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) const {
@@ -148,6 +141,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) c
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -208,6 +203,8 @@ Profile ProfileStorage::bsonToProfile(const bsoncxx::document::view& doc) const 
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -307,7 +304,7 @@ Result<std::string> ProfileStorage::store(const Profile& profile) {
     try {
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Check if slug is reserved
@@ -398,7 +395,7 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
 
         // Validate slug format if slug is being updated
         if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Check if slug is reserved
@@ -567,7 +564,6 @@ Result<bool> ProfileStorage::checkSlugAvailability(const std::string& slug) {
         // Query for existing profile with this slug, excluding soft-deleted profiles
         auto filter = document{}
             << "slug" << slug
-            << "deletedAt" << open_document << "$exists" << false << close_document
             << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
@@ -613,7 +609,7 @@ Result<bool> ProfileStorage::updateSlug(const std::string& profileId, const std:
     try {
         // Validate new slug format
         if (!isValidSlug(newSlug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(newSlug));
         }
 
         // Check if slug is reserved
@@ -757,6 +753,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -916,6 +914,8 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -1101,6 +1101,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& pr
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -1205,6 +1207,8 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -1274,9 +1278,11 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
 
 Result<std::string> ProfileStorage::store(const PersonProfile& profile) {
     try {
+        if (search_engine::common::SlugGenerator::isReservedSlug(profile.slug))
+            return Result<std::string>::Failure("Slug is reserved");
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Validate profile
@@ -1378,53 +1384,46 @@ Result<std::optional<PersonProfile>> ProfileStorage::findPersonBySlug(const std:
 }
 
 Result<bool> ProfileStorage::update(const PersonProfile& profile) {
+    return updatePersonFields(profile, {"name", "displayName", "englishName", "title", "company", "bio",
+        "tagline", "professionalSummary", "location", "languages", "availabilityStatus", "avatarUrl", "coverImageUrl",
+        "skills", "skillsWithLevel", "experienceLevel", "education", "school", "linkedinUrl", "githubUrl",
+        "portfolioUrl", "email", "phone", "privacy", "isPublic"}, profile.version);
+}
+
+Result<bool> ProfileStorage::updatePersonFields(const PersonProfile& profile,
+    const std::vector<std::string>& fields, int64_t expectedVersion) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+    using bsoncxx::builder::basic::make_array;
     try {
-        if (!profile.id) {
-            return Result<bool>::Failure("Profile ID is required for update");
+        if (!profile.id || expectedVersion < 0) return Result<bool>::Failure("Invalid profile update");
+        auto source = profileToBson(profile);
+        bsoncxx::builder::basic::document values;
+        const std::set<std::string> allowed = {"name", "displayName", "englishName", "title", "company", "bio",
+            "tagline", "professionalSummary", "location", "languages", "availabilityStatus", "avatarUrl", "coverImageUrl",
+            "skills", "skillsWithLevel", "experienceLevel", "education", "school", "linkedinUrl", "githubUrl",
+            "portfolioUrl", "email", "phone", "privacy", "isPublic"};
+        for (const auto& field : fields) {
+            if (!allowed.count(field)) return Result<bool>::Failure("Field is not editable");
+            auto element = source.view()[field];
+            if (element) values.append(kvp(field, element.get_value()));
+            else if (field == "skills" || field == "skillsWithLevel" || field == "languages")
+                values.append(kvp(field, make_array()));
         }
-
-        // Validate profile
-        if (!profile.isValid()) {
-            return Result<bool>::Failure("Invalid PersonProfile: validation failed");
-        }
-
-        // Validate slug format
-        if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
-        }
-
-        auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
-
-        // Check slug uniqueness (excluding current profile)
-        auto existingResult = findBySlug(profile.slug);
-        if (existingResult.success && existingResult.value.has_value() &&
-            existingResult.value.value().id != profile.id) {
-            return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
-        }
-
-        // Create mutable copy and set updatedAt timestamp
-        PersonProfile updatedProfile = profile;
-        updatedProfile.updatedAt = std::chrono::system_clock::now();
-
-        // Build full update document with all fields
-        auto updateDoc = profileToBson(updatedProfile);
-        
-        // Use $set to update all fields
-        using bsoncxx::builder::basic::kvp;
-        auto setDoc = bsoncxx::builder::basic::document{};
-        setDoc.append(kvp("$set", updateDoc));
-
-        auto result = profileCollection_.update_one(filter.view(), setDoc.view());
-
-        if (result && result->modified_count() > 0) {
-            LOG_INFO("Updated PersonProfile with ID: " + profile.id.value());
-            return Result<bool>::Success(true, "PersonProfile updated successfully");
-        } else {
-            return Result<bool>::Failure("No profile found with given ID or no changes made");
-        }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error updating PersonProfile: " + std::string(e.what()));
-        return Result<bool>::Failure("Database error: " + std::string(e.what()));
+        values.append(kvp("updatedAt", timePointToDate(std::chrono::system_clock::now())));
+        bsoncxx::builder::basic::document filter;
+        filter.append(kvp("_id", bsoncxx::oid{*profile.id}), kvp("deletedAt", make_document(kvp("$exists", false))));
+        if (expectedVersion == 0) {
+            filter.append(kvp("$or", make_array(make_document(kvp("version", int64_t{0})),
+                make_document(kvp("version", make_document(kvp("$exists", false)))))));
+        } else filter.append(kvp("version", expectedVersion));
+        auto update = make_document(kvp("$set", values.view()), kvp("$inc", make_document(kvp("version", int64_t{1}))));
+        auto result = profileCollection_.update_one(filter.view(), update.view());
+        if (result && result->matched_count() == 1) return Result<bool>::Success(true, "Profile updated");
+        return Result<bool>::Failure("VERSION_CONFLICT");
+    } catch (const std::exception& e) {
+        LOG_ERROR("Profile update failed: " + std::string(e.what()));
+        return Result<bool>::Failure("Database update failed");
     }
 }
 
@@ -1434,7 +1433,7 @@ Result<std::string> ProfileStorage::store(const BusinessProfile& profile) {
     try {
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Validate profile
@@ -1548,7 +1547,7 @@ Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
 
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;

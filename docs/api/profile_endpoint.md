@@ -189,6 +189,11 @@ _Duplicate Slug:_
 
 **Description:** Retrieve a profile by its ID.
 
+Unauthenticated personal-profile responses omit fields hidden by header privacy
+settings. Private profiles return 403 unless the request includes the owner's
+Bearer token or `x-profile-token`. Successful ID responses use
+`Cache-Control: private, no-store`.
+
 **Success Response:**
 
 ```json
@@ -227,6 +232,32 @@ _Duplicate Slug:_
 - `GET /:slug` (root-level route)
 
 **Description:** Retrieve a public profile by its slug. Tracks view analytics and SEO redirects for old slugs.
+
+Canonical slugs contain 1–100 Unicode characters: Persian or English letters,
+Persian or English digits, and dots, for example `/هاتف.رستمخانی`. Leading/trailing
+dots, consecutive dots, and dot/hyphen or dot/underscore adjacency are rejected.
+Creation normalizes legacy hyphen/underscore separators to dots; name generation
+also collapses whitespace to a single dot. Errors include English and Persian text.
+Percent-encoded path segments are decoded once; malformed encoding and invalid
+slugs return 400. Reserved slugs return 404. Both public route aliases redirect
+hyphen/underscore requests with HTTP 301 when the dotted profile exists. Existing
+stored legacy slugs remain readable when no dotted counterpart exists; no profiles
+are automatically renamed.
+
+Requests with `Accept: application/json` receive the existing response envelope
+with extended personal fields in `data`. Other requests receive a Persian RTL
+page with a responsive cover/avatar header and leveled skills. Public HTML,
+JSON, and JSON-LD omit email, phone, location, and availability when hidden by
+their corresponding privacy flags. Ownership credentials are never included.
+
+Public profile responses use `Cache-Control: no-cache, must-revalidate` and
+`Vary: Accept`. Private profiles return 403 and missing profiles return 404.
+The header uses the preferred display name when supplied, falls back to the
+stored name, and uses legacy skills only when leveled skills are absent.
+Missing or failed images reveal placeholders.
+
+See [profile header verification](../../tests/profile/README.md) for focused,
+browser, and HTTP integration tests.
 
 **Example:** `GET /profiles/john-doe`
 
@@ -694,7 +725,7 @@ curl -X POST http://localhost:3000/api/profiles/507f1f77bcf86cd799439011/restore
 
 ## Notes
 
-- Slugs support Persian and English characters, numbers, and hyphens (max 100 characters)
+- Canonical slugs use Persian/English letters and digits with dots (1–100 Unicode characters).
 - Reserved system slugs (api, admin, search, etc.) are blocked from all write operations
 - Sensitive fields (email, phone, address) are encrypted at rest using AES-256
 - Profile views are tracked for analytics (IP addresses not stored in analytics)
@@ -704,3 +735,55 @@ curl -X POST http://localhost:3000/api/profiles/507f1f77bcf86cd799439011/restore
 - Owner tokens are generated using cryptographically secure random numbers (`std::random_device`)
 - Ownership is enforced on all protected operations; missing tokens result in denial (no backward-compat bypass)
 - TOCTOU protection: duplicate slug insertion is caught via MongoDB E11000 error handling
+
+## Personal editor and private drafts
+
+Personal creation now starts as a private draft. Send `type: "PERSON"`, a free
+`slug`, and `isPublic: false` to `POST /api/profiles`. `name` may be empty or a
+single Persian character. An omitted personal `isPublic` defaults to false;
+creating an already-public personal profile returns 400. Publication is a
+subsequent authenticated update. Business creation retains its existing default.
+
+A successful creation returns the existing JSON envelope with `data`, `canEdit`,
+and a one-time `ownerToken` containing a cryptographically random 64-character
+hex key. New keys are stored only as SHA-256 hashes. Existing plaintext owner
+keys still authenticate. Neither raw keys nor hashes appear in profile data.
+
+`POST /api/profiles/:id/session` accepts `{ "key": "…" }` with a matching
+`Origin` header. It sets the same per-profile cookie that creation sets:
+`HttpOnly`, `SameSite=Strict`, `Max-Age=2592000`, path `/api/profiles/:id`.
+Configure `BASE_URL` with `https://` when served through HTTPS to enable `Secure`.
+`DELETE` on that session URL expires the cookie and also requires a matching
+origin. Bearer and `X-Profile-Token` authentication remain available. Cookie
+mutations require an origin matching the request host and configured scheme.
+Editor HTML and authentication responses use `Cache-Control: private, no-store`.
+
+Owner reads at `GET /api/profiles/:id` include `canEdit: true` and `data.version`.
+Private reads require ownership. The personal `PUT` endpoint accepts only the
+supplied fields from this list:
+
+- `name`, `title`, `company`, `bio`, `location`, `availabilityStatus`
+- `skillsWithLevel` (array of `{name, level}`), `isPublic`
+- `avatarUrl` and `coverImageUrl` only as empty strings to remove images
+- required integer `version` from the last acknowledged owner response
+
+The editor has no English-name field. Existing English names, privacy settings,
+contact details, and credentials are preserved by partial updates. Strings and
+skills arrays may be cleared. Repeating an unchanged value succeeds. Limits
+count Unicode code points: name/title/company/location 200, bio 500, skill name
+80, and at most 50 skills. Publishing requires a nonempty Persian name.
+
+The database atomically compares `version` and increments it on success.
+A stale version returns 409 and requires explicit reconciliation. Autosave has
+a separate authenticated limit of 120 updates/minute per profile owner; 429
+includes `Retry-After`. Saved changes after publication update the public page
+immediately. `POST /:id/avatar`, `POST /:id/cover`, and `POST /:id/skills` also
+require `version`; image responses return the new version. The legacy skill
+DELETE uses the numeric version in `If-Match`.
+
+The UI is available at `/profiles/new?slug=…` and `/profiles/:slug/edit`.
+Opening a free slug returns an invitation with HTTP 404 and `noindex`; a GET
+never creates a record. Creation begins with the explicit start button.
+Unacknowledged form changes are kept locally per tab, reconciled on conflicts,
+and cleared on owner logout. Keep the displayed access key: this milestone
+has no account signup or lost-key recovery.

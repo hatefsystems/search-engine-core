@@ -25,6 +25,10 @@ public:
     ~ProfileController() = default;
 
     // API Endpoints
+    void newProfilePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void editProfilePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void createOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void deleteOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -87,6 +91,11 @@ private:
     search_engine::storage::LinkClickAnalyticsStorage* getLinkClickAnalyticsStorage() const;
     ApiRateLimiter* getLinkRedirectRateLimiter() const;
 
+    bool sameOrigin(uWS::HttpRequest* req);
+    bool secureCookies() const;
+    void renderProfileEntry(uWS::HttpResponse<false>* res, const std::string& slug, const std::string& state, const std::string& id = "");
+    void savePersonPatch(uWS::HttpResponse<false>* res, const search_engine::storage::PersonProfile& person, const nlohmann::json& body);
+
     // Helper to parse JSON request body
     search_engine::storage::Profile parseProfileFromJson(const nlohmann::json& json);
 
@@ -109,7 +118,8 @@ private:
     void servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug);
     
     // Helper to render HTML profile page with SEO
-    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile);
+    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile,
+                           const search_engine::storage::PersonProfile* person = nullptr);
     
     // Helper to render Inja templates
     std::string renderTemplate(const std::string& templateName, const nlohmann::json& data);
@@ -147,6 +157,11 @@ private:
 ROUTE_CONTROLLER(ProfileController) {
     using namespace routing;
     LOG_INFO("ProfileController::registerRoutes() called - registering routes");
+
+    REGISTER_ROUTE(HttpMethod::GET, "/profiles/new", newProfilePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug/edit", editProfilePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/session", createOwnerSession, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/session", deleteOwnerSession, ProfileController);
 
     // API routes
     REGISTER_ROUTE(HttpMethod::POST, "/api/profiles", createProfile, ProfileController);

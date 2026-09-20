@@ -232,6 +232,9 @@ int main() {
     // Add request tracing middleware wrapper
     LOG_DEBUG("Applying registered routes to uWebSockets application...");
     routing::RouteRegistry::getInstance().applyRoutes(app);
+    app.any("/*", [](auto* res, auto*) {
+        res->writeStatus("404 Not Found")->writeHeader("Server", "HatefEngine 1.0")->end("Not found");
+    });
     LOG_INFO("All routes applied successfully to application");
 
     // Start the server

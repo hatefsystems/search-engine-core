@@ -1,6 +1,7 @@
 #include "../../include/search_engine/common/UrlSanitizer.h"
 
 #include <sstream>
+#include <cstdint>
 
 namespace search_engine::common {
 
@@ -88,5 +89,4 @@ std::string hexDump(const std::string& input) {
 }
 
 } // namespace search_engine::common
-
 

@@ -133,6 +133,16 @@ if '--builder' in args and args[args.index('--builder') + 1] == 'default':
                        cwd=ROOT, check=True)
 
 
+    def test_local_build_without_overrides_uses_published_defaults(self):
+        environment = dict(os.environ)
+        environment.pop("BUILD_BASE_IMAGE", None)
+        environment.pop("RUNTIME_BASE_IMAGE", None)
+        # The fake Docker supports builds only. The former implicit prepare
+        # would try to inspect manifests and fail instead of building the core.
+        subprocess.run(["bash", str(ROOT / "scripts/build-docker.sh")],
+                       cwd=ROOT, env=environment, check=True)
+
+
 class PipelineTests(unittest.TestCase):
     def options(self, **kwargs):
         values = dict(push=False, force=False, offline=False, repository="owner/repo",

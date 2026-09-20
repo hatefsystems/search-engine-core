@@ -437,7 +437,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     res->writeStatus("429 Too Many Requests");
                     res->writeHeader("Content-Type", "application/json");
                     res->writeHeader("Retry-After", "30"); // Suggest retry after 30 seconds
-                    res->end(errorResponse.dump());
+                    res->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
                 } else {
                     // Other runtime errors
                     logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
@@ -1095,7 +1095,7 @@ void SearchController::renderPage(uWS::HttpResponse<false>* res, uWS::HttpReques
             if (!requestJson.contains("url") || !requestJson["url"].is_string()) {
                 res->writeStatus("400 Bad Request");
                 res->writeHeader("Content-Type", "application/json");
-                res->end(R"({"error": "URL is required and must be a string", "success": false})");
+                res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "URL is required and must be a string", "success": false})");
                 return;
             }
             std::string url = requestJson["url"];
@@ -1132,16 +1132,16 @@ void SearchController::renderPage(uWS::HttpResponse<false>* res, uWS::HttpReques
             }
             res->writeStatus("200 OK");
             res->writeHeader("Content-Type", "application/json");
-            res->end(response.dump());
+            res->writeHeader("Server", "HatefEngine 1.0")->end(response.dump());
         } catch (const nlohmann::json::exception& e) {
             res->writeStatus("400 Bad Request");
             res->writeHeader("Content-Type", "application/json");
-            res->end(R"({"error": "Invalid JSON format", "success": false})");
+            res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "Invalid JSON format", "success": false})");
         } catch (const std::exception& e) {
             LOG_ERROR("Exception in renderPage: " + std::string(e.what()));
             res->writeStatus("500 Internal Server Error");
             res->writeHeader("Content-Type", "application/json");
-            res->end(R"({"error": "Internal server error", "success": false})");
+            res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "Internal server error", "success": false})");
         }
     });
     res->onAborted([]() {
@@ -1622,7 +1622,7 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
             // Redirect to home page if no query provided
             res->writeStatus("302 Found");
             res->writeHeader("Location", "/");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
         }
         
@@ -1989,7 +1989,7 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
         auto qIt = params.find("q");
         if (qIt == params.end() || qIt->second.empty()) {
             res->writeStatus("400 Bad Request");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
         }
 
@@ -2043,14 +2043,14 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
             bool useRedis = redisEnabled && (std::string(redisEnabled) == "true" || std::string(redisEnabled) == "1");
             if (!useRedis) {
                 res->writeStatus("503 Service Unavailable");
-                res->end();
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
                 return;
             }
 
             auto redisStorage = getRedisStorage();
             if (!redisStorage) {
                 res->writeStatus("503 Service Unavailable");
-                res->end();
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
                 return;
             }
 
@@ -2063,7 +2063,7 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
             auto redisResult = redisStorage->search(searchQuery_obj);
             if (!redisResult.success) {
                 res->writeStatus("503 Service Unavailable");
-                res->end();
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
                 return;
             }
 
@@ -2103,7 +2103,7 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
         } catch (const std::exception& e) {
             LOG_ERROR("Redis search error in searchResultsPartial: " + std::string(e.what()));
             res->writeStatus("503 Service Unavailable");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
         }
 
@@ -2133,7 +2133,7 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
         std::string renderedHtml = renderTemplate("search_partial.inja", templateData);
         if (renderedHtml.empty()) {
             res->writeStatus("500 Internal Server Error");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
         }
 
@@ -2143,7 +2143,7 @@ void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::
     } catch (const std::exception& e) {
         LOG_ERROR("Error in searchResultsPartial: " + std::string(e.what()));
         res->writeStatus("500 Internal Server Error");
-        res->end();
+        res->writeHeader("Server", "HatefEngine 1.0")->end();
     }
 }
 
