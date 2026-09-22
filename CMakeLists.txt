@@ -96,8 +96,6 @@ add_library(common STATIC
     src/common/Base64.cpp
     src/common/ImageValidator.cpp
     src/common/SkillNormalizer.cpp
-    src/profile/ProfileContent.cpp
-    src/profile/ProfileProjection.cpp
 )
 target_include_directories(common 
     PUBLIC 
