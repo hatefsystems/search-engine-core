@@ -19,6 +19,7 @@ find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GUMBO REQUIRED gumbo)
+pkg_check_modules(VIPS REQUIRED IMPORTED_TARGET vips)
 find_package(Threads REQUIRED)
 
 # Find WebSocket++ and nlohmann/json
@@ -95,6 +96,8 @@ add_library(common STATIC
     src/common/Base64.cpp
     src/common/ImageValidator.cpp
     src/common/SkillNormalizer.cpp
+    src/profile/ProfileContent.cpp
+    src/profile/ProfileProjection.cpp
 )
 target_include_directories(common 
     PUBLIC 
@@ -126,6 +129,7 @@ target_link_libraries(common
         skills
         ${CURL_LIBRARIES}
         CURL::libcurl
+    OpenSSL::Crypto
 )
 
 # Install common library
@@ -157,6 +161,7 @@ list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*crawler/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*storage/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*common/.*\\.cpp$")
+list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*profile/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*scoring/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*search_core/.*\\.cpp$")
 list(FILTER MAIN_SOURCES EXCLUDE REGEX ".*kafka/.*\\.cpp$")
@@ -268,3 +273,7 @@ if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+target_link_libraries(server PRIVATE PkgConfig::VIPS)
+
+target_link_libraries(seo PUBLIC common)

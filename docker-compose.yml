@@ -45,6 +45,8 @@ services:
         RUNTIME_BASE_IMAGE:
         BUILD_JOBS: ${BUILD_JOBS:-2}
     container_name: core
+    volumes:
+      - profile_media:/app/profile-media
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -335,5 +337,6 @@ networks:
     driver: bridge
 
 volumes:
+  profile_media:
   mongodb_data:
   redis_data:
