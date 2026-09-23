@@ -9,6 +9,7 @@
 #include <chrono>
 #include <functional>
 #include "Crawler.h"
+#include "../../include/search_engine/crawler/SessionAnalyticsStore.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
@@ -33,19 +34,26 @@ struct CrawlSession {
     std::atomic<bool> isCompleted{false};
     std::thread crawlThread;
     CrawlCompletionCallback completionCallback;
-    
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
+    // Seed URL/domain captured at start for analytics. #15
+    std::string seedUrl;
+    std::string seedDomain;
+    std::chrono::system_clock::time_point startedAt;
+
+    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance,
                  CrawlCompletionCallback callback = nullptr)
         : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
           completionCallback(std::move(callback)) {}
-    
+
     CrawlSession(CrawlSession&& other) noexcept
         : id(std::move(other.id))
         , crawler(std::move(other.crawler))
         , createdAt(other.createdAt)
         , isCompleted(other.isCompleted.load())
         , crawlThread(std::move(other.crawlThread))
-        , completionCallback(std::move(other.completionCallback)) {}
+        , completionCallback(std::move(other.completionCallback))
+        , seedUrl(std::move(other.seedUrl))
+        , seedDomain(std::move(other.seedDomain))
+        , startedAt(other.startedAt) {}
     
     CrawlSession(const CrawlSession&) = delete;
     CrawlSession& operator=(const CrawlSession&) = delete;
@@ -89,22 +97,31 @@ public:
     // Get access to storage for logging
     std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
 
+    // Access the session-analytics store (issue #15). Always non-null.
+    ISessionAnalyticsStore* getAnalyticsStore() const { return analyticsStore_.get(); }
+
 private:
     std::shared_ptr<search_engine::storage::ContentStorage> storage_;
     std::unordered_map<std::string, std::unique_ptr<CrawlSession>> sessions_;
     std::mutex sessionsMutex_;
     std::atomic<uint64_t> sessionCounter_{0};
-    
+
     // Background cleanup thread
     std::thread cleanupThread_;
     std::atomic<bool> shouldStop_{false};
-    
+    // Owned analytics store. #15
+    std::unique_ptr<ISessionAnalyticsStore> analyticsStore_;
+
     // Generate unique session ID
     std::string generateSessionId();
-    
+
     // Background cleanup worker
     void cleanupWorker();
-    
+
     // Create a new crawler instance with configuration
     std::unique_ptr<Crawler> createCrawler(const CrawlConfig& config, const std::string& sessionId = "");
-}; 
+
+    // Build & push a SessionMetricsRecord at session completion. #15
+    void recordSessionAnalytics(const CrawlSession& session,
+                                const std::vector<CrawlResult>& results);
+};

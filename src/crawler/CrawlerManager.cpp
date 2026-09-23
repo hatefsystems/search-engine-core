@@ -1,6 +1,7 @@
 #include "CrawlerManager.h"
 #include "../../include/Logger.h"
 #include "../../include/crawler/CrawlLogger.h"
+#include "../../include/search_engine/crawler/SessionAnalytics.h"
 #include "PageFetcher.h"
 #include <sstream>
 #include <iomanip>
@@ -9,9 +10,10 @@
 #include <cstdlib>
 
 CrawlerManager::CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage)
-    : storage_(storage) {
-    LOG_INFO("CrawlerManager initialized");
-    
+    : storage_(storage),
+      analyticsStore_(std::make_unique<InMemorySessionAnalyticsStore>(10000)) {
+    LOG_INFO("CrawlerManager initialized (analytics store capacity=10000)");
+
     // Start background cleanup thread
     cleanupThread_ = std::thread(&CrawlerManager::cleanupWorker, this);
 }
@@ -81,6 +83,22 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
         // Add seed URL to the crawler
         LOG_DEBUG("CrawlerManager::startCrawl - Adding seed URL for session: " + sessionId);
         session->crawler->addSeedURL(url, force);
+
+        // Capture seed info on the session struct so the analytics record
+        // built at completion time can reference them. #15
+        session->seedUrl = url;
+        try {
+            // The crawler exposes a URL frontier that knows how to extract
+            // the domain; fall back to empty if anything goes sideways.
+            // (Keeping this best-effort to avoid coupling.)
+            auto schemeEnd = url.find("://");
+            std::string rest = (schemeEnd == std::string::npos) ? url : url.substr(schemeEnd + 3);
+            auto slash = rest.find('/');
+            session->seedDomain = (slash == std::string::npos) ? rest : rest.substr(0, slash);
+        } catch (...) {
+            session->seedDomain.clear();
+        }
+        session->startedAt = std::chrono::system_clock::now();
         
         // Start crawling in a separate thread
         session->crawlThread = std::thread([sessionId, this]() {
@@ -152,13 +170,23 @@ std::string CrawlerManager::startCrawl(const std::string& url, const CrawlConfig
             if (sessionIt != sessions_.end()) {
                 auto& completedSession = sessionIt->second;
                 completedSession->isCompleted = true;
-                
+
+                std::vector<CrawlResult> finalResults;
+                if (completedSession->crawler) {
+                    finalResults = completedSession->crawler->getResults();
+                }
+
+                try {
+                    recordSessionAnalytics(*completedSession, finalResults);
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Error recording session analytics for " + sessionId + ": " + e.what());
+                }
+
                 // Execute completion callback if provided
                 if (completedSession->completionCallback) {
                     LOG_INFO("Executing completion callback for session: " + sessionId);
                     try {
-                        auto results = completedSession->crawler->getResults();
-                        completedSession->completionCallback(sessionId, results, this);
+                        completedSession->completionCallback(sessionId, finalResults, this);
                         LOG_INFO("Completion callback executed successfully for session: " + sessionId);
                     } catch (const std::exception& e) {
                         LOG_ERROR("Error executing completion callback for session " + sessionId + ": " + e.what());
@@ -398,18 +426,39 @@ void CrawlerManager::cleanupWorker() {
 
 std::unique_ptr<Crawler> CrawlerManager::createCrawler(const CrawlConfig& config, const std::string& sessionId) {
     auto crawler = std::make_unique<Crawler>(config, storage_, sessionId);
-    
+
     // Configure PageFetcher settings
     if (crawler->getPageFetcher()) {
         // Disable SSL verification for problematic sites
         crawler->getPageFetcher()->setVerifySSL(false);
-        
+
         // Enable SPA rendering if configured
         if (config.spaRenderingEnabled) {
             crawler->getPageFetcher()->setSpaRendering(true, config.browserlessUrl);
             CrawlLogger::broadcastLog("🤖 SPA rendering enabled for session with browserless URL: " + config.browserlessUrl, "info");
         }
     }
-    
+
     return crawler;
+}
+
+// Build a SessionMetricsRecord from the just-completed session and push it
+// into the analytics store. Failures here must not propagate; this is a
+// best-effort telemetry hook. #15
+void CrawlerManager::recordSessionAnalytics(const CrawlSession& session,
+                                            const std::vector<CrawlResult>& results) {
+    if (!analyticsStore_) return;
+    auto finishedAt = std::chrono::system_clock::now();
+    auto startedAt = session.startedAt.time_since_epoch().count() == 0
+                         ? session.createdAt
+                         : session.startedAt;
+    auto record = SessionAnalytics::buildFromResults(
+        session.id, session.seedUrl, session.seedDomain,
+        startedAt, finishedAt, results);
+    analyticsStore_->put(record);
+    LOG_INFO("Recorded analytics for session " + session.id +
+             " (urls=" + std::to_string(record.totalUrls) +
+             ", success=" + std::to_string(record.successfulUrls) +
+             ", failed=" + std::to_string(record.failedUrls) +
+             ", durationMs=" + std::to_string(record.durationMs) + ")");
 } 
