@@ -6,6 +6,7 @@
 #include "../../include/search_engine/common/SlugGenerator.h"
 #include <inja/inja.hpp>
 #include <set>
+#include "../../include/search_engine/profile/ProfileProjection.h"
 
 namespace {
 using Json = nlohmann::json;
@@ -181,12 +182,7 @@ void ProfileController::deleteOwnerSession(uWS::HttpResponse<false>* res, uWS::H
 }
 
 void ProfileController::savePersonPatch(uWS::HttpResponse<false>* res, const storage::PersonProfile& stored, const Json& body) {
-    static ApiRateLimiter ownerLimit(120, std::chrono::seconds(60));
-    const auto id = stored.id.value_or("");
-    if (ownerLimit.shouldThrottle(id)) {
-        res->writeStatus("429 Too Many Requests")->writeHeader("Retry-After", std::to_string(ownerLimit.getRetryAfter(id)));
-        json(res, {{"message", "کمی صبر کنید؛ ذخیره دوباره انجام می‌شود."}}, "429 Too Many Requests"); return;
-    }
+    if (checkOwnerMutationRateLimit(res, stored.id.value_or(""))) return;
     try {
         if (!body.contains("version") || !body["version"].is_number_integer()) {
             json(res, {{"message", "نسخهٔ اطلاعات لازم است."}}, "400 Bad Request"); return;
@@ -195,10 +191,12 @@ void ProfileController::savePersonPatch(uWS::HttpResponse<false>* res, const sto
         if (version != stored.version) { json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return; }
         auto person = stored;
         profile::applyEditorPatch(person, body);
+        profile::bridgeLegacyPatch(person, body);
         std::set<std::string> fields;
         for (auto it = body.begin(); it != body.end(); ++it) if (it.key() != "version") fields.insert(it.key());
         if (fields.count("name")) fields.insert("displayName");
         if (fields.count("skillsWithLevel")) fields.insert("skills");
+        if (body.contains("skillsWithLevel") && person.content.sections.count("skills")) fields.insert("content");
         auto result = getStorage()->updatePersonFields(person, {fields.begin(), fields.end()}, version);
         if (!result.success) {
             json(res, {{"message", result.message == "VERSION_CONFLICT" ? "اطلاعات در جای دیگری تغییر کرده است." : "ذخیره انجام نشد."}},

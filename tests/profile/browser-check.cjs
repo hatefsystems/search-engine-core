@@ -69,7 +69,10 @@ const server = http.createServer((req, res) => {
                 if (fixture === 'full') {
                     assert(await page.locator('[data-profile-image]').evaluateAll(images => images.every(image => image.naturalWidth > 0)));
                     await page.keyboard.press('Tab');
-                    assert.equal(await page.evaluate(() => document.activeElement.tagName), 'A');
+                    assert.ok(await page.evaluate(() => ['A','BUTTON'].includes(document.activeElement.tagName) && document.activeElement.matches(':focus-visible')));
+                    const link = page.locator('a[href]').first();
+                    await link.focus();
+                    assert.ok(await link.evaluate(el => el.matches(':focus-visible')));
                 }
                 await page.screenshot({ path: path.join(screenshots, `${fixture}-${width}.png`), fullPage: true });
             }

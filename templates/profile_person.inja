@@ -28,11 +28,15 @@
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
     <link rel="stylesheet" href="/assets/css/profile-header.css">
     <script src="/assets/js/profile-header.js" defer></script>
+    <link rel="stylesheet" href="/assets/css/profile-content.css">
+    <script type="module" src="/assets/js/profile-sections.js"></script>
 </head>
 <body>
     <main class="profile-page">
         {% include "components/profile_header.inja" %}
         <div class="content">
+            <div class="profile-actions"><button type="button" id="share-profile" class="button">اشتراک‌گذاری صفحه</button>{% if existsIn(profile, "sections") and existsIn(profile.sections, "contacts") and length(profile.sections.contacts) > 0 %}<a href="#section-contacts">راه‌های ارتباطی</a>{% endif %}</div>
+            {% if exists("advancedSections") %}{% include "components/profile_sections.inja" %}{% endif %}
             {% if (existsIn(profile, "bio") and profile.bio != "") %}
             <div class="profile-section">
                 <h2>درباره من</h2>

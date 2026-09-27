@@ -5,7 +5,8 @@
 <meta name="robots" content="noindex,nofollow"><title>ساخت و ویرایش صفحه | هاتف</title>
 <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
 <link rel="stylesheet" href="/assets/css/profile-editor.css">
-<script type="module" src="/assets/js/profile-editor.js"></script>
+<link rel="stylesheet" href="/assets/css/profile-content.css">
+<script type="module" src="/assets/js/profile-editor.js?v=advanced-1"></script>
 </head>
 <body data-state="{{ state }}" data-slug="{{ slug }}" data-profile-id="{{ profileId }}">
 <header class="editor-topbar"><a class="brand" href="/">هاتف</a><span class="topbar-title">صفحهٔ شخصی شما</span><span id="save-status" role="status" aria-live="polite">آمادهٔ شروع</span></header>
@@ -45,11 +46,13 @@
 <label for="profile-bio">معرفی کوتاه</label><textarea id="profile-bio" name="bio" rows="5" dir="auto" placeholder="به چه کاری علاقه دارید و چه چیزی شما را معرفی می‌کند؟"></textarea>
 <div class="field-grid"><div><label for="profile-location">شهر</label><input id="profile-location" name="location" dir="auto" placeholder="مثلاً تهران"></div><div><label for="profile-availability">وضعیت همکاری</label><select id="profile-availability" name="availabilityStatus"><option value="">انتخاب نکرده‌ام</option><option value="AVAILABLE">آماده همکاری</option><option value="BUSY">مشغول به کار</option><option value="NOT_AVAILABLE">فعلاً در دسترس نیست</option></select></div></div>
 </section>
-<section class="form-section"><h2>مهارت‌های شما</h2><p class="hint">نام مهارت را بنویسید و سطح آن را انتخاب کنید.</p><div id="skills-editor"></div><button class="button secondary" type="button" id="add-skill">+ افزودن مهارت</button></section>
+<section class="form-section" hidden><h2>مهارت‌های شما</h2><p class="hint">نام مهارت را بنویسید و سطح آن را انتخاب کنید.</p><div id="skills-editor"></div><button class="button secondary" type="button" id="add-skill">+ افزودن مهارت</button></section>
+<section id="completion-guide" class="completion-panel" aria-live="polite"></section><section id="advanced-editor" class="content-editor"></section>
+<section id="links-editor" class="content-editor"></section>
 <p class="form-footnote">تغییرات خودکار ذخیره می‌شوند. قبل از اولین انتشار فقط خودتان صفحه را می‌بینید.</p>
 </form>
 <aside id="preview" class="preview-column" aria-label="پیش‌نمایش زنده"><div class="preview-caption"><span>پیش‌نمایش زنده</span><span id="publication-label">پیش‌نویس خصوصی</span></div>
 <div class="preview-card"><div class="preview-cover"><img id="preview-cover" alt="" hidden></div><div class="preview-identity"><div class="preview-avatar"><span aria-hidden="true">●</span><img id="preview-avatar" alt="تصویر پروفایل" hidden></div><h2 id="preview-name">نام شما</h2><p id="preview-title" dir="auto"></p><p id="preview-company" dir="auto"></p><div id="preview-location" class="hint" dir="auto"></div><span id="preview-availability" class="badge"></span></div><section id="preview-about"><h3>دربارهٔ من</h3><p id="preview-bio" dir="auto"></p></section><div id="preview-skills" class="preview-skills"></div></div>
-<p class="hint">همین حالا شکل صفحه‌تان را ببینید؛ ذخیرهٔ اطلاعات در پس‌زمینه انجام می‌شود.</p></aside>
+<div id="advanced-preview"></div><section id="links-preview"></section><p class="hint">همین حالا شکل صفحه‌تان را ببینید؛ ذخیرهٔ اطلاعات در پس‌زمینه انجام می‌شود.</p></aside>
 </div></section></main>
 </body></html>

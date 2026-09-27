@@ -5,6 +5,7 @@
 #include <optional>
 #include <vector>
 #include <stdexcept>
+#include "../profile/ProfileContent.h"
 
 namespace search_engine {
 namespace storage {
@@ -67,6 +68,7 @@ struct Profile {
 
 // PersonProfile extends Profile with person-specific fields
 struct PersonProfile : public Profile {
+    profile::ProfileContent content;
     // Header Information
     std::optional<std::string> displayName;           // Preferred display name
     std::optional<std::string> englishName;           // English name variant

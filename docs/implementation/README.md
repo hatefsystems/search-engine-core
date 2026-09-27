@@ -6,6 +6,12 @@ This directory contains detailed implementation summaries for major features and
 
 ### Feature Implementations
 
+**[ADVANCED_PROFILES.md](./ADVANCED_PROFILES.md)** - Advanced personal profiles
+
+- Typed content, public privacy projection, atomic versions and media
+- Editor autosave, independent link versions and people search
+- Isolated Docker verification and migration/rollback procedures
+
 **[LINK_BLOCKS_IMPLEMENTATION.md](./LINK_BLOCKS_IMPLEMENTATION.md)** - Link Blocks & Analytics System
 
 - Complete implementation overview

@@ -1,3 +1,8 @@
+#include "search_engine/profile/ProfileProjection.h"
+#include "search_engine/profile/ProfileJson.h"
+#include "search_engine/profile/PublicProfile.h"
+#include <bsoncxx/json.hpp>
+#include <mongocxx/pipeline.hpp>
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include "../../include/search_engine/storage/DataEncryption.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
@@ -12,6 +17,7 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
+#include <mongocxx/pipeline.hpp>
 #include <bsoncxx/types.hpp>
 #include "../../include/search_engine/common/ProfileSlug.h"
 
@@ -225,6 +231,14 @@ void ProfileStorage::ensureIndexes() {
         using bsoncxx::builder::basic::kvp;
         using bsoncxx::builder::basic::make_document;
         
+        {
+            mongocxx::options::index opts; opts.name("people_public_text"); opts.default_language("none");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"publicSearch.name":"text","publicSearch.title":"text","publicSearch.text":"text"})").view(), opts);
+            mongocxx::options::index city; city.name("people_public_city");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"type":1,"isPublic":1,"publicSearch.location":1})").view(), city);
+            mongocxx::options::index skill; skill.name("people_public_skill");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"type":1,"isPublic":1,"publicSearch.skills":1})").view(), skill);
+        }
         // 1. slug_unique: Unique index on slug for fast lookups
         {
             mongocxx::options::index opts{};
@@ -446,8 +460,10 @@ Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
         auto update = document{} 
             << "$set" << open_document
                 << "deletedAt" << timePointToDate(now)
+                << "publicSearch" << open_document << close_document
                 << "updatedAt" << timePointToDate(now)
             << close_document
+            << "$inc" << open_document << "version" << int64_t{1} << close_document
             << finalize;
         
         auto result = profileCollection_.update_one(filter.view(), update.view());
@@ -466,31 +482,28 @@ Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
 
 Result<bool> ProfileStorage::restoreProfile(const std::string& id) {
     try {
-        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
-        
-        // Restore: unset deletedAt and update updatedAt
-        auto now = std::chrono::system_clock::now();
-        auto update = document{} 
-            << "$unset" << open_document
-                << "deletedAt" << ""
-            << close_document
-            << "$set" << open_document
-                << "updatedAt" << timePointToDate(now)
-            << close_document
-            << finalize;
-        
-        auto result = profileCollection_.update_one(filter.view(), update.view());
-
-        if (result && result->modified_count() > 0) {
-            LOG_INFO("Restored profile with ID: " + id);
-            return Result<bool>::Success(true, "Profile restored successfully");
-        } else {
-            return Result<bool>::Failure("No profile found with given ID or profile was not deleted");
+        using bsoncxx::builder::basic::kvp;
+        using bsoncxx::builder::basic::make_document;
+        using bsoncxx::builder::basic::make_array;
+        auto identity=make_document(kvp("_id",bsoncxx::oid{id}));
+        auto existing=profileCollection_.find_one(identity.view());
+        if(!existing) return Result<bool>::Failure("Profile not found");
+        auto base=bsonToProfile(existing->view());
+        bsoncxx::builder::basic::document filter,values;
+        filter.append(kvp("_id",bsoncxx::oid{id}));
+        if(base.version==0)filter.append(kvp("$or",make_array(make_document(kvp("version",0)),make_document(kvp("version",make_document(kvp("$exists",false)))))));
+        else filter.append(kvp("version",base.version));
+        values.append(kvp("updatedAt",timePointToDate(std::chrono::system_clock::now())));
+        if(base.type==ProfileType::PERSON) {
+            auto person=bsonToPersonProfile(existing->view());person.deletedAt.reset();
+            auto search=bsoncxx::from_json(search_engine::profile::searchableProfile(person).dump());
+            values.append(kvp("publicSearch",search.view()));
         }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error restoring profile: " + std::string(e.what()));
-        return Result<bool>::Failure("Database error: " + std::string(e.what()));
-    }
+        auto update=make_document(kvp("$set",values.view()),kvp("$unset",make_document(kvp("deletedAt",""))),kvp("$inc",make_document(kvp("version",int64_t{1}))));
+        auto result=profileCollection_.update_one(filter.view(),update.view());
+        if(result && result->matched_count()==1)return Result<bool>::Success(true,"Profile restored successfully");
+        return Result<bool>::Failure("VERSION_CONFLICT");
+    }catch(const std::exception&){return Result<bool>::Failure("Profile restore failed");}
 }
 
 Result<std::vector<Profile>> ProfileStorage::findAll(int limit, int skip) {
@@ -869,6 +882,15 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     privacyDoc.append(kvp("showAvailability", profile.privacy.showAvailability));
     builder.append(kvp("privacy", privacyDoc));
 
+    auto content = search_engine::profile::contentJson(profile.content);
+    if (content["sections"].contains("contacts")) for (auto& contact : content["sections"]["contacts"]) {
+        if (contact.value("type", "") == "EMAIL" || contact.value("type", "") == "PHONE")
+            contact["value"] = DataEncryption::encrypt(contact.value("value", ""), encryptionKey_);
+    }
+    const auto contentBson = bsoncxx::from_json(content.dump());
+    builder.append(kvp("content", contentBson.view()));
+    const auto searchBson = bsoncxx::from_json(search_engine::profile::searchableProfile(profile).dump());
+    builder.append(kvp("publicSearch", searchBson.view()));
     return builder.extract();
 }
 
@@ -1055,6 +1077,14 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
         }
     }
 
+    if (doc["content"] && doc["content"].type() == bsoncxx::type::k_document) {
+        auto content = nlohmann::json::parse(bsoncxx::to_json(doc["content"].get_document().view()));
+        if (content["sections"].contains("contacts")) for (auto& contact : content["sections"]["contacts"]) {
+            if (contact.value("type", "") == "EMAIL" || contact.value("type", "") == "PHONE")
+                contact["value"] = DataEncryption::decrypt(contact.value("value", ""), encryptionKey_);
+        }
+        profile.content = search_engine::profile::parseContent(content);
+    }
     return profile;
 }
 
@@ -1402,7 +1432,7 @@ Result<bool> ProfileStorage::updatePersonFields(const PersonProfile& profile,
         const std::set<std::string> allowed = {"name", "displayName", "englishName", "title", "company", "bio",
             "tagline", "professionalSummary", "location", "languages", "availabilityStatus", "avatarUrl", "coverImageUrl",
             "skills", "skillsWithLevel", "experienceLevel", "education", "school", "linkedinUrl", "githubUrl",
-            "portfolioUrl", "email", "phone", "privacy", "isPublic"};
+            "portfolioUrl", "email", "phone", "privacy", "isPublic", "content"};
         for (const auto& field : fields) {
             if (!allowed.count(field)) return Result<bool>::Failure("Field is not editable");
             auto element = source.view()[field];
@@ -1410,6 +1440,7 @@ Result<bool> ProfileStorage::updatePersonFields(const PersonProfile& profile,
             else if (field == "skills" || field == "skillsWithLevel" || field == "languages")
                 values.append(kvp(field, make_array()));
         }
+        values.append(kvp("publicSearch", source.view()["publicSearch"].get_value()));
         values.append(kvp("updatedAt", timePointToDate(std::chrono::system_clock::now())));
         bsoncxx::builder::basic::document filter;
         filter.append(kvp("_id", bsoncxx::oid{*profile.id}), kvp("deletedAt", make_document(kvp("$exists", false))));
@@ -1583,6 +1614,65 @@ Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
         LOG_ERROR("MongoDB error updating BusinessProfile: " + std::string(e.what()));
         return Result<bool>::Failure("Database error: " + std::string(e.what()));
     }
+}
+
+Result<nlohmann::json> ProfileStorage::searchPeople(const std::string& query, const std::string& skill,
+    const std::string& location, const std::string& availability, int page, int limit) {
+    using Json = nlohmann::json;
+    try {
+        Json filter={{"type","PERSON"},{"isPublic",true},{"deletedAt",{{"$exists",false}}},{"publicSearch.name",{{"$exists",true}}}};
+        if(!query.empty())filter["$text"]={{"$search",search_engine::profile::profileSearchText(query)},{"$language","none"}};
+        if(!skill.empty())filter["publicSearch.skills"]=search_engine::profile::normalizeProfileTerm(skill);
+        if(!location.empty())filter["publicSearch.location"]=search_engine::profile::normalizeProfileTerm(location);
+        if(!availability.empty())filter["publicSearch.availability"]=availability;
+        auto filterBson=bsoncxx::from_json(filter.dump());
+        mongocxx::options::find options;options.skip(int64_t(page-1)*limit);options.limit(limit);
+        Json sort=query.empty()?Json{{"publicSearch.name",1},{"_id",1}}:Json{{"score",{{"$meta","textScore"}}},{"_id",1}};
+        auto sortBson=bsoncxx::from_json(sort.dump());options.sort(sortBson.view());
+        Json items=Json::array();
+        for(const auto& doc:profileCollection_.find(filterBson.view(),options)) {
+            auto p=search_engine::profile::publicPersonProfile(bsonToPersonProfile(doc));
+            auto json=search_engine::profile::personProfileToJson(p);
+            Json card={{"id",p.id.value_or("")},{"slug",p.slug},{"name",p.displayName.value_or(p.name)},
+                {"title",p.title.value_or("")},{"skills",Json::array()},{"projectCount",p.content.sections.count("projects")?p.content.sections.at("projects").size():0}};
+            if(p.location)card["location"]=*p.location;
+            if(p.avatarUrl)card["avatarUrl"]=*p.avatarUrl;
+            for(const auto& v:p.skillsWithLevel)if(card["skills"].size()<6)card["skills"].push_back(v.name);
+            items.push_back(card);
+        }
+        // Facets are calculated from exactly the same current public filter, not a stale cache.
+        Json facets=Json::object();
+        for(const auto& field:{"skills","location","availability"}) {
+            mongocxx::pipeline pipe;pipe.match(filterBson.view());
+            if(std::string(field)!="location")pipe.unwind(std::string("$publicSearch.")+field);
+            auto group=bsoncxx::from_json(Json{{"_id",std::string("$publicSearch.")+field},{"count",{{"$sum",1}}}}.dump());pipe.group(group.view());
+            pipe.sort(bsoncxx::from_json(R"({"count":-1,"_id":1})").view());pipe.limit(30);
+            facets[field]=Json::array();
+            for(const auto& doc:profileCollection_.aggregate(pipe)) {
+                auto item=Json::parse(bsoncxx::to_json(doc));
+                if(item.contains("_id") && item["_id"].is_string() && !item["_id"].get<std::string>().empty())facets[field].push_back({{"value",item["_id"]},{"count",item["count"]}});
+            }
+        }
+        return Result<Json>::Success({{"items",items},{"total",profileCollection_.count_documents(filterBson.view())},{"page",page},{"facets",facets}}, "People found");
+    }catch(const std::exception&){return Result<Json>::Failure("People search unavailable");}
+}
+Result<int64_t> ProfileStorage::rebuildPeopleSearch(bool apply) {
+    try {
+        int64_t count=0;
+        auto filter=bsoncxx::from_json(R"({"type":"PERSON"})");
+        for(const auto& doc:profileCollection_.find(filter.view())) {
+            auto person=bsonToPersonProfile(doc);++count;
+            if(!apply)continue;
+            auto search=search_engine::profile::searchableProfile(person);
+            nlohmann::json match={{"_id",{{"$oid",*person.id}}}};
+            if(person.version==0)match["$or"]=nlohmann::json::array({{{"version",0}},{{"version",{{"$exists",false}}}}});else match["version"]=person.version;
+            auto filterDoc=bsoncxx::from_json(match.dump());
+            auto update=bsoncxx::from_json(nlohmann::json{{"$set",{{"publicSearch",search}}}}.dump());
+            auto written=profileCollection_.update_one(filterDoc.view(),update.view());
+            if(!written || written->matched_count()!=1) return Result<int64_t>::Failure("Concurrent profile change; rerun the idempotent reindex");
+        }
+        return Result<int64_t>::Success(count, "Profiles inspected");
+    }catch(const std::exception&){return Result<int64_t>::Failure("Index rebuild failed");}
 }
 
 } // namespace storage

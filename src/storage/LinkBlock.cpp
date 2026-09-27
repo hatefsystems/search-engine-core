@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/LinkBlock.h"
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include <stdexcept>
+#include "search_engine/profile/ProfileEditor.h"
 
 namespace search_engine {
 namespace storage {
@@ -29,17 +30,17 @@ bool LinkBlock::isValid() const {
     }
     
     // Required: url (must be valid http/https)
-    if (url.empty() || !ProfileValidator::isValidUrl(url)) {
+    if (visibility != "HIDDEN" && (url.empty() || !ProfileValidator::isValidUrl(url))) {
         return false;
     }
     
     // Required: title (non-empty, max 200 chars)
-    if (title.empty() || title.length() > 200) {
+    if ((visibility != "HIDDEN" && title.empty()) || search_engine::profile::textLength(title) > 200) {
         return false;
     }
     
     // Optional: description (max 500 chars if present)
-    if (description.has_value() && description.value().length() > 500) {
+    if (description.has_value() && search_engine::profile::textLength(description.value()) > 500) {
         return false;
     }
     

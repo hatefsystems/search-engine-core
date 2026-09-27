@@ -29,6 +29,13 @@ public:
     void editProfilePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void deleteOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileContent(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileLayout(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileCompletion(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileContentSchema(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileMedia(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void peoplePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void searchPeople(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -51,6 +58,7 @@ public:
 
     // Link block endpoints
     void redirectLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void writeLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -91,6 +99,7 @@ private:
     search_engine::storage::LinkClickAnalyticsStorage* getLinkClickAnalyticsStorage() const;
     ApiRateLimiter* getLinkRedirectRateLimiter() const;
 
+    bool checkOwnerMutationRateLimit(uWS::HttpResponse<false>* res, const std::string& id);
     bool sameOrigin(uWS::HttpRequest* req);
     bool secureCookies() const;
     void renderProfileEntry(uWS::HttpResponse<false>* res, const std::string& slug, const std::string& state, const std::string& id = "");
@@ -158,6 +167,19 @@ ROUTE_CONTROLLER(ProfileController) {
     using namespace routing;
     LOG_INFO("ProfileController::registerRoutes() called - registering routes");
 
+    REGISTER_ROUTE(HttpMethod::GET, "/people", peoplePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/people", searchPeople, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/content-schema", profileContentSchema, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/completion", profileCompletion, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/layout", profileLayout, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/layout", profileLayout, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/content/:section", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/content/:section", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/content/:section/order", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/projects/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/media/:mediaId", profileMedia, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/new", newProfilePage, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug/edit", editProfilePage, ProfileController);
     REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/session", createOwnerSession, ProfileController);

@@ -1,3 +1,5 @@
+import {ProfileLinksEditor} from './profile-links-editor.js';
+import {ProfileContentEditor} from './profile-content-editor.js';
 import {ProfileAutosave} from './profile-autosave.js';
 
 const $ = id => document.getElementById(id);
@@ -5,14 +7,29 @@ const fields = ['name', 'title', 'company', 'bio', 'location', 'availabilityStat
 const availability = {AVAILABLE:'آماده همکاری', BUSY:'مشغول به کار', NOT_AVAILABLE:'فعلاً در دسترس نیست'};
 const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', EXPERT:'حرفه‌ای'};
 let id = document.body.dataset.profileId, slug = document.body.dataset.slug;
-let current = {}, autosave, latest, key = '', uploading = false;
+let current = {}, autosave, contentEditor, linksEditor, fullData, latest, key = '', uploading = false;
+let mutationTail = Promise.resolve();
+function mutate(operation) {
+    const task = mutationTail.then(async () => {
+        if (autosave?.stopped || autosave?.blocked || contentEditor?.queue.blocked) { const error = new Error('ابتدا تعارض اطلاعات را بررسی کنید.'); error.status = 409; throw error; }
+        const result = await operation(autosave?.version ?? current.version);
+        if (autosave) autosave.version = result.data.version;
+        if (contentEditor) contentEditor.queue.version = result.data.version;
+        return result;
+    });
+    mutationTail = task.catch(() => {}); return task;
+}
+function accept(data) {
+    fullData = data; current = {...editorData(data), ...autosave.pending, isPublic:!!data.isPublic};
+    autosave.version = data.version; autosave.persist(); preview();
+}
 // Each tab keeps its own unacknowledged draft, so another tab cannot erase it.
 // Duplicated tabs copy sessionStorage, so allocate a fresh key for each page instance.
 const draftId = crypto.randomUUID();
 let previousDraftId = '';
 try { previousDraftId = sessionStorage.getItem('hatef.profile.tab') || ''; sessionStorage.setItem('hatef.profile.tab', draftId); }
 catch {}
-const status = text => { $('save-status').textContent = text; };
+const status = text => { if (text === 'ذخیره شد' && (Object.keys(autosave?.pending || {}).length || Object.keys(contentEditor?.queue.pending || {}).length || Object.keys(linksEditor?.queue.pending || {}).length)) text = 'در حال ذخیره…'; $('save-status').textContent = text; };
 const notice = text => { $('notice').textContent = text; $('notice').hidden = !text; };
 async function api(path, method = 'GET', body) {
     const response = await fetch(path, {method, credentials:'same-origin', cache:'no-store',
@@ -50,12 +67,16 @@ function preview() {
         $(`preview-${field}`).textContent = current[field] || '';
         $(`preview-${field}`).hidden = !current[field];
     }
-    $('preview-about').hidden = !current.bio;
+    const content = contentEditor?.sections || {}, layout = contentEditor?.layout || {};
+    const privacy = layout.privacy || fullData?.privacy || {};
+    $('preview-location').hidden = !current.location || privacy.showLocation === false;
+    $('preview-about').hidden = !current.bio || Object.hasOwn(content, 'about');
     $('preview-availability').textContent = availability[current.availabilityStatus] || '';
-    $('preview-availability').hidden = !current.availabilityStatus;
+    $('preview-availability').hidden = !current.availabilityStatus || privacy.showAvailability === false || Object.hasOwn(content, 'availability');
     image('preview-avatar', current.avatarUrl); image('preview-cover', current.coverImageUrl);
     $('preview-avatar').alt = current.name ? `تصویر ${current.name}` : 'تصویر پروفایل';
-    $('preview-skills').replaceChildren(...(current.skillsWithLevel || []).map(skill => {
+    const visibleSkills = Object.hasOwn(content, 'skills') ? (layout.visibility?.skills === 'HIDDEN' ? [] : content.skills.filter(s => s.visibility === 'PUBLIC').map(s => ({name:s.name,level:s.proficiencyLevel}))) : current.skillsWithLevel || [];
+    $('preview-skills').replaceChildren(...visibleSkills.map(skill => {
         const badge = document.createElement('span'); badge.className = 'badge'; badge.dir = 'auto';
         badge.textContent = `${skill.name} · ${levels[skill.level] || ''}`; return badge;
     }));
@@ -82,14 +103,14 @@ function fill() {
     for (const skill of current.skillsWithLevel || []) skillRow(skill);
     preview();
 }
-function conflict() { $('conflict').hidden = false; status('ذخیره نشد؛ نسخهٔ جدید را بررسی کنید.'); }
+function conflict() { if (autosave) autosave.blocked = true; if (contentEditor) contentEditor.queue.blocked = true; $('conflict').hidden = false; status('ذخیره نشد؛ نسخهٔ جدید را بررسی کنید.'); }
 function activate(data) {
-    current = editorData(data);
+    fullData = data; current = editorData(data);
     let recoveredDraft;
     autosave = new ProfileAutosave({id, draftId, version:current.version, status, conflict,
-        send: async patch => (await api(endpoint(), 'PUT', patch)).data,
+        send: async patch => (await mutate(version => api(endpoint(), 'PUT', {...patch, version}))).data,
         saved: data => {
-            current = {...editorData(data), ...autosave.pending, isPublic:!!data.isPublic}; preview();
+            accept(data); contentEditor?.receive(data);
             if (recoveredDraft && !Object.keys(autosave.pending).length) {
                 try { if (localStorage.getItem(recoveredDraft.key) === recoveredDraft.value) localStorage.removeItem(recoveredDraft.key); } catch {}
                 recoveredDraft = null;
@@ -111,6 +132,10 @@ function activate(data) {
     status(Object.keys(autosave.pending).length ? 'در حال ذخیره…' : 'ذخیره شد');
     if (autosave.blocked) conflict();
     fill();
+    contentEditor = new ProfileContentEditor({id, draftId, previousDraftId, api, mutate, version:()=>autosave.version, accept, status, conflict, notice, headerPreview:preview});
+    contentEditor.start(data).catch(error => notice(error.message));
+    linksEditor = new ProfileLinksEditor({id, draftId, api, notice, status});
+    linksEditor.start().catch(error => notice(error.message));
 }
 async function load() {
     try {
@@ -153,24 +178,26 @@ $('publish').onclick = async () => {
     if (!current.name.trim()) { notice('برای انتشار، نام فارسی را وارد کنید.'); return; }
     $('publish').disabled = true; notice('');
     try {
-        if (!await autosave.flush()) { notice('ابتدا ذخیرهٔ تغییرات را کامل کنید.'); return; }
+        if (!await autosave.flush() || !await contentEditor.flush() || !await linksEditor.flush()) { notice('ابتدا ذخیرهٔ تغییرات را کامل کنید.'); return; }
         autosave.change('isPublic', true);
         if (!await autosave.flush()) notice('انتشار انجام نشد؛ وضعیت ذخیره را بررسی کنید.');
     } finally { $('publish').disabled = false; }
 };
 $('reload-version').onclick = async () => {
     try {
-        latest = editorData((await api(endpoint())).data);
+        latest = (await api(endpoint())).data;
         const labels = {name:'نام', title:'عنوان شغلی', company:'شرکت', bio:'معرفی', location:'شهر', availabilityStatus:'وضعیت همکاری'};
-        $('server-version').textContent = Object.entries(labels).map(([field,label]) => `${label}: ${latest[field]}`).join('\n') + '\nمهارت‌ها: ' + latest.skillsWithLevel.map(s => s.name).join('، ');
+        $('server-version').textContent = Object.entries(labels).map(([field,label]) => `${label}: ${latest[field]}`).join('\n') + '\nمهارت‌ها: ' + (latest.skillsWithLevel || []).map(s => s.name).join('، ') + '\n\nبخش‌های ذخیره‌شده:\n' + JSON.stringify(latest.sections || {}, null, 2);
         $('conflict-review').hidden = false;
     } catch (error) { notice(error.message); }
 };
 async function resolveConflict(keep) {
     if (!latest) return;
-    current = {...latest, ...(keep ? autosave.pending : {})};
+    current = {...editorData(latest), ...(keep ? autosave.pending : {})};
+    fullData = latest; autosave.version = latest.version; autosave.blocked = false; contentEditor.queue.blocked = false;
     $('conflict').hidden = true; $('conflict-review').hidden = true; fill();
-    await autosave.resolve(latest.version, keep); latest = null;
+    await contentEditor.resolve(latest, keep);
+    await autosave.resolve(autosave.version, keep); latest = null;
     if (!keep) status('ذخیره شد');
 }
 $('keep-local').onclick = () => resolveConflict(true);
@@ -180,14 +207,17 @@ $('logout').onclick = async () => {
     $('logout').disabled = true;
     try {
         // Prevent new requests before clearing the cookie; await the request already in flight.
-        autosave.blocked = true;
+        autosave.blocked = true; contentEditor.queue.blocked = true; linksEditor.queue.blocked = true;
+        if (linksEditor.queue.busy) await linksEditor.queue.flight;
+        await mutationTail;
+        if (contentEditor.queue.busy) await contentEditor.queue.flight;
         if (autosave.busy) await autosave.flight;
-        await api(`${endpoint()}/session`, 'DELETE'); autosave.stop();
+        await api(`${endpoint()}/session`, 'DELETE'); autosave.stop(); contentEditor.stop(); linksEditor.stop();
         try { const prefix = `hatef.profile.pending.${id}`; for (const k of Object.keys(localStorage)) if (k === prefix || k.startsWith(prefix + '.')) localStorage.removeItem(k); } catch {}
         sessionChannel?.postMessage('logout');
         current = {}; fill(); key = ''; $('new-key').textContent = ''; $('key-panel').hidden = true;
         $('workspace').hidden = true; $('login-panel').hidden = false; $('conflict').hidden = true; notice(''); status('از دسترسی ویرایش خارج شدید');
-    } catch (error) { autosave.blocked = false; notice(error.message); }
+    } catch (error) { autosave.blocked = false; contentEditor.queue.blocked = false; linksEditor.queue.blocked = false; notice(error.message); }
     finally { $('logout').disabled = false; }
 };
 for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = async event => {
@@ -195,10 +225,10 @@ for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = async event
     if (file.size > (kind === 'avatar' ? 5 : 10) * 1024 * 1024) { notice('اندازهٔ تصویر بیش از حد مجاز است.'); return; }
     uploading = true; $('profile-form').inert = true; $('publish').disabled = true; notice('');
     try {
-        if (!await autosave.flush()) throw new Error('ابتدا ذخیرهٔ تغییرات را کامل کنید.');
+        if (!await autosave.flush() || !await contentEditor.flush()) throw new Error('ابتدا ذخیرهٔ تغییرات را کامل کنید.');
         status('در حال ذخیرهٔ تصویر…');
         const image = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
-        const result = await api(`${endpoint()}/${kind}`, 'POST', {image, version:autosave.version});
+        const result = await mutate(version => api(`${endpoint()}/${kind}`, 'POST', {image, version}));
         autosave.version = result.data.version;
         Object.assign(current, result.data); preview(); status('ذخیره شد');
     } catch (error) { if (error.status === 409) { autosave.blocked = true; conflict(); } else notice(error.message || 'بارگذاری تصویر انجام نشد.'); }
@@ -217,7 +247,7 @@ function watchSession() {
     sessionChannel = new BroadcastChannel(`hatef.profile.session.${id}`);
     sessionChannel.onmessage = event => {
         if (event.data === 'logout') {
-            autosave?.stop(); current = {}; fill(); key = ''; $('new-key').textContent = '';
+            autosave?.stop(); contentEditor?.stop(); linksEditor?.stop(); current = {}; fill(); key = ''; $('new-key').textContent = '';
             $('key-panel').hidden = true; $('workspace').hidden = true; $('login-panel').hidden = false;
             status('از دسترسی ویرایش خارج شدید');
         }

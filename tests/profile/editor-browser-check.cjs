@@ -44,8 +44,9 @@ fs.mkdirSync(screenshots,{recursive:true});
         await page.locator('#profile-bio').fill('این معرفی آزمایشی است.');
         await page.locator('#profile-location').fill('تهران');
         await page.locator('#profile-availability').selectOption('AVAILABLE');
-        await page.locator('#add-skill').click();
-        await page.locator('#skills-editor input').fill('C++ / طراحی سیستم‌های نرم‌افزاری');await saved();
+        await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();
+        await page.getByRole('button',{name:'+ افزودن مهارت‌ها',exact:true}).click();
+        await page.locator('.content-item-form').getByLabel('نام',{exact:true}).fill('C++ / طراحی سیستم‌های نرم‌افزاری');await saved();
         for(const width of [360,768,1280]){
             await page.setViewportSize({width,height:1000});
             await page.evaluate(()=>document.fonts.ready);
@@ -59,8 +60,8 @@ fs.mkdirSync(screenshots,{recursive:true});
         assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('hatef.profile.pending.'))));
         await context.setOffline(false);await page.reload();await page.waitForSelector('#workspace:not([hidden])');await saved();
         assert.equal(await page.locator('#profile-bio').inputValue(),'متن نگهداری‌شده هنگام قطع اتصال');
-        await page.locator('#profile-bio').fill('');await page.locator('#skills-editor button').click();await saved();
-        await page.reload();await page.waitForSelector('#workspace:not([hidden])');assert.equal(await page.locator('#profile-bio').inputValue(),'');assert.equal(await page.locator('#skills-editor input').count(),0);
+        await page.locator('#profile-bio').fill('');await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();await page.locator('.content-item-form').getByRole('button',{name:'حذف آیتم',exact:true}).click();await saved();
+        await page.reload();await page.waitForSelector('#workspace:not([hidden])');assert.equal(await page.locator('#profile-bio').inputValue(),'');await page.waitForSelector('.section-nav');await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();assert.equal(await page.locator('.content-item-form').count(),0);
         // Two tabs start from the same version; the second must request explicit reconciliation.
         const secondPromise=context.waitForEvent('page');
         await page.evaluate(()=>window.open(location.href));

@@ -102,7 +102,19 @@ void traceRequest(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
               " | Content-Type: " + std::string(contentType));
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string(argv[1]) == "--profiles-reindex") {
+        if (argc != 3 || (std::string(argv[2]) != "--dry-run" && std::string(argv[2]) != "--apply")) {
+            std::cerr << "Usage: server --profiles-reindex --dry-run|--apply\n"; return 2;
+        }
+        try {
+            search_engine::storage::ProfileStorage storage;
+            const bool apply = std::string(argv[2]) == "--apply";
+            const auto result = storage.rebuildPeopleSearch(apply);
+            if (!result.success) { std::cerr << result.message << '\n'; return 1; }
+            std::cout << (apply ? "Reindexed profiles: " : "Dry run; profiles inspected: ") << result.value << '\n'; return 0;
+        } catch (const std::exception&) { std::cerr << "Profile reindex failed\n"; return 1; }
+    }
     // Log application startup
     LOG_INFO("============== SEARCH ENGINE STARTING ==============");
     LOG_DEBUG("Application startup initiated at: " + getCurrentTimestamp());

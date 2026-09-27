@@ -184,7 +184,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     std::string mimeType = getMimeType(filePath);
     
     // Minify JS if enabled and file is JS
-    if (mimeType == "application/javascript") {
+    const char* minifySetting = std::getenv("MINIFY_JS");
+    const bool minifyEnabled = !minifySetting ||
+        (std::string(minifySetting) != "false" && std::string(minifySetting) != "0");
+    if (mimeType == "application/javascript" && minifyEnabled) {
         auto start = std::chrono::high_resolution_clock::now();
         
         // Check cache first
@@ -198,7 +201,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
             LOG_DEBUG("Using cached minified JS: " + path);
         } else {
             // Minify and cache
-            static JsMinifierClient client("http://js-minifier:3002");
+            static JsMinifierClient client([] {
+                const char* url = std::getenv("JS_MINIFIER_SERVICE_URL");
+                return url ? std::string(url) : std::string("http://js-minifier:3002");
+            }());
             if (client.isServiceAvailable()) {
                 try {
                     auto minifyStart = std::chrono::high_resolution_clock::now();

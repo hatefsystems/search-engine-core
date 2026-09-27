@@ -194,7 +194,7 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
             if (linksResult.success) {
                 for (const auto& link : linksResult.value) {
                     // Only include public and active links
-                    if (link.privacy == search_engine::storage::LinkPrivacy::PUBLIC && link.isActive) {
+                    if (link.visibility == "PUBLIC" && link.privacy == search_engine::storage::LinkPrivacy::PUBLIC && link.isActive) {
                         linksArray.push_back(linkToJson(link));
                     }
                 }
@@ -281,6 +281,7 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
         
         if (person) {
             search_engine::profile::addPersonHeaderData(templateData);
+            templateData["advancedSections"] = search_engine::profile::publicSectionCards(person->content, person->id.value_or(""));
             for (auto& tag : templateData["openGraph"]) {
                 if (tag["property"] == "og:locale") tag["content"] = "fa_IR";
             }
@@ -956,7 +957,11 @@ void ProfileController::listProfiles(uWS::HttpResponse<false>* res, uWS::HttpReq
         if (result.success) {
             nlohmann::json profilesArray = nlohmann::json::array();
             for (const auto& profile : result.value) {
-                if (profile.isPublic) profilesArray.push_back(profileToJson(profile));
+                if (!profile.isPublic) continue;
+                if (profile.type == search_engine::storage::ProfileType::PERSON) {
+                    auto person=getStorage()->findPersonById(profile.id.value_or(""));
+                    if(person.success && person.value && person.value->isPublic) profilesArray.push_back(personProfileToJson(search_engine::profile::publicPersonProfile(*person.value)));
+                } else profilesArray.push_back(profileToJson(profile));
             }
 
             nlohmann::json response = {
@@ -1621,6 +1626,8 @@ nlohmann::json ProfileController::linkToJson(const search_engine::storage::LinkB
     
     json["isActive"] = link.isActive;
     json["privacy"] = search_engine::storage::linkPrivacyToString(link.privacy);
+    json["version"] = link.version;
+    json["visibility"] = link.visibility;
     json["tags"] = link.tags;
     json["sortOrder"] = link.sortOrder;
     
@@ -1665,7 +1672,7 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         const auto& link = linkResult.value.value();
         
         // Check if link is active
-        if (!link.isActive || link.privacy == search_engine::storage::LinkPrivacy::DISABLED) {
+        if (link.visibility == "HIDDEN" || !link.isActive || link.privacy == search_engine::storage::LinkPrivacy::DISABLED) {
             res->writeStatus("404 Not Found");
             res->writeHeader("Server", "HatefEngine 1.0")->end("Link not available");
             return;
@@ -1690,357 +1697,12 @@ void ProfileController::redirectLink(uWS::HttpResponse<false>* res, uWS::HttpReq
         res->writeHeader("Location", link.url);
         res->writeHeader("Server", "HatefEngine 1.0")->end();
         
-        LOG_INFO("Link redirect: " + linkId + " -> " + link.url);
+        LOG_INFO("Link redirect: " + linkId);
         
     } catch (const std::exception& e) {
         LOG_ERROR("Error in redirectLink: " + std::string(e.what()));
         res->writeStatus("500 Internal Server Error");
         res->writeHeader("Server", "HatefEngine 1.0")->end("Internal server error");
-    }
-}
-
-void ProfileController::createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    // Rate limit check
-    if (checkRateLimit(res, req)) {
-        return;
-    }
-    
-    std::string profileId = std::string(req->getParameter(0));
-    
-    // Setup response handlers for POST data
-    std::string buffer;
-    
-    res->onAborted([&buffer]() {
-        LOG_WARNING("Request aborted during createLink");
-    });
-    
-    const std::string capturedToken = getAuthToken(req);
-    const std::string capturedIp = getClientIP(req);
-    const std::string capturedAgent = getUserAgent(req);
-    res->onData([this, res, capturedToken, capturedIp, capturedAgent, profileId, buffer = std::move(buffer)](std::string_view chunk, bool isFinal) mutable {
-        buffer.append(chunk.data(), chunk.size());
-        
-        if (!isFinal) {
-            return;
-        }
-        
-        try {
-            // Parse JSON body
-            nlohmann::json json = nlohmann::json::parse(buffer);
-            
-            // Verify profile ownership
-            auto profileResult = getStorage()->findById(profileId);
-            if (!profileResult.success) {
-                badRequest(res, "Profile not found");
-                return;
-            }
-            
-            std::string token = capturedToken;
-            if (!checkOwnership(profileResult.value, token)) {
-                res->writeStatus("403 Forbidden");
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Not authorized to create links for this profile"},
-                    {"error", "FORBIDDEN"}
-                };
-                this->json(res, errorResponse);
-                return;
-            }
-            
-            // Parse link from JSON
-            auto link = parseLinkFromJson(json);
-            link.profileId = profileId;
-            link.createdAt = std::chrono::system_clock::now();
-            
-            // Validate link
-            if (!link.isValid()) {
-                badRequest(res, "Invalid link data");
-                return;
-            }
-            
-            // Store link
-            auto result = getLinkBlockStorage()->store(link);
-            
-            if (result.success) {
-                link.id = result.value;
-                nlohmann::json response = {
-                    {"success", true},
-                    {"message", "Link created successfully"},
-                    {"data", linkToJson(link)}
-                };
-                this->json(res, response);
-                LOG_INFO("Link created: " + result.value);
-            } else {
-                res->writeStatus("500 Internal Server Error");
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Failed to create link: " + result.message},
-                    {"error", "STORAGE_ERROR"}
-                };
-                this->json(res, errorResponse);
-            }
-            
-        } catch (const std::invalid_argument& e) {
-            badRequest(res, std::string(e.what()));
-        } catch (const nlohmann::json::exception& e) {
-            badRequest(res, "Invalid JSON: " + std::string(e.what()));
-        } catch (const std::exception& e) {
-            LOG_ERROR("Error in createLink: " + std::string(e.what()));
-            serverError(res, "Internal server error");
-        }
-    });
-}
-
-void ProfileController::getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    try {
-        std::string profileId = std::string(req->getParameter(0));
-        
-        LOG_DEBUG("Fetching links for profile: " + profileId);
-        
-        // Find links for profile
-        auto result = getLinkBlockStorage()->findByProfile(profileId, 100, 0);
-        
-        if (result.success) {
-            nlohmann::json linksArray = nlohmann::json::array();
-            for (const auto& link : result.value) {
-                linksArray.push_back(linkToJson(link));
-            }
-            
-            nlohmann::json response = {
-                {"success", true},
-                {"message", "Links retrieved successfully"},
-                {"data", linksArray}
-            };
-            this->json(res, response);
-        } else {
-            serverError(res, "Failed to retrieve links: " + result.message);
-        }
-        
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error in getLinks: " + std::string(e.what()));
-        serverError(res, "Internal server error");
-    }
-}
-
-void ProfileController::getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    try {
-        std::string profileId = std::string(req->getParameter(0));
-        std::string linkId = std::string(req->getParameter(1));
-        
-        // Find link by ID
-        auto result = getLinkBlockStorage()->findById(linkId);
-        
-        if (!result.success) {
-            serverError(res, "Failed to retrieve link: " + result.message);
-            return;
-        }
-        
-        if (!result.value.has_value()) {
-            res->writeStatus("404 Not Found");
-            nlohmann::json errorResponse = {
-                {"success", false},
-                {"message", "Link not found"},
-                {"error", "NOT_FOUND"}
-            };
-            this->json(res, errorResponse);
-            return;
-        }
-        
-        const auto& link = result.value.value();
-        
-        // Verify link belongs to profile
-        if (link.profileId != profileId) {
-            res->writeStatus("404 Not Found");
-            nlohmann::json errorResponse = {
-                {"success", false},
-                {"message", "Link not found"},
-                {"error", "NOT_FOUND"}
-            };
-            this->json(res, errorResponse);
-            return;
-        }
-        
-        nlohmann::json response = {
-            {"success", true},
-            {"message", "Link retrieved successfully"},
-            {"data", linkToJson(link)}
-        };
-        this->json(res, response);
-        
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error in getLinkById: " + std::string(e.what()));
-        serverError(res, "Internal server error");
-    }
-}
-
-void ProfileController::updateLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    // Rate limit check
-    if (checkRateLimit(res, req)) {
-        return;
-    }
-    
-    std::string profileId = std::string(req->getParameter(0));
-    std::string linkId = std::string(req->getParameter(1));
-    
-    std::string buffer;
-    
-    res->onAborted([&buffer]() {
-        LOG_WARNING("Request aborted during updateLink");
-    });
-    
-    const std::string capturedToken = getAuthToken(req);
-    const std::string capturedIp = getClientIP(req);
-    const std::string capturedAgent = getUserAgent(req);
-    res->onData([this, res, capturedToken, capturedIp, capturedAgent, profileId, linkId, buffer = std::move(buffer)](std::string_view chunk, bool isFinal) mutable {
-        buffer.append(chunk.data(), chunk.size());
-        
-        if (!isFinal) {
-            return;
-        }
-        
-        try {
-            // Verify profile ownership
-            auto profileResult = getStorage()->findById(profileId);
-            if (!profileResult.success) {
-                badRequest(res, "Profile not found");
-                return;
-            }
-            
-            std::string token = capturedToken;
-            if (!checkOwnership(profileResult.value, token)) {
-                res->writeStatus("403 Forbidden");
-                nlohmann::json errorResponse = {
-                    {"success", false},
-                    {"message", "Not authorized to update links for this profile"},
-                    {"error", "FORBIDDEN"}
-                };
-                this->json(res, errorResponse);
-                return;
-            }
-            
-            // Get existing link
-            auto linkResult = getLinkBlockStorage()->findById(linkId);
-            if (!linkResult.success || !linkResult.value.has_value()) {
-                badRequest(res, "Link not found");
-                return;
-            }
-            
-            auto link = linkResult.value.value();
-            
-            // Verify link belongs to profile
-            if (link.profileId != profileId) {
-                badRequest(res, "Link not found");
-                return;
-            }
-            
-            // Parse updates from JSON
-            nlohmann::json json = nlohmann::json::parse(buffer);
-            
-            if (json.contains("url")) link.url = json["url"].get<std::string>();
-            if (json.contains("title")) link.title = json["title"].get<std::string>();
-            if (json.contains("description")) {
-                link.description = json["description"].is_null() ? std::nullopt : std::optional<std::string>(json["description"].get<std::string>());
-            }
-            if (json.contains("iconUrl")) {
-                link.iconUrl = json["iconUrl"].is_null() ? std::nullopt : std::optional<std::string>(json["iconUrl"].get<std::string>());
-            }
-            if (json.contains("isActive")) link.isActive = json["isActive"].get<bool>();
-            if (json.contains("privacy")) {
-                link.privacy = search_engine::storage::stringToLinkPrivacy(json["privacy"].get<std::string>());
-            }
-            if (json.contains("tags")) {
-                link.tags.clear();
-                for (const auto& tag : json["tags"]) {
-                    link.tags.push_back(tag.get<std::string>());
-                }
-            }
-            if (json.contains("sortOrder")) link.sortOrder = json["sortOrder"].get<int>();
-            
-            // Validate updated link
-            if (!link.isValid()) {
-                badRequest(res, "Invalid link data");
-                return;
-            }
-            
-            // Update link
-            auto result = getLinkBlockStorage()->update(link);
-            
-            if (result.success) {
-                nlohmann::json response = {
-                    {"success", true},
-                    {"message", "Link updated successfully"},
-                    {"data", linkToJson(link)}
-                };
-                this->json(res, response);
-                LOG_INFO("Link updated: " + linkId);
-            } else {
-                serverError(res, "Failed to update link: " + result.message);
-            }
-            
-        } catch (const std::invalid_argument& e) {
-            badRequest(res, std::string(e.what()));
-        } catch (const nlohmann::json::exception& e) {
-            badRequest(res, "Invalid JSON: " + std::string(e.what()));
-        } catch (const std::exception& e) {
-            LOG_ERROR("Error in updateLink: " + std::string(e.what()));
-            serverError(res, "Internal server error");
-        }
-    });
-}
-
-void ProfileController::deleteLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    try {
-        std::string profileId = std::string(req->getParameter(0));
-        std::string linkId = std::string(req->getParameter(1));
-        
-        // Verify profile ownership
-        auto profileResult = getStorage()->findById(profileId);
-        if (!profileResult.success) {
-            badRequest(res, "Profile not found");
-            return;
-        }
-        
-        std::string token = getAuthToken(req);
-        if (!checkOwnership(profileResult.value, token)) {
-            res->writeStatus("403 Forbidden");
-            nlohmann::json errorResponse = {
-                {"success", false},
-                {"message", "Not authorized to delete links for this profile"},
-                {"error", "FORBIDDEN"}
-            };
-            this->json(res, errorResponse);
-            return;
-        }
-        
-        // Verify link belongs to profile
-        auto linkResult = getLinkBlockStorage()->findById(linkId);
-        if (!linkResult.success || !linkResult.value.has_value()) {
-            badRequest(res, "Link not found");
-            return;
-        }
-        
-        if (linkResult.value.value().profileId != profileId) {
-            badRequest(res, "Link not found");
-            return;
-        }
-        
-        // Delete link
-        auto result = getLinkBlockStorage()->deleteLink(linkId);
-        
-        if (result.success) {
-            nlohmann::json response = {
-                {"success", true},
-                {"message", "Link deleted successfully"}
-            };
-            this->json(res, response);
-            LOG_INFO("Link deleted: " + linkId);
-        } else {
-            serverError(res, "Failed to delete link: " + result.message);
-        }
-        
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error in deleteLink: " + std::string(e.what()));
-        serverError(res, "Internal server error");
     }
 }
 
@@ -2238,6 +1900,7 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                 if (jsonBody["version"].get<int64_t>() != personProfile.version) {
                     json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return;
                 }
+                if (checkOwnerMutationRateLimit(res, personProfile.id.value())) return;
                 // Decode base64 image
                 std::string base64Data = jsonBody["image"].get<std::string>();
                 
@@ -2360,6 +2023,7 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                 if (jsonBody["version"].get<int64_t>() != personProfile.version) {
                     json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return;
                 }
+                if (checkOwnerMutationRateLimit(res, personProfile.id.value())) return;
                 // Decode base64 image
                 std::string base64Data = jsonBody["image"].get<std::string>();
                 
@@ -2568,7 +2232,9 @@ void ProfileController::addSkills(uWS::HttpResponse<false>* res, uWS::HttpReques
                 for (const auto& skill : personProfile.skillsWithLevel) skills.push_back({{"name", skill.name}, {"level", skill.level}});
                 auto checked = personProfile;
                 search_engine::profile::applyEditorPatch(checked, {{"skillsWithLevel", skills}});
-                auto updateResult = getStorage()->updatePersonFields(checked, {"skills", "skillsWithLevel"}, personProfile.version);
+                search_engine::profile::bridgeLegacySkillsAddition(checked);
+                if (checkOwnerMutationRateLimit(res, personProfile.id.value())) return;
+                auto updateResult = getStorage()->updatePersonFields(checked, {"skills", "skillsWithLevel", "content"}, personProfile.version);
 
                 if (updateResult.success) {
                     nlohmann::json response = {
@@ -2635,18 +2301,10 @@ void ProfileController::removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequ
         const auto expected = std::string(req->getHeader("if-match"));
         if (expected.empty()) { badRequest(res, "نسخهٔ اطلاعات در If-Match لازم است."); return; }
         if (expected != std::to_string(personProfile.version)) { json(res, {{"message", "اطلاعات در جای دیگری تغییر کرده است."}}, "409 Conflict"); return; }
-        // Remove skill
-        auto& skills = personProfile.skillsWithLevel;
-        auto it = std::remove_if(skills.begin(), skills.end(),
-            [&skillName](const search_engine::storage::SkillWithLevel& s) {
-                return s.name == skillName;
-            });
-
-        if (it != skills.end()) {
-            skills.erase(it, skills.end());
-
+        if (search_engine::profile::removePersonSkill(personProfile, skillName)) {
             // Update profile
-            auto updateResult = getStorage()->updatePersonFields(personProfile, {"skillsWithLevel"}, personProfile.version);
+            if (checkOwnerMutationRateLimit(res, personProfile.id.value())) return;
+                auto updateResult = getStorage()->updatePersonFields(personProfile, {"skills", "skillsWithLevel", "content"}, personProfile.version);
 
             if (updateResult.success) {
                 nlohmann::json response = {

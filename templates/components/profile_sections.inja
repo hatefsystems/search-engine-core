@@ -1,0 +1,17 @@
+{% for section in advancedSections %}
+<section class="profile-section" id="section-{{ section.key }}" aria-labelledby="heading-{{ section.key }}">
+<h2 id="heading-{{ section.key }}">{{ section.label }}</h2>
+{% for item in section.items %}
+<article class="content-item" id="item-{{ section.key }}-{{ item.id }}">
+<h3 dir="auto">{{ item.heading }}</h3>{% if item.summary != "" %}<p class="content-summary" dir="auto">{{ item.summary }}</p>{% endif %}
+<details><summary>مشاهدهٔ جزئیات</summary><dl class="content-fields">
+{% for field in item.fields %}<dt>{{ field.label }}</dt><dd dir="auto">{% if field.url != "" %}<a href="{{ field.url }}" target="_blank" rel="noopener noreferrer">مشاهدهٔ منبع</a>{% else %}{{ field.value }}{% endif %}</dd>{% endfor %}
+</dl>
+{% if item.isRecommendation %}<p>این متن را صاحب پروفایل همراه با منبع ثبت کرده است؛ تأیید نویسنده توسط هاتف انجام نشده است.</p>{% endif %}
+{% for link in item.links %}<a class="content-reference" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" dir="auto">{{ link.title }}</a>{% endfor %}
+<div class="content-gallery">{% for media in item.media %}<img src="{{ media.url }}" alt="{{ media.alt }}" loading="lazy">{% endfor %}</div>
+</details></article>
+{% endfor %}
+{% if section.hasMore %}<button type="button" class="button" data-more-section="{{ section.key }}" data-profile-id="{{ profile.id }}" data-offset="3">نمایش موارد بیشتر</button>{% endif %}
+</section>
+{% endfor %}

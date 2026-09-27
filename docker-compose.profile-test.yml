@@ -1,0 +1,72 @@
+# Isolated fixtures only. Never point these services at the normal application's DB/volumes.
+name: hatef-profile-verify
+services:
+  mongo:
+    image: mongo:7.0
+    volumes:
+      - ./tests/profile/docker-mongo-init.js:/docker-entrypoint-initdb.d/profile-tests.js:ro
+    networks:
+      default:
+        aliases: [js-minifier]
+    ports:
+      - '127.0.0.1:3019:3009'
+      - '127.0.0.1:27039:27017'
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ping:1}).ok']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis/redis-stack:7.2.0-v7
+    network_mode: service:mongo
+    depends_on:
+      mongo: {condition: service_healthy}
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  app:
+    image: hatef-advanced-profile:local
+    build: {context: ., target: runner}
+    network_mode: service:mongo
+    depends_on:
+      mongo: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    environment:
+      PORT: '3009'
+      BASE_URL: http://127.0.0.1:3019
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      SEARCH_REDIS_URI: tcp://127.0.0.1:6379
+      COMPLIANCE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      PROFILE_API_RATE_LIMIT_REQUESTS: '10000'
+      PROFILE_MEDIA_DIR: /app/profile-media
+      MINIFY_JS: 'false'
+      JS_MINIFIER_SERVICE_URL: http://127.0.0.1:3002
+    volumes:
+      - media:/app/profile-media
+  minifier:
+    profiles: ['tests']
+    image: hatef-profile-minifier:local
+    build: {context: ./js-minifier-service}
+    network_mode: service:mongo
+    depends_on:
+      mongo: {condition: service_healthy}
+    environment:
+      PORT: '3002'
+  tests:
+    profiles: ['tests']
+    image: hatef-advanced-tests:local
+    build: {context: ., target: tested}
+    network_mode: service:mongo
+    depends_on:
+      mongo: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minifier: {condition: service_started}
+    environment:
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      SEARCH_REDIS_URI: tcp://127.0.0.1:6379
+      COMPLIANCE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+    command: ['ctest', '--test-dir', '/deps/build', '--output-on-failure', '--timeout', '45']
+volumes:
+  media:

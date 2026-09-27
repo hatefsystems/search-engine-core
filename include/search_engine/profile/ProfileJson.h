@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../storage/Profile.h"
+#include "ProfileProjection.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <iomanip>
@@ -45,6 +46,15 @@ inline nlohmann::json profileToJson(const search_engine::storage::Profile& profi
 inline nlohmann::json personProfileToJson(const search_engine::storage::PersonProfile& profile) {
     // Start with base profile fields
     nlohmann::json json = profileToJson(static_cast<const search_engine::storage::Profile&>(profile));
+
+    const auto content = profile.content.goal.empty() ? profile.content : effectiveContent(profile);
+    json["sections"] = contentJson(content)["sections"];
+    json["sectionOrder"] = content.order;
+    json["featured"] = content.featured;
+    if (!content.goal.empty()) {
+        json["contentLayout"] = {{"order",content.order},{"visibility",content.visibility},{"featured",content.featured},{"goal",content.goal}};
+        json["completion"] = profileCompletion(profile);
+    }
 
     // Add PersonProfile-specific fields
     if (profile.displayName) {

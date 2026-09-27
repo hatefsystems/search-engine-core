@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../storage/Profile.h"
+#include "ProfileProjection.h"
 #include <nlohmann/json.hpp>
 #include <utility>
 
@@ -14,13 +15,42 @@ inline bool isPublicImageUrl(const std::string& url) {
 
 // Work on a copy: owner data and persisted privacy preferences are never changed.
 inline storage::PersonProfile publicPersonProfile(storage::PersonProfile person) {
+    const auto effective = effectiveContent(person);
+    const bool structuredSkills = effective.sections.count("skills");
+    const bool structuredEducation = effective.sections.count("education");
+    const bool structuredLanguages = effective.sections.count("languages");
+    const bool structuredContacts = effective.sections.count("contacts");
+    const bool structuredAbout = effective.sections.count("about");
+    const bool structuredAvailability = effective.sections.count("availability");
+    person.content = publicContent(effective);
+    if (!person.isPublic || person.deletedAt) person.content.sections.clear();
+    if (person.content.sections.count("skills")) {
+        person.skills.clear(); person.skillsWithLevel.clear();
+        for (const auto& item : person.content.sections.at("skills")) {
+            const auto& skill = std::get<AdvancedSkill>(item.value);
+            person.skillsWithLevel.push_back({skill.name, skill.proficiencyLevel, skill.category});
+        }
+    } else if (structuredSkills) { person.skills.clear(); person.skillsWithLevel.clear(); }
+    if (structuredEducation) { person.education.reset(); person.school.reset(); }
+    if (structuredLanguages) {
+        person.languages.clear();
+        if (person.content.sections.count("languages")) for (const auto& item : person.content.sections.at("languages")) person.languages.push_back(std::get<Language>(item.value).name);
+    }
+    if (structuredContacts) { person.email.reset(); person.phone.reset(); }
+    if (structuredAbout) { person.bio.reset(); person.professionalSummary.reset(); }
+    if (structuredAvailability) person.availabilityStatus.reset();
     person.ownerToken.reset();
     person.ownerTokenHash.reset();
     person.ownerId.reset();
     if (!person.privacy.showEmail) person.email.reset();
     if (!person.privacy.showPhone) person.phone.reset();
     if (!person.privacy.showLocation) person.location.reset();
-    if (!person.privacy.showAvailability) person.availabilityStatus.reset();
+    if (!person.privacy.showAvailability) { person.availabilityStatus.reset(); person.content.sections.erase("availability"); }
+    if (person.content.sections.count("contacts")) std::erase_if(person.content.sections["contacts"], [&](const auto& item) {
+        const auto& c = std::get<Contact>(item.value);
+        return (c.type == "EMAIL" && !person.privacy.showEmail) || (c.type == "PHONE" && !person.privacy.showPhone);
+    });
+    person.content = publicContent(person.content);
     if (person.avatarUrl && !isPublicImageUrl(*person.avatarUrl)) person.avatarUrl.reset();
     if (person.coverImageUrl && !isPublicImageUrl(*person.coverImageUrl)) person.coverImageUrl.reset();
     return person;

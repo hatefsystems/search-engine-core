@@ -252,7 +252,7 @@ const std::unordered_set<std::string>& SlugGenerator::getReservedWords() {
         "cache", "logs", "backup", "archive",
 
         // Search engine specific
-        "search", "crawl", "index", "query", "results", "page",
+        "people", "search", "crawl", "index", "query", "results", "page",
         "site", "sites", "domain", "url", "link", "links",
 
         // Status and error pages

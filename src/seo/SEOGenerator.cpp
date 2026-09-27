@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include "search_engine/profile/ProfileContent.h"
 
 namespace search_engine {
 namespace seo {
@@ -85,6 +86,32 @@ nlohmann::json SEOGenerator::generatePersonSchema(
         schema["mainEntityOfPage"] = profile.portfolioUrl.value();
     }
 
+    // Only the public content projection contributes structured data. Calendar precision
+    // is retained in content rather than inventing an ISO date for partial Persian dates.
+    const auto content = search_engine::profile::publicContent(profile.content);
+    nlohmann::json works = nlohmann::json::array(), credentials = nlohmann::json::array();
+    for (const auto& [section, items] : content.sections) for (const auto& item : items) {
+        const auto data = search_engine::profile::itemJson(item);
+        if (section == "skills") {
+            if (!schema.contains("knowsAbout")) schema["knowsAbout"] = nlohmann::json::array();
+            const auto name = data.value("name", "");
+            if (std::find(schema["knowsAbout"].begin(), schema["knowsAbout"].end(), name) == schema["knowsAbout"].end()) schema["knowsAbout"].push_back(name);
+        } else if (section == "projects" || section == "publications") {
+            nlohmann::json work = {{"@type", "CreativeWork"}, {"name", data.value("title", "")}};
+            if (!data.value("description", "").empty()) work["description"] = data["description"];
+            if (!data.value("url", "").empty()) work["url"] = data["url"];
+            works.push_back(work);
+        } else if (section == "certifications" || section == "education") {
+            nlohmann::json credential = {{"@type", "EducationalOccupationalCredential"}, {"name", data.value("name", data.value("degree", data.value("institutionName", "")))}};
+            if (!data.value("credentialUrl", "").empty()) credential["url"] = data["credentialUrl"];
+            credentials.push_back(credential);
+        } else if (section == "languages") {
+            if (!schema.contains("knowsLanguage")) schema["knowsLanguage"] = nlohmann::json::array();
+            schema["knowsLanguage"].push_back(data.value("name", ""));
+        } else if (section == "about" && !data.value("description", "").empty()) schema["description"] = data["description"];
+    }
+    if (!works.empty()) schema["subjectOf"] = works;
+    if (!credentials.empty()) schema["hasCredential"] = credentials;
     LOG_DEBUG("Person schema generated successfully");
     return schema;
 }

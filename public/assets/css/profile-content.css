@@ -1,0 +1,326 @@
+.content-navigation {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-block: 20px;
+}
+.content-navigation button {
+  border: 1px solid #dcd3e7;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: white;
+  color: #6443a5;
+  cursor: pointer;
+  font: inherit;
+}
+.content-navigation button[aria-current="true"] {
+  background: #6443a5;
+  color: white;
+}
+.content-editor {
+  min-width: 0;
+  background: white;
+  border: 1px solid #e5dfec;
+  border-radius: 18px;
+  padding: 24px;
+}
+.content-editor .section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 16px;
+}
+.content-item {
+  padding: 20px 0;
+  border-block-end: 1px solid #eee6f6;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.content-item h3 {
+  margin: 0 0 8px;
+  color: #352747;
+}
+.content-summary {
+  white-space: pre-wrap;
+  margin-block: 8px;
+  line-height: 1.9;
+}
+.content-item summary {
+  cursor: pointer;
+  color: #6443a5;
+  padding: 10px 0;
+  font-weight: 600;
+}
+.content-fields {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(0, 3fr);
+  gap: 8px 18px;
+}
+.content-fields dt {
+  color: #776986;
+}
+.content-fields dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.content-reference {
+  display: block;
+  padding-block: 8px;
+}
+.content-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-block: 12px;
+}
+.content-gallery img {
+  width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #f7f4fb;
+}
+.content-editor details {
+  margin-block: 16px;
+}
+.content-editor details > summary {
+  color: #6443a5;
+  cursor: pointer;
+}
+.content-editor .item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 10px;
+}
+.content-editor button,
+.content-editor select,
+.content-editor input,
+.content-editor textarea {
+  max-width: 100%;
+}
+.content-editor .date-fields {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.date-fields input {
+  width: 80px;
+}
+.date-fields select {
+  width: 120px;
+}
+.content-editor .reference-row {
+  padding: 12px;
+  border: 1px solid #e5dfec;
+  border-radius: 12px;
+  margin-block: 10px;
+}
+.content-editor select[multiple] {
+  min-height: 110px;
+}
+.content-editor input[type="checkbox"] {
+  width: auto;
+  margin-inline-end: 8px;
+}
+.content-editor .empty-state {
+  padding: 28px 12px;
+  text-align: center;
+  color: #776986;
+}
+.completion-panel {
+  border: 1px solid #e4d9f2;
+  border-radius: 14px;
+  background: #f6f1ff;
+  padding: 18px;
+  margin-block: 16px;
+}
+.completion-panel progress {
+  width: 100%;
+  accent-color: #6443a5;
+}
+.completion-panel button {
+  margin: 4px;
+}
+.content-preview {
+  padding: 18px;
+  border-block-start: 1px solid #eee6f6;
+}
+.content-preview h3 {
+  font-size: 1rem;
+}
+.people-page {
+  max-width: 1000px;
+  margin: auto;
+  padding: 24px 18px;
+}
+.people-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-block: 24px;
+}
+.people-card {
+  padding: 24px;
+  background: white;
+  border: 1px solid #e5dfec;
+  border-radius: 18px;
+  overflow-wrap: anywhere;
+}
+.people-card img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.people-card h2 {
+  margin-block: 12px;
+}
+.people-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+#advanced-preview {
+  overflow-wrap: anywhere;
+}
+.profile-section .button {
+  font: inherit;
+  border: 1px solid #dcd3e7;
+  background: #f4effa;
+  color: #6443a5;
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.profile-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block: 15px;
+}
+.content-editor pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow: auto;
+}
+@media (max-width: 760px) {
+  .content-editor {
+    padding: 18px 14px;
+  }
+  .show-preview .content-editor {
+    display: none;
+  }
+  .content-fields {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .content-fields dd {
+    margin-block-end: 10px;
+  }
+  .people-filters {
+    grid-template-columns: 1fr;
+  }
+  .content-gallery {
+    grid-template-columns: 1fr;
+  }
+  .content-navigation {
+    gap: 5px;
+  }
+  .content-navigation button {
+    font-size: 0.8rem;
+    padding: 7px 10px;
+  }
+}
+
+.section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 20px;
+}
+.section-nav [aria-pressed="true"] {
+  background: #6443a5;
+  color: white;
+}
+.content-editor fieldset {
+  min-width: 0;
+  border: 1px solid #e5dfec;
+  border-radius: 12px;
+  padding: 12px;
+  margin-block: 16px;
+}
+.content-editor legend {
+  padding-inline: 6px;
+}
+.content-item-form {
+  padding: 14px;
+  border: 1px solid #e5dfec;
+  border-radius: 12px;
+}
+.content-item-form > summary {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.content-editor .reference-form {
+  border-block-start: 1px solid #e5dfec;
+  margin-block: 12px;
+  padding-block: 12px;
+}
+.content-editor input[type="checkbox"] {
+  display: inline-block;
+  width: auto;
+}
+.content-editor .actions label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.content-editor label {
+  overflow-wrap: anywhere;
+}
+.content-editor .actions {
+  margin-block: 12px;
+}
+.editor-columns > * {
+  min-width: 0;
+}
+#server-version {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 400px;
+  overflow: auto;
+}
+#advanced-preview .profile-content-section {
+  padding: 18px;
+  background: white;
+  border-radius: 12px;
+  margin-block: 16px;
+}
+.profile-actions .button {
+  font: inherit;
+  border: 1px solid #dcd3e7;
+  background: #f4effa;
+  color: #6443a5;
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.profile-actions a {
+  align-self: center;
+}
+.people-page a:focus-visible,
+.profile-actions :focus-visible,
+.profile-section a:focus-visible,
+.profile-section summary:focus-visible {
+  outline: 3px solid #9d80cf;
+  outline-offset: 4px;
+}
