@@ -60,7 +60,6 @@ function start(port=4173){
     state.version++;return send({data:state});
    }
    if(url.pathname==='/fixture-image.svg'){res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120"><rect width="240" height="120" fill="#5226a8"/></svg>');}
-   if(url.pathname==='/test-runner'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(fs.readFileSync(path.join(__dirname,'workspace-browser-runner.html')));}
    if(parts[0]==='assets'){
     const file=path.resolve(root,'public','.'+url.pathname);if(!file.startsWith(path.join(root,'public')+path.sep))return send({},403);
     const types={'.js':'text/javascript','.css':'text/css','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});return res.end(fs.readFileSync(file));

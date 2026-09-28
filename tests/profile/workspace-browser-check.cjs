@@ -7,7 +7,7 @@ const {start,sections}=require('./workspace-fixture.cjs');
  const server=start(0);await new Promise(resolve=>server.listening?resolve():server.once('listening',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
  const out='build/profile/workspace-screenshots';fs.mkdirSync(out,{recursive:true});
- const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.PROFILE_CHROMIUM_EXECUTABLE || undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context=await browser.newContext({viewport:{width:1440,height:1050}});const page=await context.newPage();
  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  const nav=key=>page.locator(`#editor-section-nav [data-section="${key}"]`).click();
