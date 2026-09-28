@@ -75,7 +75,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
   assert.equal(await item().getByLabel('راه‌حل شما',{exact:true}).inputValue(),'تغییر حفظ‌شده در قطع اینترنت');
   await item().getByLabel('راه‌حل شما',{exact:true}).fill('');await saved();assert.equal((await ownerData()).sections.projects[0].solution,'');
   // Same-version tabs require explicit reconciliation and retain the local item draft.
-  const second=await context.newPage();await second.goto(page.url());await second.waitForSelector('.content-item-form');
+  const second=await context.newPage();await second.goto(page.url());await second.locator('#editor-section-nav [data-section=projects]').click();await second.waitForSelector('.content-item-form');
   await item().getByLabel('نقش شما',{exact:true}).fill('نقش زبانهٔ اول');await saved();
   await second.locator('.content-item-form').getByLabel('معماری و روش انجام',{exact:true}).fill('نوشتهٔ زبانهٔ دوم');await second.waitForSelector('#conflict:not([hidden])');
   await second.locator('#reload-version').click();await second.waitForSelector('#conflict-review:not([hidden])');await second.locator('#keep-local').click();await saved(second);

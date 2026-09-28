@@ -6,6 +6,7 @@ import {
   titleFields,
   el,
   renderItem,
+  dateText,
 } from "./profile-content-ui.js";
 const clone = (value) => structuredClone(value);
 const clean = (item) =>
@@ -16,7 +17,7 @@ const clean = (item) =>
   );
 // Keep the visual form order independent of JSON object key ordering from the API.
 const fieldOrder = {
-  experiences: ["roleTitle","organizationName","employmentType","location","locationType","startDate","endDate","isCurrent","summary","responsibilities","achievements","technologies","skillIds","projectIds","organizationProfileId"],
+  experiences: ["roleTitle","organizationName","employmentType","locationType","location","startDate","endDate","isCurrent","summary","responsibilities","achievements","technologies","skillIds","projectIds","organizationProfileId"],
   projects: ["title","projectType","subtitle","description","role","organization","startDate","endDate","isOngoing","problem","solution","architecture","challenges","outcomes","responsibilities","technologies","skillIds","experienceIds","collaborators","links"],
   skills: ["name","category","proficiencyLevel","yearsOfExperience","firstUsedYear","lastUsedYear","isCurrentlyUsing","description","projectIds","experienceIds","certificationIds"],
   education: ["kind","institutionName","degree","fieldOfStudy","startDate","endDate","isCurrent","description","grade","activities","achievements","institutionProfileId"],
@@ -425,6 +426,8 @@ export class ProfileContentEditor {
       const name = el("strong", item[titleFields[section]] || "مورد تازه", "item-choice-title"); name.dir="auto";
       const subtitle = item.organizationName || item.institutionName || item.issuingOrganization || item.category || item.description || "";
       button.append(name, el("span", subtitle, "item-choice-subtitle"), el("small", item.visibility === "PUBLIC" ? "عمومی" : "پیش‌نویس خصوصی", "item-privacy"));
+      if (item.startDate?.year) button.append(el("span", `${dateText(item.startDate)} · ${item.isCurrent || item.isOngoing ? "اکنون" : dateText(item.endDate)}`, "item-choice-subtitle"));
+      if (this.layout.featured?.some(ref => ref.section === section && ref.id === item.id)) button.prepend(el("span", "★ مورد برجسته", "featured-label"));
       list.append(button);
     }
     filter(); rail.append(list); split.append(rail);
@@ -545,7 +548,7 @@ export class ProfileContentEditor {
       if (["media", "visibility", "id", "displayOrder", "createdAt", "updatedAt", "evidence"].includes(field)) continue;
       const control = this.field(field, item, update, value);
       control.dataset.field = field;
-      if (control.querySelector("textarea") || Array.isArray(value) || ["description","summary","content","value"].includes(field)) control.classList.add("wide-field");
+      if (control.querySelector("textarea") || Array.isArray(value) || ["description","summary","content","value","location","isCurrent","isOngoing"].includes(field)) control.classList.add("wide-field");
       fields.append(control);
     }
     const syncEndDate = () => {
@@ -798,6 +801,15 @@ export class ProfileContentEditor {
     }
     input.setAttribute("aria-label", labels[field] || field);
     input.dir = "auto";
+    if (typeof value === "string" && !choices) {
+      const long = ["description","summary","problem","solution","architecture","content"].includes(field);
+      input.maxLength = long ? 5000 : field.endsWith("Url") || ["url","value"].includes(field) ? 2048 : 200;
+      if (long) {
+        const counter = el("small", "", "field-counter");
+        const count = () => { counter.textContent = `${[...input.value].length.toLocaleString("fa-IR")} / ${input.maxLength.toLocaleString("fa-IR")}`; };
+        input.addEventListener("input", count); count(); wrapper.append(counter);
+      }
+    }
     input.addEventListener("input", () => {
       item[field] =
         typeof value === "boolean"
@@ -840,6 +852,8 @@ export class ProfileContentEditor {
     for (const section of order) {
       const items = publicSections[section];
       if (!items?.length) continue;
+      // The one-item introduction is already rendered in the preview identity.
+      if (section === "about") continue;
       const block = el("section", "", "profile-content-section");
       block.append(el("h3", sectionLabels[section]));
       for (const original of items) {
@@ -854,7 +868,19 @@ export class ProfileContentEditor {
             item[key] = item[key].filter((id) =>
               publicSections[target]?.some((i) => i.id === id),
             );
-        block.append(renderItem(section, item, this.id, publicSections));
+        const card = renderItem(section, item, this.id, publicSections);
+        const heading = card.querySelector("h3");
+        const metadata = [item.organizationName || item.issuingOrganization || item.publisher || item.category,
+          item.startDate?.year ? `${dateText(item.startDate)} · ${item.isCurrent || item.isOngoing ? "اکنون" : dateText(item.endDate)}` : ""].filter(Boolean).join(" · ");
+        if (metadata) heading.after(el("p", metadata, "preview-item-meta"));
+        if (!card.querySelector(".content-summary") && item.responsibilities?.length) card.querySelector("details").before(el("p", item.responsibilities.slice(0,2).join(" · "), "content-summary"));
+        if (item.technologies?.length) {
+          const tags = el("div", "", "preview-item-tags");
+          for (const name of item.technologies.slice(0,6)) tags.append(el("span", name, "badge"));
+          card.querySelector("details").before(tags);
+        }
+        if (this.layout.featured?.some(ref => ref.section === section && ref.id === item.id)) card.prepend(el("span", "★ مورد برجسته", "featured-label"));
+        block.append(card);
       }
       this.preview.append(block);
     }
