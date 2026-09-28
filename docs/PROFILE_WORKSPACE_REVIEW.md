@@ -70,4 +70,10 @@ generated `validation.json` distinguishes those modes. Screenshots and diagnosti
 logs are retained in the workflow artifact; no real production profile is edited.
 
 Latest code validation run:
-https://github.com/hatefsystems/search-engine-core/actions/runs/36419907767
+https://github.com/hatefsystems/search-engine-core/actions/runs/36454939590
+
+Final result: both workflow jobs passed. The real backend run passed all seven
+C++ targets, 135 API checks, both browser integration suites, and the populated
+27-item / 14-section round-trip suite. The separate fixture job passed the
+14 autosave tests and seven viewport checks. The demo artifact contains 24
+screenshots, including the public page, with mode `real C++ API + MongoDB`.
