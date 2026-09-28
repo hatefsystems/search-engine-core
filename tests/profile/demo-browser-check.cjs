@@ -14,7 +14,7 @@ const demo=require('./demo-profile.cjs');
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.PROFILE_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
   context=await browser.newContext({viewport:{width:1440,height:1080}});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
-  const api=async(path,method='GET',body)=>{const response=await context.request.fetch(base+path,{method,data:body,headers:key?{Authorization:'Bearer '+key}:{}});const result=await response.json();assert.ok(response.ok(),`${method} ${path}: ${response.status()} ${JSON.stringify(result)}`);return result;};
+  const api=async(path,method='GET',body)=>{const response=await context.request.fetch(base+path,{method,data:body,headers:{Origin:new URL(base).origin,...(key?{Authorization:'Bearer '+key}:{})}});const result=await response.json();assert.ok(response.ok(),`${method} ${path}: ${response.status()} ${JSON.stringify(result)}`);return result;};
   const slug='نمونه.هاتف.'+Date.now();
   if(fixture)id='demo-profile';else{const result=await api('/api/profiles','POST',{type:'PERSON',slug,name:'',isPublic:false});id=result.data.id;key=result.ownerToken;await api(`/api/profiles/${id}/session`,'POST',{key});}
   const endpoint=`/api/profiles/${id}`;let state=(await api(endpoint)).data;
