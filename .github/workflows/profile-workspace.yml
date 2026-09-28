@@ -1,10 +1,10 @@
 name: Profile workspace UI
 on:
   push:
-    branches: ['feat/profile-editor-figma']
-    paths: ['public/assets/**', 'templates/profile_editor.inja', 'tests/profile/**', '.github/workflows/profile-workspace.yml']
+    branches: ['master', 'feat/profile-editor-figma', 'feat/profile-editor-review']
+    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
   pull_request:
-    paths: ['public/assets/**', 'templates/profile_editor.inja', 'tests/profile/**', '.github/workflows/profile-workspace.yml']
+    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,3 +37,52 @@ jobs:
           name: profile-workspace-screenshots
           path: build/profile/workspace-screenshots
           retention-days: 14
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PROFILE_TEST_BASE_URL: http://127.0.0.1:3019
+      NODE_PATH: /tmp/profile-ui-tests/node_modules
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/profile-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/profile-ui-tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build real C++ application and short C++ tests
+        run: docker compose -f docker-compose.profile-test.yml build app
+      - name: Start isolated backend and database
+        run: |
+          docker compose -f docker-compose.profile-test.yml up -d mongo redis app
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent "$PROFILE_TEST_BASE_URL/people" >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker compose -f docker-compose.profile-test.yml logs --tail=100
+          exit 1
+      - name: API, privacy, persistence and media integration
+        run: python3 tests/profile/advanced-api-check.py
+      - name: Browser to real API integration
+        run: |
+          node tests/profile/editor-browser-check.cjs
+          node tests/profile/advanced-browser-check.cjs
+      - name: Save integration diagnostics
+        if: always()
+        run: |
+          mkdir -p build/profile/integration
+          docker compose -f docker-compose.profile-test.yml logs --no-color > build/profile/integration/backend.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: profile-integration-results
+          path: |
+            build/profile/integration
+            build/profile/editor-screenshots
+            build/profile/advanced-screenshots
+          retention-days: 14
+      - name: Remove isolated test services
+        if: always()
+        run: docker compose -f docker-compose.profile-test.yml down -v
