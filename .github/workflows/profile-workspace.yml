@@ -1,0 +1,39 @@
+name: Profile workspace UI
+on:
+  push:
+    branches: ['feat/profile-editor-figma']
+    paths: ['public/assets/**', 'templates/profile_editor.inja', 'tests/profile/**', '.github/workflows/profile-workspace.yml']
+  pull_request:
+    paths: ['public/assets/**', 'templates/profile_editor.inja', 'tests/profile/**', '.github/workflows/profile-workspace.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: profile-workspace-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Autosave regression tests
+        run: node --test tests/profile/test_autosave.mjs tests/profile/test_content_autosave.mjs
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --prefix /tmp/profile-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/profile-ui-tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check real editor UI against fixture API
+        env:
+          NODE_PATH: /tmp/profile-ui-tests/node_modules
+        run: node tests/profile/workspace-browser-check.cjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-workspace-screenshots
+          path: build/profile/workspace-screenshots
+          retention-days: 14

@@ -11,10 +11,11 @@ fs.mkdirSync(screenshots,{recursive:true});
     const browser = await chromium.launch({headless:true,args:['--no-sandbox','--no-proxy-server']});
     const context = await browser.newContext();
     const page = await context.newPage();
-    const errors=[]; page.on('pageerror',error=>errors.push(error.message));
+    const errors=[]; page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept());
     const slug='آزمون.مرورگر.'+Date.now();
     const url=`${base}/${encodeURIComponent(slug)}`;
     let id,key;
+    const basic=()=>page.locator('.section-nav').getByRole('button',{name:'اطلاعات اصلی و معرفی',exact:true}).click();
     const saved=async(p=page)=>p.waitForFunction(()=>document.getElementById('save-status').textContent==='ذخیره شد');
     try {
         for(const width of [360,768,1280]){
@@ -55,13 +56,14 @@ fs.mkdirSync(screenshots,{recursive:true});
             if(width===360){await page.locator('#preview-tab').click();assert.ok(await page.locator('#preview').isVisible());await page.screenshot({path:path.join(screenshots,'preview-360.png'),fullPage:true});await page.locator('#form-tab').click();}
         }
         // Offline edits are retained and restored after a reload.
-        await context.setOffline(true);await page.locator('#profile-bio').fill('متن نگهداری‌شده هنگام قطع اتصال');
+        await basic();await context.setOffline(true);await page.locator('#profile-bio').fill('متن نگهداری‌شده هنگام قطع اتصال');
         await page.waitForTimeout(850);
         assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('hatef.profile.pending.'))));
         await context.setOffline(false);await page.reload();await page.waitForSelector('#workspace:not([hidden])');await saved();
         assert.equal(await page.locator('#profile-bio').inputValue(),'متن نگهداری‌شده هنگام قطع اتصال');
         await page.locator('#profile-bio').fill('');await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();await page.locator('.content-item-form').getByRole('button',{name:'حذف آیتم',exact:true}).click();await saved();
-        await page.reload();await page.waitForSelector('#workspace:not([hidden])');assert.equal(await page.locator('#profile-bio').inputValue(),'');await page.waitForSelector('.section-nav');await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();assert.equal(await page.locator('.content-item-form').count(),0);
+        await page.reload();await page.waitForSelector('#workspace:not([hidden])');await page.waitForSelector('.section-nav');await basic();assert.equal(await page.locator('#profile-bio').inputValue(),'');await page.waitForSelector('.section-nav');await page.locator('.section-nav').getByRole('button',{name:'مهارت‌ها',exact:true}).click();assert.equal(await page.locator('.content-item-form').count(),0);
+        await basic();
         // Two tabs start from the same version; the second must request explicit reconciliation.
         const secondPromise=context.waitForEvent('page');
         await page.evaluate(()=>window.open(location.href));

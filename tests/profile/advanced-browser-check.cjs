@@ -7,7 +7,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
 (async()=>{
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--no-proxy-server']});
  const context=await browser.newContext();const page=await context.newPage();const errors=[];page.setDefaultTimeout(15000);
- page.on('pageerror',e=>errors.push(e.message));let id,key;
+ page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());let id,key;
  const saved=async(p=page)=>p.waitForFunction(()=>document.querySelector('#save-status').textContent==='ذخیره شد');
  const nav=label=>page.locator('.section-nav').getByRole('button',{name:label,exact:true}).click();
  const item=()=>page.locator('.content-item-form').last();
@@ -17,7 +17,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
   await page.locator('#start').click();await page.waitForSelector('#workspace:not([hidden])');
   id=await page.locator('body').getAttribute('data-profile-id');key=await page.locator('#new-key').textContent();
   await page.locator('#profile-name').fill('شخص آزمایشی');await saved();
-  await page.waitForSelector('.section-nav');
+  await page.waitForSelector('.section-nav');await nav('پروژه‌ها و نمونه‌کارها');
   await page.getByRole('button',{name:'+ افزودن پروژه‌ها و نمونه‌کارها',exact:true}).click();
   await item().getByLabel('عنوان',{exact:true}).fill('پ');await saved();
   await page.reload();await page.waitForSelector('.content-item-form');
@@ -38,7 +38,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
   await item().getByRole('button',{name:'حذف تصویر: تصویر مرورگر',exact:true}).click();await saved();
   assert.equal((await ownerData()).sections.projects[0].media.length,0);
   // Header and content mutations share a serialized profile version.
-  await page.locator('#profile-title').fill('طراح و توسعه‌دهنده');await item().getByLabel('نقش شما',{exact:true}).fill('طراحی و پیاده‌سازی');await saved();
+  await nav('اطلاعات اصلی و معرفی');await page.locator('#profile-title').fill('طراح و توسعه‌دهنده');await nav('پروژه‌ها و نمونه‌کارها');await item().getByLabel('نقش شما',{exact:true}).fill('طراحی و پیاده‌سازی');await saved();
   assert.equal((await ownerData()).title,'طراح و توسعه‌دهنده');assert.equal((await ownerData()).sections.projects[0].role,'طراحی و پیاده‌سازی');
   for(const [section,label,titleField,title] of [
    ['about','دربارهٔ من','عنوان','معرفی'],['experiences','تجربهٔ کاری','عنوان نقش','داوطلب'],['skills','مهارت‌ها','نام','C++'],
@@ -56,7 +56,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
    assert.ok((await ownerData()).sections[section].some(i=>i.visibility==='PUBLIC'),section);
   }
   // Links have their own versions and retain incomplete private drafts.
-  await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
+  await nav('لینک‌های صفحه');await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
   const linkBox=()=>page.locator('#links-editor fieldset').last();
   await linkBox().getByLabel('عنوان لینک',{exact:true}).fill('ل');await saved();
   await page.reload();await page.waitForSelector('#links-editor fieldset');
