@@ -5,7 +5,7 @@ import {ProfileAutosave} from './profile-autosave.js';
 const $ = id => document.getElementById(id);
 const fields = ['name', 'title', 'company', 'bio', 'location', 'availabilityStatus'];
 const availability = {AVAILABLE:'آماده همکاری', BUSY:'مشغول به کار', NOT_AVAILABLE:'فعلاً در دسترس نیست'};
-const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', EXPERT:'حرفه‌ای'};
+const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', ADVANCED:'پیشرفته', EXPERT:'حرفه‌ای'};
 let id = document.body.dataset.profileId, slug = document.body.dataset.slug;
 let current = {}, autosave, contentEditor, linksEditor, fullData, latest, key = '', uploading = false;
 let mutationTail = Promise.resolve();
@@ -49,6 +49,8 @@ const endpoint = () => `/api/profiles/${id}`;
 function editorData(data) {
     const result = {version:data.version || 0, isPublic:!!data.isPublic, avatarUrl:data.avatarUrl || '', coverImageUrl:data.coverImageUrl || ''};
     for (const field of fields) result[field] = data[field] || '';
+    if (Object.hasOwn(data.sections || {}, 'about')) result.bio = data.sections.about[0]?.description || '';
+    if (Object.hasOwn(data.sections || {}, 'availability')) result.availabilityStatus = data.sections.availability[0]?.status || '';
     result.skillsWithLevel = data.skillsWithLevel?.length ? data.skillsWithLevel : (data.skills || []).map(name => ({name, level:'BEGINNER'}));
     return result;
 }
@@ -71,11 +73,17 @@ function preview() {
         $(`preview-${field}`).hidden = !current[field];
     }
     const content = contentEditor?.sections || {}, layout = contentEditor?.layout || {};
+    for (const [section, field, property] of [['about','bio','description'],['availability','availabilityStatus','status']]) {
+        const input = $('profile-form').elements.namedItem(field);
+        if (Object.hasOwn(content, section) && document.activeElement !== input) input.value = content[section][0]?.[property] || '';
+    }
     const privacy = layout.privacy || fullData?.privacy || {};
     $('preview-location').hidden = !current.location || privacy.showLocation === false;
-    $('preview-about').hidden = !current.bio || Object.hasOwn(content, 'about');
-    $('preview-availability').textContent = availability[current.availabilityStatus] || '';
-    $('preview-availability').hidden = !current.availabilityStatus || privacy.showAvailability === false || Object.hasOwn(content, 'availability');
+    const aboutText = Object.hasOwn(content, 'about') ? (layout.visibility?.about === 'HIDDEN' ? '' : content.about.find(item => item.visibility === 'PUBLIC')?.description || '') : current.bio;
+    $('preview-bio').textContent = aboutText || ''; $('preview-bio').hidden = !aboutText; $('preview-about').hidden = !aboutText;
+    const availabilityStatus = Object.hasOwn(content, 'availability') ? (layout.visibility?.availability === 'HIDDEN' ? '' : content.availability.find(item => item.visibility === 'PUBLIC')?.status || '') : current.availabilityStatus;
+    $('preview-availability').textContent = availability[availabilityStatus] || '';
+    $('preview-availability').hidden = !availabilityStatus || privacy.showAvailability === false;
     image('preview-avatar', current.avatarUrl); image('preview-cover', current.coverImageUrl);
     $('preview-avatar').alt = current.name ? `تصویر ${current.name}` : 'تصویر پروفایل';
     const visibleSkills = Object.hasOwn(content, 'skills') ? (layout.visibility?.skills === 'HIDDEN' ? [] : content.skills.filter(s => s.visibility === 'PUBLIC').map(s => ({name:s.name,level:s.proficiencyLevel}))) : current.skillsWithLevel || [];
@@ -92,7 +100,18 @@ function preview() {
     $('publication-label').textContent = current.isPublic ? 'صفحهٔ منتشرشده' : 'پیش‌نویس خصوصی';
     $('publish').hidden = current.isPublic;
 }
-function change(field, value) { current[field] = value; autosave.change(field, value); preview(); }
+function change(field, value) {
+    current[field] = value;
+    const section = {bio:'about', availabilityStatus:'availability'}[field];
+    if (section && Object.hasOwn(contentEditor?.sections || {}, section)) {
+        const property = field === 'bio' ? 'description' : 'status';
+        const existing = contentEditor.sections[section][0];
+        const item = existing || {...structuredClone(contentEditor.schemas[section].defaults), id:crypto.randomUUID(), visibility:'HIDDEN', evidence:[], ...(section === 'about' ? {title:'دربارهٔ من'} : {type:'COLLABORATION'})};
+        contentEditor.change(section, {...item, [property]:value});
+        if (!existing) notice('معرفی یا وضعیت جدید به‌صورت پیش‌نویس ذخیره شد. نمایش عمومی را از بخش مربوط انتخاب کنید.');
+    } else autosave.change(field, value);
+    preview();
+}
 function skillRow(skill = {name:'', level:'BEGINNER'}) {
     const row = document.createElement('div'); row.className = 'skill-row';
     const name = document.createElement('input'); name.value = skill.name; name.dir = 'auto'; name.placeholder = 'نام مهارت'; name.setAttribute('aria-label', 'نام مهارت');

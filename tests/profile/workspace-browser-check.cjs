@@ -41,6 +41,13 @@ const {start,sections}=require('./workspace-fixture.cjs');
    await assertLayout(1440);
    if(!['about','availability'].includes(def.key)){await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`${out}/${def.key}-1440.png`,fullPage:true});}
   }
+  // Structured introduction/availability must render in the header and obey privacy.
+  await nav('about');await form().locator('[data-field=description] textarea').fill('معرفی ساخت‌یافتهٔ عمومی');await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();
+  assert.equal(await page.locator('#preview-bio').textContent(),'معرفی ساخت‌یافتهٔ عمومی');
+  await nav('basic');await page.locator('#profile-bio').fill('ویرایش معرفی از فرم اصلی');await saved();assert.equal((await data()).sections.about[0].description,'ویرایش معرفی از فرم اصلی');assert.equal(await page.locator('#preview-bio').textContent(),'ویرایش معرفی از فرم اصلی');await nav('about');
+  await form().getByLabel('نمایش عمومی',{exact:true}).uncheck();await saved();assert.equal(await page.locator('#preview-about').isVisible(),false);
+  await nav('availability');await form().locator('[data-field=status] select').selectOption('AVAILABLE');await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();assert.equal(await page.locator('#preview-availability').isVisible(),true);
+  await nav('basic');await page.locator('#profile-availability').selectOption('BUSY');await saved();assert.equal((await data()).sections.availability[0].status,'BUSY');
   await nav('experiences');assert.equal(await form().count(),1);assert.equal(await page.locator('.item-choice').count(),2);
   await form().getByRole('button',{name:'کپی',exact:true}).click();await saved();
   assert.equal((await data()).sections.experiences.length,3);

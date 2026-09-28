@@ -19,7 +19,7 @@ const sections = definitions.map(([,key,label,titleField,limit,type])=>{
  return {key,label,titleField,limit:Number(limit),defaults};
 });
 const enums=Object.fromEntries([...source.matchAll(/\{"(\w+)", \{((?:"[A-Z_]+",?)+)\}\}/g)].map(([,k,v])=>[k,JSON.parse('['+v+']')]));
-const clone=structuredClone, profiles=new Map(), links=new Map();
+const clone=structuredClone, profiles=new Map(), links=new Map(), media=new Map();
 function seed(id){
  const state={id,version:1,isPublic:false,name:'هاتف رستمخانی',title:'مهندس پلتفرم و DevOps',company:'شرکت نمونه',bio:'عاشق ساخت زیرساخت‌های پایدار و مقیاس‌پذیرم. با تجربه در طراحی و راه‌اندازی پلتفرم‌های ابری، به تیم‌ها کمک می‌کنم سریع‌تر و مطمئن‌تر محصول بسازند.',location:'تهران، ایران',availabilityStatus:'AVAILABLE',avatarUrl:'',coverImageUrl:'',sections:{},privacy:{showEmail:true,showPhone:true,showLocation:true,showAvailability:true},contentLayout:{order:sections.map(s=>s.key),visibility:{},featured:[]},completion:{score:65,recommendations:['با افزودن پروژه‌ها و تجربه‌های کاری، پروفایل خود را کامل کنید.']}};
  for(const def of sections){
@@ -55,11 +55,14 @@ function start(port=4173){
      if(itemId==='order')state.sections[section]=body.ids.map(id=>items.find(i=>i.id===id));
      else if(method==='DELETE')state.sections[section]=items.filter(i=>i.id!==itemId);
      else {const index=items.findIndex(i=>i.id===(itemId||body.item.id));if(index<0)items.push({...clone(def.defaults),...body.item});else Object.assign(items[index],body.item);}
-    }else if(parts[3]==='avatar'||parts[3]==='cover'){state[parts[3]==='avatar'?'avatarUrl':'coverImageUrl']='/fixture-image.svg';}
+    }else if(parts[3]==='avatar'||parts[3]==='cover'){
+     const key=`${id}-${parts[3]}`;media.set(key,Buffer.from(body.image.split(',').pop(),'base64'));
+     state[parts[3]==='avatar'?'avatarUrl':'coverImageUrl']='/fixture-media/'+key;
+    }
     else {const {version,...patch}=body;Object.assign(state,patch);}
     state.version++;return send({data:state});
    }
-   if(url.pathname==='/fixture-image.svg'){res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120"><rect width="240" height="120" fill="#5226a8"/></svg>');}
+   if(parts[0]==='fixture-media'&&media.has(parts[1])){res.writeHead(200,{'Content-Type':'image/png'});return res.end(media.get(parts[1]));}
    if(parts[0]==='assets'){
     const file=path.resolve(root,'public','.'+url.pathname);if(!file.startsWith(path.join(root,'public')+path.sep))return send({},403);
     const types={'.js':'text/javascript','.css':'text/css','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});return res.end(fs.readFileSync(file));
@@ -72,4 +75,4 @@ function start(port=4173){
  return server.listen(port,'0.0.0.0',()=>console.log('UI fixture: http://127.0.0.1:'+server.address().port));
 }
 if(require.main===module)start(Number(process.env.PORT||4173));
-module.exports={start,sections};
+module.exports={start,sections,seedEmpty(id){const state=seed(id);state.sections={};return state;}};
