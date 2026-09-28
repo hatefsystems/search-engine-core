@@ -39,7 +39,7 @@ const {start,sections}=require('./workspace-fixture.cjs');
    const rendered=await form().locator('[data-field]').evaluateAll(nodes=>nodes.map(n=>n.dataset.field));
    for(const field of Object.keys(def.defaults).filter(k=>k!=='media'))assert.ok(rendered.includes(field),`${def.key}.${field} remains editable`);
    await assertLayout(1440);
-   if(!['about','availability'].includes(def.key))await page.screenshot({path:`${out}/${def.key}-1440.png`});
+   if(!['about','availability'].includes(def.key)){await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`${out}/${def.key}-1440.png`,fullPage:true});}
   }
   await nav('experiences');assert.equal(await form().count(),1);assert.equal(await page.locator('.item-choice').count(),2);
   await form().getByRole('button',{name:'کپی',exact:true}).click();await saved();
@@ -51,8 +51,9 @@ const {start,sections}=require('./workspace-fixture.cjs');
   await page.getByLabel('جستجو در موارد',{exact:true}).fill('پیدا نمی‌شود');assert.equal(await page.locator('.item-choice:visible').count(),0);await page.getByLabel('جستجو در موارد',{exact:true}).fill('');
   await form().getByLabel('نمایش عمومی',{exact:true}).uncheck();await saved();assert.equal(await page.locator('#advanced-preview').getByText('آزمون experiences',{exact:true}).count(),0);
   await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();
-  assert.ok(await form().locator('[data-field=endDate]').isDisabled());
-  await form().getByLabel('همچنان ادامه دارد',{exact:true}).uncheck();await saved();assert.equal(await form().locator('[data-field=endDate]').isDisabled(),false);
+  await form().getByLabel('همچنان ادامه دارد',{exact:true}).check();await saved();
+  for(const control of await form().locator('[data-field=endDate] input, [data-field=endDate] select').all())assert.ok(await control.isDisabled());
+  await form().getByLabel('همچنان ادامه دارد',{exact:true}).uncheck();await saved();assert.equal(await form().locator('[data-field=endDate] input').first().isDisabled(),false);
   // Unsaved/offline drafts, then recovery and clearing without losing the selected section.
   await nav('projects');await context.setOffline(true);await form().getByLabel('راه‌حل شما',{exact:true}).fill('نوشتهٔ آفلاین');await page.waitForTimeout(800);
   assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('hatef.profile.pending.content.'))));
