@@ -29,7 +29,7 @@ const draftId = crypto.randomUUID();
 let previousDraftId = '';
 try { previousDraftId = sessionStorage.getItem('hatef.profile.tab') || ''; sessionStorage.setItem('hatef.profile.tab', draftId); }
 catch {}
-const status = text => { if (text === 'ذخیره شد' && (Object.keys(autosave?.pending || {}).length || Object.keys(contentEditor?.queue.pending || {}).length || Object.keys(linksEditor?.queue.pending || {}).length)) text = 'در حال ذخیره…'; $('save-status').textContent = text; };
+const status = text => { if (text === 'ذخیره شد' && (Object.keys(autosave?.pending || {}).length || Object.keys(contentEditor?.queue.pending || {}).length || Object.keys(linksEditor?.queue.pending || {}).length)) text = 'در حال ذخیره…'; $('save-status').textContent = text; $('save-status').dataset.saved = String(text === 'ذخیره شد'); };
 const notice = text => { $('notice').textContent = text; $('notice').hidden = !text; };
 async function api(path, method = 'GET', body) {
     const response = await fetch(path, {method, credentials:'same-origin', cache:'no-store',
@@ -63,6 +63,9 @@ function image(id, url) {
 }
 function preview() {
     $('preview-name').textContent = current.name || 'نام شما';
+    $('account-name').textContent = current.name || 'پروفایل من';
+    $('account-title').textContent = current.title || '';
+    image('editor-avatar', current.avatarUrl); image('editor-cover', current.coverImageUrl);
     for (const field of ['title', 'company', 'bio', 'location']) {
         $(`preview-${field}`).textContent = current[field] || '';
         $(`preview-${field}`).hidden = !current[field];
@@ -80,6 +83,11 @@ function preview() {
         const badge = document.createElement('span'); badge.className = 'badge'; badge.dir = 'auto';
         badge.textContent = `${skill.name} · ${levels[skill.level] || ''}`; return badge;
     }));
+    // Counts describe visible content only, never the reference person's demo statistics.
+    const stats = $('preview-stats'); stats.replaceChildren();
+    const counts = [['projects','پروژه'],['experiences','تجربهٔ کاری'],['certifications','گواهینامه']].map(([section,label]) => [layout.visibility?.[section] === 'HIDDEN' ? 0 : (content[section] || []).filter(i=>i.visibility === 'PUBLIC').length,label]);
+    stats.hidden = !counts.some(([count])=>count);
+    for (const [count,label] of counts) { const cell=document.createElement('div'), value=document.createElement('strong'), caption=document.createElement('span'); value.textContent=count.toLocaleString('fa-IR'); caption.textContent=label; cell.append(value,caption); stats.append(cell); }
     // Publication status reflects the server acknowledgment, never a pending publish request.
     $('publication-label').textContent = current.isPublic ? 'صفحهٔ منتشرشده' : 'پیش‌نویس خصوصی';
     $('publish').hidden = current.isPublic;
@@ -175,7 +183,7 @@ for (const field of fields) $('profile-form').elements.namedItem(field).addEvent
 $('add-skill').onclick = () => { if ($('skills-editor').children.length < 50) skillRow().focus(); };
 for (const button of document.querySelectorAll('[data-clear]')) button.onclick = () => change(button.dataset.clear, '');
 $('publish').onclick = async () => {
-    if (!current.name.trim()) { notice('برای انتشار، نام فارسی را وارد کنید.'); return; }
+    if (!current.name.trim()) { contentEditor.select('basic'); notice('برای انتشار، نام فارسی را وارد کنید.'); $('profile-name').focus(); return; }
     $('publish').disabled = true; notice('');
     try {
         if (!await autosave.flush() || !await contentEditor.flush() || !await linksEditor.flush()) { notice('ابتدا ذخیرهٔ تغییرات را کامل کنید.'); return; }
@@ -233,6 +241,14 @@ for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = async event
         Object.assign(current, result.data); preview(); status('ذخیره شد');
     } catch (error) { if (error.status === 409) { autosave.blocked = true; conflict(); } else notice(error.message || 'بارگذاری تصویر انجام نشد.'); }
     finally { uploading = false; $('profile-form').inert = false; $('publish').disabled = false; event.target.value = ''; }
+};
+for (const button of document.querySelectorAll('[data-section-shortcut]')) button.onclick = () => contentEditor?.select(button.dataset.sectionShortcut);
+$('add-section').onclick = () => $('section-picker').showModal();
+$('close-section-picker').onclick = () => $('section-picker').close();
+$('preview-edit-cover').onclick = () => { contentEditor?.select('basic'); $('workspace').classList.remove('show-preview'); $('form-tab').setAttribute('aria-selected','true'); $('preview-tab').setAttribute('aria-selected','false'); $('cover-file').click(); };
+for (const button of document.querySelectorAll('[data-preview-size]')) button.onclick = () => {
+    $('preview').dataset.device = button.dataset.previewSize;
+    for (const other of document.querySelectorAll('[data-preview-size]')) other.setAttribute('aria-pressed',String(other === button));
 };
 for (const tab of ['form', 'preview']) $(`${tab}-tab`).onclick = () => {
     $('workspace').classList.toggle('show-preview', tab === 'preview');

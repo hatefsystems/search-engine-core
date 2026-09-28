@@ -14,6 +14,20 @@ const clean = (item) =>
       ([key]) => !["createdAt", "updatedAt", "displayOrder"].includes(key),
     ),
   );
+// Keep the visual form order independent of JSON object key ordering from the API.
+const fieldOrder = {
+  experiences: ["roleTitle","organizationName","employmentType","location","locationType","startDate","endDate","isCurrent","summary","responsibilities","achievements","technologies","skillIds","projectIds","organizationProfileId"],
+  projects: ["title","projectType","subtitle","description","role","organization","startDate","endDate","isOngoing","problem","solution","architecture","challenges","outcomes","responsibilities","technologies","skillIds","experienceIds","collaborators","links"],
+  skills: ["name","category","proficiencyLevel","yearsOfExperience","firstUsedYear","lastUsedYear","isCurrentlyUsing","description","projectIds","experienceIds","certificationIds"],
+  education: ["kind","institutionName","degree","fieldOfStudy","startDate","endDate","isCurrent","description","grade","activities","achievements","institutionProfileId"],
+  certifications: ["name","issuingOrganization","issueDate","expirationDate","credentialId","credentialUrl","skillIds"],
+  publications: ["type","title","publisher","authors","description","publicationDate","url","topics","skillIds","doi","isbn"],
+  openSource: ["repositoryName","contributionType","role","platform","repositoryUrl","description","technologies","skillIds"],
+  services: ["title","description","deliveryMode","availability","pricingMode","price","currency","contactMethod","technologies","skillIds"],
+  achievements: ["title","description","issuer","date","url"],
+  recommendations: ["authorName","authorTitle","relationship","content","sourceUrl"],
+  contacts: ["type","label","value"], availability: ["type","status","description"], about: ["title","description"]
+};
 const goals = {
   FIND_JOB: "یافتن شغل",
   FIND_CLIENTS: "یافتن مشتری",
@@ -46,7 +60,10 @@ export class ProfileContentEditor {
       notice,
       headerPreview,
     });
-    this.selected = "projects";
+    this.selected = "basic";
+    this.selectedItems = {};
+    this.filters = {};
+    try { this.selected = sessionStorage.getItem(`hatef.editor.section.${id}`) || "basic"; } catch {}
     this.schemas = {};
     this.root = document.getElementById("advanced-editor");
     this.preview = document.getElementById("advanced-preview");
@@ -291,119 +308,138 @@ export class ProfileContentEditor {
         ),
       );
   }
-  render() {
-    this.root.replaceChildren();
+  select(section, focus = true) {
+    this.selected = section;
+    try { sessionStorage.setItem(`hatef.editor.section.${this.id}`, section); } catch {}
+    this.render();
+    this.renderPreview();
+    if (focus) document.querySelector(this.selected === "basic" ? "#basic-editor h2" : "#advanced-editor h2")?.focus({preventScroll:true});
+  }
+  renderNavigation() {
+    const nav = document.getElementById("editor-section-nav");
+    nav.replaceChildren();
+    const sections = { basic: "اطلاعات اصلی و معرفی", experiences: sectionLabels.experiences,
+      projects: sectionLabels.projects, skills: sectionLabels.skills, education: sectionLabels.education,
+      certifications: sectionLabels.certifications, publications: sectionLabels.publications,
+      openSource: sectionLabels.openSource, services: sectionLabels.services,
+      achievements: sectionLabels.achievements, languages: sectionLabels.languages,
+      recommendations: sectionLabels.recommendations, contacts: sectionLabels.contacts,
+      links: "لینک‌های صفحه", availability: sectionLabels.availability, about: sectionLabels.about };
+    const symbols = {basic:"◉",experiences:"▣",projects:"▱",skills:"◇",education:"▰",certifications:"▧",
+      publications:"▤",openSource:"‹/›",services:"▢",achievements:"☆",languages:"◎",recommendations:"❞",contacts:"✉",links:"↗",availability:"♧",about:"☰"};
+    for (const [key, label] of Object.entries(sections)) {
+      const button = this.button(label, () => this.select(key));
+      button.dataset.section = key;
+      button.setAttribute("aria-label", label);
+      button.setAttribute("aria-pressed", String(this.selected === key));
+      const icon = el("span", symbols[key], "section-symbol"); icon.setAttribute("aria-hidden", "true");
+      button.prepend(icon);
+      nav.append(button);
+    }
+    const picker = document.getElementById("section-picker-options");
+    picker.replaceChildren();
+    for (const [key, label] of Object.entries(sections)) {
+      if (key === "basic") continue;
+      picker.append(this.button(label, () => {
+        document.getElementById("section-picker").close(); this.select(key);
+      }));
+    }
+  }
+  renderSettings() {
+    const settings = document.getElementById("profile-settings");
+    settings.replaceChildren();
     const goalLabel = el("label", "هدف صفحه (اختیاری)");
     const goal = el("select");
     for (const [v, t] of Object.entries(goals)) goal.add(new Option(t, v));
     goal.value = this.layout.goal || "PERSONAL_IDENTITY";
     goal.onchange = () => this.setLayout({ goal: goal.value });
-    goalLabel.append(goal);
-    this.root.append(goalLabel);
-    const privacy = el("fieldset");
-    privacy.append(el("legend", "نمایش اطلاعات اصلی"));
-    for (const [field, title] of Object.entries({
-      showEmail: "ایمیل قبلی",
-      showPhone: "تلفن قبلی",
-      showLocation: "شهر",
-      showAvailability: "وضعیت همکاری",
-    })) {
-      const label = el("label", title);
-      const input = el("input");
-      input.type = "checkbox";
-      input.checked =
-        (this.layout.privacy || this.server.privacy || {})[field] !== false;
-      input.onchange = () =>
-        this.setLayout({
-          privacy: {
-            ...(this.layout.privacy || this.server.privacy || {}),
-            [field]: input.checked,
-          },
-        });
-      label.prepend(input);
-      privacy.append(label);
+    goalLabel.append(goal); settings.append(goalLabel);
+    const privacy = el("fieldset"); privacy.append(el("legend", "نمایش اطلاعات اصلی"));
+    for (const [field, title] of Object.entries({ showEmail: "ایمیل", showPhone: "تلفن", showLocation: "شهر", showAvailability: "وضعیت همکاری" })) {
+      const label = el("label", title); const input = el("input"); input.type = "checkbox";
+      input.checked = (this.layout.privacy || this.server.privacy || {})[field] !== false;
+      input.onchange = () => this.setLayout({ privacy: { ...(this.layout.privacy || this.server.privacy || {}), [field]: input.checked } });
+      label.prepend(input); privacy.append(label);
     }
-    this.root.append(privacy);
-    const nav = el("nav", "", "section-nav");
-    nav.setAttribute("aria-label", "بخش‌های پروفایل");
-    for (const [key, label] of Object.entries(sectionLabels)) {
-      const b = this.button(label, () => {
-        this.selected = key;
-        this.render();
-      });
-      b.setAttribute("aria-pressed", String(this.selected === key));
-      nav.append(b);
-    }
-    this.root.append(nav);
-    const section = this.selected;
-    const definition = this.schemas[section];
-    if (!definition) {
-      this.root.append(
-        el("p", "دریافت فرم انجام نشد؛ صفحه را دوباره بارگیری کنید."),
-      );
-      return;
-    }
+    settings.append(privacy);
+  }
+  render() {
+    if (!["basic", "links", ...Object.keys(sectionLabels)].includes(this.selected)) this.selected = "basic";
+    this.renderNavigation(); this.renderSettings();
+    document.getElementById("basic-editor").hidden = this.selected !== "basic";
+    document.getElementById("links-editor").hidden = !["contacts", "links"].includes(this.selected);
+    this.root.hidden = ["basic", "links"].includes(this.selected);
+    this.root.replaceChildren();
+    if (this.root.hidden) return;
+    const section = this.selected, definition = this.schemas[section];
+    const heading = el("div", "", "section-heading");
+    const title = el("h2", sectionLabels[section]); title.tabIndex = -1;
+    heading.append(title, el("p", {
+      experiences:"سوابق شغلی و پروژه‌های کاری خود را اضافه کنید.", projects:"پروژه‌ها و مطالعه‌های موردی را همراه با جزئیات فنی معرفی کنید.",
+      skills:"مهارت‌های خود را اضافه کنید و به تجربه‌ها و پروژه‌های مرتبط پیوند دهید.", education:"تحصیلات دانشگاهی، دوره‌ها و تجربه‌های یادگیری شما.",
+      contacts:"راه‌های ارتباطی و لینک‌های حرفه‌ای خود را مدیریت کنید.", services:"خدماتی که به دیگران ارائه می‌دهید را معرفی کنید."
+    }[section] || "اطلاعات این بخش را تکمیل کنید و نحوهٔ نمایش آن را انتخاب کنید.", "hint"));
+    this.root.append(heading);
+    if (!definition) { this.root.append(el("p", "دریافت فرم انجام نشد؛ صفحه را دوباره بارگیری کنید.")); return; }
     const panel = el("section", "", "content-editor-section");
-    panel.append(el("h2", sectionLabels[section]));
+    const settings = el("details", "", "section-settings"); settings.append(el("summary", "تنظیمات نمایش و ترتیب بخش"));
     const visibility = el("label", "این بخش در صفحهٔ عمومی دیده شود");
-    const checkbox = el("input");
-    checkbox.type = "checkbox";
+    const checkbox = el("input"); checkbox.type = "checkbox";
     checkbox.checked = this.layout.visibility?.[section] !== "HIDDEN";
-    checkbox.onchange = () =>
-      this.setLayout({
-        visibility: {
-          ...this.layout.visibility,
-          [section]: checkbox.checked ? "PUBLIC" : "HIDDEN",
-        },
+    checkbox.onchange = () => this.setLayout({visibility:{...this.layout.visibility,[section]:checkbox.checked?"PUBLIC":"HIDDEN"}});
+    visibility.prepend(checkbox); settings.append(visibility);
+    const order = [...new Set([...(this.layout.order || []), ...Object.keys(sectionLabels)])];
+    for (const [delta, label] of [[-1,"بخش بالاتر"],[1,"بخش پایین‌تر"]]) {
+      const button = this.button(label, () => {
+        const i = order.indexOf(section), j = i + delta;
+        if (j < 0 || j >= order.length) return;
+        [order[i],order[j]]=[order[j],order[i]]; this.setLayout({order}); this.render();
       });
-    visibility.prepend(checkbox);
-    panel.append(visibility);
-    const order = [
-      ...new Set([...(this.layout.order || []), ...Object.keys(sectionLabels)]),
-    ];
-    const moveSection = (delta) => {
-      const i = order.indexOf(section),
-        j = i + delta;
-      if (j < 0 || j >= order.length) return;
-      [order[i], order[j]] = [order[j], order[i]];
-      this.setLayout({ order });
-      this.render();
-    };
-    panel.append(
-      this.button("بخش بالاتر", () => moveSection(-1)),
-      this.button("بخش پایین‌تر", () => moveSection(1)),
-    );
+      button.disabled = order.indexOf(section)+delta<0 || order.indexOf(section)+delta>=order.length;
+      settings.append(button);
+    }
     const items = this.sections[section] || [];
-    for (const [index, item] of items.entries())
-      panel.append(this.itemForm(section, item, index));
     const add = this.button(`+ افزودن ${sectionLabels[section]}`, () => {
-      const item = {
-        ...clone(definition.defaults),
-        id: crypto.randomUUID(),
-        visibility: "HIDDEN",
-        evidence: [],
-      };
-      (this.sections[section] ??= []).push(item);
-      this.change(section, item);
-      this.render();
-      this.root.querySelector(`[data-item-id="${item.id}"] input`)?.focus();
+      const item = {...clone(definition.defaults),id:crypto.randomUUID(),visibility:"HIDDEN",evidence:[]};
+      this.selectedItems[section] = item.id; this.filters[section] = "";
+      this.change(section,item); this.render();
+      this.root.querySelector(".item-fields input, .item-fields select, .item-fields textarea")?.focus();
     });
-    add.disabled = items.length >= definition.limit;
-    panel.append(
-      add,
-      el(
-        "p",
-        "آیتم تازه به‌صورت پنهان ذخیره می‌شود. برای نمایش عمومی، اطلاعات ضروری آن را کامل کنید.",
-        "hint",
-      ),
-    );
-    this.root.append(panel);
+    add.className = "button primary add-content-item"; add.disabled = items.length >= definition.limit;
+    const split = el("div", "", "item-workspace");
+    const rail = el("aside", "", "item-rail"); rail.setAttribute("aria-label", `فهرست ${sectionLabels[section]}`);
+    rail.append(el("h3", `فهرست ${sectionLabels[section]}`), add);
+    const search = el("input"); search.type = "search"; search.placeholder = "جستجو در این بخش…";
+    search.setAttribute("aria-label", "جستجو در موارد"); search.value = this.filters[section] || "";
+    const list = el("div", "", "item-list");
+    const filter = () => {
+      const query = search.value.trim().toLocaleLowerCase(); this.filters[section] = search.value;
+      for (const button of list.children) button.hidden = !button.textContent.toLocaleLowerCase().includes(query);
+    };
+    search.oninput = filter; if (items.length) rail.append(search);
+    if (!items.some(i => i.id === this.selectedItems[section])) this.selectedItems[section] = items[0]?.id;
+    for (const item of items) {
+      const button = this.button("", () => { this.selectedItems[section] = item.id; this.render(); });
+      button.className = "item-choice"; button.dataset.itemChoice = item.id;
+      button.setAttribute("aria-pressed", String(item.id === this.selectedItems[section]));
+      const name = el("strong", item[titleFields[section]] || "مورد تازه", "item-choice-title"); name.dir="auto";
+      const subtitle = item.organizationName || item.institutionName || item.issuingOrganization || item.category || item.description || "";
+      button.append(name, el("span", subtitle, "item-choice-subtitle"), el("small", item.visibility === "PUBLIC" ? "عمومی" : "پیش‌نویس خصوصی", "item-privacy"));
+      list.append(button);
+    }
+    filter(); rail.append(list); split.append(rail);
+    const selected = items.find(i=>i.id === this.selectedItems[section]);
+    if (selected) split.append(this.itemForm(section, selected, items.indexOf(selected)));
+    else {
+      const empty = el("div", "", "editor-empty");
+      empty.append(el("span", "＋", "empty-symbol"),el("h3", "داستان حرفه‌ای شما از اینجا شروع می‌شود"),el("p", "اولین مورد را اضافه کنید. تا زمان انتخاب نمایش عمومی، خصوصی می‌ماند.","hint")); split.append(empty);
+    }
+    panel.append(split, settings); this.root.append(panel);
   }
   itemForm(section, item, index) {
-    const box = el("details", "", "content-item-form");
+    const box = el("section", "", "content-item-form");
     box.dataset.itemId = item.id;
-    box.open = true;
-    const summary = el("summary", item[titleFields[section]] || "آیتم تازه");
+    const summary = el("h3", item[titleFields[section]] || "مورد تازه");
     box.append(summary);
     const actions = el("div", "", "actions");
     const visibility = el("label", "نمایش عمومی");
@@ -412,9 +448,12 @@ export class ProfileContentEditor {
     visible.checked = item.visibility === "PUBLIC";
     visible.onchange = () => {
       item.visibility = visible.checked ? "PUBLIC" : "HIDDEN";
+      const badge = this.root.querySelector(`[data-item-choice="${item.id}"] .item-privacy`);
+      if (badge) badge.textContent = visible.checked ? "عمومی" : "پیش‌نویس خصوصی";
       this.change(section, item);
     };
     visibility.prepend(visible);
+    visibility.classList.add("visibility-choice");
     actions.append(visibility);
     const featured = el("label", "برجسته");
     const star = el("input");
@@ -435,7 +474,16 @@ export class ProfileContentEditor {
       this.setLayout({ featured: refs });
     };
     featured.prepend(star);
+    featured.classList.add("featured-choice");
     actions.append(featured);
+    const duplicate = this.button("کپی", () => {
+      const copy = {...clean(clone(item)), id:crypto.randomUUID(), visibility:"HIDDEN", evidence:clone(item.evidence || []).map(e=>({...e,id:crypto.randomUUID()}))};
+      // Uploaded files belong to the original item; do not copy media ownership.
+      if (copy.media) copy.media = [];
+      this.selectedItems[section] = copy.id; this.change(section,copy); this.render();
+    });
+    duplicate.disabled = this.sections[section].length >= this.schemas[section].limit;
+    actions.append(duplicate);
     for (const [delta, text] of [
       [-1, "بالاتر"],
       [1, "پایین‌تر"],
@@ -460,6 +508,7 @@ export class ProfileContentEditor {
     }
     actions.append(
       this.button("حذف آیتم", () => {
+        if (!window.confirm("این مورد از پروفایل حذف شود؟")) return;
         this.sections[section] = this.sections[section].filter(
           (i) => i.id !== item.id,
         );
@@ -483,16 +532,30 @@ export class ProfileContentEditor {
     );
     box.append(actions);
     const update = () => {
-      summary.textContent = item[titleFields[section]] || "آیتم تازه";
+      summary.textContent = item[titleFields[section]] || "مورد تازه";
+      const choice = this.root.querySelector(`[data-item-choice="${item.id}"]`);
+      if (choice) choice.querySelector(".item-choice-title").textContent = summary.textContent;
       this.change(section, item);
     };
-    for (const [field, value] of Object.entries(
-      this.schemas[section].defaults,
-    )) {
-      if (field === "media") continue;
-      box.append(this.field(field, item, update, value));
+    const fields = el("div", "", "item-fields");
+    const defaults = this.schemas[section].defaults;
+    const keys = [...new Set([...(fieldOrder[section] || []), ...Object.keys(defaults)])].filter(key => Object.hasOwn(defaults,key));
+    for (const field of keys) {
+      const value = defaults[field];
+      if (["media", "visibility", "id", "displayOrder", "createdAt", "updatedAt", "evidence"].includes(field)) continue;
+      const control = this.field(field, item, update, value);
+      control.dataset.field = field;
+      if (control.querySelector("textarea") || Array.isArray(value) || ["description","summary","content","value"].includes(field)) control.classList.add("wide-field");
+      fields.append(control);
     }
-    box.append(this.field("evidence", item, update, []));
+    const syncEndDate = () => {
+      const ongoing = fields.querySelector('[data-field="isCurrent"] input, [data-field="isOngoing"] input');
+      const endDate = fields.querySelector('[data-field="endDate"]');
+      if (endDate && ongoing) endDate.disabled = ongoing.checked;
+    };
+    fields.addEventListener("input", syncEndDate); syncEndDate();
+    box.append(fields);
+    const evidence = el("details", "", "evidence-details"); evidence.append(el("summary", "شواهد و منابع (اختیاری)"),this.field("evidence", item, update, [])); box.append(evidence);
     if (section === "recommendations")
       box.append(
         el(
@@ -615,7 +678,7 @@ export class ProfileContentEditor {
       return group;
     }
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      const group = el("fieldset");
+      const group = el("fieldset", "", "partial-date");
       group.append(el("legend", labels[field]));
       const calendar = el("select");
       calendar.add(new Option("شمسی", "persian"));
@@ -669,6 +732,7 @@ export class ProfileContentEditor {
             : item[field].filter((id) => id !== other.id);
           update();
         };
+        label.classList.add("reference-chip");
         label.prepend(input);
         group.append(label);
       }
@@ -768,6 +832,7 @@ export class ProfileContentEditor {
     // References are resolved only against visible items, including in the local preview.
     const order = [
       ...new Set([
+        ...(publicSections[this.selected]?.length ? [this.selected] : []),
         ...(this.layout.order || []),
         ...Object.keys(publicSections),
       ]),

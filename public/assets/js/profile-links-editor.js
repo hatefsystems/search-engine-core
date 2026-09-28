@@ -211,7 +211,18 @@ export class ProfileLinksEditor {
         "hint",
       ),
     );
+    const workspace = el("div", "", "item-workspace");
+    const rail = el("aside", "", "item-rail"); rail.setAttribute("aria-label", "فهرست لینک‌ها");
+    const list = el("div", "", "item-list"); rail.append(list); workspace.append(rail);
+    this.root.append(workspace);
+    if (!this.links.some(link => link.id === this.selectedId)) this.selectedId = this.links[0]?.id;
     for (const [index, link] of this.links.entries()) {
+      const choice = this.button("", () => { this.selectedId = link.id; this.render(); });
+      choice.className = "item-choice";
+      choice.setAttribute("aria-pressed", String(this.selectedId === link.id));
+      choice.append(el("strong", link.title || "لینک تازه", "item-choice-title"),el("span",link.url || "", "item-choice-subtitle"));
+      list.append(choice);
+      if (link.id !== this.selectedId) continue;
       const box = el("fieldset");
       box.append(el("legend", link.title || "لینک تازه"));
       for (const [key, title] of [
@@ -225,6 +236,8 @@ export class ProfileLinksEditor {
         input.dir = "auto";
         input.oninput = () => {
           link[key] = input.value;
+          if (key === "title") choice.querySelector("strong").textContent = input.value || "لینک تازه";
+          if (key === "url") choice.querySelector("span").textContent = input.value;
           this.change(link);
         };
         label.append(input);
@@ -273,6 +286,7 @@ export class ProfileLinksEditor {
       }
       box.append(
         this.button("حذف لینک", () => {
+          if (!window.confirm("این لینک حذف شود؟")) return;
           this.queue.change(link.id, {
             remove: true,
             baseVersion: this.versions[link.id] || 0,
@@ -281,9 +295,10 @@ export class ProfileLinksEditor {
           this.render();
         }),
       );
-      this.root.append(box);
+      box.classList.add("link-item-form");
+      workspace.append(box);
     }
-    this.root.append(
+    rail.prepend(
       this.button("+ افزودن لینک", () => {
         if (this.links.length >= 50) return;
         const id = crypto.randomUUID().replaceAll("-", "").slice(0, 24);
@@ -297,6 +312,7 @@ export class ProfileLinksEditor {
           isActive: true,
           sortOrder: this.links.length,
         };
+        this.selectedId = id;
         this.links.push(link);
         this.change(link);
         this.render();
