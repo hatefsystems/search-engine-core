@@ -1,7 +1,7 @@
 # ML Pipeline - Runtime Dependencies
 
 # Core Python
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Unicode and text processing
 pyicu==2.11
