@@ -75,6 +75,7 @@ const demo=require('./demo-profile.cjs');
   for(const section of Object.keys(demo.sections))assert.equal(owner.sections[section].length,demo.sections[section].length);
   if(!fixture){
    const publicResponse=await browser.newContext();const publicPage=await publicResponse.newPage();
+   publicPage.on('pageerror',e=>errors.push(e.message));
    await publicPage.setViewportSize({width:1440,height:1080});const response=await publicPage.goto(base+'/'+encodeURIComponent(slug));assert.equal(response.status(),200);await publicPage.locator('.public-profile').waitFor();
    assert.equal(await publicPage.getByText('نویسندهٔ آزمایشی',{exact:true}).count(),0);
    await publicPage.evaluate(()=>document.fonts.ready);
@@ -83,12 +84,18 @@ const demo=require('./demo-profile.cjs');
    const preview=page.frameLocator('#public-preview');await preview.locator('#preview-name').waitFor();
    assert.equal(await preview.locator('#preview-name').textContent(),await publicPage.locator('#preview-name').textContent());
    assert.equal(await preview.locator('#preview-bio').textContent(),await publicPage.locator('#preview-bio').textContent());
-   await publicPage.locator('#section-skills [data-more-section]').click();
-   assert.equal(await publicPage.locator('#section-skills .pp-card').count(),6);
-   await publicPage.locator('#section-skills [data-more-section]').click();
-   assert.equal(await publicPage.locator('#section-skills .pp-card').count(),8);
+   for(const count of [6,8]){
+    const [response]=await Promise.all([
+     publicPage.waitForResponse(r=>r.url().includes(`/api/profiles/${id}/content/skills?`)),
+     publicPage.locator('#section-skills [data-more-section]').click()
+    ]);
+    assert.equal(response.status(),200);
+    await publicPage.waitForFunction(count=>document.querySelectorAll('#section-skills .pp-card').length===count,count);
+    assert.equal(await publicPage.locator('#section-skills .pp-card').count(),count);
+   }
    for(const width of [1440,1920,768,390,320]){
     await publicPage.setViewportSize({width,height:1080});assert.ok(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await publicPage.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
     await publicPage.screenshot({path:`${out}/20-public-${width}.png`,fullPage:true});
     if(width===1440||width===390)await publicPage.screenshot({path:`${out}/22-public-hero-${width}.png`});
    }
