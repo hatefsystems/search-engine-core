@@ -59,8 +59,9 @@
 </form>
 <aside id="preview" class="preview-column" aria-label="پیش‌نمایش زنده">
 <div class="preview-caption"><div><h2>پیش‌نمایش زنده پروفایل</h2><p class="hint">نمایش اطلاعات عمومی، با تغییرات فعلی شما.</p></div><div class="preview-devices" role="group" aria-label="اندازهٔ پیش‌نمایش"><button type="button" data-preview-size="desktop" aria-pressed="true" aria-label="پیش‌نمایش دسکتاپ">▱</button><button type="button" data-preview-size="mobile" aria-pressed="false" aria-label="پیش‌نمایش موبایل">▯</button></div></div>
-<div class="preview-surface"><div class="preview-card"><div class="preview-cover"><img id="preview-cover" alt="" hidden><button type="button" id="preview-edit-cover" class="cover-edit">ویرایش کاور</button></div><div class="preview-identity"><div class="preview-avatar"><span aria-hidden="true">ه</span><img id="preview-avatar" alt="تصویر پروفایل" hidden></div><h2 id="preview-name">نام شما</h2><p id="preview-title" dir="auto"></p><p id="preview-company" dir="auto"></p><section id="preview-about"><p id="preview-bio" dir="auto"></p></section><div id="preview-location" class="hint" dir="auto"></div><span id="preview-availability" class="badge"></span></div><div id="preview-stats" class="preview-stats" hidden></div><div id="preview-skills" class="preview-skills"></div></div>
-<div id="advanced-preview"></div><section id="links-preview"></section></div></aside>
+<button type="button" id="expand-preview" class="button secondary">نمایش بزرگ پیش‌نمایش ↗</button>
+<div class="preview-surface"><iframe id="public-preview" src="/assets/profile-preview.html" title="پیش‌نمایش زندهٔ صفحهٔ عمومی" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe></div></aside>
 </div></section></main>
+<dialog id="public-preview-dialog" aria-label="پیش‌نمایش صفحهٔ عمومی"><button type="button" id="close-public-preview" class="button secondary">بستن پیش‌نمایش ×</button><div id="expanded-preview-host"></div></dialog>
 <dialog id="section-picker" aria-labelledby="section-picker-title"><div class="dialog-heading"><h2 id="section-picker-title">افزودن بخش به پروفایل</h2><button type="button" id="close-section-picker" class="button quiet" aria-label="بستن">×</button></div><p class="hint">بخشی را انتخاب کنید و اولین مورد را اضافه کنید.</p><div id="section-picker-options"></div></dialog>
 </body></html>

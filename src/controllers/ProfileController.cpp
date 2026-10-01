@@ -282,6 +282,24 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
         if (person) {
             search_engine::profile::addPersonHeaderData(templateData);
             templateData["advancedSections"] = search_engine::profile::publicSectionCards(person->content, person->id.value_or(""));
+            // Only already-public data is embedded. Keep initial payload bounded;
+            // later cards use the existing unauthenticated public pagination API.
+            auto presentation = templateData["profile"];
+            for (const auto* key : {"completion", "contentLayout", "privacy", "version", "createdAt", "updatedAt"}) presentation.erase(key);
+            presentation["links"] = linksArray;
+            presentation["totals"] = nlohmann::json::object();
+            presentation["featuredItems"] = nlohmann::json::array();
+            for (auto& [section, items] : presentation["sections"].items()) {
+                presentation["totals"][section] = items.size();
+                for (const auto& ref : presentation["featured"]) {
+                    if (ref.value("section", "") != section) continue;
+                    for (const auto& item : items) if (item["id"] == ref["id"]) presentation["featuredItems"].push_back(item);
+                }
+                const size_t initialLimit = section == "skills" ? 7 : 3;
+                if (items.size() > initialLimit) items.erase(items.begin() + initialLimit, items.end());
+            }
+            templateData["publicPresentation"] = presentation.dump();
+
             for (auto& tag : templateData["openGraph"]) {
                 if (tag["property"] == "og:locale") tag["content"] = "fa_IR";
             }

@@ -65,7 +65,7 @@ function start(port=4173){
    if(parts[0]==='fixture-media'&&media.has(parts[1])){res.writeHead(200,{'Content-Type':'image/png'});return res.end(media.get(parts[1]));}
    if(parts[0]==='assets'){
     const file=path.resolve(root,'public','.'+url.pathname);if(!file.startsWith(path.join(root,'public')+path.sep))return send({},403);
-    const types={'.js':'text/javascript','.css':'text/css','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});return res.end(fs.readFileSync(file));
+    const types={'.js':'text/javascript','.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml','.html':'text/html; charset=utf-8'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});return res.end(fs.readFileSync(file));
    }
    const id=url.searchParams.get('id')||'fixture';if(!profiles.has(id))seed(id);
    let html=fs.readFileSync(path.join(root,'templates/profile_editor.inja'),'utf8').replace(/{% if state != "new" %}hidden{% endif %}/g,'hidden').replace(/{{ state }}/g,'edit').replace(/{{ profileId }}/g,id).replace(/{{ (?:encodedSlug|slug) }}/g,'آزمایش');

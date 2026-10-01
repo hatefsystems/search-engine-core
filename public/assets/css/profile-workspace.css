@@ -190,3 +190,12 @@
 .profile-editor-page #advanced-preview .content-item:last-child { border-bottom:0; }
 .profile-editor-page .preview-skills .badge { font-size:12px; }
 .section-nav .button::after { line-height:1; }
+/* The iframe uses the same renderer and responsive CSS as the public page. */
+#public-preview{display:block;width:100%;height:780px;border:0;border-radius:14px;background:#f5f3ff}
+#expand-preview{width:100%;margin:0 0 12px}
+#public-preview-dialog{width:min(1560px,96vw);max-width:96vw;height:94vh;max-height:94vh;border:1px solid #e1d9fb;border-radius:18px;padding:12px;background:#f8f6ff}
+#public-preview-dialog::backdrop{background:#110933a8;backdrop-filter:blur(6px)}
+#close-public-preview{margin-bottom:10px}
+#expanded-preview-host{height:calc(100% - 56px)}
+#expanded-preview-host #public-preview{height:100%}
+@media(max-width:760px){#public-preview{height:78vh;min-height:600px}}

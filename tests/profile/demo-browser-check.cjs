@@ -68,9 +68,26 @@ const demo=require('./demo-profile.cjs');
   for(const section of Object.keys(demo.sections))assert.equal(owner.sections[section].length,demo.sections[section].length);
   if(!fixture){
    const publicResponse=await browser.newContext();const publicPage=await publicResponse.newPage();
-   await publicPage.setViewportSize({width:1440,height:1080});const response=await publicPage.goto(base+'/'+encodeURIComponent(slug));assert.equal(response.status(),200);
+   await publicPage.setViewportSize({width:1440,height:1080});const response=await publicPage.goto(base+'/'+encodeURIComponent(slug));assert.equal(response.status(),200);await publicPage.locator('.public-profile').waitFor();
    assert.equal(await publicPage.getByText('نویسندهٔ آزمایشی',{exact:true}).count(),0);
-   await publicPage.evaluate(()=>document.fonts.ready);await publicPage.screenshot({path:`${out}/20-public-desktop.png`,fullPage:true});await publicResponse.close();
+   await publicPage.evaluate(()=>document.fonts.ready);
+   assert.ok(await publicPage.locator('#section-projects .pp-card').count());
+   assert.equal(await publicPage.locator('#section-recommendations').count(),0);
+   const preview=page.frameLocator('#public-preview');await preview.locator('#preview-name').waitFor();
+   assert.equal(await preview.locator('#preview-name').textContent(),await publicPage.locator('#preview-name').textContent());
+   assert.equal(await preview.locator('#preview-bio').textContent(),await publicPage.locator('#preview-bio').textContent());
+   await publicPage.locator('#section-skills [data-more-section]').click();
+   assert.equal(await publicPage.locator('#section-skills .pp-card').count(),6);
+   await publicPage.locator('#section-skills [data-more-section]').click();
+   assert.equal(await publicPage.locator('#section-skills .pp-card').count(),8);
+   for(const width of [1440,1920,768,390,320]){
+    await publicPage.setViewportSize({width,height:1080});assert.ok(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await publicPage.screenshot({path:`${out}/20-public-${width}.png`,fullPage:true});
+   }
+   await publicPage.setViewportSize({width:1440,height:1080});
+   await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
+   await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
+   await publicResponse.close();
   }
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${out}/validation.json`,JSON.stringify({mode:fixture?'fixture UI only':'real C++ API + MongoDB',sections:Object.keys(demo.sections).length,items:Object.values(demo.sections).reduce((n,a)=>n+a.length,0),screenshots:fs.readdirSync(out).filter(f=>f.endsWith('.png')).length,unknownFields:'Synthetic publication and recommendation are labelled and hidden.',result:'PASS'},null,2));

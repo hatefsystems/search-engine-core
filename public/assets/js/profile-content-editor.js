@@ -5,7 +5,6 @@ import {
   sectionLabels,
   titleFields,
   el,
-  renderItem,
   dateText,
 } from "./profile-content-ui.js";
 const clone = (value) => structuredClone(value);
@@ -67,7 +66,7 @@ export class ProfileContentEditor {
     try { this.selected = sessionStorage.getItem(`hatef.editor.section.${id}`) || "basic"; } catch {}
     this.schemas = {};
     this.root = document.getElementById("advanced-editor");
-    this.preview = document.getElementById("advanced-preview");
+
     this.queue = new ProfileAutosave({
       id: `content.${id}`,
       draftId,
@@ -268,7 +267,7 @@ export class ProfileContentEditor {
           localStorage.removeItem(key);
     } catch {}
     this.root.replaceChildren();
-    this.preview.replaceChildren();
+
   }
   resolve(data, keep) {
     this.server = clone(data);
@@ -825,64 +824,6 @@ export class ProfileContentEditor {
     return wrapper;
   }
   renderPreview() {
-    this.preview.replaceChildren();
-    const publicSections = {};
-    for (const [section, items] of Object.entries(this.sections || {}))
-      if (this.layout.visibility?.[section] !== "HIDDEN")
-        publicSections[section] = items.filter(
-          (i) => i.visibility === "PUBLIC",
-        );
-    const privacy = this.layout.privacy || this.server.privacy || {};
-    if (privacy.showAvailability === false) delete publicSections.availability;
-    if (publicSections.contacts)
-      publicSections.contacts = publicSections.contacts.filter(
-        (item) =>
-          !(item.type === "EMAIL" && !privacy.showEmail) &&
-          !(item.type === "PHONE" && !privacy.showPhone),
-      );
     this.headerPreview?.();
-    // References are resolved only against visible items, including in the local preview.
-    const order = [
-      ...new Set([
-        ...(publicSections[this.selected]?.length ? [this.selected] : []),
-        ...(this.layout.order || []),
-        ...Object.keys(publicSections),
-      ]),
-    ];
-    for (const section of order) {
-      const items = publicSections[section];
-      if (!items?.length) continue;
-      // The one-item introduction is already rendered in the preview identity.
-      if (section === "about") continue;
-      const block = el("section", "", "profile-content-section");
-      block.append(el("h3", sectionLabels[section]));
-      for (const original of items) {
-        const item = clone(original);
-        for (const [key, target] of Object.entries({
-          skillIds: "skills",
-          projectIds: "projects",
-          experienceIds: "experiences",
-          certificationIds: "certifications",
-        }))
-          if (item[key])
-            item[key] = item[key].filter((id) =>
-              publicSections[target]?.some((i) => i.id === id),
-            );
-        const card = renderItem(section, item, this.id, publicSections);
-        const heading = card.querySelector("h3");
-        const metadata = [item.organizationName || item.issuingOrganization || item.publisher || item.category,
-          item.startDate?.year ? `${dateText(item.startDate)} · ${item.isCurrent || item.isOngoing ? "اکنون" : dateText(item.endDate)}` : ""].filter(Boolean).join(" · ");
-        if (metadata) heading.after(el("p", metadata, "preview-item-meta"));
-        if (!card.querySelector(".content-summary") && item.responsibilities?.length) card.querySelector("details").before(el("p", item.responsibilities.slice(0,2).join(" · "), "content-summary"));
-        if (item.technologies?.length) {
-          const tags = el("div", "", "preview-item-tags");
-          for (const name of item.technologies.slice(0,6)) tags.append(el("span", name, "badge"));
-          card.querySelector("details").before(tags);
-        }
-        if (this.layout.featured?.some(ref => ref.section === section && ref.id === item.id)) card.prepend(el("span", "★ مورد برجسته", "featured-label"));
-        block.append(card);
-      }
-      this.preview.append(block);
-    }
   }
 }
