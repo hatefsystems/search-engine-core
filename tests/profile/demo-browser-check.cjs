@@ -14,6 +14,13 @@ const demo=require('./demo-profile.cjs');
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.PROFILE_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
   context=await browser.newContext({viewport:{width:1440,height:1080}});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  if(!fixture){
+   const shell=await context.request.get(base+'/assets/profile-preview.html');
+   assert.equal(shell.status(),200);assert.equal(shell.headers()['x-frame-options'],'SAMEORIGIN');
+   assert.equal(shell.headers()['content-security-policy'],"frame-ancestors 'self'");
+   const stylesheet=await context.request.get(base+'/assets/css/profile-public.css');
+   assert.equal(stylesheet.status(),200);assert.equal(stylesheet.headers()['x-frame-options'],'DENY');
+  }
   const api=async(path,method='GET',body)=>{const response=await context.request.fetch(base+path,{method,data:body,headers:{Origin:new URL(base).origin,...(key?{Authorization:'Bearer '+key}:{})}});const result=await response.json();assert.ok(response.ok(),`${method} ${path}: ${response.status()} ${JSON.stringify(result)}`);return result;};
   const slug='نمونه.هاتف.'+Date.now();
   if(fixture)id='demo-profile';else{const result=await api('/api/profiles','POST',{type:'PERSON',slug,name:'',isPublic:false});id=result.data.id;key=result.ownerToken;await api(`/api/profiles/${id}/session`,'POST',{key});}
@@ -83,6 +90,7 @@ const demo=require('./demo-profile.cjs');
    for(const width of [1440,1920,768,390,320]){
     await publicPage.setViewportSize({width,height:1080});assert.ok(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await publicPage.screenshot({path:`${out}/20-public-${width}.png`,fullPage:true});
+    if(width===1440||width===390)await publicPage.screenshot({path:`${out}/22-public-hero-${width}.png`});
    }
    await publicPage.setViewportSize({width:1440,height:1080});
    await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
