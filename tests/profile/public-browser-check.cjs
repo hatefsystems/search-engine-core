@@ -28,6 +28,10 @@ const demo=require('./demo-profile.cjs');
   assert.equal(await page.locator('details,summary,[data-more-section],.pp-level,.pp-project-art').count(),0);
   assert.ok(await page.locator('#section-experiences .pp-prose-field').count());
   assert.equal(await page.locator('#preview-bio').count(),1);
+  const expectedFacts=await page.locator('#section-experiences .pp-position-facts').first().innerText();
+  await page.evaluate(()=>{const p=structuredClone(window.testData);for(const [key,items] of Object.entries(p.sections))p.sections[key]=items.map(item=>Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))));window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});});
+  assert.equal(await page.locator('#section-experiences .pp-position-facts').first().innerText(),expectedFacts);
+  assert.equal(await page.locator('#section-experiences .pp-position-facts dt').first().textContent(),'نام سازمان');
   await page.evaluate(()=>window.print=()=>window.printRequested=true);await page.locator('[data-resume]').click();assert.equal(await page.evaluate(()=>window.printRequested),true);
   for(const width of [1920,1440,1280,1024,768,390,320]){
    await page.setViewportSize({width,height:1080});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow at ${width}`);

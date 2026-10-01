@@ -42,7 +42,9 @@ function card(key,item,data){
  const body=el('div','','pp-card-body');body.append(...details.childNodes);details.replaceWith(body);
  const list=body.querySelector('dl');
  // Preserve every populated field while presenting prose and lists as readable content.
- for(const dt of [...list.querySelectorAll('dt')]){
+ const fieldOrder=['organizationName','institutionName','issuingOrganization','organization','publisher','authorTitle','startDate','endDate','isCurrent','isOngoing','issueDate','expirationDate','publicationDate','date','employmentType','location','locationType','role','degree','fieldOfStudy','kind','category','proficiencyLevel','proficiency','yearsOfExperience','firstUsedYear','lastUsedYear','isCurrentlyUsing','type','status','projectType','platform','contributionType','deliveryMode','pricingMode','price','currency','availability','contactMethod','problem','solution','architecture','responsibilities','achievements','challenges','outcomes','activities','technologies','skillIds','projectIds','experienceIds','certificationIds'];
+ const rank=dt=>{const field=Object.keys(fieldLabels).find(k=>fieldLabels[k]===dt.textContent);const i=fieldOrder.indexOf(field);return i<0?fieldOrder.length:i;};
+ for(const dt of [...list.querySelectorAll('dt')].sort((a,b)=>rank(a)-rank(b))){
   const dd=dt.nextElementSibling;
   const field=Object.keys(fieldLabels).find(k=>fieldLabels[k]===dt.textContent);
   if(['organizationProfileId','institutionProfileId'].includes(field)){dt.remove();dd.remove();continue;}
