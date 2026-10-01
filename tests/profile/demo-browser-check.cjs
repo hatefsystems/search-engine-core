@@ -84,15 +84,10 @@ const demo=require('./demo-profile.cjs');
    const preview=page.frameLocator('#public-preview');await preview.locator('#preview-name').waitFor();
    assert.equal(await preview.locator('#preview-name').textContent(),await publicPage.locator('#preview-name').textContent());
    assert.equal(await preview.locator('#preview-bio').textContent(),await publicPage.locator('#preview-bio').textContent());
-   for(const count of [6,8]){
-    const [response]=await Promise.all([
-     publicPage.waitForResponse(r=>r.url().includes(`/api/profiles/${id}/content/skills?`)),
-     publicPage.locator('#section-skills [data-more-section]').click()
-    ]);
-    assert.equal(response.status(),200);
-    await publicPage.waitForFunction(count=>document.querySelectorAll('#section-skills .pp-card').length===count,count);
-    assert.equal(await publicPage.locator('#section-skills .pp-card').count(),count);
-   }
+   await publicPage.waitForFunction(()=>document.querySelectorAll('#section-skills .pp-card').length===8);
+   assert.equal(await publicPage.locator('details,summary,[data-more-section]').count(),0);
+   assert.ok(await publicPage.locator('#section-experiences .pp-prose-field').count());
+   assert.equal(await preview.locator('#section-skills .pp-card').count(),8);
    for(const width of [1440,1920,768,390,320]){
     await publicPage.setViewportSize({width,height:1080});assert.ok(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await publicPage.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));

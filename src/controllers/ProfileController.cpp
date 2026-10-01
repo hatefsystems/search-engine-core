@@ -295,7 +295,7 @@ void ProfileController::renderProfilePage(uWS::HttpResponse<false>* res, const s
                     if (ref.value("section", "") != section) continue;
                     for (const auto& item : items) if (item["id"] == ref["id"]) presentation["featuredItems"].push_back(item);
                 }
-                const size_t initialLimit = section == "skills" ? 7 : 3;
+                const size_t initialLimit = section == "contacts" ? items.size() : (section == "skills" ? 7 : 3);
                 if (items.size() > initialLimit) items.erase(items.begin() + initialLimit, items.end());
             }
             templateData["publicPresentation"] = presentation.dump();

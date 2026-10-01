@@ -75,7 +75,7 @@ const {start,sections}=require('./workspace-fixture.cjs');
   await page.locator('[data-clear=avatarUrl]').click();await saved();assert.equal(await page.locator('#editor-avatar').isVisible(),false);
   await nav('links');await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
   await page.getByLabel('عنوان لینک',{exact:true}).fill('لینک تست');await page.getByLabel('آدرس کامل',{exact:true}).fill('https://example.com');await page.getByLabel('نمایش لینک',{exact:true}).selectOption('PUBLIC');await saved();
-  assert.equal(await preview.locator('#section-links a').getAttribute('href'),'https://example.com/');
+  assert.equal(await preview.locator('#section-contacts .pp-contact-link a').getAttribute('href'),'https://example.com/');
   await page.reload();await page.getByLabel('عنوان لینک',{exact:true}).waitFor();assert.equal(await page.getByLabel('عنوان لینک',{exact:true}).inputValue(),'لینک تست');
   // Conflicting tabs preserve both drafts and reconcile using the current version.
   await nav('basic');const second=await context.newPage();await second.goto(base);await second.locator('#editor-section-nav button').first().waitFor();await second.locator('[data-section=basic]').click();

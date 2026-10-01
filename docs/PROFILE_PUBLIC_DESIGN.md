@@ -6,15 +6,13 @@ Implements the eight October 1 reference screens on top of master
 ## Presentation
 
 - RTL Vazirmatn layout, purple orbit background, sticky navigation, responsive
-  portrait/name/availability hero and technology strip.
-- Featured project case study, work timeline, project/publication cards, skills,
+  portrait/name/availability hero.
+- Highlighted project case study, work history, project/publication cards, skills,
   education, certificates, recommendations, services, achievements, languages,
   contact methods, open source contributions and cooperation opportunities.
 - Real data determines which sections, navigation entries and calls to action
-  appear. Empty/hidden sections do not create blank placeholders. Skill meters
-  show labelled discrete levels, not invented percentages.
-- Project artwork uses actual uploaded media. Without it, a vector placeholder is
-  displayed. Avatar and cover use the saved profile images. Reference portraits,
+  appear. Empty/hidden sections do not create blank placeholders. Skills show text levels and categories, without numeric meters.
+- Project artwork uses actual uploaded media. Without it, cards use a compact text layout. Avatar and cover use the saved profile images. Reference portraits,
   employer logos, endorsements and sample numerical claims are not hardcoded.
 - Eight technology icons from Simple Icons are bundled locally under CC0; their
   license is in `public/assets/images/tech/LICENSE.md`. The orbit illustration and
@@ -34,7 +32,7 @@ only for the dedicated preview shell, with both X-Frame-Options and CSP
 frame-ancestors; other static assets retain their deny policy. The real-backend
 test asserts these response headers to catch iframe policy regressions.
 
-The C++ public route still performs the authoritative public projection. It emits
+The C++ public route performs the authoritative public projection. It emits
 an inert, HTML-escaped JSON template with a bounded first batch of content and
 already-public featured records. The initial server-rendered semantic content and
 JSON-LD remain available to crawlers and when JavaScript is unavailable. The new
@@ -43,9 +41,8 @@ nor owner credentials are embedded in the public page.
 
 Public pagination deliberately omits credentials, even when the visitor is also
 signed in as the owner. Preview pagination uses its already-filtered draft.
-Resume export loads all public pages, opens the details for browser print / Save
-as PDF, then restores the original expansion state. Contact, navigation, sharing,
-load-more, details and mobile menu controls are functional. External links accept
+Resume export waits for all public records before browser print / Save
+as PDF. Contact, navigation, sharing and mobile menu controls are functional. External links accept
 only HTTP(S), or validated email/phone destinations for contact cards.
 
 ## Verification
@@ -73,3 +70,26 @@ and the expanded owner preview. No production data is changed.
 Visual assets are an implementation of the supplied layout, not a claim of pixel
 identity: a profile's actual content, media, section order and visibility determine
 the resulting card density and page height.
+
+
+## October 1 readability revision
+
+All populated public fields are directly visible. Collapsed details and manual
+load-more controls have been removed. The initial server payload stays bounded;
+remaining records load automatically in batches of up to 100, without credentials.
+Requests are sequential, abort when a preview render is replaced, and expose a
+retry action only on failure. Printing waits for complete data. Contact records
+are included in full in the public payload so the combined contact/link section
+never silently loses contact methods.
+
+The introduction is shown once. Project highlights appear on their full project
+card rather than duplicating that card. Experience records use a date/organization
+column alongside readable responsibilities and outcomes. Skills are grouped by
+category with text levels rather than percentage-like meters. Empty artwork boxes
+are removed. Real image galleries and evidence links remain accessible. The cover
+replaces the default orbit decoration. The layout uses dark headings and readable
+body text, content-sized cards and one combined contact/link section.
+
+Regression coverage includes fully visible public fields, automatic network
+pagination and recovery from a failed request, print preparation, hidden records,
+seven viewport widths and populated real-backend public/preview parity.
