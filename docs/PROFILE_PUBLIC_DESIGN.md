@@ -71,7 +71,6 @@ Visual assets are an implementation of the supplied layout, not a claim of pixel
 identity: a profile's actual content, media, section order and visibility determine
 the resulting card density and page height.
 
-
 ## October 1 readability revision
 
 All populated public fields are directly visible. Collapsed details and manual
@@ -93,3 +92,25 @@ body text, content-sized cards and one combined contact/link section.
 Regression coverage includes fully visible public fields, automatic network
 pagination and recovery from a failed request, print preparation, hidden records,
 seven viewport widths and populated real-backend public/preview parity.
+
+## October 2 galleries and reading revision
+
+Projects and work experiences each own an ordered image gallery. The editor shows
+thumbnails, editable captions, previous/next controls and deletion. The API accepts
+only uploads for that item, strips image metadata and checks profile/section/item
+visibility on every fetch. Copying an item starts with an empty gallery.
+
+The public layout uses grouped title/organization/date metadata, written month
+names at the saved precision, compact skill rows and all populated project fields
+in story order. Image captions are visible beside the related content. A sticky
+desktop section index and mobile menu include every displayed section and track
+the active section. An optional, separately editable tagline communicates value
+below the professional title. Certificate dates and source links remain visible
+when supplied; no verification claims are invented.
+
+The expanded API tests cover ownership, caption/order persistence, removal and
+visibility for both gallery types. The populated browser scenario uploads seven
+related images, edits/reorders/deletes/reloads them, compares public and preview
+captions, and waits for successful image decoding before screenshots. Illustrative
+diagrams are explicitly labelled as samples; the Hatef project uses a real
+screenshot of the running test editor.

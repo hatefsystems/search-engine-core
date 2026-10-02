@@ -73,7 +73,8 @@ const demo=require('./demo-profile.cjs');
    await nav(section);await page.locator(`[data-item-choice="${itemId}"]`).click();
    const panel=()=>page.locator('.item-media-panel');
    const screenshot=itemId==='demo-project-hatef';
-   const bytes=screenshot?await page.locator('.editor-columns').screenshot():await diagram(art);
+   if(screenshot)await page.evaluate(()=>window.scrollTo(0,0));
+   const bytes=screenshot?await page.screenshot():await diagram(art);
    const caption=screenshot?'نمای واقعی ویرایشگر هاتف در محیط آزمایشی':'نمودار نمونهٔ مسیر کار، صرفاً برای نمایش گالری این سابقه یا پروژه';
    const upload=async(buffer,alt)=>{
     await panel().getByLabel('توضیح تصویر جدید',{exact:true}).fill(alt);
@@ -116,6 +117,15 @@ const demo=require('./demo-profile.cjs');
   await page.setViewportSize({width:1440,height:1080});await nav('basic');await page.locator('#publish').click();await page.waitForFunction(()=>document.querySelector('#publication-label').textContent==='صفحهٔ منتشرشده');
   const owner=(await api(endpoint)).data;
   for(const section of Object.keys(demo.sections))assert.equal(owner.sections[section].length,demo.sections[section].length);
+  if(fixture){
+   const review=await context.newPage();await review.goto(base+'/assets/profile-preview.html');
+   await review.evaluate(async owner=>{const m=await import('/assets/js/profile-public.js');m.renderPublicProfile(document.getElementById('public-preview-root'),m.projectPublicProfile(owner),{preview:true});},owner);
+   await review.evaluate(()=>document.querySelectorAll('.content-gallery img').forEach(img=>img.loading='eager'));
+   await review.waitForFunction(()=>document.querySelectorAll('.content-gallery img').length===7&&[...document.querySelectorAll('.content-gallery img')].every(img=>img.complete&&img.naturalWidth>0));
+   await review.screenshot({path:`${out}/fixture-public-full.png`,fullPage:true});
+   for(const section of ['experiences','projects','skills'])await review.locator('#section-'+section).screenshot({path:`${out}/fixture-${section}.png`,style:'.pp-nav{position:static!important}'});
+   await review.close();
+  }
   if(!fixture){
    const publicResponse=await browser.newContext();const publicPage=await publicResponse.newPage();
    publicPage.on('pageerror',e=>errors.push(e.message));
@@ -142,7 +152,7 @@ const demo=require('./demo-profile.cjs');
     if(width===1440||width===390)await publicPage.screenshot({path:`${out}/22-public-hero-${width}.png`});
    }
    await publicPage.setViewportSize({width:1440,height:1080});
-   for(const section of ['experiences','projects','skills'])await publicPage.locator('#section-'+section).screenshot({path:`${out}/24-public-${section}.png`});
+   for(const section of ['experiences','projects','skills'])await publicPage.locator('#section-'+section).screenshot({path:`${out}/24-public-${section}.png`,style:'.pp-nav{position:static!important}'});
    await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
    await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
    await publicResponse.close();

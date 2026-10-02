@@ -587,7 +587,7 @@ export class ProfileContentEditor {
         for (const [delta, text] of [[-1,"تصویر قبلی"],[1,"تصویر بعدی"]]) {
           const button = this.button(text, () => {
             [item.media[index], item.media[index + delta]] = [item.media[index + delta], item.media[index]];
-            update(); render(); list.children[index + delta].querySelector("button").focus();
+            update(); render(); list.children[index + delta].querySelector("button:not(:disabled)").focus();
           });
           button.disabled = index + delta < 0 || index + delta >= item.media.length; controls.append(button);
         }
@@ -597,8 +597,8 @@ export class ProfileContentEditor {
     };
     render();
     const altLabel = el("label", "توضیح تصویر جدید"), alt = el("input"); alt.maxLength = 300; alt.dir = "auto"; altLabel.append(alt);
-    const uploadLabel = el("label", `افزودن تصویر ${title}`), input = el("input");
-    input.type = "file"; input.accept = "image/jpeg,image/png,image/webp"; uploadLabel.append(input);
+    const uploadLabel = el("label", `＋ افزودن تصویر ${title}`, "item-media-upload"), input = el("input");
+    input.type = "file"; input.accept = "image/jpeg,image/png,image/webp"; input.setAttribute("aria-label", `افزودن تصویر ${title}`); uploadLabel.append(input);
     const progress = el("p", "", "hint"); progress.setAttribute("role", "status");
     input.onchange = async () => {
       const file = input.files[0]; if (!file || this.uploading) return;

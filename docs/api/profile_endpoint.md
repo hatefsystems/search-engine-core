@@ -788,7 +788,6 @@ Unacknowledged form changes are kept locally per tab, reconciled on conflicts,
 and cleared on owner logout. Keep the displayed access key: this milestone
 has no account signup or lost-key recovery.
 
-
 ## Images attached to experiences and projects
 
 The owner can attach up to 10 static JPEG, PNG or WebP images (5 MiB each)

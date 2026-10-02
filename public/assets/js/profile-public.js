@@ -98,7 +98,7 @@ function card(key,item,data){
    if(item.media[index]?.alt)figure.append(el('figcaption',item.media[index].alt));
    img.onerror=()=>{figure.remove();if(!gallery.children.length)gallery.remove();};
   }
-  const layout=el('div','','pp-story-layout');body.replaceWith(layout);layout.append(body,gallery);
+  const layout=el('div','',`pp-story-layout${gallery.children.length>2?' pp-gallery-many':''}`);body.replaceWith(layout);layout.append(body,gallery);
  }
  if(key==='contacts'){const url=contactUrl(item);if(url)body.append(action('ارتباط','arrow',url));}
  if(key==='projects'&&(data.featured||[]).some(r=>r.section===key&&r.id===item.id)){
