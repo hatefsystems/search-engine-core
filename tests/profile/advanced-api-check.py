@@ -84,6 +84,40 @@ try:
     call(imagepath,status=404);assert call(imagepath,key=key)[8:12]==b'WEBP'
     public=call(path)['data'];assert 'نمونه‌کار دانشجویی' not in json.dumps(public,ensure_ascii=False);assert public['featured']==[]
     assert public['sections']['experiences'][0]['projectIds']==[]
+    # Media belongs to exactly one experience/project, preserving order and captions.
+    for section,titlefield in [('experiences','roleTitle'),('projects','title')]:
+        itemid='media-'+section;itempath=path+'/content/'+section+'/'+itemid;upload=path+'/'+section+'/'+itemid+'/media'
+        p=call(path+'/content/'+section,'POST',{'version':version,'item':{'id':itemid,titlefield:'آزمون تصاویر','visibility':'PUBLIC'}},key=key)['data'];version=p['version']
+        call(upload,'POST',{'version':version,'image':image},status=403)
+        call(upload,'POST',{'version':version,'image':base64.b64encode(b'not an image').decode()},key=key,status=400)
+        for alt in ['نمودار اول','نمودار دوم']:
+            p=call(upload,'POST',{'version':version,'image':image,'alt':alt},key=key)['data'];version=p['version']
+        images=next(i for i in p['sections'][section] if i['id']==itemid)['media'];assert len(images)==2 and images[0]['id']!=images[1]['id']
+        for m in images:assert call(path+'/media/'+m['id'])[8:12]==b'WEBP'
+        ordered=[{**images[1],'alt':'توضیح ویرایش‌شده'},images[0]]
+        p=call(itempath,'PUT',{'version':version,'item':{'media':ordered}},key=key)['data'];version=p['version']
+        persisted=call(path,key=key)['data'];assert next(i for i in persisted['sections'][section] if i['id']==itemid)['media']==ordered
+        call(itempath,'PUT',{'version':version,'item':{'media':[images[0],images[0]]}},key=key,status=400)
+        call(itempath,'PUT',{'version':version,'item':{'media':[{**images[0],'alt':'a'*301}]}},key=key,status=400)
+        call(path+'/content/'+section,'POST',{'version':version,'item':{'id':'forged-copy',titlefield:'کپی','media':images}},key=key,status=400)
+        other='projects/test-project' if section=='experiences' else 'experiences/item-experiences'
+        call(path+'/content/'+other,'PUT',{'version':version,'item':{'media':images}},key=key,status=400)
+        p=call(itempath,'PUT',{'version':version,'item':{'visibility':'HIDDEN'}},key=key)['data'];version=p['version']
+        call(path+'/media/'+images[0]['id'],status=404);call(path+'/media/'+images[0]['id'],key=key)
+        p=call(itempath,'PUT',{'version':version,'item':{'visibility':'PUBLIC'}},key=key)['data'];version=p['version']
+        p=call(path+'/layout','PUT',{'version':version,'visibility':{section:'HIDDEN'}},key=key)['data'];version=p['version']
+        call(path+'/media/'+images[0]['id'],status=404);call(path+'/media/'+images[0]['id'],key=key)
+        p=call(path+'/layout','PUT',{'version':version,'visibility':{section:'PUBLIC'}},key=key)['data'];version=p['version']
+        p=call(path,'PUT',{'version':version,'isPublic':False},key=key)['data'];version=p['version']
+        call(path+'/media/'+images[0]['id'],status=404);call(path+'/media/'+images[0]['id'],key=key)
+        p=call(path,'PUT',{'version':version,'isPublic':True},key=key)['data'];version=p['version']
+        p=call(itempath,'PUT',{'version':version,'item':{'media':[ordered[0]]}},key=key)['data'];version=p['version']
+        call(path+'/media/'+images[0]['id'],key=key,status=404);call(path+'/media/'+images[1]['id'])
+        p=call(itempath,'DELETE',{'version':version},key=key)['data'];version=p['version']
+        call(path+'/media/'+images[1]['id'],key=key,status=404)
+    p=call(path,'PUT',{'version':version,'tagline':'طراحی زیرساخت قابل اتکا'},key=key)['data'];version=p['version']
+    assert call(path)['data']['tagline']=='طراحی زیرساخت قابل اتکا'
+    call(path,'PUT',{'version':version,'tagline':'a'*121},key=key,status=400)
     # Clearing structured sections never resurrects legacy content.
     p=call(path+'/content/skills/skill-cpp','DELETE',{'version':version},key=key)['data'];version=p['version'];assert p['sections']['skills']==[]
     assert all(i['id']!=id for i in call('/api/people?skill=C%2B%2B')['data']['items'])

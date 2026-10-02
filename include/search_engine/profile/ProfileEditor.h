@@ -86,7 +86,7 @@ inline std::string readCookie(std::string_view cookies, const std::string& id) {
 // Editor patches are intentionally narrow; legacy fields and credentials stay intact.
 inline void applyEditorPatch(storage::PersonProfile& p, const nlohmann::json& body) {
     if (!body.is_object()) throw std::invalid_argument("اطلاعات نامعتبر است.");
-    const std::set<std::string> allowed = {"version", "name", "title", "company", "bio", "location",
+    const std::set<std::string> allowed = {"version", "name", "title", "tagline", "company", "bio", "location",
         "availabilityStatus", "skillsWithLevel", "avatarUrl", "coverImageUrl", "isPublic"};
     for (auto it = body.begin(); it != body.end(); ++it)
         if (!allowed.count(it.key())) throw std::invalid_argument("فیلد قابل ویرایش نیست: " + it.key());
@@ -102,6 +102,7 @@ inline void applyEditorPatch(storage::PersonProfile& p, const nlohmann::json& bo
         p.name = name; p.displayName = name;
     }
     if (body.contains("title")) p.title = text("title", 200);
+    if (body.contains("tagline")) p.tagline = text("tagline", 120);
     if (body.contains("company")) p.company = text("company", 200);
     if (body.contains("bio")) p.bio = text("bio", 500);
     if (body.contains("location")) p.location = text("location", 200);

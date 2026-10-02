@@ -179,6 +179,7 @@ ROUTE_CONTROLLER(ProfileController) {
     REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
     REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
     REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/projects/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/experiences/:itemId/media", profileMedia, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/media/:mediaId", profileMedia, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/new", newProfilePage, ProfileController);
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug/edit", editProfilePage, ProfileController);

@@ -5,7 +5,6 @@ import {
   sectionLabels,
   titleFields,
   el,
-  renderItem,
   dateText,
 } from "./profile-content-ui.js";
 const clone = (value) => structuredClone(value);
@@ -67,7 +66,7 @@ export class ProfileContentEditor {
     try { this.selected = sessionStorage.getItem(`hatef.editor.section.${id}`) || "basic"; } catch {}
     this.schemas = {};
     this.root = document.getElementById("advanced-editor");
-    this.preview = document.getElementById("advanced-preview");
+
     this.queue = new ProfileAutosave({
       id: `content.${id}`,
       draftId,
@@ -268,7 +267,7 @@ export class ProfileContentEditor {
           localStorage.removeItem(key);
     } catch {}
     this.root.replaceChildren();
-    this.preview.replaceChildren();
+
   }
   resolve(data, keep) {
     this.server = clone(data);
@@ -567,71 +566,63 @@ export class ProfileContentEditor {
           "hint",
         ),
       );
-    if (section === "projects") {
-      for (const media of item.media || [])
-        box.append(
-          this.button(`حذف تصویر: ${media.alt || "بدون توضیح"}`, () => {
-            item.media = item.media.filter((m) => m.id !== media.id);
-            update();
-            this.render();
-          }),
-        );
-      const alt = el("input");
-      alt.placeholder = "توضیح تصویر پروژه";
-      alt.setAttribute("aria-label", "توضیح تصویر پروژه");
-      const input = el("input");
-      input.type = "file";
-      input.accept = "image/jpeg,image/png,image/webp";
-      input.setAttribute("aria-label", "افزودن تصویر پروژه");
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-          this.notice("حداکثر اندازهٔ تصویر ۵ مگابایت است.");
-          return;
-        }
-        input.disabled = true;
-        try {
-          if (!(await this.flush()))
-            throw new Error("ابتدا ذخیرهٔ تغییرات را کامل کنید.");
-          const image = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          const result = await this.mutate((version) =>
-            this.api(
-              `/api/profiles/${this.id}/projects/${item.id}/media`,
-              "POST",
-              { image, alt: alt.value, version },
-            ),
-          );
-          this.accept(result.data);
-          this.receive(result.data);
-          this.render();
-        } catch (error) {
-          if (error.status === 409) {
-            this.queue.blocked = true;
-            this.conflict();
-          }
-          this.notice(error.message || "بارگذاری انجام نشد.");
-        } finally {
-          input.disabled = false;
-          input.value = "";
-        }
-      };
-      box.append(
-        alt,
-        input,
-        el(
-          "p",
-          "JPEG، PNG یا WebP ثابت؛ حداکثر ۵ مگابایت و ده تصویر. ویدئو و مدارک را با لینک در شواهد اضافه کنید.",
-          "hint",
-        ),
-      );
-    }
+    if (["projects", "experiences"].includes(section)) box.append(this.mediaPanel(section, item, update));
     return box;
+  }
+  mediaPanel(section, item, update) {
+    const title = section === "projects" ? "پروژه" : "سابقه";
+    const panel = el("fieldset", "", "item-media-panel");
+    panel.append(el("legend", `تصاویر ${title}`), el("p", "تصاویر همین مورد را اضافه کنید. اولین تصویر در ابتدای گالری نمایش داده می‌شود؛ وضعیت نمایش تصاویر از همین آیتم پیروی می‌کند.", "hint"));
+    const list = el("div", "", "item-media-list");
+    const render = () => {
+      list.replaceChildren();
+      for (const [index, media] of (item.media || []).entries()) {
+        const row = el("div", "", "item-media-row"); row.dataset.mediaId = media.id;
+        const image = el("img"); image.src = `/api/profiles/${encodeURIComponent(this.id)}/media/${encodeURIComponent(media.id)}`;
+        image.alt = media.alt || `تصویر ${index + 1} ${title}`;
+        const label = el("label", `توضیح تصویر ${index + 1}`), caption = el("input");
+        caption.value = media.alt || ""; caption.maxLength = 300; caption.dir = "auto";
+        caption.oninput = () => {media.alt = caption.value; image.alt = media.alt; update();}; label.append(caption);
+        const controls = el("div", "", "item-media-actions");
+        for (const [delta, text] of [[-1,"تصویر قبلی"],[1,"تصویر بعدی"]]) {
+          const button = this.button(text, () => {
+            [item.media[index], item.media[index + delta]] = [item.media[index + delta], item.media[index]];
+            update(); render(); list.children[index + delta].querySelector("button:not(:disabled)").focus();
+          });
+          button.disabled = index + delta < 0 || index + delta >= item.media.length; controls.append(button);
+        }
+        controls.append(this.button("حذف تصویر", () => {item.media = item.media.filter(m => m.id !== media.id); update(); render();}));
+        row.append(image,label,controls); list.append(row);
+      }
+    };
+    render();
+    const altLabel = el("label", "توضیح تصویر جدید"), alt = el("input"); alt.maxLength = 300; alt.dir = "auto"; altLabel.append(alt);
+    const uploadLabel = el("label", `＋ افزودن تصویر ${title}`, "item-media-upload"), input = el("input");
+    input.type = "file"; input.accept = "image/jpeg,image/png,image/webp"; input.setAttribute("aria-label", `افزودن تصویر ${title}`); uploadLabel.append(input);
+    const progress = el("p", "", "hint"); progress.setAttribute("role", "status");
+    input.onchange = async () => {
+      const file = input.files[0]; if (!file || this.uploading) return;
+      if (file.size > 5 * 1024 * 1024) {this.notice("حداکثر اندازهٔ تصویر ۵ مگابایت است."); input.value = ""; return;}
+      if ((item.media || []).length >= 10) {this.notice("حداکثر ده تصویر برای هر آیتم مجاز است."); input.value = ""; return;}
+      const form = document.getElementById("profile-form"), publish = document.getElementById("publish");
+      this.uploading = true; form.inert = true; publish.disabled = true; panel.setAttribute("aria-busy", "true");
+      progress.textContent = "در حال بارگذاری تصویر…"; this.notice("");
+      try {
+        if (!(await this.flush())) throw new Error("ابتدا ذخیرهٔ تغییرات را کامل کنید.");
+        const image = await new Promise((resolve, reject) => {
+          const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
+        });
+        const result = await this.mutate(version => this.api(`/api/profiles/${this.id}/${section}/${item.id}/media`, "POST", {image, alt:alt.value, version}));
+        this.accept(result.data); this.receive(result.data); this.render(); this.notice("تصویر ذخیره شد.");
+      } catch (error) {
+        if (error.status === 409) {this.queue.blocked = true; this.conflict();}
+        this.notice(error.message || "بارگذاری انجام نشد؛ دوباره تلاش کنید.");
+      } finally {
+        this.uploading = false; form.inert = false; publish.disabled = false; panel.removeAttribute("aria-busy"); progress.textContent = ""; input.value = "";
+      }
+    };
+    panel.append(list,altLabel,uploadLabel,progress,el("p", "JPEG، PNG یا WebP ثابت؛ حداکثر ۵ مگابایت و ده تصویر. ویدئو و مدارک را با لینک در شواهد اضافه کنید.", "hint"));
+    return panel;
   }
   field(field, item, update, defaultValue) {
     const wrapper = el("label", labels[field] || field);
@@ -825,64 +816,6 @@ export class ProfileContentEditor {
     return wrapper;
   }
   renderPreview() {
-    this.preview.replaceChildren();
-    const publicSections = {};
-    for (const [section, items] of Object.entries(this.sections || {}))
-      if (this.layout.visibility?.[section] !== "HIDDEN")
-        publicSections[section] = items.filter(
-          (i) => i.visibility === "PUBLIC",
-        );
-    const privacy = this.layout.privacy || this.server.privacy || {};
-    if (privacy.showAvailability === false) delete publicSections.availability;
-    if (publicSections.contacts)
-      publicSections.contacts = publicSections.contacts.filter(
-        (item) =>
-          !(item.type === "EMAIL" && !privacy.showEmail) &&
-          !(item.type === "PHONE" && !privacy.showPhone),
-      );
     this.headerPreview?.();
-    // References are resolved only against visible items, including in the local preview.
-    const order = [
-      ...new Set([
-        ...(publicSections[this.selected]?.length ? [this.selected] : []),
-        ...(this.layout.order || []),
-        ...Object.keys(publicSections),
-      ]),
-    ];
-    for (const section of order) {
-      const items = publicSections[section];
-      if (!items?.length) continue;
-      // The one-item introduction is already rendered in the preview identity.
-      if (section === "about") continue;
-      const block = el("section", "", "profile-content-section");
-      block.append(el("h3", sectionLabels[section]));
-      for (const original of items) {
-        const item = clone(original);
-        for (const [key, target] of Object.entries({
-          skillIds: "skills",
-          projectIds: "projects",
-          experienceIds: "experiences",
-          certificationIds: "certifications",
-        }))
-          if (item[key])
-            item[key] = item[key].filter((id) =>
-              publicSections[target]?.some((i) => i.id === id),
-            );
-        const card = renderItem(section, item, this.id, publicSections);
-        const heading = card.querySelector("h3");
-        const metadata = [item.organizationName || item.issuingOrganization || item.publisher || item.category,
-          item.startDate?.year ? `${dateText(item.startDate)} · ${item.isCurrent || item.isOngoing ? "اکنون" : dateText(item.endDate)}` : ""].filter(Boolean).join(" · ");
-        if (metadata) heading.after(el("p", metadata, "preview-item-meta"));
-        if (!card.querySelector(".content-summary") && item.responsibilities?.length) card.querySelector("details").before(el("p", item.responsibilities.slice(0,2).join(" · "), "content-summary"));
-        if (item.technologies?.length) {
-          const tags = el("div", "", "preview-item-tags");
-          for (const name of item.technologies.slice(0,6)) tags.append(el("span", name, "badge"));
-          card.querySelector("details").before(tags);
-        }
-        if (this.layout.featured?.some(ref => ref.section === section && ref.id === item.id)) card.prepend(el("span", "★ مورد برجسته", "featured-label"));
-        block.append(card);
-      }
-      this.preview.append(block);
-    }
   }
 }

@@ -29,9 +29,11 @@
     <link rel="stylesheet" href="/assets/css/profile-header.css">
     <script src="/assets/js/profile-header.js" defer></script>
     <link rel="stylesheet" href="/assets/css/profile-content.css">
-    <script type="module" src="/assets/js/profile-sections.js"></script>
+    <link rel="stylesheet" href="/assets/css/profile-public.css">
+    <script type="module" src="/assets/js/profile-public.js"></script>
 </head>
 <body>
+    {% if exists("publicPresentation") %}<template id="public-profile-data">{{ publicPresentation }}</template>{% endif %}
     <main class="profile-page">
         {% include "components/profile_header.inja" %}
         <div class="content">

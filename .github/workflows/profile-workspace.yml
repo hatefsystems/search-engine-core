@@ -1,10 +1,10 @@
 name: Profile workspace UI
 on:
   push:
-    branches: ['master', 'feat/profile-editor-figma', 'feat/profile-editor-review']
-    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
+    branches: ['master', 'feat/profile-editor-figma', 'feat/profile-editor-review', 'feat/profile-public-design']
+    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/controllers/StaticFileController*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
   pull_request:
-    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
+    paths: ['public/assets/**', 'templates/profile*.inja', 'tests/profile/**', 'src/profile/**', 'src/controllers/Profile*', 'src/controllers/StaticFileController*', 'src/storage/ProfileStorage.cpp', 'include/search_engine/profile/**', '.github/workflows/profile-workspace.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,13 +29,17 @@ jobs:
       - name: Check real editor UI against fixture API
         env:
           NODE_PATH: /tmp/profile-ui-tests/node_modules
-        run: node tests/profile/workspace-browser-check.cjs
+        run: |
+          node tests/profile/workspace-browser-check.cjs
+          node tests/profile/public-browser-check.cjs
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: profile-workspace-screenshots
-          path: build/profile/workspace-screenshots
+          path: |
+            build/profile/workspace-screenshots
+            build/profile/public-screenshots
           retention-days: 14
   integration:
     runs-on: ubuntu-latest

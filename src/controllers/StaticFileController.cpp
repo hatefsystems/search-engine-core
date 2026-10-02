@@ -126,10 +126,13 @@ private:
 // Global cache instance
 static JsMinificationCache jsCache;
 
-void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content) {
+void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content, bool allowSameOriginFrame) {
     // Set basic security headers for all responses
     res->writeHeader("X-Content-Type-Options", "nosniff");
-    res->writeHeader("X-Frame-Options", "DENY");
+    res->writeHeader("X-Frame-Options", allowSameOriginFrame ? "SAMEORIGIN" : "DENY");
+    if (allowSameOriginFrame) {
+        res->writeHeader("Content-Security-Policy", "frame-ancestors 'self'");
+    }
     res->writeHeader("X-XSS-Protection", "1; mode=block");
     res->writeHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res->writeHeader("Cross-Origin-Opener-Policy", "same-origin");
@@ -227,8 +230,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     res->writeStatus("200 OK")
        ->writeHeader("Content-Type", mimeType);
     
-    // Set basic security headers (no CSP for static files)
-    setCSPHeaders(res, mimeType, content);
+    // Only the dedicated preview shell may be embedded by this site's editor.
+    const bool isProfilePreview = req->getUrl() == "/assets/profile-preview.html" &&
+        filePath == "public/assets/profile-preview.html";
+    setCSPHeaders(res, mimeType, content, isProfilePreview);
     
     // Add cache headers for static assets
     if (mimeType == "application/javascript") {

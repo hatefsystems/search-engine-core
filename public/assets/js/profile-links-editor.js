@@ -2,8 +2,8 @@ import { ProfileAutosave } from "./profile-autosave.js";
 import { el, safeLink } from "./profile-content-ui.js";
 // Link documents have their own versions and never advance the profile version.
 export class ProfileLinksEditor {
-  constructor({ id, draftId, api, notice, status }) {
-    Object.assign(this, { id, api, notice, status });
+  constructor({ id, draftId, api, notice, status, preview }) {
+    Object.assign(this, { id, api, notice, status, preview });
     this.root = document.getElementById("links-editor");
     this.server = [];
     this.versions = {};
@@ -112,25 +112,7 @@ export class ProfileLinksEditor {
     this.renderPreview();
   }
   renderPreview() {
-    const box = document.getElementById("links-preview");
-    if (!box) return;
-    box.replaceChildren();
-    const visible = this.links.filter(
-      (l) =>
-        l.isActive &&
-        l.visibility === "PUBLIC" &&
-        l.privacy === "PUBLIC" &&
-        safeLink(l.url),
-    );
-    if (!visible.length) return;
-    box.append(el("h3", "لینک‌ها"));
-    for (const link of visible) {
-      const a = el("a", link.title, "content-reference");
-      a.href = safeLink(link.url);
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      box.append(a);
-    }
+    this.preview?.();
   }
   button(text, fn) {
     const b = el("button", text, "button secondary");

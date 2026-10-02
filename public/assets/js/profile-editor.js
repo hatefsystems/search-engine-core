@@ -1,9 +1,10 @@
+import {projectPublicProfile} from './profile-public.js';
 import {ProfileLinksEditor} from './profile-links-editor.js';
 import {ProfileContentEditor} from './profile-content-editor.js';
 import {ProfileAutosave} from './profile-autosave.js';
 
 const $ = id => document.getElementById(id);
-const fields = ['name', 'title', 'company', 'bio', 'location', 'availabilityStatus'];
+const fields = ['name', 'title', 'tagline', 'company', 'bio', 'location', 'availabilityStatus'];
 const availability = {AVAILABLE:'آماده همکاری', BUSY:'مشغول به کار', NOT_AVAILABLE:'فعلاً در دسترس نیست'};
 const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', ADVANCED:'پیشرفته', EXPERT:'حرفه‌ای'};
 let id = document.body.dataset.profileId, slug = document.body.dataset.slug;
@@ -64,42 +65,23 @@ function image(id, url) {
     element.onerror = () => { element.hidden = true; };
 }
 function preview() {
-    $('preview-name').textContent = current.name || 'نام شما';
     $('account-name').textContent = current.name || 'پروفایل من';
     $('account-title').textContent = current.title || '';
     image('editor-avatar', current.avatarUrl); image('editor-cover', current.coverImageUrl);
-    for (const field of ['title', 'company', 'bio', 'location']) {
-        $(`preview-${field}`).textContent = current[field] || '';
-        $(`preview-${field}`).hidden = !current[field];
-    }
-    const content = contentEditor?.sections || {}, layout = contentEditor?.layout || {};
+    const content = contentEditor?.sections || fullData?.sections || {}, layout = contentEditor?.layout || fullData?.contentLayout || {};
     for (const [section, field, property] of [['about','bio','description'],['availability','availabilityStatus','status']]) {
         const input = $('profile-form').elements.namedItem(field);
         if (Object.hasOwn(content, section) && document.activeElement !== input) input.value = content[section][0]?.[property] || '';
     }
-    const privacy = layout.privacy || fullData?.privacy || {};
-    $('preview-location').hidden = !current.location || privacy.showLocation === false;
-    const aboutText = Object.hasOwn(content, 'about') ? (layout.visibility?.about === 'HIDDEN' ? '' : content.about.find(item => item.visibility === 'PUBLIC')?.description || '') : current.bio;
-    $('preview-bio').textContent = aboutText || ''; $('preview-bio').hidden = !aboutText; $('preview-about').hidden = !aboutText;
-    const availabilityStatus = Object.hasOwn(content, 'availability') ? (layout.visibility?.availability === 'HIDDEN' ? '' : content.availability.find(item => item.visibility === 'PUBLIC')?.status || '') : current.availabilityStatus;
-    $('preview-availability').textContent = availability[availabilityStatus] || '';
-    $('preview-availability').hidden = !availabilityStatus || privacy.showAvailability === false;
-    image('preview-avatar', current.avatarUrl); image('preview-cover', current.coverImageUrl);
-    $('preview-avatar').alt = current.name ? `تصویر ${current.name}` : 'تصویر پروفایل';
-    const visibleSkills = Object.hasOwn(content, 'skills') ? (layout.visibility?.skills === 'HIDDEN' ? [] : content.skills.filter(s => s.visibility === 'PUBLIC').map(s => ({name:s.name,level:s.proficiencyLevel}))) : current.skillsWithLevel || [];
-    $('preview-skills').replaceChildren(...visibleSkills.map(skill => {
-        const badge = document.createElement('span'); badge.className = 'badge'; badge.dir = 'auto';
-        badge.textContent = `${skill.name} · ${levels[skill.level] || ''}`; return badge;
-    }));
-    // Counts describe visible content only, never the reference person's demo statistics.
-    const stats = $('preview-stats'); stats.replaceChildren();
-    const counts = [['projects','پروژه'],['experiences','تجربهٔ کاری'],['certifications','گواهینامه']].map(([section,label]) => [layout.visibility?.[section] === 'HIDDEN' ? 0 : (content[section] || []).filter(i=>i.visibility === 'PUBLIC').length,label]);
-    stats.hidden = !counts.some(([count])=>count);
-    for (const [count,label] of counts) { const cell=document.createElement('div'), value=document.createElement('strong'), caption=document.createElement('span'); value.textContent=count.toLocaleString('fa-IR'); caption.textContent=label; cell.append(value,caption); stats.append(cell); }
-    // Publication status reflects the server acknowledgment, never a pending publish request.
+    const profile = projectPublicProfile({...fullData, ...current, id, sections:content, contentLayout:layout, sectionOrder:layout.order, featured:layout.featured, privacy:layout.privacy || fullData?.privacy || {}}, linksEditor?.links || []);
+    $('public-preview').contentWindow?.postMessage({type:'hatef-profile-preview', profile}, location.origin);
     $('publication-label').textContent = current.isPublic ? 'صفحهٔ منتشرشده' : 'پیش‌نویس خصوصی';
     $('publish').hidden = current.isPublic;
 }
+window.addEventListener('message', event => {
+    if (event.origin === location.origin && event.source === $('public-preview').contentWindow && event.data?.type === 'hatef-profile-preview-ready' && fullData) preview();
+});
+
 function change(field, value) {
     current[field] = value;
     const section = {bio:'about', availabilityStatus:'availability'}[field];
@@ -161,7 +143,7 @@ function activate(data) {
     fill();
     contentEditor = new ProfileContentEditor({id, draftId, previousDraftId, api, mutate, version:()=>autosave.version, accept, status, conflict, notice, headerPreview:preview});
     contentEditor.start(data).catch(error => notice(error.message));
-    linksEditor = new ProfileLinksEditor({id, draftId, api, notice, status});
+    linksEditor = new ProfileLinksEditor({id, draftId, api, notice, status, preview});
     linksEditor.start().catch(error => notice(error.message));
 }
 async function load() {
@@ -242,7 +224,7 @@ $('logout').onclick = async () => {
         await api(`${endpoint()}/session`, 'DELETE'); autosave.stop(); contentEditor.stop(); linksEditor.stop();
         try { const prefix = `hatef.profile.pending.${id}`; for (const k of Object.keys(localStorage)) if (k === prefix || k.startsWith(prefix + '.')) localStorage.removeItem(k); } catch {}
         sessionChannel?.postMessage('logout');
-        current = {}; fill(); key = ''; $('new-key').textContent = ''; $('key-panel').hidden = true;
+        fullData = null; contentEditor = null; linksEditor = null; current = {}; fill(); $('public-preview-dialog').close(); key = ''; $('new-key').textContent = ''; $('key-panel').hidden = true;
         $('workspace').hidden = true; $('login-panel').hidden = false; $('conflict').hidden = true; notice(''); status('از دسترسی ویرایش خارج شدید');
     } catch (error) { autosave.blocked = false; contentEditor.queue.blocked = false; linksEditor.queue.blocked = false; notice(error.message); }
     finally { $('logout').disabled = false; }
@@ -264,7 +246,10 @@ for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = async event
 for (const button of document.querySelectorAll('[data-section-shortcut]')) button.onclick = () => contentEditor?.select(button.dataset.sectionShortcut);
 $('add-section').onclick = () => $('section-picker').showModal();
 $('close-section-picker').onclick = () => $('section-picker').close();
-$('preview-edit-cover').onclick = () => { contentEditor?.select('basic'); $('workspace').classList.remove('show-preview'); $('form-tab').setAttribute('aria-selected','true'); $('preview-tab').setAttribute('aria-selected','false'); $('cover-file').click(); };
+const previewFrame = $('public-preview'), previewSurface = previewFrame.parentElement;
+$('expand-preview').onclick = () => { $('expanded-preview-host').append(previewFrame); $('public-preview-dialog').showModal(); preview(); };
+$('close-public-preview').onclick = () => $('public-preview-dialog').close();
+$('public-preview-dialog').addEventListener('close', () => { previewSurface.append(previewFrame); preview(); $('expand-preview').focus(); });
 for (const button of document.querySelectorAll('[data-preview-size]')) button.onclick = () => {
     $('preview').dataset.device = button.dataset.previewSize;
     for (const other of document.querySelectorAll('[data-preview-size]')) other.setAttribute('aria-pressed',String(other === button));
@@ -282,7 +267,7 @@ function watchSession() {
     sessionChannel = new BroadcastChannel(`hatef.profile.session.${id}`);
     sessionChannel.onmessage = event => {
         if (event.data === 'logout') {
-            autosave?.stop(); contentEditor?.stop(); linksEditor?.stop(); current = {}; fill(); key = ''; $('new-key').textContent = '';
+            autosave?.stop(); contentEditor?.stop(); linksEditor?.stop(); fullData = null; contentEditor = null; linksEditor = null; current = {}; fill(); $('public-preview-dialog').close(); key = ''; $('new-key').textContent = '';
             $('key-panel').hidden = true; $('workspace').hidden = true; $('login-panel').hidden = false;
             status('از دسترسی ویرایش خارج شدید');
         }

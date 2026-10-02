@@ -31,11 +31,11 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
   assert.ok((await ownerData()).sections.projects[0].visibility==='PUBLIC');
   // Upload through the actual browser form, then remove the private media reference.
   const pixels=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;return canvas.toDataURL('image/png').split(',')[1];});
-  await item().getByLabel('توضیح تصویر پروژه',{exact:true}).fill('تصویر مرورگر');
+  await item().getByLabel('توضیح تصویر جدید',{exact:true}).fill('تصویر مرورگر');
   await item().getByLabel('افزودن تصویر پروژه',{exact:true}).setInputFiles({name:'fixture.png',mimeType:'image/png',buffer:Buffer.from(pixels,'base64')});
-  await item().getByRole('button',{name:'حذف تصویر: تصویر مرورگر',exact:true}).waitFor();await saved();
+  await item().getByRole('button',{name:'حذف تصویر',exact:true}).waitFor();await saved();
   assert.equal((await ownerData()).sections.projects[0].media.length,1);
-  await item().getByRole('button',{name:'حذف تصویر: تصویر مرورگر',exact:true}).click();await saved();
+  await item().getByRole('button',{name:'حذف تصویر',exact:true}).click();await saved();
   assert.equal((await ownerData()).sections.projects[0].media.length,0);
   // Header and content mutations share a serialized profile version.
   await nav('اطلاعات اصلی و معرفی');await page.locator('#profile-title').fill('طراح و توسعه‌دهنده');await nav('پروژه‌ها و نمونه‌کارها');await item().getByLabel('نقش شما',{exact:true}).fill('طراحی و پیاده‌سازی');await saved();

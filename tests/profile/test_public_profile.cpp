@@ -236,3 +236,13 @@ TEST(ProfileSeo, LongPersianMetadataRemainsValidUtf8) {
         EXPECT_NO_THROW(json(description).dump());
     }
 }
+
+TEST(ProfileTemplate, PublicPresentationIsInertEscapedJson) {
+    auto data = fixture();
+    const std::string attack = "</template><script>window.injected=true</script>";
+    data["publicPresentation"] = json{{"name",attack},{"sections",json::object()}}.dump();
+    const auto html = render(data);
+    EXPECT_EQ(html.find("<script>window.injected"),std::string::npos);
+    EXPECT_NE(html.find("id=\"public-profile-data\""),std::string::npos);
+    EXPECT_NE(html.find("&lt;/template&gt;"),std::string::npos);
+}
