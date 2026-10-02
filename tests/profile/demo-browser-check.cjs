@@ -44,7 +44,7 @@ const demo=require('./demo-profile.cjs');
   await page.locator('#profile-bio').fill(demo.sections.about[0].description+' ');await saved();assert.equal((await api(endpoint)).data.sections.about[0].description,demo.sections.about[0].description+' ');await page.locator('#profile-bio').fill(demo.sections.about[0].description);await saved();
   await page.locator('#profile-availability').selectOption('BUSY');await saved();assert.equal((await api(endpoint)).data.sections.availability[0].status,'BUSY');await page.locator('#profile-availability').selectOption('AVAILABLE');await saved();
   for(const kind of ['avatar','cover']){
-   const buffer=Buffer.from(await page.evaluate(kind=>{
+   const buffer=kind==='avatar'&&process.env.PROFILE_DEMO_AVATAR?fs.readFileSync(process.env.PROFILE_DEMO_AVATAR):Buffer.from(await page.evaluate(kind=>{
     const c=document.createElement('canvas');c.width=kind==='avatar'?400:1400;c.height=kind==='avatar'?400:500;const x=c.getContext('2d');
     const g=x.createLinearGradient(0,0,c.width,c.height);g.addColorStop(0,'#151039');g.addColorStop(.6,'#5424b8');g.addColorStop(1,'#a17cff');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
     if(kind==='avatar'){x.fillStyle='#fff';x.font='bold 130px sans-serif';x.textAlign='center';x.fillText('HR',200,245);}else{for(let i=0;i<8;i++){x.strokeStyle=`rgba(210,190,255,${.12+i*.06})`;x.lineWidth=16;x.beginPath();x.ellipse(350+i*95,250,110,290,-.6,0,Math.PI*2);x.stroke();}}
@@ -157,8 +157,42 @@ const demo=require('./demo-profile.cjs');
    await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
    await publicResponse.close();
   }
+  // Exercise the requested banner through the actual upload control. Screenshots
+  // are browser captures, with existing repository photographs as uploaded covers.
+  // An optional local portrait can be supplied without committing personal media.
+  const photoContext=await browser.newContext({viewport:{width:1440,height:1080}});
+  const photoPage=await photoContext.newPage();photoPage.on('pageerror',e=>errors.push(e.message));
+  await page.setViewportSize({width:1440,height:1080});await nav('basic');
+  for(const [variant,file] of [['dark','slide1.jpg'],['light','2.jpg']]){
+   await page.locator('#cover-file').setInputFiles(require('node:path').join(__dirname,'../../public/coming-soon/assets/images',file));
+   await page.waitForFunction(()=>!document.querySelector('#profile-form').inert);await saved();
+   const updated=(await api(endpoint)).data;
+   if(fixture){
+    await photoPage.goto(base+'/assets/profile-preview.html');
+    await photoPage.evaluate(async owner=>{const m=await import('/assets/js/profile-public.js');m.renderPublicProfile(document.getElementById('public-preview-root'),m.projectPublicProfile(owner),{preview:true});},updated);
+   }else await photoPage.goto(base+'/'+encodeURIComponent(slug));
+   await photoPage.waitForFunction(()=>document.querySelector('.pp-backdrop img')?.naturalWidth>0);
+   await photoPage.evaluate(()=>document.fonts.ready);
+   assert.equal(await photoPage.locator('.pp-backdrop img').getAttribute('src'),updated.coverImageUrl);
+   const preview=page.frameLocator('#public-preview');
+   await preview.locator(`.pp-backdrop img[src="${updated.coverImageUrl}"]`).waitFor({state:'attached'});
+   assert.equal(await photoPage.locator('.pp-section-index').count(),0);
+   for(const width of [1440,390]){
+    await photoPage.setViewportSize({width,height:1080});await photoPage.evaluate(()=>scrollTo(0,0));
+    await photoPage.waitForFunction(()=>document.querySelector('.pp-menu a[aria-current=location]')?.hash==='#profile-home');
+    const cover=await photoPage.locator('.pp-backdrop').boundingBox();assert.equal(cover.x,0);assert.equal(cover.width,width);
+    assert.ok(await photoPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await photoPage.screenshot({path:`${out}/30-cover-${variant}-${width}.png`});
+   }
+   await photoPage.setViewportSize({width:1440,height:1080});
+   await photoPage.locator('#section-projects').evaluate(n=>scrollTo(0,n.getBoundingClientRect().top+scrollY-document.querySelector('.pp-nav').offsetHeight-24));
+   await photoPage.waitForFunction(()=>document.querySelector('.pp-menu a[aria-current=location]')?.hash==='#section-projects');
+   const bar=await photoPage.locator('.pp-nav').boundingBox();assert.ok(bar.y>=0&&bar.y<=12);
+   await photoPage.screenshot({path:`${out}/31-sticky-${variant}-projects.png`});
+  }
+  await photoContext.close();
   assert.deepEqual(errors,[]);
-  fs.writeFileSync(`${out}/validation.json`,JSON.stringify({mode:fixture?'fixture UI only':'real C++ API + MongoDB',sections:Object.keys(demo.sections).length,items:Object.values(demo.sections).reduce((n,a)=>n+a.length,0),screenshots:fs.readdirSync(out).filter(f=>f.endsWith('.png')).length,relatedImages:7,mediaChecks:'Upload, captions, ordering, deletion, reload and preview/public parity',unknownFields:'Synthetic publication and recommendation are labelled and hidden.',result:'PASS'},null,2));
+  fs.writeFileSync(`${out}/validation.json`,JSON.stringify({mode:fixture?'fixture UI only':'real C++ API + MongoDB',sections:Object.keys(demo.sections).length,items:Object.values(demo.sections).reduce((n,a)=>n+a.length,0),screenshots:fs.readdirSync(out).filter(f=>f.endsWith('.png')).length,relatedImages:7,mediaChecks:'Upload, captions, ordering, deletion, reload and preview/public parity',bannerChecks:'Two uploaded JPEG covers, full viewport width, white overlays, public/preview cover parity, sticky horizontal menu and scroll-driven active project',unknownFields:'Synthetic publication and recommendation are labelled and hidden.',result:'PASS'},null,2));
   console.log(`PASS demo: ${fixture?'fixture UI':'real API persistence'}, 14 sections, round-trip edits, uploaded images, responsive screenshots, private synthetic samples, publish.`);
  }finally{
   if(id&&key&&context)await context.request.delete(base+`/api/profiles/${id}`,{headers:{Authorization:'Bearer '+key}}).catch(()=>{});

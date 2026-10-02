@@ -102,9 +102,9 @@ visibility on every fetch. Copying an item starts with an empty gallery.
 
 The public layout uses grouped title/organization/date metadata, written month
 names at the saved precision, compact skill rows and all populated project fields
-in story order. Image captions are visible beside the related content. A sticky
-desktop section index and mobile menu include every displayed section and track
-the active section. An optional, separately editable tagline communicates value
+in story order. Image captions are visible beside the related content. Navigation
+includes every displayed section and tracks the active section. An optional,
+separately editable tagline communicates value
 below the professional title. Certificate dates and source links remain visible
 when supplied; no verification claims are invented.
 
@@ -114,3 +114,35 @@ related images, edits/reorders/deletes/reloads them, compares public and preview
 captions, and waits for successful image decoding before screenshots. Illustrative
 diagrams are explicitly labelled as samples; the Hatef project uses a real
 screenshot of the running test editor.
+
+## October 2 approved header and banner revision
+
+This revision is limited to the three approved changes: horizontal sticky
+navigation without a right rail, a full-width uploaded banner beneath the header
+and hero, and scroll-driven active navigation. The body cards retain the existing
+reading layout; this is not a reconstruction of the entire reference page.
+
+The image is a decorative layer spanning the viewport from its top edge through
+the introduction. Two white gradients keep the right-hand text legible and blend
+the bottom into the page. On narrow screens the wash protects the expanded hero
+copy. Missing, broken or unsafe cover URLs fall back to the existing local orbit
+illustration. Cover height follows the actual hero size, including font loading
+and preview width changes, rather than assuming a fixed text height.
+
+The desktop navigation contains primary section links and a keyboard-accessible
+More disclosure for additional populated sections. At 1100px and below a top
+menu exposes every section. Hidden/empty sections never gain menu entries.
+Active-section tracking uses the sticky header's measured height; a selected
+secondary section highlights More. Layout changes from pagination, image decoding
+and preview rerenders also update the active state. Observers and event listeners
+are cleaned up when a draft is replaced. Print excludes the decorative banner.
+
+The public browser suite checks seven widths, desktop/mobile navigation, Escape,
+section anchors below the header, scroll-driven selection, two real JPEG covers,
+full-viewport cover geometry, broken-image fallback and unsafe cover URLs. The
+populated integration scenario uploads the repository's light and dark landscape
+photographs through the real editor, checks public/preview cover parity, and
+captures desktop, mobile and scrolled states. `PROFILE_DEMO_AVATAR` optionally
+accepts a local portrait for review screenshots without adding personal media to
+the repository. Fixture captures test the actual frontend only; CI captures run
+against the C++ application and MongoDB.

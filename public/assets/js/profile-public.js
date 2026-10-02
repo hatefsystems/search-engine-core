@@ -3,6 +3,7 @@ import {el, safeLink, renderItem, sectionLabels, titleFields, enumLabels, labels
 const icons={brand:'m3 8 8-6 2 3-2 9-8 3Zm11 2 7-6v13l-8 5Z',home:'M3 10 12 3l9 7v11h-6v-7H9v7H3Z',menu:'M4 6h16M4 12h16M4 18h16',arrow:'M19 12H5m6-6-6 6 6 6',send:'m22 2-7 20-4-9-9-4Zm0 0L11 13',download:'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',location:'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0ZM9 10a3 3 0 1 0 6 0 3 3 0 1 0-6 0',layers:'m12 2 10 6-10 6L2 8Zm-10 11 10 6 10-6M2 18l10 6 10-6',projects:'M3 5h6l2 3h10v13H3Z',experiences:'M3 7h18v14H3ZM8 7V3h8v4M3 12h18M10 11v3h4v-3',skills:'m12 2 10 10-10 10L2 12Z',education:'m2 8 10-5 10 5-10 5Zm4 3v7q6 5 12 0v-7M22 8v9',certifications:'m12 2 3 2 4 1 1 4 2 3-2 3-1 4-4 1-3 2-3-2-4-1-1-4-2-3 2-3 1-4 4-1Zm-4 10 3 3 5-6',publications:'M5 2h10l5 5v15H5ZM14 2v6h6M8 12h9M8 16h9',openSource:'m8 5-6 7 6 7m8-14 6 7-6 7M14 2l-4 20',services:'M12 2 3 7v10l9 5 9-5V7Zm-9 5 9 5 9-5M12 12v10',achievements:'M7 2h10v9a5 5 0 0 1-10 0ZM7 5H2v4q0 5 5 5M17 5h5v4q0 5-5 5M12 16v6M7 22h10',languages:'M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20ZM2 12h20M12 2q-8 10 0 20M12 2q8 10 0 20',recommendations:'M3 3h18v14H9l-6 5ZM7 8h10M7 12h7',contacts:'M2 4h20v16H2Zm0 0 10 9L22 4',availability:'M8 12a4 4 0 1 0 0-8 4 4 0 1 0 0 8ZM1 22v-3q0-6 7-6t7 6v3M16 4q7 0 7 5t-7 5M18 16q5 0 5 6',about:'M12 3v1M12 8v13M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0',external:'M14 3h7v7m0-7L10 14M10 3H3v18h18v-7'};
 function icon(name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.classList.add('pp-icon');const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',icons[name]||icons.layers);svg.append(p);return svg;}
 const labels={...sectionLabels,experiences:'سوابق کاری',projects:'پروژه‌ها و نمونه‌کارها',publications:'مقالات و نوشته‌ها',skills:'مهارت‌های کلیدی'};
+const menuLabels={home:'خانه',about:'درباره من',experiences:'سوابق کاری',projects:'پروژه‌ها',services:'خدمات',skills:'مهارت‌ها',publications:'مقالات',contacts:'تماس'};
 const headerFields=['id','slug','name','displayName','englishName','title','tagline','company','bio','professionalSummary','location','availabilityStatus','avatarUrl','coverImageUrl','githubUrl','linkedinUrl','portfolioUrl'];
 // This is the public projection for unsaved owner drafts. Only this allowlisted
 // object crosses into the preview frame. The server still enforces public access.
@@ -120,23 +121,29 @@ export function renderPublicProfile(root,input,{preview=false}={}){
  const hasContact=social.length>0||data.links.length>0;
  const contentTarget='#section-contacts';
  const rootNode=el('div','','public-profile');rootNode.id='profile-home';
+ const backdrop=picture(data.coverImageUrl,'','pp-backdrop');backdrop.setAttribute('aria-hidden','true');rootNode.append(backdrop);
  const status=el('p','','pp-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const skip=el('a','رفتن به محتوای پروفایل','pp-skip');skip.href='#profile-content';rootNode.append(skip);
  const nav=el('header','','pp-nav');
  const brand=el('a','هاتف','pp-brand');brand.href='/';brand.prepend(icon('brand'));nav.append(brand);
  const menu=el('nav','','pp-menu');menu.id='profile-navigation';menu.setAttribute('aria-label','بخش‌های پروفایل');
- const navOrder=[...new Set(['home','about',...(data.sectionOrder||[]),...Object.keys(labels),'contacts'])];
+ const extra=el('div','','pp-menu-extra');extra.id='profile-navigation-extra';
+ const more=el('div','','pp-more'),moreToggle=action('بیشتر','menu');moreToggle.classList.add('pp-more-toggle');moreToggle.setAttribute('aria-controls',extra.id);moreToggle.setAttribute('aria-expanded','false');
+ const closeMore=()=>{more.classList.remove('is-open');moreToggle.setAttribute('aria-expanded','false');};
+ moreToggle.onclick=()=>{const open=moreToggle.getAttribute('aria-expanded')!=='true';more.classList.toggle('is-open',open);moreToggle.setAttribute('aria-expanded',String(open));};
+ const navOrder=[...new Set([...Object.keys(menuLabels),...(data.sectionOrder||[]),...Object.keys(labels)])];
  for(const key of navOrder){
   if(key!=='home'&&!totals[key]&&!(key==='about'&&about)&&!(key==='contacts'&&hasContact))continue;
-  const a=el('a',key==='home'?'معرفی':labels[key]||sectionLabels[key]);a.href=key==='home'?'#profile-home':'#section-'+key;menu.append(a);
+  const a=el('a',menuLabels[key]||labels[key]||sectionLabels[key]);a.href=key==='home'?'#profile-home':'#section-'+key;(Object.hasOwn(menuLabels,key)?menu:extra).append(a);
  }
+ if(extra.children.length){more.append(moreToggle,extra);menu.append(more);}
  const toggle=action('فهرست','menu');toggle.classList.add('pp-menu-toggle');toggle.setAttribute('aria-controls',menu.id);toggle.setAttribute('aria-expanded','false');toggle.onclick=()=>{const open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));menu.classList.toggle('is-open',open);};
- menu.onclick=()=>{menu.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');};
- menu.addEventListener('keydown',event=>{if(event.key==='Escape'){menu.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');toggle.focus();}});
+ menu.onclick=event=>{if(!event.target.closest('a'))return;menu.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');closeMore();};
+ nav.addEventListener('keydown',event=>{if(event.key==='Escape'){const mobile=toggle.getAttribute('aria-expanded')==='true';menu.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');closeMore();(mobile?toggle:moreToggle).focus();}});
+ document.addEventListener('click',event=>{if(!nav.contains(event.target)){menu.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');closeMore();}},{signal:session.signal});
  nav.append(menu,toggle);if(hasContact)nav.append(action('تماس با من','send',contentTarget,true));rootNode.append(nav);
  const main=el('main','','pp-main');main.id='profile-content';main.tabIndex=-1;
  const hero=el('section','','pp-hero');hero.setAttribute('aria-labelledby','preview-name');
- const cover=imageUrl(data.coverImageUrl);if(cover){hero.classList.add('has-cover');const bg=picture(cover,'','pp-hero-cover');bg.setAttribute('aria-hidden','true');hero.append(bg);}
  const avatar=picture(data.avatarUrl,`تصویر ${name}`,'pp-avatar');avatar.prepend(el('span',Array.from(name)[0],'pp-monogram'));const avatarImage=avatar.querySelector('img');if(avatarImage)avatarImage.id='preview-avatar';
  const intro=el('div','','pp-intro');const badge=el('span',enumLabels[available]||'','pp-availability');badge.id='preview-availability';badge.hidden=!available;badge.dataset.status=available||'';intro.append(badge);
  const h1=el('h1');h1.id='preview-name';h1.dir='auto';const parts=name.split(' ');h1.append(el('span',parts.shift()),document.createTextNode(parts.length?' '+parts.join(' '):''));intro.append(h1);
@@ -202,19 +209,29 @@ export function renderPublicProfile(root,input,{preview=false}={}){
  resume.onclick=async()=>{resume.disabled=true;try{for(const load of loaders)await load();window.print();}catch{status.textContent='برای دریافت رزومهٔ کامل، بارگیری اطلاعات را دوباره امتحان کنید.';}finally{resume.disabled=false;}};
  root.replaceChildren(rootNode);
  const navLinks=[...menu.querySelectorAll('a')];
- const rail=menu.cloneNode(true);rail.id='profile-section-index';rail.className='pp-section-index';rail.setAttribute('aria-label','پیمایش همهٔ بخش‌ها');
- main.append(rail);
- const targets=navLinks.map(a=>({id:a.hash,node:rootNode.querySelector(a.hash)})).filter(t=>t.node&&!t.node.hidden).sort((a,b)=>a.node.compareDocumentPosition(b.node)&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);
+ const targets=navLinks.map(a=>({id:a.hash,node:a.hash==='#profile-home'?rootNode:rootNode.querySelector(a.hash)})).filter(t=>t.node&&!t.node.hidden).sort((a,b)=>a.node.compareDocumentPosition(b.node)&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);
  let scheduled=false;
  const activateSection=()=>{
   scheduled=false;if(session.signal.aborted)return;
-  let active=targets[0]?.id;for(const t of targets)if(t.node.getBoundingClientRect().top<=150)active=t.id;
-  if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4)active=targets.at(-1)?.id;
-  for(const a of [...navLinks,...rail.querySelectorAll('a')]){if(a.hash===active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}
+  const threshold=nav.getBoundingClientRect().bottom+28;
+  let active=targets[0]?.id;for(const t of targets)if(t.node.getBoundingClientRect().top<=threshold)active=t.id;
+  if(window.scrollY>0&&window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4)active=targets.at(-1)?.id;
+  for(const a of navLinks){if(a.hash===active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}
+  const secondary=extra.querySelector('[aria-current=location]');moreToggle.classList.toggle('has-active-section',!!secondary);moreToggle.setAttribute('aria-label',secondary?'بخش‌های بیشتر؛ بخش فعلی: '+secondary.textContent:'بخش‌های بیشتر');
  };
- window.addEventListener('scroll',()=>{if(!scheduled){scheduled=true;requestAnimationFrame(activateSection);}},{passive:true,signal:session.signal});
- window.addEventListener('resize',activateSection,{signal:session.signal});activateSection();
- document.fonts?.ready.then(()=>requestAnimationFrame(activateSection));
+ const schedule=()=>{if(!scheduled){scheduled=true;requestAnimationFrame(activateSection);}};
+ const measure=()=>{
+  if(session.signal.aborted)return;
+  rootNode.style.setProperty('--pp-cover-height',`${hero.offsetTop+hero.offsetHeight+60}px`);
+  rootNode.style.setProperty('--pp-scroll-offset',`${nav.offsetHeight+38}px`);schedule();
+ };
+ window.addEventListener('scroll',schedule,{passive:true,signal:session.signal});
+ window.addEventListener('resize',measure,{signal:session.signal});
+ // Content pagination, image decoding, fonts and preview resizes can move sections
+ // without a scroll event. Re-measure and disconnect when a draft is replaced.
+ const observer=new ResizeObserver(measure);observer.observe(main);observer.observe(nav);observer.observe(hero);
+ session.signal.addEventListener('abort',()=>observer.disconnect(),{once:true});
+ document.fonts?.ready.then(measure);measure();activateSection();
  // Sequential background loading keeps every public record available without clicks.
  (async()=>{for(const load of loaders){if(session.signal.aborted)break;try{await load();}catch{}}})();
  document.title=`${name} | پروفایل حرفه‌ای هاتف`;

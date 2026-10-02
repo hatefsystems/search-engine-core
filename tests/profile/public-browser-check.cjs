@@ -22,6 +22,7 @@ const demo=require('./demo-profile.cjs');
   },source);
   assert.ok(!JSON.stringify(projection).includes('SECRET'));assert.deepEqual(projection.sections.experiences[0].projectIds,[]);
   await page.locator('.public-profile').waitFor();await page.evaluate(()=>document.fonts.ready);
+  await page.waitForFunction(()=>document.querySelector('.pp-menu a[aria-current=location]')?.hash==='#profile-home');
   assert.equal(await page.locator('#section-publications').count(),0);assert.equal(await page.locator('#section-recommendations').count(),0);
   assert.equal(await page.locator('#preview-bio').textContent(),demo.sections.about[0].description);
   assert.equal(await page.locator('#section-skills .pp-card').count(),8);
@@ -37,9 +38,23 @@ const demo=require('./demo-profile.cjs');
   assert.equal(await page.getByText('همچنان ادامه دارد',{exact:true}).count(),0);
   assert.equal(await page.getByText('راه‌حل شما',{exact:true}).count(),0);
   const visibleSectionIds=await page.locator('.pp-section:not([hidden])').evaluateAll(nodes=>nodes.map(n=>n.id));
-  for(const id of visibleSectionIds)assert.equal(await page.locator(`#profile-section-index a[href="#${id}"]`).count(),1);
-  await page.locator('#profile-section-index a[href="#section-certifications"]').click();
-  await page.waitForFunction(()=>document.querySelector('#profile-section-index a[aria-current=location]')?.hash==='#section-certifications');
+  assert.equal(await page.locator('.pp-section-index').count(),0);
+  for(const id of visibleSectionIds)assert.equal(await page.locator(`#profile-navigation a[href="#${id}"]`).count(),1);
+  await page.locator('.pp-more-toggle').click();
+  await page.keyboard.press('Escape');assert.equal(await page.locator('.pp-more-toggle').getAttribute('aria-expanded'),'false');
+  await page.locator('.pp-more-toggle').click();
+  await page.locator('#profile-navigation a[href="#section-certifications"]').click();
+  await page.waitForFunction(()=>document.querySelector('#profile-navigation a[aria-current=location]')?.hash==='#section-certifications');
+  assert.equal(await page.locator('.pp-more-toggle.has-active-section').count(),1);
+  assert.equal(await page.locator('.pp-more-toggle').getAttribute('aria-expanded'),'false');
+  const headingTop=await page.locator('#section-certifications').evaluate(n=>n.getBoundingClientRect().top);
+  assert.ok(headingTop>=(await page.locator('.pp-nav').boundingBox()).y+(await page.locator('.pp-nav').boundingBox()).height);
+  // Scroll without clicking: active state follows the content, not the last link.
+  await page.locator('#section-projects').evaluate(n=>window.scrollTo(0,n.getBoundingClientRect().top+scrollY-document.querySelector('.pp-nav').offsetHeight-24));
+  await page.waitForFunction(()=>document.querySelector('#profile-navigation a[aria-current=location]')?.hash==='#section-projects');
+  const sticky=await page.locator('.pp-nav').boundingBox();assert.ok(sticky.y>=0&&sticky.y<=12);
+  assert.equal(await page.locator('#profile-navigation a[aria-current]').count(),1);
+  await page.screenshot({path:`${out}/sticky-projects.png`});
   await page.evaluate(()=>scrollTo(0,0));
   assert.deepEqual(await page.evaluate(()=>[window.testPublic.publicDate({calendar:'persian',year:1403}),window.testPublic.publicDate({calendar:'gregory',year:2024,month:2,day:3})]),['۱۴۰۳','۳ فوریه ۲۰۲۴ میلادی']);
   await page.evaluate(()=>window.print=()=>window.printRequested=true);await page.locator('[data-resume]').click();assert.equal(await page.evaluate(()=>window.printRequested),true);
@@ -48,6 +63,26 @@ const demo=require('./demo-profile.cjs');
    await page.screenshot({path:`${out}/public-${width}.png`,fullPage:true});if([1440,390].includes(width))await page.screenshot({path:`${out}/hero-${width}.png`});
    if(width<=1100){await page.locator('.pp-menu-toggle').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'true');await page.locator('.pp-menu a[href="#section-projects"]').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'false');await page.evaluate(()=>scrollTo(0,0));}
   }
+  // Real JPEG photographs, loaded by the actual renderer, exercise both white
+  // washes without relying on generated mockups or an external image service.
+  await page.route('**/assets/test-cover-*.jpg',route=>route.fulfill({contentType:'image/jpeg',path:require('node:path').join(__dirname,'../../public/coming-soon/assets/images',route.request().url().includes('light')?'2.jpg':'slide1.jpg')}));
+  for(const cover of ['light','dark']){
+   await page.evaluate(cover=>{const p=structuredClone(window.testData);p.coverImageUrl=`/assets/test-cover-${cover}.jpg`;window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});scrollTo(0,0);},cover);
+   await page.waitForFunction(()=>document.querySelector('.pp-backdrop img')?.naturalWidth>0);
+   for(const width of [1440,768,390,320]){
+    await page.setViewportSize({width,height:1080});await page.evaluate(async()=>{await document.fonts.ready;await document.querySelector('.pp-backdrop img').decode();scrollTo(0,0);});
+    await page.waitForFunction(()=>document.querySelector('.pp-menu a[aria-current=location]')?.hash==='#profile-home');
+    await page.waitForFunction(()=>Math.abs(document.querySelector('.pp-backdrop').getBoundingClientRect().height-(document.querySelector('.pp-hero').offsetTop+document.querySelector('.pp-hero').offsetHeight+60))<2);
+    const box=await page.locator('.pp-backdrop').boundingBox();assert.equal(box.x,0);assert.equal(box.width,width);assert.equal(box.y,0);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:`${out}/cover-${cover}-${width}.png`});
+   }
+  }
+  await page.unroute('**/assets/test-cover-*.jpg');
+  await page.route('**/assets/test-cover-broken.jpg',route=>route.fulfill({status:404,body:''}));
+  await page.evaluate(()=>{const p=structuredClone(window.testData);p.coverImageUrl='/assets/test-cover-broken.jpg';window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});});
+  await page.locator('.pp-backdrop.pp-image-fallback').waitFor();
+  assert.equal(await page.locator('.pp-backdrop img').count(),0);
   // Real asynchronous pagination contract, including a retry and draft replacement.
   let requests=0;
   await page.route('**/api/profiles/presentation-fixture/content/skills?*',async route=>{
@@ -62,7 +97,7 @@ const demo=require('./demo-profile.cjs');
   await page.waitForFunction(()=>document.querySelectorAll('#section-skills .pp-card').length===8);
   assert.equal(await page.locator('details,summary,[data-more-section]').count(),0);
   await page.evaluate(()=>{
-   const p=structuredClone(window.testData);p.name='<img src=x onerror=alert(1)>';p.sections.about[0].description='<script>alert(1)</script>';p.avatarUrl='javascript:alert(1)';p.githubUrl='javascript:alert(1)';p.sections.projects[0].links=[{url:'javascript:alert(1)',title:'bad'}];window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});
+   const p=structuredClone(window.testData);p.name='<img src=x onerror=alert(1)>';p.sections.about[0].description='<script>alert(1)</script>';p.avatarUrl='javascript:alert(1)';p.coverImageUrl='javascript:alert(1)';p.githubUrl='javascript:alert(1)';p.sections.projects[0].links=[{url:'javascript:alert(1)',title:'bad'}];window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});
   });
   assert.equal(await page.locator('a[href^="javascript:"],img[src^="javascript:"]').count(),0);assert.equal(await page.locator('#preview-name img').count(),0);
   await page.evaluate(()=>window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),{name:'پروفایل تازه',sections:{}},{preview:true}));
