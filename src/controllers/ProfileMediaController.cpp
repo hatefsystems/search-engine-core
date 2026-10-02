@@ -59,6 +59,7 @@ std::string cleanImage(const std::vector<unsigned char>& bytes) {
 }
 void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequest* req) {
     const std::string id(req->getParameter(0)),target(req->getParameter(1)),token=getAuthToken(req);
+    const std::string section=req->getUrl().find("/experiences/")!=std::string_view::npos?"experiences":"projects";
     try {
         if(id.size()!=24 || !hexId(id)){notFound(res);return;}
         auto result=getStorage()->findPersonById(id);
@@ -68,7 +69,10 @@ void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequ
             if(target.size()!=32 || !hexId(target) || (!owner && !result.value->isPublic)){notFound(res);return;}
             auto content=owner?profile::effectiveContent(*result.value):profile::publicPersonProfile(*result.value).content;
             bool visible=false;
-            for(const auto& item:content.sections["projects"])for(const auto& media:std::get<profile::Project>(item.value).media)if(media.id==target)visible=true;
+            for(const auto& key:{"projects","experiences"})for(const auto& item:content.sections[key]) {
+                const auto& media=std::string_view(key)=="projects"?std::get<profile::Project>(item.value).media:std::get<profile::Experience>(item.value).media;
+                if(std::any_of(media.begin(),media.end(),[&](const auto& image){return image.id==target;}))visible=true;
+            }
             if(!visible){notFound(res);return;}
             std::ifstream file(mediaRoot()/id/(target+".webp"),std::ios::binary);
             if(!file){notFound(res);return;}
@@ -78,7 +82,7 @@ void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequ
         }
         if(!owner){json(res,{{"success",false}},"403 Forbidden");return;}
         if(checkOwnerMutationRateLimit(res,id))return;
-        profile::readContentBody(res,[this,res,id,target,token](const nlohmann::json& body){
+        profile::readContentBody(res,[this,res,id,target,section,token](const nlohmann::json& body){
             try {
                 for(auto it=body.begin();it!=body.end();++it)if(it.key()!="version" && it.key()!="image" && it.key()!="alt")throw std::invalid_argument("فیلد معتبر نیست.");
                 if(!body.at("version").is_number_integer())throw std::invalid_argument("نسخه لازم است.");
@@ -90,24 +94,24 @@ void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequ
                 if(!workers.try_acquire()){res->writeStatus("429 Too Many Requests")->writeHeader("Retry-After","2");json(res,{{"message","بارگذاری را دوباره امتحان کنید."}},"429 Too Many Requests");return;}
                 auto permit=std::shared_ptr<void>(reinterpret_cast<void*>(1),[](void*){workers.release();});
                 auto aborted=std::make_shared<std::atomic<bool>>(false);res->onAborted([aborted]{*aborted=true;});auto* loop=uWS::Loop::get();
-                std::thread([this,res,id,target,token,expected,alt,bytes=std::move(bytes),aborted,loop,permit]() {
+                std::thread([this,res,id,target,section,token,expected,alt,bytes=std::move(bytes),aborted,loop,permit]() {
                     std::string output,error;try{output=cleanImage(bytes);}catch(const std::exception& e){error=e.what();}
-                    loop->defer([this,res,id,target,token,expected,alt,aborted,output=std::move(output),error=std::move(error)]{
+                    loop->defer([this,res,id,target,section,token,expected,alt,aborted,output=std::move(output),error=std::move(error)]{
                         if(*aborted)return;
                         std::filesystem::path path;
                         try {
                             if(!error.empty()){badRequest(res,error);return;}
                             auto found=getStorage()->findPersonById(id);
-                            if(!found.success || !found.value || !checkOwnership(*found.value,token)){json(res,{{"success",false}},"403 Forbidden");return;}
+                            if(!found.success || !found.value || found.value->deletedAt || !checkOwnership(*found.value,token)){json(res,{{"success",false}},"403 Forbidden");return;}
                             auto person=*found.value;if(person.version!=expected){json(res,{{"success",false}},"409 Conflict");return;}
-                            profile::initializeContentSection(person,"projects");auto& projects=person.content.sections["projects"];
-                            auto item=std::find_if(projects.begin(),projects.end(),[&](const auto& value){return value.id==target;});
-                            if(item==projects.end()){notFound(res);return;}
-                            auto& project=std::get<profile::Project>(item->value);
-                            if(project.media.size()>=10)throw std::invalid_argument("حداکثر ده تصویر برای پروژه مجاز است.");
+                            profile::initializeContentSection(person,section);auto& items=person.content.sections[section];
+                            auto item=std::find_if(items.begin(),items.end(),[&](const auto& value){return value.id==target;});
+                            if(item==items.end()){notFound(res);return;}
+                            auto& media=section=="projects"?std::get<profile::Project>(item->value).media:std::get<profile::Experience>(item->value).media;
+                            if(media.size()>=10)throw std::invalid_argument("حداکثر ده تصویر برای هر آیتم مجاز است.");
                             const auto mediaId=profile::newOwnerKey().substr(0,32);path=mediaRoot()/id/(mediaId+".webp");std::filesystem::create_directories(path.parent_path());
                             {std::ofstream file(path,std::ios::binary);file.write(output.data(),output.size());if(!file)throw std::runtime_error("image write");}
-                            project.media.push_back({mediaId,alt});item->updatedAt=profile::contentNow();*item=profile::parseContentItem("projects",profile::itemJson(*item));profile::validateContent(profile::effectiveContent(person));
+                            media.push_back({mediaId,alt});item->updatedAt=profile::contentNow();*item=profile::parseContentItem(section,profile::itemJson(*item));profile::validateContent(profile::effectiveContent(person));
                             auto saved=getStorage()->updatePersonFields(person,{"content"},expected);
                             if(!saved.success){std::filesystem::remove(path);json(res,{{"success",false}},saved.message=="VERSION_CONFLICT"?"409 Conflict":"500 Internal Server Error");return;}
                             person.version++;json(res,{{"success",true},{"data",personProfileToJson(person)},{"canEdit",true}});

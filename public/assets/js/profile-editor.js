@@ -4,7 +4,7 @@ import {ProfileContentEditor} from './profile-content-editor.js';
 import {ProfileAutosave} from './profile-autosave.js';
 
 const $ = id => document.getElementById(id);
-const fields = ['name', 'title', 'company', 'bio', 'location', 'availabilityStatus'];
+const fields = ['name', 'title', 'tagline', 'company', 'bio', 'location', 'availabilityStatus'];
 const availability = {AVAILABLE:'آماده همکاری', BUSY:'مشغول به کار', NOT_AVAILABLE:'فعلاً در دسترس نیست'};
 const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', ADVANCED:'پیشرفته', EXPERT:'حرفه‌ای'};
 let id = document.body.dataset.profileId, slug = document.body.dataset.slug;

@@ -66,9 +66,11 @@ struct Experience {
     std::vector<std::string> technologies;
     std::vector<std::string> skillIds;
     std::vector<std::string> projectIds;
+    std::vector<MediaReference> media;
 };
 inline void to_json(Json& json, const Experience& value) {
     json = Json{{"roleTitle", value.roleTitle}, {"organizationName", value.organizationName}, {"organizationProfileId", value.organizationProfileId}, {"employmentType", value.employmentType}, {"location", value.location}, {"locationType", value.locationType}, {"startDate", value.startDate}, {"endDate", value.endDate}, {"isCurrent", value.isCurrent}, {"summary", value.summary}, {"responsibilities", value.responsibilities}, {"achievements", value.achievements}, {"technologies", value.technologies}, {"skillIds", value.skillIds}, {"projectIds", value.projectIds}};
+    json["media"] = value.media;
 }
 inline void from_json(const Json& json, Experience& value) {
     value = Experience{};
@@ -87,6 +89,7 @@ inline void from_json(const Json& json, Experience& value) {
     if (json.contains("technologies")) json.at("technologies").get_to(value.technologies);
     if (json.contains("skillIds")) json.at("skillIds").get_to(value.skillIds);
     if (json.contains("projectIds")) json.at("projectIds").get_to(value.projectIds);
+    if (json.contains("media")) json.at("media").get_to(value.media);
 }
 struct Project {
     std::string title;

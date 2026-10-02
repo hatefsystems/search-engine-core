@@ -121,3 +121,17 @@ TEST(ProfileContent, OldSkillsEndpointsKeepAdvancedItemsAndCanRemoveThem) {
     ASSERT_EQ(p.content.sections["skills"].size(),2);EXPECT_EQ(std::get<AdvancedSkill>(p.content.sections["skills"][0].value).proficiencyLevel,"ADVANCED");
     EXPECT_TRUE(removePersonSkill(p,"C++"));EXPECT_EQ(p.content.sections["skills"].size(),1);EXPECT_FALSE(removePersonSkill(p,"C#"));
 }
+
+TEST(ProfileContent, ExperienceAndProjectMediaRoundTripWithPrivacyAndLimits) {
+    for(const auto& section:{"experiences","projects"}) {
+        auto p=person();auto values=Json{{"roleTitle","نقش"}};
+        if(std::string(section)=="projects")values={{"title","پروژه"}};
+        values["visibility"]="PUBLIC";values["media"]=Json::array({{{"id","image-one"},{"alt","نمودار مرتبط"}}});
+        p.content.sections[section]={item(section,"media-item",values)};
+        EXPECT_EQ(itemJson(publicPersonProfile(p).content.sections[section][0])["media"],values["media"]);
+        p.content.visibility[section]="HIDDEN";EXPECT_TRUE(publicPersonProfile(p).content.sections[section].empty());
+        values["media"].push_back(values["media"][0]);EXPECT_THROW(item(section,"media-item",values),std::invalid_argument);
+        values["media"]=Json::array();for(int i=0;i<11;++i)values["media"].push_back({{"id","image-"+std::to_string(i)}});
+        EXPECT_THROW(item(section,"media-item",values),std::invalid_argument);
+    }
+}

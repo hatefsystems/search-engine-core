@@ -47,6 +47,10 @@ function start(port=4173){
      if(method==='DELETE'){list.splice(index,1);return send({ok:true});}
      const entry={...(list[index]||{}),...body,version:(list[index]?.version||0)+1};if(index<0)list.push(entry);else list[index]=entry;return send({data:entry});
     }
+    if(method==='GET'&&parts[3]==='media'){
+     const bytes=media.get(parts[4]);if(!bytes)return send({},404);
+     res.writeHead(200,{'Content-Type':'image/png'});return res.end(bytes);
+    }
     if(method==='GET')return send({data:state,canEdit:true});
     if(body.version!==state.version)return send({message:'نسخه تغییر کرده است.'},409);
     if(parts[3]==='layout'){const {version,...patch}=body;Object.assign(state.contentLayout,patch);}
@@ -55,6 +59,10 @@ function start(port=4173){
      if(itemId==='order')state.sections[section]=body.ids.map(id=>items.find(i=>i.id===id));
      else if(method==='DELETE')state.sections[section]=items.filter(i=>i.id!==itemId);
      else {const index=items.findIndex(i=>i.id===(itemId||body.item.id));if(index<0)items.push({...clone(def.defaults),...body.item});else Object.assign(items[index],body.item);}
+    }else if(['projects','experiences'].includes(parts[3])&&parts[5]==='media'){
+     const entry=state.sections[parts[3]].find(i=>i.id===parts[4]);if(!entry)return send({},404);
+     const mediaId=require('node:crypto').randomUUID().replaceAll('-','');media.set(mediaId,Buffer.from(body.image.split(',').pop(),'base64'));
+     (entry.media||=[]).push({id:mediaId,alt:body.alt||''});
     }else if(parts[3]==='avatar'||parts[3]==='cover'){
      const key=`${id}-${parts[3]}`;media.set(key,Buffer.from(body.image.split(',').pop(),'base64'));
      state[parts[3]==='avatar'?'avatarUrl':'coverImageUrl']='/fixture-media/'+key;

@@ -787,3 +787,37 @@ never creates a record. Creation begins with the explicit start button.
 Unacknowledged form changes are kept locally per tab, reconciled on conflicts,
 and cleared on owner logout. Keep the displayed access key: this milestone
 has no account signup or lost-key recovery.
+
+
+## Images attached to experiences and projects
+
+The owner can attach up to 10 static JPEG, PNG or WebP images (5 MiB each)
+to an individual work experience or project. Both use the same versioned contract:
+
+- `POST /api/profiles/:id/experiences/:itemId/media`
+- `POST /api/profiles/:id/projects/:itemId/media`
+
+Body: `{ "version": 7, "image": "data:image/png;base64,...", "alt": "Deployment diagram" }`.
+The response returns the updated owner profile and its incremented version.
+Images are decoded, normalized to WebP, scaled to at most 1600 px and stripped of
+metadata. Animated images and excessive dimensions are rejected.
+
+Each item's `media` array contains `{id, alt}` objects. To edit captions, reorder
+or remove images, submit this array through the existing
+`PUT /api/profiles/:id/content/:section/:itemId` endpoint with the current version.
+Only images already belonging to that exact item may appear in the array.
+Copying an item does not copy its uploaded images. Captions are limited to 300
+Unicode characters. Removing a reference or deleting the item removes its stored file.
+
+`GET /api/profiles/:id/media/:mediaId` checks access on every request and uses
+`Cache-Control: private, no-store`. Owners can view their private images; visitors
+can only retrieve images whose profile, section and owning item are public.
+Hidden or removed images return 404, including when their URL is known.
+
+The basic editor also accepts `tagline`, an optional 120-character value statement
+shown below the professional title. It is separate from the full introduction.
+
+The public page and owner preview share the same expanded presentation. Related
+images, captions, project outcomes, readable date ranges and all populated fields
+remain visible. The section index includes all displayed sections; on smaller
+screens it becomes a keyboard-accessible menu.

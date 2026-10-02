@@ -53,10 +53,53 @@ const demo=require('./demo-profile.cjs');
    await page.locator(`#${kind}-file`).setInputFiles({name:`demo-${kind}.png`,mimeType:'image/png',buffer});await page.waitForFunction(()=>!document.querySelector('#profile-form').inert);await saved();
    await page.locator(`#editor-${kind}`).waitFor({state:'visible'});
   }
+  await page.locator('#profile-tagline').fill(demo.header.tagline+' ');await saved();assert.equal((await api(endpoint)).data.tagline,demo.header.tagline+' ');
+  await page.locator('#profile-tagline').fill(demo.header.tagline);await saved();
   await shot('01-basic-desktop');
+  // Uploaded images are either a real screenshot of this running editor or a
+  // labelled illustrative diagram. They are not claimed production evidence.
+  const diagram=async(index)=>Buffer.from(await page.evaluate(index=>{
+   const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=620;const x=canvas.getContext('2d');
+   x.fillStyle='#f6f3fc';x.fillRect(0,0,1000,620);x.fillStyle='#55309a';x.font='bold 32px sans-serif';
+   x.fillText(['Delivery workflow','Platform services','Software delivery','Cloud deployment'][index%4],54,70);
+   x.fillStyle='#62576f';x.font='18px sans-serif';x.fillText('ILLUSTRATIVE SAMPLE · NOT A PRODUCTION DIAGRAM',54,112);
+   const stages=[['Source','Build + test','Deploy','Observe'],['GitLab','Build','Containers','Monitoring'],['Application','Tests','Release','Operations'],['Infrastructure','Containers','Deploy','Monitoring']][index%4];
+   for(let i=0;i<4;i++){const col=i%2,row=Math.floor(i/2),left=54+col*476,top=172+row*188;x.fillStyle='#fff';x.fillRect(left,top,414,124);x.strokeStyle='#cbb9e5';x.lineWidth=2;x.strokeRect(left,top,414,124);x.fillStyle='#6d3eb3';x.font='bold 20px sans-serif';x.fillText(String(i+1).padStart(2,'0'),left+24,top+35);x.fillStyle='#302443';x.font='bold 26px sans-serif';x.fillText(stages[i],left+24,top+82);}
+   x.fillStyle='#62576f';x.font='17px sans-serif';x.fillText('Profile gallery example · uploaded through the real editor',54,568);
+   return canvas.toDataURL('image/png').split(',')[1];
+  },index),'base64');
+  const mediaTargets=[...demo.sections.experiences.map((i,n)=>['experiences',i.id,n]),...demo.sections.projects.map((i,n)=>['projects',i.id,n+3])];
+  for(const [section,itemId,art] of mediaTargets){
+   await nav(section);await page.locator(`[data-item-choice="${itemId}"]`).click();
+   const panel=()=>page.locator('.item-media-panel');
+   const screenshot=itemId==='demo-project-hatef';
+   const bytes=screenshot?await page.locator('.editor-columns').screenshot():await diagram(art);
+   const caption=screenshot?'نمای واقعی ویرایشگر هاتف در محیط آزمایشی':'نمودار نمونهٔ مسیر کار، صرفاً برای نمایش گالری این سابقه یا پروژه';
+   const upload=async(buffer,alt)=>{
+    await panel().getByLabel('توضیح تصویر جدید',{exact:true}).fill(alt);
+    const before=await panel().locator('.item-media-row').count();
+    await panel().locator('input[type=file]').setInputFiles({name:'related-sample.png',mimeType:'image/png',buffer});
+    await page.waitForFunction(count=>!document.querySelector('#profile-form').inert&&document.querySelectorAll('.item-media-row').length===count+1,before);
+   };
+   await upload(bytes,caption);
+   if(itemId==='demo-exp-quickhands'||screenshot){
+    await upload(await diagram(art+1),'نمای تکمیلی آزمایشی');
+    await panel().locator('.item-media-row').nth(1).getByRole('button',{name:'تصویر قبلی',exact:true}).click();await saved();
+    assert.equal((await api(endpoint)).data.sections[section].find(i=>i.id===itemId).media[0].alt,'نمای تکمیلی آزمایشی');
+    await panel().locator('.item-media-row').first().getByRole('button',{name:'تصویر بعدی',exact:true}).click();await saved();
+    await panel().getByLabel('توضیح تصویر 1',{exact:true}).fill(caption+'؛ پیوست مرتبط');await saved();
+    await upload(await diagram(0),'تصویر موقت برای آزمون حذف');
+    await panel().locator('.item-media-row').last().getByRole('button',{name:'حذف تصویر',exact:true}).click();await saved();
+    await page.reload();await panel().waitFor();assert.equal(await panel().locator('.item-media-row').count(),2);
+    assert.equal(await panel().getByLabel('توضیح تصویر 1',{exact:true}).inputValue(),caption+'؛ پیوست مرتبط');
+    await panel().screenshot({path:`${out}/23-${section}-image-editor.png`});
+   }
+   assert.ok(await panel().locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0)));
+  }
+  // The remaining form round-trips always start with the first item.
   const rounds=[['experiences','roleTitle'],['projects','title'],['skills','name'],['education','institutionName'],['certifications','name'],['publications','title'],['openSource','repositoryName'],['services','title'],['achievements','title'],['languages','name'],['recommendations','authorName'],['contacts','label'],['about','title']];
   for(let index=0;index<rounds.length;index++){
-   const [section,field]=rounds[index];await nav(section);
+   const [section,field]=rounds[index];await nav(section);await page.locator(`[data-item-choice="${demo.sections[section][0].id}"]`).click();
    const expected=demo.sections[section][0][field];const input=page.locator(`.content-item-form [data-field="${field}"] input`);
    await input.fill(expected+' ');await saved();assert.equal((await api(endpoint)).data.sections[section][0][field],expected+' ');
    await input.fill(expected);await saved();await page.reload();await input.waitFor();assert.equal(await input.inputValue(),expected);
@@ -88,6 +131,10 @@ const demo=require('./demo-profile.cjs');
    assert.equal(await publicPage.locator('details,summary,[data-more-section]').count(),0);
    assert.ok(await publicPage.locator('#section-experiences .pp-prose-field').count());
    assert.equal(await preview.locator('#section-skills .pp-card').count(),8);
+   assert.equal(await publicPage.locator('.content-gallery img').count(),7);
+   await publicPage.evaluate(()=>document.querySelectorAll('.content-gallery img').forEach(img=>img.loading='eager'));
+   await publicPage.waitForFunction(()=>[...document.querySelectorAll('.content-gallery img')].every(img=>img.complete&&img.naturalWidth>0));
+   assert.deepEqual(await preview.locator('.content-gallery figcaption').allTextContents(),await publicPage.locator('.content-gallery figcaption').allTextContents());
    for(const width of [1440,1920,768,390,320]){
     await publicPage.setViewportSize({width,height:1080});assert.ok(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await publicPage.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
@@ -95,12 +142,13 @@ const demo=require('./demo-profile.cjs');
     if(width===1440||width===390)await publicPage.screenshot({path:`${out}/22-public-hero-${width}.png`});
    }
    await publicPage.setViewportSize({width:1440,height:1080});
+   for(const section of ['experiences','projects','skills'])await publicPage.locator('#section-'+section).screenshot({path:`${out}/24-public-${section}.png`});
    await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
    await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
    await publicResponse.close();
   }
   assert.deepEqual(errors,[]);
-  fs.writeFileSync(`${out}/validation.json`,JSON.stringify({mode:fixture?'fixture UI only':'real C++ API + MongoDB',sections:Object.keys(demo.sections).length,items:Object.values(demo.sections).reduce((n,a)=>n+a.length,0),screenshots:fs.readdirSync(out).filter(f=>f.endsWith('.png')).length,unknownFields:'Synthetic publication and recommendation are labelled and hidden.',result:'PASS'},null,2));
+  fs.writeFileSync(`${out}/validation.json`,JSON.stringify({mode:fixture?'fixture UI only':'real C++ API + MongoDB',sections:Object.keys(demo.sections).length,items:Object.values(demo.sections).reduce((n,a)=>n+a.length,0),screenshots:fs.readdirSync(out).filter(f=>f.endsWith('.png')).length,relatedImages:7,mediaChecks:'Upload, captions, ordering, deletion, reload and preview/public parity',unknownFields:'Synthetic publication and recommendation are labelled and hidden.',result:'PASS'},null,2));
   console.log(`PASS demo: ${fixture?'fixture UI':'real API persistence'}, 14 sections, round-trip edits, uploaded images, responsive screenshots, private synthetic samples, publish.`);
  }finally{
   if(id&&key&&context)await context.request.delete(base+`/api/profiles/${id}`,{headers:{Authorization:'Bearer '+key}}).catch(()=>{});

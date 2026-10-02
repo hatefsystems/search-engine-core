@@ -31,12 +31,22 @@ const demo=require('./demo-profile.cjs');
   const expectedFacts=await page.locator('#section-experiences .pp-position-facts').first().innerText();
   await page.evaluate(()=>{const p=structuredClone(window.testData);for(const [key,items] of Object.entries(p.sections))p.sections[key]=items.map(item=>Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))));window.testPublic.renderPublicProfile(document.getElementById('public-preview-root'),p,{preview:true});});
   assert.equal(await page.locator('#section-experiences .pp-position-facts').first().innerText(),expectedFacts);
-  assert.equal(await page.locator('#section-experiences .pp-position-facts dt').first().textContent(),'نام سازمان');
+  assert.equal(await page.locator('#section-experiences .pp-timeline').first().textContent(),'اسفند ۱۴۰۳ تا اکنون');
+  assert.equal(await page.locator('#section-experiences .pp-position-facts [data-field=organizationName]').first().textContent(),'QuickHands Inc.');
+  assert.equal(await page.locator('#section-skills .pp-current-badge').count(),8);
+  assert.equal(await page.getByText('همچنان ادامه دارد',{exact:true}).count(),0);
+  assert.equal(await page.getByText('راه‌حل شما',{exact:true}).count(),0);
+  const visibleSectionIds=await page.locator('.pp-section:not([hidden])').evaluateAll(nodes=>nodes.map(n=>n.id));
+  for(const id of visibleSectionIds)assert.equal(await page.locator(`#profile-section-index a[href="#${id}"]`).count(),1);
+  await page.locator('#profile-section-index a[href="#section-certifications"]').click();
+  await page.waitForFunction(()=>document.querySelector('#profile-section-index a[aria-current=location]')?.hash==='#section-certifications');
+  await page.evaluate(()=>scrollTo(0,0));
+  assert.deepEqual(await page.evaluate(()=>[window.testPublic.publicDate({calendar:'persian',year:1403}),window.testPublic.publicDate({calendar:'gregory',year:2024,month:2,day:3})]),['۱۴۰۳','۳ فوریه ۲۰۲۴ میلادی']);
   await page.evaluate(()=>window.print=()=>window.printRequested=true);await page.locator('[data-resume]').click();assert.equal(await page.evaluate(()=>window.printRequested),true);
   for(const width of [1920,1440,1280,1024,768,390,320]){
    await page.setViewportSize({width,height:1080});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow at ${width}`);
    await page.screenshot({path:`${out}/public-${width}.png`,fullPage:true});if([1440,390].includes(width))await page.screenshot({path:`${out}/hero-${width}.png`});
-   if(width<900){await page.locator('.pp-menu-toggle').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'true');await page.locator('.pp-menu a[href="#section-projects"]').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'false');await page.evaluate(()=>scrollTo(0,0));}
+   if(width<=1100){await page.locator('.pp-menu-toggle').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'true');await page.locator('.pp-menu a[href="#section-projects"]').click();assert.equal(await page.locator('.pp-menu-toggle').getAttribute('aria-expanded'),'false');await page.evaluate(()=>scrollTo(0,0));}
   }
   // Real asynchronous pagination contract, including a retry and draft replacement.
   let requests=0;

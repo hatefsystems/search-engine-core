@@ -566,71 +566,63 @@ export class ProfileContentEditor {
           "hint",
         ),
       );
-    if (section === "projects") {
-      for (const media of item.media || [])
-        box.append(
-          this.button(`حذف تصویر: ${media.alt || "بدون توضیح"}`, () => {
-            item.media = item.media.filter((m) => m.id !== media.id);
-            update();
-            this.render();
-          }),
-        );
-      const alt = el("input");
-      alt.placeholder = "توضیح تصویر پروژه";
-      alt.setAttribute("aria-label", "توضیح تصویر پروژه");
-      const input = el("input");
-      input.type = "file";
-      input.accept = "image/jpeg,image/png,image/webp";
-      input.setAttribute("aria-label", "افزودن تصویر پروژه");
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-          this.notice("حداکثر اندازهٔ تصویر ۵ مگابایت است.");
-          return;
-        }
-        input.disabled = true;
-        try {
-          if (!(await this.flush()))
-            throw new Error("ابتدا ذخیرهٔ تغییرات را کامل کنید.");
-          const image = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          const result = await this.mutate((version) =>
-            this.api(
-              `/api/profiles/${this.id}/projects/${item.id}/media`,
-              "POST",
-              { image, alt: alt.value, version },
-            ),
-          );
-          this.accept(result.data);
-          this.receive(result.data);
-          this.render();
-        } catch (error) {
-          if (error.status === 409) {
-            this.queue.blocked = true;
-            this.conflict();
-          }
-          this.notice(error.message || "بارگذاری انجام نشد.");
-        } finally {
-          input.disabled = false;
-          input.value = "";
-        }
-      };
-      box.append(
-        alt,
-        input,
-        el(
-          "p",
-          "JPEG، PNG یا WebP ثابت؛ حداکثر ۵ مگابایت و ده تصویر. ویدئو و مدارک را با لینک در شواهد اضافه کنید.",
-          "hint",
-        ),
-      );
-    }
+    if (["projects", "experiences"].includes(section)) box.append(this.mediaPanel(section, item, update));
     return box;
+  }
+  mediaPanel(section, item, update) {
+    const title = section === "projects" ? "پروژه" : "سابقه";
+    const panel = el("fieldset", "", "item-media-panel");
+    panel.append(el("legend", `تصاویر ${title}`), el("p", "تصاویر همین مورد را اضافه کنید. اولین تصویر در ابتدای گالری نمایش داده می‌شود؛ وضعیت نمایش تصاویر از همین آیتم پیروی می‌کند.", "hint"));
+    const list = el("div", "", "item-media-list");
+    const render = () => {
+      list.replaceChildren();
+      for (const [index, media] of (item.media || []).entries()) {
+        const row = el("div", "", "item-media-row"); row.dataset.mediaId = media.id;
+        const image = el("img"); image.src = `/api/profiles/${encodeURIComponent(this.id)}/media/${encodeURIComponent(media.id)}`;
+        image.alt = media.alt || `تصویر ${index + 1} ${title}`;
+        const label = el("label", `توضیح تصویر ${index + 1}`), caption = el("input");
+        caption.value = media.alt || ""; caption.maxLength = 300; caption.dir = "auto";
+        caption.oninput = () => {media.alt = caption.value; image.alt = media.alt; update();}; label.append(caption);
+        const controls = el("div", "", "item-media-actions");
+        for (const [delta, text] of [[-1,"تصویر قبلی"],[1,"تصویر بعدی"]]) {
+          const button = this.button(text, () => {
+            [item.media[index], item.media[index + delta]] = [item.media[index + delta], item.media[index]];
+            update(); render(); list.children[index + delta].querySelector("button").focus();
+          });
+          button.disabled = index + delta < 0 || index + delta >= item.media.length; controls.append(button);
+        }
+        controls.append(this.button("حذف تصویر", () => {item.media = item.media.filter(m => m.id !== media.id); update(); render();}));
+        row.append(image,label,controls); list.append(row);
+      }
+    };
+    render();
+    const altLabel = el("label", "توضیح تصویر جدید"), alt = el("input"); alt.maxLength = 300; alt.dir = "auto"; altLabel.append(alt);
+    const uploadLabel = el("label", `افزودن تصویر ${title}`), input = el("input");
+    input.type = "file"; input.accept = "image/jpeg,image/png,image/webp"; uploadLabel.append(input);
+    const progress = el("p", "", "hint"); progress.setAttribute("role", "status");
+    input.onchange = async () => {
+      const file = input.files[0]; if (!file || this.uploading) return;
+      if (file.size > 5 * 1024 * 1024) {this.notice("حداکثر اندازهٔ تصویر ۵ مگابایت است."); input.value = ""; return;}
+      if ((item.media || []).length >= 10) {this.notice("حداکثر ده تصویر برای هر آیتم مجاز است."); input.value = ""; return;}
+      const form = document.getElementById("profile-form"), publish = document.getElementById("publish");
+      this.uploading = true; form.inert = true; publish.disabled = true; panel.setAttribute("aria-busy", "true");
+      progress.textContent = "در حال بارگذاری تصویر…"; this.notice("");
+      try {
+        if (!(await this.flush())) throw new Error("ابتدا ذخیرهٔ تغییرات را کامل کنید.");
+        const image = await new Promise((resolve, reject) => {
+          const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
+        });
+        const result = await this.mutate(version => this.api(`/api/profiles/${this.id}/${section}/${item.id}/media`, "POST", {image, alt:alt.value, version}));
+        this.accept(result.data); this.receive(result.data); this.render(); this.notice("تصویر ذخیره شد.");
+      } catch (error) {
+        if (error.status === 409) {this.queue.blocked = true; this.conflict();}
+        this.notice(error.message || "بارگذاری انجام نشد؛ دوباره تلاش کنید.");
+      } finally {
+        this.uploading = false; form.inert = false; publish.disabled = false; panel.removeAttribute("aria-busy"); progress.textContent = ""; input.value = "";
+      }
+    };
+    panel.append(list,altLabel,uploadLabel,progress,el("p", "JPEG، PNG یا WebP ثابت؛ حداکثر ۵ مگابایت و ده تصویر. ویدئو و مدارک را با لینک در شواهد اضافه کنید.", "hint"));
+    return panel;
   }
   field(field, item, update, defaultValue) {
     const wrapper = el("label", labels[field] || field);
