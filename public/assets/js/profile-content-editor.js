@@ -577,7 +577,7 @@ export class ProfileContentEditor {
     return box;
   }
   mediaPanel(section, item, update) {
-    const title = section === "projects" ? "پروژه" : "سابقه";
+    const title = ({projects:"پروژه", experiences:"سابقه", services:"خدمت", skills:"مهارت", achievements:"دستاورد"})[section] || "آیتم";
     const panel = el("fieldset", "", "item-media-panel");
     panel.append(el("legend", `تصاویر ${title}`), el("p", "تصاویر همین مورد را اضافه کنید. اولین تصویر در ابتدای گالری نمایش داده می‌شود؛ وضعیت نمایش تصاویر از همین آیتم پیروی می‌کند.", "hint"));
     const list = el("div", "", "item-media-list");

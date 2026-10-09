@@ -1,0 +1,343 @@
+{
+  "ready": {
+    "status": "ready",
+    "catalogVersion": "bac06580c1c646cd7b800aa6",
+    "icons": 3704,
+    "model": "disabled",
+    "mode": "lexical"
+  },
+  "suggest": {
+    "suggestions": [
+      {
+        "labelEn": "scale",
+        "labelFa": "حقوق و قرارداد",
+        "keywords": [
+          "balance",
+          "legal",
+          "license",
+          "right",
+          "rule",
+          "law",
+          "navigation"
+        ],
+        "categories": [
+          "law"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "lucide",
+          "revision": "f12b0de177fbc2a6795e99be065887e72b237123",
+          "license": "ISC"
+        },
+        "raw": {
+          "$schema": "../icon.schema.json",
+          "contributors": [
+            "mittalyashu",
+            "ericfennis",
+            "karsa-mistmere"
+          ],
+          "tags": [
+            "balance",
+            "legal",
+            "license",
+            "right",
+            "rule",
+            "law"
+          ],
+          "categories": [
+            "navigation"
+          ]
+        },
+        "brand": false,
+        "id": "lucide:scale",
+        "source": "lucide",
+        "name": "scale",
+        "hash": "103a50a52661181a19c9994f9973535ab90072fe4a8705a32ce38a666994400d",
+        "category": "law",
+        "style": "outline",
+        "iconUrl": "/assets/icons/lucide/scale.svg",
+        "score": 0.992353,
+        "rank": 1
+      },
+      {
+        "labelEn": "file signature",
+        "labelFa": "حقوق و قرارداد",
+        "keywords": [],
+        "categories": [
+          "law"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "iconify:lucide",
+          "revision": "ee9080db012939b75424cd9abaa443fa4b914de7",
+          "license": {
+            "title": "ISC",
+            "spdx": "ISC",
+            "url": "https://github.com/lucide-icons/lucide/blob/main/LICENSE"
+          }
+        },
+        "raw": {
+          "title": "file signature",
+          "alias": {
+            "parent": "file-pen-line"
+          }
+        },
+        "brand": false,
+        "id": "iconify:lucide:file-signature",
+        "source": "iconify",
+        "name": "file-signature",
+        "hash": "4a6c93d517150bc15312c3d8291f34a213c7715c61755f6f33175f1fe204feeb",
+        "category": "law",
+        "style": "outline",
+        "iconUrl": "/assets/icons/iconify/lucide/file-signature.svg",
+        "score": 0.942353,
+        "rank": 2
+      },
+      {
+        "labelEn": "activity",
+        "labelFa": "حقوق و قرارداد پزشکی و سلامت",
+        "keywords": [
+          "pulse",
+          "action",
+          "motion",
+          "movement",
+          "exercise",
+          "fitness",
+          "healthcare",
+          "heart rate monitor",
+          "vital signs",
+          "vitals",
+          "emergency room",
+          "er",
+          "intensive care",
+          "hospital",
+          "defibrillator",
+          "earthquake",
+          "siesmic",
+          "magnitude",
+          "richter scale",
+          "aftershock",
+          "tremor",
+          "shockwave",
+          "audio",
+          "waveform",
+          "synthesizer",
+          "synthesiser",
+          "music",
+          "medical",
+          "account",
+          "social",
+          "science",
+          "multimedia"
+        ],
+        "categories": [
+          "law",
+          "healthcare"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "lucide",
+          "revision": "f12b0de177fbc2a6795e99be065887e72b237123",
+          "license": "ISC"
+        },
+        "raw": {
+          "$schema": "../icon.schema.json",
+          "contributors": [
+            "colebemis",
+            "jguddas"
+          ],
+          "tags": [
+            "pulse",
+            "action",
+            "motion",
+            "movement",
+            "exercise",
+            "fitness",
+            "healthcare",
+            "heart rate monitor",
+            "vital signs",
+            "vitals",
+            "emergency room",
+            "er",
+            "intensive care",
+            "hospital",
+            "defibrillator",
+            "earthquake",
+            "siesmic",
+            "magnitude",
+            "richter scale",
+            "aftershock",
+            "tremor",
+            "shockwave",
+            "audio",
+            "waveform",
+            "synthesizer",
+            "synthesiser",
+            "music"
+          ],
+          "categories": [
+            "medical",
+            "account",
+            "social",
+            "science",
+            "multimedia"
+          ]
+        },
+        "brand": false,
+        "id": "lucide:activity",
+        "source": "lucide",
+        "name": "activity",
+        "hash": "abc6ec15e0abc90ae2243b424d85e420ce5a0c5dad749ecb8085b3f781fd03da",
+        "category": "law",
+        "style": "outline",
+        "iconUrl": "/assets/icons/lucide/activity.svg",
+        "score": 0.932353,
+        "rank": 3
+      }
+    ],
+    "engine": "lexical",
+    "modelAvailable": false,
+    "catalogVersion": "bac06580c1c646cd7b800aa6",
+    "semanticCoverage": 0.0,
+    "lowConfidence": false,
+    "scoreMeaning": "ranking score, not probability",
+    "context": "service"
+  },
+  "search": {
+    "items": [
+      {
+        "labelEn": "cloud",
+        "labelFa": "زیرساخت ابری",
+        "keywords": [
+          "weather",
+          "weather"
+        ],
+        "categories": [
+          "cloud-infrastructure"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "lucide",
+          "revision": "f12b0de177fbc2a6795e99be065887e72b237123",
+          "license": "ISC"
+        },
+        "raw": {
+          "$schema": "../icon.schema.json",
+          "contributors": [
+            "colebemis",
+            "csandman",
+            "ericfennis",
+            "karsa-mistmere"
+          ],
+          "tags": [
+            "weather"
+          ],
+          "categories": [
+            "weather"
+          ]
+        },
+        "brand": false,
+        "id": "lucide:cloud",
+        "source": "lucide",
+        "name": "cloud",
+        "hash": "b580e5af9566199be21bce12b5a785465fa023bfc6918de32cec0aa3b6917955",
+        "category": "cloud-infrastructure",
+        "style": "outline",
+        "iconUrl": "/assets/icons/lucide/cloud.svg"
+      },
+      {
+        "labelEn": "server",
+        "labelFa": "زیرساخت ابری",
+        "keywords": [
+          "cloud",
+          "storage",
+          "development",
+          "devices"
+        ],
+        "categories": [
+          "cloud-infrastructure"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "lucide",
+          "revision": "f12b0de177fbc2a6795e99be065887e72b237123",
+          "license": "ISC"
+        },
+        "raw": {
+          "$schema": "../icon.schema.json",
+          "contributors": [
+            "colebemis",
+            "ericfennis"
+          ],
+          "tags": [
+            "cloud",
+            "storage"
+          ],
+          "categories": [
+            "development",
+            "devices"
+          ]
+        },
+        "brand": false,
+        "id": "lucide:server",
+        "source": "lucide",
+        "name": "server",
+        "hash": "fc72671c7336ef963b13cdf7d957205db866c63703b24529b9153497c5392899",
+        "category": "cloud-infrastructure",
+        "style": "outline",
+        "iconUrl": "/assets/icons/lucide/server.svg"
+      },
+      {
+        "labelEn": "cloud cog",
+        "labelFa": "زیرساخت ابری",
+        "keywords": [
+          "computing",
+          "ai",
+          "cluster",
+          "network",
+          "development"
+        ],
+        "categories": [
+          "cloud-infrastructure"
+        ],
+        "metadataVersion": 1,
+        "persianProvenance": "curated dictionary; automatic association",
+        "origin": {
+          "sourceRecord": "lucide",
+          "revision": "f12b0de177fbc2a6795e99be065887e72b237123",
+          "license": "ISC"
+        },
+        "raw": {
+          "$schema": "../icon.schema.json",
+          "contributors": [
+            "karsa-mistmere"
+          ],
+          "tags": [
+            "computing",
+            "ai",
+            "cluster",
+            "network"
+          ],
+          "categories": [
+            "development"
+          ]
+        },
+        "brand": false,
+        "id": "lucide:cloud-cog",
+        "source": "lucide",
+        "name": "cloud-cog",
+        "hash": "03b2ae9fba4321a9ec7273142610946a164e32b6082c88a1538ff058010459ca",
+        "category": "cloud-infrastructure",
+        "style": "outline",
+        "iconUrl": "/assets/icons/lucide/cloud-cog.svg"
+      }
+    ],
+    "nextOffset": 3,
+    "catalogVersion": "bac06580c1c646cd7b800aa6"
+  }
+}
