@@ -10,9 +10,19 @@ def call(path,method='GET',body=None,key=None,status=200,headers=None):
     h={'Content-Type':'application/json',**(headers or {})}
     if key:h['Authorization']='Bearer '+key
     request=urllib.request.Request(BASE+path,data=None if body is None else json.dumps(body,ensure_ascii=False).encode(),method=method,headers=h)
-    try:response=http.open(request,timeout=30)
-    except urllib.error.HTTPError as e:response=e
-    raw=response.read();assert response.status==status,(method,path,response.status,raw[:600])
+    # This suite exceeds the production limit of 120 owner mutations per minute.
+    # Honor its backoff without changing the server limit or hiding other failures.
+    for attempt in range(3):
+        try:response=http.open(request,timeout=30)
+        except urllib.error.HTTPError as e:response=e
+        raw=response.read();response.close()
+        if response.status!=429 or status==429 or not key or method=='GET' or attempt==2:break
+        retry_after=response.headers.get('Retry-After','')
+        assert retry_after.isdigit() and 0<=int(retry_after)<=60,('invalid Retry-After',retry_after)
+        delay=max(1,int(retry_after))
+        print('Owner mutation rate limit; retrying after',delay,'seconds',flush=True)
+        time.sleep(delay)
+    assert response.status==status,(method,path,response.status,raw[:600])
     assert response.headers.get('Server')=='HatefEngine 1.0',(path,response.headers)
     checks+=1
     try:return json.loads(raw)
@@ -84,7 +94,7 @@ try:
     call(imagepath,status=404);assert call(imagepath,key=key)[8:12]==b'WEBP'
     public=call(path)['data'];assert 'نمونه‌کار دانشجویی' not in json.dumps(public,ensure_ascii=False);assert public['featured']==[]
     assert public['sections']['experiences'][0]['projectIds']==[]
-    # Media belongs to exactly one experience/project, preserving order and captions.
+    # Media belongs to exactly one item in each icon-capable section.
     for section,titlefield in [('experiences','roleTitle'),('projects','title'),('services','title'),('skills','name'),('achievements','title')]:
         itemid='media-'+section;itempath=path+'/content/'+section+'/'+itemid;upload=path+'/'+section+'/'+itemid+'/media'
         p=call(path+'/content/'+section,'POST',{'version':version,'item':{'id':itemid,titlefield:'آزمون تصاویر','visibility':'PUBLIC'}},key=key)['data'];version=p['version']
