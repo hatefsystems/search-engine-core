@@ -71,6 +71,7 @@ services:
       - MINIFY_JS=true
       - MINIFY_JS_LEVEL=none  # Use microservice instead
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
+      - ICON_ENGINE_URL=http://semantic-icon-engine:8080
       # Cache configuration
       - JS_CACHE_ENABLED=true
       - JS_CACHE_TYPE=redis
@@ -115,6 +116,37 @@ services:
       - 8.8.8.8
       - 1.1.1.1
       - 8.8.4.4
+
+  semantic-icon-engine:
+    profiles: [icons]
+    build: ./services/semantic-icon-engine
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${ICON_CPUS:-1.0}
+    mem_limit: ${ICON_MEMORY:-1536m}
+    tmpfs: [/tmp:size=32m,mode=1777]
+    volumes:
+      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts:ro
+    environment:
+      ICON_DATA_DIR: /artifacts/data
+      ICON_MODEL_DIR: /artifacts/models
+      ICON_VECTOR_DIR: /artifacts/vectors
+      ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-false}
+      ICON_THREADS: "1"
+      ICON_TIMEOUT_SECONDS: "2"
+    networks: [search-network]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
 
   js-minifier:
     build:

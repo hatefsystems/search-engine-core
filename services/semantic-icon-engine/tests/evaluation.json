@@ -1,0 +1,452 @@
+[
+  {
+    "category": "cloud-infrastructure",
+    "text": "cloud infrastructure",
+    "relevant": [
+      "lucide:cloud",
+      "lucide:cloud-cog",
+      "lucide:cloud-upload"
+    ]
+  },
+  {
+    "category": "cloud-infrastructure",
+    "text": "رایانش ابری",
+    "relevant": [
+      "lucide:cloud",
+      "lucide:cloud-cog",
+      "lucide:cloud-upload"
+    ]
+  },
+  {
+    "category": "cloud-infrastructure",
+    "text": "زیرساخت ابری",
+    "relevant": [
+      "lucide:cloud",
+      "lucide:cloud-cog",
+      "lucide:cloud-upload"
+    ]
+  },
+  {
+    "category": "cloud-infrastructure",
+    "text": "cloud computing services",
+    "relevant": [
+      "lucide:cloud",
+      "lucide:cloud-cog",
+      "lucide:cloud-upload"
+    ]
+  },
+  {
+    "category": "cloud-infrastructure",
+    "text": "ابر و زیرساخت",
+    "relevant": [
+      "lucide:cloud",
+      "lucide:cloud-cog",
+      "lucide:cloud-upload"
+    ]
+  },
+  {
+    "category": "software-automation",
+    "text": "CI/CD automation",
+    "relevant": [
+      "lucide:workflow",
+      "lucide:git-branch",
+      "lucide:git-pull-request"
+    ]
+  },
+  {
+    "category": "software-automation",
+    "text": "انتشار خودکار",
+    "relevant": [
+      "lucide:workflow",
+      "lucide:git-branch",
+      "lucide:git-pull-request"
+    ]
+  },
+  {
+    "category": "software-automation",
+    "text": "خودکارسازی استقرار",
+    "relevant": [
+      "lucide:workflow",
+      "lucide:git-branch",
+      "lucide:git-pull-request"
+    ]
+  },
+  {
+    "category": "software-automation",
+    "text": "workflow automation",
+    "relevant": [
+      "lucide:workflow",
+      "lucide:git-branch",
+      "lucide:git-pull-request"
+    ]
+  },
+  {
+    "category": "software-automation",
+    "text": "پایپ‌لاین DevOps",
+    "relevant": [
+      "lucide:workflow",
+      "lucide:git-branch",
+      "lucide:git-pull-request"
+    ]
+  },
+  {
+    "category": "law",
+    "text": "legal contract",
+    "relevant": [
+      "lucide:scale",
+      "lucide:file-signature",
+      "lucide:briefcase"
+    ]
+  },
+  {
+    "category": "law",
+    "text": "مشاوره حقوقی",
+    "relevant": [
+      "lucide:scale",
+      "lucide:file-signature",
+      "lucide:briefcase"
+    ]
+  },
+  {
+    "category": "law",
+    "text": "وکالت و قرارداد",
+    "relevant": [
+      "lucide:scale",
+      "lucide:file-signature",
+      "lucide:briefcase"
+    ]
+  },
+  {
+    "category": "law",
+    "text": "law services",
+    "relevant": [
+      "lucide:scale",
+      "lucide:file-signature",
+      "lucide:briefcase"
+    ]
+  },
+  {
+    "category": "law",
+    "text": "عدالت",
+    "relevant": [
+      "lucide:scale",
+      "lucide:file-signature",
+      "lucide:briefcase"
+    ]
+  },
+  {
+    "category": "healthcare",
+    "text": "healthcare doctor",
+    "relevant": [
+      "lucide:stethoscope",
+      "lucide:heart-pulse",
+      "lucide:hospital"
+    ]
+  },
+  {
+    "category": "healthcare",
+    "text": "پزشکی و درمان",
+    "relevant": [
+      "lucide:stethoscope",
+      "lucide:heart-pulse",
+      "lucide:hospital"
+    ]
+  },
+  {
+    "category": "healthcare",
+    "text": "سلامت",
+    "relevant": [
+      "lucide:stethoscope",
+      "lucide:heart-pulse",
+      "lucide:hospital"
+    ]
+  },
+  {
+    "category": "healthcare",
+    "text": "medical services",
+    "relevant": [
+      "lucide:stethoscope",
+      "lucide:heart-pulse",
+      "lucide:hospital"
+    ]
+  },
+  {
+    "category": "healthcare",
+    "text": "پرستاری",
+    "relevant": [
+      "lucide:stethoscope",
+      "lucide:heart-pulse",
+      "lucide:hospital"
+    ]
+  },
+  {
+    "category": "education",
+    "text": "education teaching",
+    "relevant": [
+      "lucide:graduation-cap",
+      "lucide:book-open",
+      "lucide:school"
+    ]
+  },
+  {
+    "category": "education",
+    "text": "آموزش و تدریس",
+    "relevant": [
+      "lucide:graduation-cap",
+      "lucide:book-open",
+      "lucide:school"
+    ]
+  },
+  {
+    "category": "education",
+    "text": "یادگیری",
+    "relevant": [
+      "lucide:graduation-cap",
+      "lucide:book-open",
+      "lucide:school"
+    ]
+  },
+  {
+    "category": "education",
+    "text": "school education",
+    "relevant": [
+      "lucide:graduation-cap",
+      "lucide:book-open",
+      "lucide:school"
+    ]
+  },
+  {
+    "category": "education",
+    "text": "دانشگاه",
+    "relevant": [
+      "lucide:graduation-cap",
+      "lucide:book-open",
+      "lucide:school"
+    ]
+  },
+  {
+    "category": "architecture",
+    "text": "architecture construction",
+    "relevant": [
+      "lucide:building",
+      "lucide:house",
+      "lucide:ruler"
+    ]
+  },
+  {
+    "category": "architecture",
+    "text": "معماری ساختمان",
+    "relevant": [
+      "lucide:building",
+      "lucide:house",
+      "lucide:ruler"
+    ]
+  },
+  {
+    "category": "architecture",
+    "text": "طراحی داخلی",
+    "relevant": [
+      "lucide:building",
+      "lucide:house",
+      "lucide:ruler"
+    ]
+  },
+  {
+    "category": "architecture",
+    "text": "house construction",
+    "relevant": [
+      "lucide:building",
+      "lucide:house",
+      "lucide:ruler"
+    ]
+  },
+  {
+    "category": "architecture",
+    "text": "ساخت و ساز",
+    "relevant": [
+      "lucide:building",
+      "lucide:house",
+      "lucide:ruler"
+    ]
+  },
+  {
+    "category": "design",
+    "text": "graphic design",
+    "relevant": [
+      "lucide:palette",
+      "lucide:paintbrush",
+      "lucide:pen-tool"
+    ]
+  },
+  {
+    "category": "design",
+    "text": "طراحی گرافیک",
+    "relevant": [
+      "lucide:palette",
+      "lucide:paintbrush",
+      "lucide:pen-tool"
+    ]
+  },
+  {
+    "category": "design",
+    "text": "نقاشی",
+    "relevant": [
+      "lucide:palette",
+      "lucide:paintbrush",
+      "lucide:pen-tool"
+    ]
+  },
+  {
+    "category": "design",
+    "text": "art design",
+    "relevant": [
+      "lucide:palette",
+      "lucide:paintbrush",
+      "lucide:pen-tool"
+    ]
+  },
+  {
+    "category": "design",
+    "text": "هنر",
+    "relevant": [
+      "lucide:palette",
+      "lucide:paintbrush",
+      "lucide:pen-tool"
+    ]
+  },
+  {
+    "category": "agriculture",
+    "text": "agriculture farming",
+    "relevant": [
+      "lucide:sprout",
+      "lucide:tractor",
+      "lucide:wheat"
+    ]
+  },
+  {
+    "category": "agriculture",
+    "text": "کشاورزی",
+    "relevant": [
+      "lucide:sprout",
+      "lucide:tractor",
+      "lucide:wheat"
+    ]
+  },
+  {
+    "category": "agriculture",
+    "text": "باغبانی و کاشت",
+    "relevant": [
+      "lucide:sprout",
+      "lucide:tractor",
+      "lucide:wheat"
+    ]
+  },
+  {
+    "category": "agriculture",
+    "text": "farming services",
+    "relevant": [
+      "lucide:sprout",
+      "lucide:tractor",
+      "lucide:wheat"
+    ]
+  },
+  {
+    "category": "agriculture",
+    "text": "مزرعه",
+    "relevant": [
+      "lucide:sprout",
+      "lucide:tractor",
+      "lucide:wheat"
+    ]
+  },
+  {
+    "category": "retail",
+    "text": "retail shop",
+    "relevant": [
+      "lucide:shopping-cart",
+      "lucide:store",
+      "lucide:shopping-bag"
+    ]
+  },
+  {
+    "category": "retail",
+    "text": "فروشگاه",
+    "relevant": [
+      "lucide:shopping-cart",
+      "lucide:store",
+      "lucide:shopping-bag"
+    ]
+  },
+  {
+    "category": "retail",
+    "text": "خرده فروشی",
+    "relevant": [
+      "lucide:shopping-cart",
+      "lucide:store",
+      "lucide:shopping-bag"
+    ]
+  },
+  {
+    "category": "retail",
+    "text": "shopping services",
+    "relevant": [
+      "lucide:shopping-cart",
+      "lucide:store",
+      "lucide:shopping-bag"
+    ]
+  },
+  {
+    "category": "retail",
+    "text": "خرید و فروش",
+    "relevant": [
+      "lucide:shopping-cart",
+      "lucide:store",
+      "lucide:shopping-bag"
+    ]
+  },
+  {
+    "category": "repair",
+    "text": "repair maintenance",
+    "relevant": [
+      "lucide:wrench",
+      "lucide:hammer",
+      "lucide:settings"
+    ]
+  },
+  {
+    "category": "repair",
+    "text": "تعمیرات",
+    "relevant": [
+      "lucide:wrench",
+      "lucide:hammer",
+      "lucide:settings"
+    ]
+  },
+  {
+    "category": "repair",
+    "text": "سرویس فنی",
+    "relevant": [
+      "lucide:wrench",
+      "lucide:hammer",
+      "lucide:settings"
+    ]
+  },
+  {
+    "category": "repair",
+    "text": "maintenance services",
+    "relevant": [
+      "lucide:wrench",
+      "lucide:hammer",
+      "lucide:settings"
+    ]
+  },
+  {
+    "category": "repair",
+    "text": "تعمیر و نگهداری",
+    "relevant": [
+      "lucide:wrench",
+      "lucide:hammer",
+      "lucide:settings"
+    ]
+  }
+]

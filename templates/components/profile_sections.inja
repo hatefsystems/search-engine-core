@@ -3,6 +3,7 @@
 <h2 id="heading-{{ section.key }}">{{ section.label }}</h2>
 {% for item in section.items %}
 <article class="content-item" id="item-{{ section.key }}-{{ item.id }}">
+{% if item.iconUrl != "" %}<img class="profile-item-icon" src="{{ item.iconUrl }}" alt="" width="32" height="32" loading="lazy">{% endif %}
 <h3 dir="auto">{{ item.heading }}</h3>{% if item.summary != "" %}<p class="content-summary" dir="auto">{{ item.summary }}</p>{% endif %}
 <div class="content-details"><dl class="content-fields">
 {% for field in item.fields %}<dt>{{ field.label }}</dt><dd dir="auto">{% if field.url != "" %}<a href="{{ field.url }}" target="_blank" rel="noopener noreferrer">مشاهدهٔ منبع</a>{% else %}{{ field.value }}{% endif %}</dd>{% endfor %}

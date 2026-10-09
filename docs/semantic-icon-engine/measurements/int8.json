@@ -1,0 +1,1121 @@
+{
+  "averageCpuCores": 1.0710413822945068,
+  "catalogIcons": 3704,
+  "catalogVersion": "bac06580c1c646cd7b800aa6",
+  "cpuSeconds": 12.548931863,
+  "dataset": "development, dictionary-aware labels; not held-out",
+  "embeddingVersion": "bcd92eef93de7b7d94e06dcfc052a3fa9a160e02494c08a9b09055208dadea27",
+  "engine": "hybrid",
+  "hitAt3": 0.98,
+  "hitAt5": 0.98,
+  "meanMs": 185.44778522001707,
+  "p95Ms": 261.0135300000138,
+  "peakRssMiB": 1052.12890625,
+  "queries": 50,
+  "recallAt3": 0.74,
+  "recallAt5": 0.78,
+  "results": [
+    {
+      "category": "cloud-infrastructure",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:cloud",
+        "lucide:cloud-download",
+        "lucide:cloud-upload",
+        "lucide:cloud-off",
+        "lucide:cloud-sun"
+      ],
+      "latencyMs": 156.71274500004984,
+      "lowConfidence": false,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:cloud",
+        "lucide:cloud-cog",
+        "lucide:cloud-upload"
+      ],
+      "text": "cloud infrastructure"
+    },
+    {
+      "category": "cloud-infrastructure",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:cloud",
+        "lucide:cloud-rain-wind",
+        "lucide:cloud-download",
+        "lucide:cloud-sun-rain",
+        "lucide:server-off"
+      ],
+      "latencyMs": 145.85111500002768,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:cloud",
+        "lucide:cloud-cog",
+        "lucide:cloud-upload"
+      ],
+      "text": "رایانش ابری"
+    },
+    {
+      "category": "cloud-infrastructure",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:cloud",
+        "lucide:cloud-download",
+        "lucide:cloud-upload",
+        "lucide:server",
+        "lucide:cloud-off"
+      ],
+      "latencyMs": 144.14591499996732,
+      "lowConfidence": false,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:cloud",
+        "lucide:cloud-cog",
+        "lucide:cloud-upload"
+      ],
+      "text": "زیرساخت ابری"
+    },
+    {
+      "category": "cloud-infrastructure",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:cloud",
+        "lucide:cloud-download",
+        "lucide:cloud-upload",
+        "lucide:cloud-off",
+        "lucide:cloud-cog"
+      ],
+      "latencyMs": 141.51746699997148,
+      "lowConfidence": false,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:cloud",
+        "lucide:cloud-cog",
+        "lucide:cloud-upload"
+      ],
+      "text": "cloud computing services"
+    },
+    {
+      "category": "cloud-infrastructure",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:cloud",
+        "lucide:cloud-download",
+        "lucide:cloud-off",
+        "lucide:cloud-upload",
+        "lucide:cloud-rain-wind"
+      ],
+      "latencyMs": 223.2972530000552,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:cloud",
+        "lucide:cloud-cog",
+        "lucide:cloud-upload"
+      ],
+      "text": "ابر و زیرساخت"
+    },
+    {
+      "category": "software-automation",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-branch-plus",
+        "lucide:container",
+        "iconify:lucide:git-branch-minus"
+      ],
+      "latencyMs": 151.29092799998034,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-pull-request"
+      ],
+      "text": "CI/CD automation"
+    },
+    {
+      "category": "software-automation",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:square-function",
+        "lucide:git-branch-plus",
+        "lucide:container"
+      ],
+      "latencyMs": 169.06014300002425,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-pull-request"
+      ],
+      "text": "انتشار خودکار"
+    },
+    {
+      "category": "software-automation",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:container",
+        "lucide:git-branch-plus",
+        "lucide:square-function"
+      ],
+      "latencyMs": 165.2953070000649,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-pull-request"
+      ],
+      "text": "خودکارسازی استقرار"
+    },
+    {
+      "category": "software-automation",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-branch-plus",
+        "lucide:square-function",
+        "lucide:container"
+      ],
+      "latencyMs": 163.64588999999796,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-pull-request"
+      ],
+      "text": "workflow automation"
+    },
+    {
+      "category": "software-automation",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:container",
+        "lucide:git-branch-plus",
+        "iconify:lucide:git-branch-minus"
+      ],
+      "latencyMs": 172.13177200005703,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:workflow",
+        "lucide:git-branch",
+        "lucide:git-pull-request"
+      ],
+      "text": "پایپ‌لاین DevOps"
+    },
+    {
+      "category": "law",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:scale",
+        "iconify:lucide:file-signature",
+        "lucide:expand",
+        "lucide:cookie",
+        "lucide:shrink"
+      ],
+      "latencyMs": 263.44045100006497,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:scale",
+        "lucide:file-signature",
+        "lucide:briefcase"
+      ],
+      "text": "legal contract"
+    },
+    {
+      "category": "law",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:scale",
+        "iconify:lucide:file-signature",
+        "lucide:cookie",
+        "lucide:shrink",
+        "lucide:expand"
+      ],
+      "latencyMs": 243.6858560000701,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:scale",
+        "lucide:file-signature",
+        "lucide:briefcase"
+      ],
+      "text": "مشاوره حقوقی"
+    },
+    {
+      "category": "law",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:scale",
+        "iconify:lucide:file-signature",
+        "lucide:expand",
+        "lucide:cookie",
+        "lucide:shrink"
+      ],
+      "latencyMs": 223.62641500001246,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:scale",
+        "lucide:file-signature",
+        "lucide:briefcase"
+      ],
+      "text": "وکالت و قرارداد"
+    },
+    {
+      "category": "law",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:scale",
+        "iconify:lucide:file-signature",
+        "lucide:expand",
+        "lucide:cookie",
+        "lucide:shrink"
+      ],
+      "latencyMs": 224.53490899999906,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:scale",
+        "lucide:file-signature",
+        "lucide:briefcase"
+      ],
+      "text": "law services"
+    },
+    {
+      "category": "law",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:scale",
+        "lucide:expand",
+        "iconify:lucide:file-signature",
+        "lucide:shrink",
+        "lucide:section"
+      ],
+      "latencyMs": 226.5633299999763,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:scale",
+        "lucide:file-signature",
+        "lucide:briefcase"
+      ],
+      "text": "عدالت"
+    },
+    {
+      "category": "healthcare",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:hospital",
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:cross",
+        "lucide:clipboard-plus"
+      ],
+      "latencyMs": 148.1472540000368,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:hospital"
+      ],
+      "text": "healthcare doctor"
+    },
+    {
+      "category": "healthcare",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:hospital",
+        "lucide:heart-pulse",
+        "lucide:stethoscope",
+        "lucide:house-plus",
+        "lucide:clipboard-minus"
+      ],
+      "latencyMs": 203.36882000003698,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:hospital"
+      ],
+      "text": "پزشکی و درمان"
+    },
+    {
+      "category": "healthcare",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:heart-pulse",
+        "lucide:stethoscope",
+        "lucide:hospital",
+        "lucide:clipboard-minus",
+        "lucide:siren"
+      ],
+      "latencyMs": 145.74626600006013,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:hospital"
+      ],
+      "text": "سلامت"
+    },
+    {
+      "category": "healthcare",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:hospital",
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:ambulance",
+        "lucide:briefcase-medical"
+      ],
+      "latencyMs": 140.26706000004197,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:hospital"
+      ],
+      "text": "medical services"
+    },
+    {
+      "category": "healthcare",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:heart-pulse",
+        "lucide:stethoscope",
+        "lucide:hospital",
+        "lucide:clipboard-minus",
+        "lucide:bandage"
+      ],
+      "latencyMs": 145.06471200002125,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:stethoscope",
+        "lucide:heart-pulse",
+        "lucide:hospital"
+      ],
+      "text": "پرستاری"
+    },
+    {
+      "category": "education",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school",
+        "lucide:presentation",
+        "lucide:omega"
+      ],
+      "latencyMs": 191.74007000003712,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school"
+      ],
+      "text": "education teaching"
+    },
+    {
+      "category": "education",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:school",
+        "lucide:book-open",
+        "lucide:graduation-cap",
+        "lucide:university",
+        "lucide:book-x"
+      ],
+      "latencyMs": 254.18282999999064,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school"
+      ],
+      "text": "آموزش و تدریس"
+    },
+    {
+      "category": "education",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:school",
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:book-x",
+        "lucide:library"
+      ],
+      "latencyMs": 252.6229580000745,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school"
+      ],
+      "text": "یادگیری"
+    },
+    {
+      "category": "education",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:school",
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:library",
+        "lucide:university"
+      ],
+      "latencyMs": 225.05852200004028,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school"
+      ],
+      "text": "school education"
+    },
+    {
+      "category": "education",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:book-open",
+        "lucide:graduation-cap",
+        "lucide:school",
+        "lucide:library",
+        "lucide:library-big"
+      ],
+      "latencyMs": 329.3432060000896,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:graduation-cap",
+        "lucide:book-open",
+        "lucide:school"
+      ],
+      "text": "دانشگاه"
+    },
+    {
+      "category": "architecture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:construction",
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler",
+        "lucide:church"
+      ],
+      "latencyMs": 238.1344180000724,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler"
+      ],
+      "text": "architecture construction"
+    },
+    {
+      "category": "architecture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:building",
+        "lucide:construction",
+        "lucide:house",
+        "lucide:ruler",
+        "lucide:church"
+      ],
+      "latencyMs": 237.81528300003174,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler"
+      ],
+      "text": "معماری ساختمان"
+    },
+    {
+      "category": "architecture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:building",
+        "lucide:construction",
+        "lucide:house",
+        "lucide:ruler",
+        "lucide:church"
+      ],
+      "latencyMs": 225.74736900003245,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler"
+      ],
+      "text": "طراحی داخلی"
+    },
+    {
+      "category": "architecture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:house",
+        "lucide:construction",
+        "lucide:building",
+        "iconify:lucide:ruler",
+        "lucide:house-plug"
+      ],
+      "latencyMs": 261.0135300000138,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler"
+      ],
+      "text": "house construction"
+    },
+    {
+      "category": "architecture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:building",
+        "lucide:construction",
+        "lucide:house",
+        "lucide:ruler",
+        "lucide:drill"
+      ],
+      "latencyMs": 211.23400900000888,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:building",
+        "lucide:house",
+        "lucide:ruler"
+      ],
+      "text": "ساخت و ساز"
+    },
+    {
+      "category": "design",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:palette",
+        "lucide:rows-4",
+        "lucide:grab",
+        "lucide:columns-2",
+        "lucide:between-horizontal-start"
+      ],
+      "latencyMs": 201.3840380000147,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool"
+      ],
+      "text": "graphic design"
+    },
+    {
+      "category": "design",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:palette",
+        "lucide:pen-tool",
+        "iconify:lucide:paintbrush",
+        "lucide:gallery-horizontal",
+        "lucide:columns-3"
+      ],
+      "latencyMs": 171.2829130000273,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool"
+      ],
+      "text": "طراحی گرافیک"
+    },
+    {
+      "category": "design",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "iconify:lucide:pen-tool",
+        "lucide:view",
+        "lucide:lasso-select"
+      ],
+      "latencyMs": 194.27283100003478,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool"
+      ],
+      "text": "نقاشی"
+    },
+    {
+      "category": "design",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:panels-top-left",
+        "lucide:view",
+        "lucide:iteration-cw"
+      ],
+      "latencyMs": 210.1350639999282,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool"
+      ],
+      "text": "art design"
+    },
+    {
+      "category": "design",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool",
+        "lucide:between-horizontal-start",
+        "lucide:layers"
+      ],
+      "latencyMs": 211.60775800001375,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:palette",
+        "lucide:paintbrush",
+        "lucide:pen-tool"
+      ],
+      "text": "هنر"
+    },
+    {
+      "category": "agriculture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:tractor",
+        "lucide:sprout",
+        "lucide:wheat",
+        "lucide:wheat-off",
+        "lucide:flower-2"
+      ],
+      "latencyMs": 142.67229999995834,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat"
+      ],
+      "text": "agriculture farming"
+    },
+    {
+      "category": "agriculture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat",
+        "lucide:wheat-off",
+        "lucide:beef"
+      ],
+      "latencyMs": 120.442928999978,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat"
+      ],
+      "text": "کشاورزی"
+    },
+    {
+      "category": "agriculture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:sprout",
+        "lucide:wheat",
+        "lucide:tractor",
+        "lucide:wheat-off",
+        "lucide:network"
+      ],
+      "latencyMs": 224.43740799997158,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat"
+      ],
+      "text": "باغبانی و کاشت"
+    },
+    {
+      "category": "agriculture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:tractor",
+        "lucide:sprout",
+        "lucide:wheat",
+        "lucide:wheat-off",
+        "lucide:bath"
+      ],
+      "latencyMs": 119.954569000015,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat"
+      ],
+      "text": "farming services"
+    },
+    {
+      "category": "agriculture",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat",
+        "lucide:wheat-off",
+        "lucide:tree-pine"
+      ],
+      "latencyMs": 140.4101800000035,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:sprout",
+        "lucide:tractor",
+        "lucide:wheat"
+      ],
+      "text": "مزرعه"
+    },
+    {
+      "category": "retail",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:store",
+        "lucide:shopping-bag",
+        "lucide:shopping-cart",
+        "lucide:shopping-basket",
+        "lucide:shirt"
+      ],
+      "latencyMs": 144.2183980000209,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:shopping-cart",
+        "lucide:store",
+        "lucide:shopping-bag"
+      ],
+      "text": "retail shop"
+    },
+    {
+      "category": "retail",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:store",
+        "lucide:shopping-bag",
+        "lucide:shopping-cart",
+        "lucide:shirt",
+        "lucide:shopping-basket"
+      ],
+      "latencyMs": 137.99761999996463,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:shopping-cart",
+        "lucide:store",
+        "lucide:shopping-bag"
+      ],
+      "text": "فروشگاه"
+    },
+    {
+      "category": "retail",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:shopping-bag",
+        "lucide:store",
+        "lucide:shopping-cart",
+        "lucide:shirt",
+        "lucide:shopping-basket"
+      ],
+      "latencyMs": 129.2291639999803,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:shopping-cart",
+        "lucide:store",
+        "lucide:shopping-bag"
+      ],
+      "text": "خرده فروشی"
+    },
+    {
+      "category": "retail",
+      "hitAt3": false,
+      "hitAt5": false,
+      "ids": [
+        "lucide:scan-line",
+        "lucide:ticket-percent",
+        "lucide:barcode",
+        "lucide:shopping-basket",
+        "lucide:scan-barcode"
+      ],
+      "latencyMs": 140.09577700005593,
+      "lowConfidence": true,
+      "recallAt3": 0.0,
+      "recallAt5": 0.0,
+      "relevant": [
+        "lucide:shopping-cart",
+        "lucide:store",
+        "lucide:shopping-bag"
+      ],
+      "text": "shopping services"
+    },
+    {
+      "category": "retail",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:store",
+        "lucide:shopping-bag",
+        "lucide:shopping-cart",
+        "lucide:shopping-basket",
+        "lucide:scan-line"
+      ],
+      "latencyMs": 223.6963759999071,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:shopping-cart",
+        "lucide:store",
+        "lucide:shopping-bag"
+      ],
+      "text": "خرید و فروش"
+    },
+    {
+      "category": "repair",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:settings",
+        "iconify:lucide:wrench",
+        "iconify:lucide:hammer",
+        "lucide:user-cog",
+        "lucide:calendar-cog"
+      ],
+      "latencyMs": 127.56859700004952,
+      "lowConfidence": false,
+      "recallAt3": 0.3333333333333333,
+      "recallAt5": 0.3333333333333333,
+      "relevant": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings"
+      ],
+      "text": "repair maintenance"
+    },
+    {
+      "category": "repair",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:settings",
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:construction",
+        "lucide:bolt"
+      ],
+      "latencyMs": 136.60299499997564,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings"
+      ],
+      "text": "تعمیرات"
+    },
+    {
+      "category": "repair",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:settings",
+        "lucide:wrench",
+        "iconify:lucide:hammer",
+        "lucide:user-cog",
+        "lucide:sliders-horizontal"
+      ],
+      "latencyMs": 130.77886400003536,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings"
+      ],
+      "text": "سرویس فنی"
+    },
+    {
+      "category": "repair",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:settings",
+        "lucide:wrench",
+        "iconify:lucide:hammer",
+        "lucide:user-cog",
+        "lucide:calendar-cog"
+      ],
+      "latencyMs": 119.008569000016,
+      "lowConfidence": true,
+      "recallAt3": 0.6666666666666666,
+      "recallAt5": 0.6666666666666666,
+      "relevant": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings"
+      ],
+      "text": "maintenance services"
+    },
+    {
+      "category": "repair",
+      "hitAt3": true,
+      "hitAt5": true,
+      "ids": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings",
+        "lucide:construction",
+        "lucide:folder-dot"
+      ],
+      "latencyMs": 222.30710799999542,
+      "lowConfidence": true,
+      "recallAt3": 1.0,
+      "recallAt5": 1.0,
+      "relevant": [
+        "lucide:wrench",
+        "lucide:hammer",
+        "lucide:settings"
+      ],
+      "text": "تعمیر و نگهداری"
+    }
+  ],
+  "startupSeconds": 2.260201880000068,
+  "wallSeconds": 11.716570499
+}

@@ -32,6 +32,7 @@ jobs:
         run: |
           node tests/profile/workspace-browser-check.cjs
           node tests/profile/public-browser-check.cjs
+          node tests/profile/icon-picker-browser-check.cjs
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4

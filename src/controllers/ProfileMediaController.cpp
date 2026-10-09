@@ -59,7 +59,9 @@ std::string cleanImage(const std::vector<unsigned char>& bytes) {
 }
 void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequest* req) {
     const std::string id(req->getParameter(0)),target(req->getParameter(1)),token=getAuthToken(req);
-    const std::string section=req->getUrl().find("/experiences/")!=std::string_view::npos?"experiences":"projects";
+    std::string section;
+    for (const auto* name : {"projects", "experiences", "services", "skills", "achievements"})
+        if (req->getUrl().find(std::string("/") + name + "/") != std::string_view::npos) section = name;
     try {
         if(id.size()!=24 || !hexId(id)){notFound(res);return;}
         auto result=getStorage()->findPersonById(id);
@@ -69,8 +71,8 @@ void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequ
             if(target.size()!=32 || !hexId(target) || (!owner && !result.value->isPublic)){notFound(res);return;}
             auto content=owner?profile::effectiveContent(*result.value):profile::publicPersonProfile(*result.value).content;
             bool visible=false;
-            for(const auto& key:{"projects","experiences"})for(const auto& item:content.sections[key]) {
-                const auto& media=std::string_view(key)=="projects"?std::get<profile::Project>(item.value).media:std::get<profile::Experience>(item.value).media;
+            for(const auto& key:{"projects","experiences","services","skills","achievements"})for(const auto& item:content.sections[key]) {
+                const auto& media=profile::itemMedia(item);
                 if(std::any_of(media.begin(),media.end(),[&](const auto& image){return image.id==target;}))visible=true;
             }
             if(!visible){notFound(res);return;}
@@ -107,7 +109,7 @@ void ProfileController::profileMedia(uWS::HttpResponse<false>* res,uWS::HttpRequ
                             profile::initializeContentSection(person,section);auto& items=person.content.sections[section];
                             auto item=std::find_if(items.begin(),items.end(),[&](const auto& value){return value.id==target;});
                             if(item==items.end()){notFound(res);return;}
-                            auto& media=section=="projects"?std::get<profile::Project>(item->value).media:std::get<profile::Experience>(item->value).media;
+                            auto& media=profile::itemMedia(*item);
                             if(media.size()>=10)throw std::invalid_argument("حداکثر ده تصویر برای هر آیتم مجاز است.");
                             const auto mediaId=profile::newOwnerKey().substr(0,32);path=mediaRoot()/id/(mediaId+".webp");std::filesystem::create_directories(path.parent_path());
                             {std::ofstream file(path,std::ios::binary);file.write(output.data(),output.size());if(!file)throw std::runtime_error("image write");}

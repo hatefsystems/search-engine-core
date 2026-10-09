@@ -1,4 +1,5 @@
 #include "StaticFileController.h"
+#include "IconEngineController.h"
 #include "../../include/Logger.h"
 #include <filesystem>
 #include <fstream>
@@ -140,6 +141,7 @@ void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const st
 }
 
 void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (req->getUrl().starts_with("/assets/icons/")) { IconEngineController::asset(res, req); return; }
     std::string path = std::string(req->getUrl());
     
     // Remove query parameters if any

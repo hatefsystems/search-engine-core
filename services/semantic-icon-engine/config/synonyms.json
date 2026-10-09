@@ -1,0 +1,16 @@
+{"version":1,"categories":{
+"cloud-infrastructure":{"fa":"زیرساخت ابری","aliases":["cloud","cloud computing","infrastructure","رایانش ابری","زیرساخت ابری","ابر","کلاد"]},
+"software-automation":{"fa":"گردش کار و خودکارسازی","aliases":["workflow","git branch","pipeline","deployment","automation","CI/CD","cicd","devops","خودکارسازی","اتوماسیون","استقرار","انتشار خودکار","پایپ لاین","پایپلاین","گردش کار"]},
+"law":{"fa":"حقوق و قرارداد","aliases":["scale","file signature","legal","law","contract","وکیل","وکالت","حقوقی","قرارداد","عدالت"]},
+"healthcare":{"fa":"پزشکی و سلامت","aliases":["stethoscope","heart pulse","hospital","medical","healthcare","doctor","پزشکی","سلامت","درمان","پزشک","پرستاری"]},
+"education":{"fa":"آموزش و یادگیری","aliases":["graduation cap","book open","education","teaching","school","آموزش","تدریس","یادگیری","مدرسه","دانشگاه"]},
+"architecture":{"fa":"معماری و ساختمان","aliases":["building","house","ruler","architecture","construction","معماری","ساختمان","ساخت و ساز","طراحی داخلی"]},
+"design":{"fa":"طراحی و هنر","aliases":["palette","paintbrush","pen tool","design","art","گرافیک","هنر","طراحی گرافیک","نقاشی"]},
+"agriculture":{"fa":"کشاورزی و باغبانی","aliases":["sprout","tractor","wheat","agriculture","farming","کشاورزی","باغبانی","کاشت","مزرعه"]},
+"retail":{"fa":"فروش و تجارت","aliases":["shopping cart","store","shopping bag","retail","shop","فروشگاه","خرده فروشی","فروش","خرید"]},
+"repair":{"fa":"تعمیرات و خدمات فنی","aliases":["wrench","hammer","settings","repair","maintenance","تعمیر","تعمیرات","سرویس فنی","نگهداری"]},
+"finance":{"fa":"مالی و حسابداری","aliases":["calculator","wallet","banknote","finance","accounting","حسابداری","مالی","بودجه"]},
+"transport":{"fa":"حمل و نقل","aliases":["truck","bus","car","transport","logistics","حمل و نقل","لجستیک","باربری"]},
+"security":{"fa":"امنیت و حفاظت","aliases":["shield","lock","security","امنیت","حفاظت","رمزنگاری"]},
+"food":{"fa":"غذا و آشپزی","aliases":["utensils","chef hat","cooking","restaurant","آشپزی","رستوران","غذا"]},
+"general":{"fa":"خدمات عمومی","aliases":["briefcase","service","خدمات عمومی"]}}}

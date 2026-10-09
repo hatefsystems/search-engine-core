@@ -1,0 +1,94 @@
+name: Semantic icon engine
+on:
+  pull_request:
+    paths: ['services/semantic-icon-engine/**', 'src/controllers/IconEngineController*', 'docker-compose.yml', '.github/workflows/semantic-icon-engine.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-and-offline-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/semantic-icon-engine/requirements.txt
+      - name: Install runtime and test dependencies
+        run: |
+          pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
+          pip install pytest==8.3.4 httpx==0.28.1
+      - name: Security, ingestion, API and vector tests
+        run: pytest -q services/semantic-icon-engine/tests
+      - name: Validate optional Compose profile
+        run: |
+          touch .env
+          docker compose config -q
+          docker compose --profile icons config -q
+      - name: Build with synthetic catalog
+        run: |
+          python services/semantic-icon-engine/tests/make_smoke_catalog.py /tmp/icon-smoke/data
+          chmod -R a+rX /tmp/icon-smoke
+          docker build -t hatef-icons:test services/semantic-icon-engine
+      - name: Offline, non-root, readonly container with resource ceilings
+        run: |
+          docker run -d --name hatef-icons-test --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --tmpfs /tmp:size=32m -v /tmp/icon-smoke:/artifacts:ro -e ICON_DATA_DIR=/artifacts/data hatef-icons:test
+          for attempt in $(seq 1 30); do
+            if docker exec hatef-icons-test python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"; then break; fi
+            sleep 1
+          done
+          docker exec hatef-icons-test python -c "import json,urllib.request; r=urllib.request.Request('http://127.0.0.1:8080/v1/icons/suggest',data=json.dumps({'text':'زیرساخت ابری'}).encode(),headers={'Content-Type':'application/json'}); d=json.load(urllib.request.urlopen(r)); assert d['engine']=='lexical'; assert d['suggestions'][0]['id']=='lucide:cloud'; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
+      - name: Container diagnostics
+        if: always()
+        run: docker logs hatef-icons-test || true
+      - name: Clean up
+        if: always()
+        run: docker rm -f hatef-icons-test || true
+  full-model-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned full catalog, model and vectors as an administrative job
+        run: |
+          pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
+          python services/semantic-icon-engine/scripts/manage.py prepare --upstream /tmp/icon-upstream --models /tmp/icon-full/models
+          python services/semantic-icon-engine/scripts/manage.py ingest --upstream /tmp/icon-upstream --data /tmp/icon-full/data > /tmp/full-import.json
+          python services/semantic-icon-engine/scripts/manage.py index --data /tmp/icon-full/data --models /tmp/icon-full/models --vectors /tmp/icon-full/vectors --batch 8
+          chmod -R a+rX /tmp/icon-full
+      - name: Build and start the full-model runtime with enforced ceilings
+        run: |
+          docker build -t hatef-icons:full-test services/semantic-icon-engine
+          docker run -d --name hatef-icons-full --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v /tmp/icon-full:/artifacts:ro -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -e ICON_DATA_DIR=/artifacts/data -e ICON_MODEL_DIR=/artifacts/models -e ICON_VECTOR_DIR=/artifacts/vectors -e ICON_SEMANTIC_ENABLED=true hatef-icons:full-test
+      - name: Measure offline API, long input and recovery, then restart and repeat
+        run: |
+          mkdir -p build/icons
+          cp /tmp/full-import.json build/icons/import.json
+          docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-first.json
+          docker restart hatef-icons-full
+          docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
+          test "$(docker inspect -f '{{.State.OOMKilled}}' hatef-icons-full)" = false
+      - name: Capture runtime diagnostics
+        if: always()
+        run: |
+          mkdir -p build/icons
+          docker inspect hatef-icons-full > build/icons/container.json || true
+          docker logs hatef-icons-full > build/icons/container.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semantic-icons-full-model-offline
+          path: build/icons
+          retention-days: 14
+      - name: Remove test container
+        if: always()
+        run: docker rm -f hatef-icons-full || true
