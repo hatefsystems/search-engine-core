@@ -1,0 +1,48 @@
+name: Semantic icon engine
+on:
+  pull_request:
+    paths: ['services/semantic-icon-engine/**', 'src/controllers/IconEngineController*', 'docker-compose.yml', '.github/workflows/semantic-icon-engine.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-and-offline-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/semantic-icon-engine/requirements.txt
+      - name: Install runtime and test dependencies
+        run: |
+          pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
+          pip install pytest==8.3.4 httpx==0.28.1
+      - name: Security, ingestion, API and vector tests
+        run: pytest -q services/semantic-icon-engine/tests
+      - name: Validate optional Compose profile
+        run: |
+          touch .env
+          docker compose config -q
+          docker compose --profile icons config -q
+      - name: Build with synthetic catalog
+        run: |
+          python services/semantic-icon-engine/tests/make_smoke_catalog.py /tmp/icon-smoke/data
+          chmod -R a+rX /tmp/icon-smoke
+          docker build -t hatef-icons:test services/semantic-icon-engine
+      - name: Offline, non-root, readonly container with resource ceilings
+        run: |
+          docker run -d --name hatef-icons-test --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --tmpfs /tmp:size=32m -v /tmp/icon-smoke:/artifacts:ro -e ICON_DATA_DIR=/artifacts/data hatef-icons:test
+          for attempt in $(seq 1 30); do
+            if docker exec hatef-icons-test python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"; then break; fi
+            sleep 1
+          done
+          docker exec hatef-icons-test python -c "import json,urllib.request; r=urllib.request.Request('http://127.0.0.1:8080/v1/icons/suggest',data=json.dumps({'text':'زیرساخت ابری'}).encode(),headers={'Content-Type':'application/json'}); d=json.load(urllib.request.urlopen(r)); assert d['engine']=='lexical'; assert d['suggestions'][0]['id']=='lucide:cloud'; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
+      - name: Container diagnostics
+        if: always()
+        run: docker logs hatef-icons-test || true
+      - name: Clean up
+        if: always()
+        run: docker rm -f hatef-icons-test || true

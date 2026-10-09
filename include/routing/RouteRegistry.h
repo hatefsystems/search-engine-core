@@ -60,7 +60,7 @@ std::function<void(uWS::HttpResponse<SSL>*, uWS::HttpRequest*)> wrapHandler(
         if (trace) {
             std::string_view queryString = req->getQuery();
             std::string logMessage = "[" + method + "] " + path;
-            if (!queryString.empty()) {
+            if (!queryString.empty() && !path.starts_with("/api/icons")) {
                 logMessage += "?" + std::string(queryString);
             }
             // Simple logging - in production you'd use proper logger

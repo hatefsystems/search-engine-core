@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <string>
 #include <thread>
@@ -32,6 +33,8 @@ void forward(uWS::HttpResponse<false>* res, std::shared_ptr<RequestState> state,
     static const std::regex origin(R"(^http://[a-zA-Z0-9.-]+:[0-9]{1,5}$)");
     if (!std::regex_match(base,origin)) {state->ended=true;error(res,"503 Service Unavailable");return;}
     if (active.fetch_add(1) >= 8) {--active;state->ended=true;error(res,"429 Too Many Requests");return;}
+    static std::once_flag initialized;
+    std::call_once(initialized, [] { curl_global_init(CURL_GLOBAL_DEFAULT); });
     auto* loop=uWS::Loop::get();
     try {
         std::thread([res,state,loop,url=base+path,client=std::move(client),post,svg] {
@@ -78,13 +81,13 @@ void IconEngineController::get(uWS::HttpResponse<false>* res,uWS::HttpRequest* r
 }
 void IconEngineController::suggest(uWS::HttpResponse<false>* res,uWS::HttpRequest*) {
     auto state=std::make_shared<RequestState>();const auto client=clientKey(res);
-    res->onAborted([state]{state->ended=true;});
     res->onData([res,state,client](std::string_view data,bool last) {
         if (state->ended) return;
         if (state->body.size()+data.size()>16384) {state->ended=true;error(res,"413 Payload Too Large");return;}
         state->body.append(data);
         if (last) forward(res,state,"/v1/icons/suggest",client,true,false);
     });
+    res->onAborted([state]{state->ended=true;});
 }
 void IconEngineController::asset(uWS::HttpResponse<false>* res,uWS::HttpRequest* req) {
     const std::string path(req->getUrl());
@@ -92,4 +95,11 @@ void IconEngineController::asset(uWS::HttpResponse<false>* res,uWS::HttpRequest*
     if(path.size()>240 || !std::regex_match(path,route)) {error(res,"400 Bad Request");return;}
     auto state=std::make_shared<RequestState>();res->onAborted([state]{state->ended=true;});
     forward(res,state,path,clientKey(res),false,true);
+}
+
+ROUTE_CONTROLLER(IconEngineController) {
+    using namespace routing;
+    REGISTER_ROUTE(HttpMethod::GET, "/api/icons", get, IconEngineController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/icons/*", get, IconEngineController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/icons/suggest", suggest, IconEngineController);
 }
