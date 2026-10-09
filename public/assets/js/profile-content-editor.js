@@ -1,3 +1,5 @@
+import { mountIconPicker } from "./profile-icon-picker.js";
+const iconSections = ["projects", "experiences", "services", "skills", "achievements"];
 import { ProfileAutosave } from "./profile-autosave.js";
 import {
   labels,
@@ -401,6 +403,7 @@ export class ProfileContentEditor {
     const items = this.sections[section] || [];
     const add = this.button(`+ افزودن ${sectionLabels[section]}`, () => {
       const item = {...clone(definition.defaults),id:crypto.randomUUID(),visibility:"HIDDEN",evidence:[]};
+      if (iconSections.includes(section)) item.iconMode = "auto";
       this.selectedItems[section] = item.id; this.filters[section] = "";
       this.change(section,item); this.render();
       this.root.querySelector(".item-fields input, .item-fields select, .item-fields textarea")?.focus();
@@ -482,6 +485,7 @@ export class ProfileContentEditor {
       const copy = {...clean(clone(item)), id:crypto.randomUUID(), visibility:"HIDDEN", evidence:clone(item.evidence || []).map(e=>({...e,id:crypto.randomUUID()}))};
       // Uploaded files belong to the original item; do not copy media ownership.
       if (copy.media) copy.media = [];
+      copy.iconMediaId = ""; if (copy.iconMode === "custom") copy.iconMode = "none";
       this.selectedItems[section] = copy.id; this.change(section,copy); this.render();
     });
     duplicate.disabled = this.sections[section].length >= this.schemas[section].limit;
@@ -533,7 +537,9 @@ export class ProfileContentEditor {
       }),
     );
     box.append(actions);
+    let iconPicker;
     const update = () => {
+      iconPicker?.notify();
       summary.textContent = item[titleFields[section]] || "مورد تازه";
       const choice = this.root.querySelector(`[data-item-choice="${item.id}"]`);
       if (choice) choice.querySelector(".item-choice-title").textContent = summary.textContent;
@@ -557,6 +563,7 @@ export class ProfileContentEditor {
     };
     fields.addEventListener("input", syncEndDate); syncEndDate();
     box.append(fields);
+    if (iconSections.includes(section)) { iconPicker = mountIconPicker({item, profileId:this.id, titleField:titleFields[section], onChange:()=>this.change(section,item)}); box.append(iconPicker); }
     const evidence = el("details", "", "evidence-details"); evidence.append(el("summary", "شواهد و منابع (اختیاری)"),this.field("evidence", item, update, [])); box.append(evidence);
     if (section === "recommendations")
       box.append(
@@ -566,7 +573,7 @@ export class ProfileContentEditor {
           "hint",
         ),
       );
-    if (["projects", "experiences"].includes(section)) box.append(this.mediaPanel(section, item, update));
+    if (iconSections.includes(section)) box.append(this.mediaPanel(section, item, update));
     return box;
   }
   mediaPanel(section, item, update) {
@@ -591,7 +598,7 @@ export class ProfileContentEditor {
           });
           button.disabled = index + delta < 0 || index + delta >= item.media.length; controls.append(button);
         }
-        controls.append(this.button("حذف تصویر", () => {item.media = item.media.filter(m => m.id !== media.id); update(); render();}));
+        controls.append(this.button("حذف تصویر", () => {item.media = item.media.filter(m => m.id !== media.id); if (item.iconMediaId === media.id) {item.iconMode = "none"; item.iconMediaId = "";} update(); render();}));
         row.append(image,label,controls); list.append(row);
       }
     };

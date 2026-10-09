@@ -94,7 +94,7 @@ void ProfileController::profileContent(uWS::HttpResponse<false>* res,uWS::HttpRe
                     if(method!="post" && found==items.end()){notFound(res);return;}
                     Json data=found==items.end()?Json::object():profile::itemJson(*found);
                     if(input.contains("id") && input["id"]!=target)throw std::invalid_argument("شناسه قابل تغییر نیست.");
-                    if((section=="projects" || section=="experiences") && input.contains("media")) {
+                    if((section=="projects" || section=="experiences" || section=="services" || section=="skills" || section=="achievements") && input.contains("media")) {
                         std::set<std::string> owned;
                         if(data.contains("media"))for(const auto& m:data["media"])owned.insert(m.at("id").get<std::string>());
                         for(const auto& m:input["media"])if(!owned.count(m.at("id").get<std::string>()))throw std::invalid_argument("تصویر را از بخش بارگذاری اضافه کنید.");
@@ -107,11 +107,11 @@ void ProfileController::profileContent(uWS::HttpResponse<false>* res,uWS::HttpRe
                 profile::validateContent(profile::effectiveContent(person));
                 auto saved=getStorage()->updatePersonFields(person,{"content"},expected);
                 if(!saved.success){json(res,{{"success",false},{"message","ذخیره انجام نشد؛ نسخه را بررسی کنید."}},saved.message=="VERSION_CONFLICT"?"409 Conflict":"500 Internal Server Error");return;}
-                if (section == "projects" || section == "experiences") {
+                if (section == "projects" || section == "experiences" || section == "services" || section == "skills" || section == "achievements") {
                     std::set<std::string> retained;
                     for (const auto& entry : person.content.sections[section]) {const auto data=profile::itemJson(entry);for (const auto& media : data["media"]) retained.insert(media.at("id").get<std::string>());}
                     if (before.sections.count(section)) for (const auto& entry : before.sections.at(section)) {
-                        const auto& images=section=="projects"?std::get<profile::Project>(entry.value).media:std::get<profile::Experience>(entry.value).media;
+                        const auto& images=profile::itemMedia(entry);
                         for (const auto& media : images) if (!retained.count(media.id)) {
                         const char* root = std::getenv("PROFILE_MEDIA_DIR"); std::error_code ec;
                         std::filesystem::remove(std::filesystem::path(root ? root : "profile-media") / id / (media.id + ".webp"), ec);

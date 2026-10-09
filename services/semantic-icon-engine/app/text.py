@@ -4,12 +4,12 @@ import re
 import unicodedata
 from pathlib import Path
 CONFIG = Path(__file__).resolve().parents[1] / 'config'
-VERSION = 'fa-en-v1'
+VERSION = 'fa-en-v2'
 SYNONYMS = json.loads((CONFIG / 'synonyms.json').read_text())
 
 def normalize(text):
     text = unicodedata.normalize('NFKC', text).lower().translate(str.maketrans('يك٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', 'یک01234567890123456789'))
-    text = ''.join(' ' if unicodedata.category(c) == 'Cf' else c for c in text)
+    text = ''.join(' ' if unicodedata.category(c) == 'Cf' else c for c in text if not ('\u0610' <= c <= '\u061a' or '\u064b' <= c <= '\u065f' or c == '\u0670' or '\u06d6' <= c <= '\u06ed'))
     return ' '.join(re.findall(r'[^\W_]+', text))
 
 def terms(text):

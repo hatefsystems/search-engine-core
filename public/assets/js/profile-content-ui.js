@@ -1,3 +1,4 @@
+import { iconUrl } from "./profile-icon-picker.js";
 export const labels = {
   roleTitle: "عنوان نقش",
   organizationName: "نام سازمان",
@@ -201,6 +202,8 @@ export function dateText(value) {
 export function renderItem(section, item, profileId, sections = {}) {
   const article = el("article", "", "content-item");
   article.id = `item-${item.id}`;
+  const url = iconUrl(item, profileId);
+  if (url) { const image = el("img", "", "profile-item-icon"); image.src = url; image.alt = ""; image.width = 32; image.height = 32; image.loading = "lazy"; article.append(image); }
   const title = item[titleFields[section]] || "آیتم در حال تکمیل";
   article.append(el("h3", enumLabels[title] || title));
   const summary =

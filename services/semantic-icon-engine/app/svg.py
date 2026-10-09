@@ -5,7 +5,7 @@ import re
 from xml.etree import ElementTree as ET
 from defusedxml.ElementTree import fromstring
 PART = r'[a-z0-9]+(?:-[a-z0-9]+)*'
-ID = re.compile(rf'(?:lucide:{PART}|simple-icons:{PART}|iconify:{PART}:{PART})\Z')
+ID = re.compile(rf'(?:lucide:{PART}|simple-icons:[a-z0-9]+(?:[-_][a-z0-9]+)*|iconify:{PART}:{PART})\Z')
 TAGS = set('svg g path circle ellipse rect line polyline polygon defs linearGradient radialGradient stop clipPath mask title desc'.split())
 ATTRS = set('role viewBox width height x y x1 x2 y1 y2 cx cy r rx ry d points fill stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset fill-rule clip-rule opacity fill-opacity stroke-opacity transform id clip-path mask gradientUnits gradientTransform offset stop-color stop-opacity fx fy fr'.split())
 REF = re.compile(r'url\(#[A-Za-z_][A-Za-z0-9_-]*\)\Z')
@@ -56,6 +56,7 @@ def sanitize(svg):
     except (KeyError, ValueError):
         raise ValueError('invalid viewBox')
     root.set('width', '24'); root.set('height', '24'); root.set('xmlns', 'http://www.w3.org/2000/svg')
+    root.attrib = dict(sorted(root.attrib.items()))
     result = ET.tostring(root, encoding='unicode', short_empty_elements=True)
     return result, hashlib.sha256(result.encode()).hexdigest()
 

@@ -5,6 +5,7 @@
 #include <map>
 #include <variant>
 #include <optional>
+#include <stdexcept>
 
 namespace search_engine::profile {
 using Json = nlohmann::json;
@@ -153,9 +154,11 @@ struct AdvancedSkill {
     std::vector<std::string> projectIds;
     std::vector<std::string> experienceIds;
     std::vector<std::string> certificationIds;
+    std::vector<MediaReference> media;
 };
 inline void to_json(Json& json, const AdvancedSkill& value) {
     json = Json{{"certificationIds", value.certificationIds}, {"name", value.name}, {"category", value.category}, {"proficiencyLevel", value.proficiencyLevel}, {"yearsOfExperience", value.yearsOfExperience}, {"firstUsedYear", value.firstUsedYear}, {"lastUsedYear", value.lastUsedYear}, {"isCurrentlyUsing", value.isCurrentlyUsing}, {"description", value.description}, {"projectIds", value.projectIds}, {"experienceIds", value.experienceIds}};
+    json["media"] = value.media;
 }
 inline void from_json(const Json& json, AdvancedSkill& value) {
     value = AdvancedSkill{};
@@ -170,6 +173,7 @@ inline void from_json(const Json& json, AdvancedSkill& value) {
     if (json.contains("description")) json.at("description").get_to(value.description);
     if (json.contains("projectIds")) json.at("projectIds").get_to(value.projectIds);
     if (json.contains("experienceIds")) json.at("experienceIds").get_to(value.experienceIds);
+    if (json.contains("media")) json.at("media").get_to(value.media);
 }
 struct Education {
     std::string kind;
@@ -298,9 +302,11 @@ struct Service {
     std::string contactMethod;
     std::vector<std::string> projectIds;
     std::vector<std::string> skillIds;
+    std::vector<MediaReference> media;
 };
 inline void to_json(Json& json, const Service& value) {
     json = Json{{"title", value.title}, {"description", value.description}, {"category", value.category}, {"deliveryMode", value.deliveryMode}, {"location", value.location}, {"pricingMode", value.pricingMode}, {"price", value.price}, {"currency", value.currency}, {"availability", value.availability}, {"contactMethod", value.contactMethod}, {"projectIds", value.projectIds}, {"skillIds", value.skillIds}};
+    json["media"] = value.media;
 }
 inline void from_json(const Json& json, Service& value) {
     value = Service{};
@@ -316,6 +322,7 @@ inline void from_json(const Json& json, Service& value) {
     if (json.contains("contactMethod")) json.at("contactMethod").get_to(value.contactMethod);
     if (json.contains("projectIds")) json.at("projectIds").get_to(value.projectIds);
     if (json.contains("skillIds")) json.at("skillIds").get_to(value.skillIds);
+    if (json.contains("media")) json.at("media").get_to(value.media);
 }
 struct Achievement {
     std::string type;
@@ -323,9 +330,11 @@ struct Achievement {
     std::string issuer;
     PartialDate date;
     std::string description;
+    std::vector<MediaReference> media;
 };
 inline void to_json(Json& json, const Achievement& value) {
     json = Json{{"type", value.type}, {"title", value.title}, {"issuer", value.issuer}, {"date", value.date}, {"description", value.description}};
+    json["media"] = value.media;
 }
 inline void from_json(const Json& json, Achievement& value) {
     value = Achievement{};
@@ -334,6 +343,7 @@ inline void from_json(const Json& json, Achievement& value) {
     if (json.contains("issuer")) json.at("issuer").get_to(value.issuer);
     if (json.contains("date")) json.at("date").get_to(value.date);
     if (json.contains("description")) json.at("description").get_to(value.description);
+    if (json.contains("media")) json.at("media").get_to(value.media);
 }
 struct Language {
     std::string name;
@@ -408,11 +418,24 @@ inline void from_json(const Json& json, About& value) {
 using DomainItem = std::variant<Experience, Project, AdvancedSkill, Education, Certification, Publication, OpenSourceContribution, Service, Achievement, Language, Recommendation, Contact, Availability, About>;
 struct ContentItem {
     std::string id, createdAt, updatedAt;
+    std::string iconMode = "none", iconId, iconMediaId;
     std::string visibility = "HIDDEN";
     int displayOrder = 0;
     std::vector<Evidence> evidence;
     DomainItem value;
 };
+inline std::vector<MediaReference>& itemMedia(ContentItem& item) {
+    return std::visit([](auto& value) -> std::vector<MediaReference>& {
+        if constexpr (requires { value.media; }) return value.media;
+        else throw std::invalid_argument("This section has no media");
+    }, item.value);
+}
+inline const std::vector<MediaReference>& itemMedia(const ContentItem& item) {
+    return std::visit([](const auto& value) -> const std::vector<MediaReference>& {
+        if constexpr (requires { value.media; }) return value.media;
+        else throw std::invalid_argument("This section has no media");
+    }, item.value);
+}
 struct FeaturedReference { std::string section, id; };
 inline void to_json(Json& json, const FeaturedReference& value) {
     json = Json{{"section", value.section}, {"id", value.id}};

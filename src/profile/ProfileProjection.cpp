@@ -166,7 +166,12 @@ Json publicSectionCards(const ProfileContent& content, const std::string& profil
         }
         Json links=data.value("links",Json::array());for(const auto& ev:item.evidence)if(safeContentUrl(ev.url))links.push_back({{"title",ev.title+" · خوداظهاری"},{"url",ev.url}});
         Json media=Json::array();if(data.contains("media"))for(const auto& m:data["media"])media.push_back({{"alt",m.value("alt",heading)},{"url","/api/profiles/"+profileId+"/media/"+m.at("id").get<std::string>()}});
-        return Json{{"id",item.id},{"heading",heading},{"summary",summary},{"fields",fields},{"links",links},{"media",media},{"isRecommendation",section=="recommendations"}};
+        std::string iconUrl;
+        if (item.iconMode == "custom" && !item.iconMediaId.empty()) iconUrl = "/api/profiles/" + profileId + "/media/" + item.iconMediaId;
+        else if ((item.iconMode == "manual" || item.iconMode == "auto") && !item.iconId.empty()) {
+            iconUrl = item.iconId; std::replace(iconUrl.begin(), iconUrl.end(), ':', '/'); iconUrl = "/assets/icons/" + iconUrl + ".svg";
+        }
+        return Json{{"iconUrl",iconUrl},{"id",item.id},{"heading",heading},{"summary",summary},{"fields",fields},{"links",links},{"media",media},{"isRecommendation",section=="recommendations"}};
     };
     Json featured=Json::array();
     for(const auto& ref:content.featured)if(content.sections.count(ref.section))for(const auto& item:content.sections.at(ref.section))if(item.id==ref.id)featured.push_back(card(ref.section,item));

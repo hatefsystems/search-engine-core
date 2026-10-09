@@ -143,13 +143,14 @@ std::string contentNow() {
 Json itemJson(const ContentItem& item) {
     Json result = std::visit([](const auto& value) { return Json(value); }, item.value);
     result.update({{"id",item.id},{"visibility",item.visibility},{"displayOrder",item.displayOrder},
-        {"createdAt",item.createdAt},{"updatedAt",item.updatedAt},{"evidence",item.evidence}});
+        {"createdAt",item.createdAt},{"updatedAt",item.updatedAt},{"evidence",item.evidence},
+        {"iconMode",item.iconMode},{"iconId",item.iconId},{"iconMediaId",item.iconMediaId}});
     return result;
 }
 ContentItem parseContentItem(const std::string& section, const Json& input, bool fromStorage) {
     const auto& def = sectionDefinition(section);
     Json defaults = def.defaults;
-    defaults.update({{"id",""},{"visibility","HIDDEN"},{"displayOrder",0},{"createdAt",""},{"updatedAt",""},{"evidence",Json::array()}});
+    defaults.update({{"id",""},{"visibility","HIDDEN"},{"displayOrder",0},{"createdAt",""},{"updatedAt",""},{"evidence",Json::array()},{"iconMode","none"},{"iconId",""},{"iconMediaId",""}});
     fieldsOnly(input, defaults);
     auto data = defaults; data.update(input);
     require(identifier(data.at("id").get<std::string>()), "شناسهٔ آیتم معتبر نیست.");
@@ -217,7 +218,16 @@ ContentItem parseContentItem(const std::string& section, const Json& input, bool
             require(end.year > start.year || (end.year == start.year && (!end.month || !start.month || end.month > start.month || (end.month == start.month && (!end.day || !start.day || end.day >= start.day)))), "پایان نمی‌تواند پیش از شروع باشد.");
         }
     }
+    const std::string mode = data["iconMode"], icon = data["iconId"], custom = data["iconMediaId"];
+    require(mode == "none" || mode == "auto" || mode == "manual" || mode == "custom", "حالت آیکن معتبر نیست.");
+    static const std::regex iconPattern(R"(^(lucide:[a-z0-9][a-z0-9-]*|simple-icons:[a-z0-9][a-z0-9_-]*|iconify:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*)$)");
+    require(icon.empty() || std::regex_match(icon, iconPattern), "شناسهٔ آیکن معتبر نیست.");
+    bool ownsImage = false;
+    if (data.contains("media")) for (const auto& media : data["media"]) if (media.at("id") == custom) ownsImage = true;
+    require(custom.empty() || ownsImage, "تصویر آیکن باید متعلق به همین آیتم باشد.");
+    require(mode != "custom" || (!custom.empty() && ownsImage), "تصویر آیکن را انتخاب کنید.");
     ContentItem item;
+    item.iconMode = mode; item.iconId = icon; item.iconMediaId = custom;
     item.id = data["id"]; item.visibility = data["visibility"]; item.displayOrder = data["displayOrder"];
     item.createdAt = data["createdAt"]; item.updatedAt = data["updatedAt"]; item.evidence = data["evidence"].get<std::vector<Evidence>>();
     item.value = domain(section,data); return item;

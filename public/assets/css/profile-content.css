@@ -324,3 +324,12 @@
   outline: 3px solid #9d80cf;
   outline-offset: 4px;
 }
+
+.icon-picker { min-width: 0; margin-block: 1rem; border: 1px solid var(--border, #d7dde4); border-radius: 10px; padding: 1rem; }
+.icon-filters, .icon-pages { display: flex; flex-wrap: wrap; gap: .6rem; margin-block: .7rem; }
+.icon-filters label { display: flex; flex-direction: column; }
+.icon-filters input, .icon-filters select { max-width: 100%; min-width: 0; }
+.icon-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .5rem; max-height: 320px; overflow: auto; }
+.icon-results button { display: flex; align-items: center; gap: .4rem; padding: .7rem; overflow-wrap: anywhere; min-width: 0; }
+.icon-results img, .profile-item-icon { flex-shrink: 0; object-fit: contain; }
+.icon-picker :focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
