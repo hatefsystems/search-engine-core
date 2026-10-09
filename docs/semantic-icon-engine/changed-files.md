@@ -65,3 +65,4 @@ Feature changes relative to the master base `a4c96877921ecc12e5b7f5c7f9572fe14a1
 - `tests/semantic-icons/README.md`
 - `tests/semantic-icons/bridge-harness.cpp`
 - `tests/semantic-icons/check-bridge.py`
+- `services/semantic-icon-engine/tests/container_probe.py`

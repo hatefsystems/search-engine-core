@@ -46,3 +46,49 @@ jobs:
       - name: Clean up
         if: always()
         run: docker rm -f hatef-icons-test || true
+  full-model-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned full catalog, model and vectors as an administrative job
+        run: |
+          pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
+          python services/semantic-icon-engine/scripts/manage.py prepare --upstream /tmp/icon-upstream --models /tmp/icon-full/models
+          python services/semantic-icon-engine/scripts/manage.py ingest --upstream /tmp/icon-upstream --data /tmp/icon-full/data > /tmp/full-import.json
+          python services/semantic-icon-engine/scripts/manage.py index --data /tmp/icon-full/data --models /tmp/icon-full/models --vectors /tmp/icon-full/vectors --batch 8
+          chmod -R a+rX /tmp/icon-full
+      - name: Build and start the full-model runtime with enforced ceilings
+        run: |
+          docker build -t hatef-icons:full-test services/semantic-icon-engine
+          docker run -d --name hatef-icons-full --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v /tmp/icon-full:/artifacts:ro -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -e ICON_DATA_DIR=/artifacts/data -e ICON_MODEL_DIR=/artifacts/models -e ICON_VECTOR_DIR=/artifacts/vectors -e ICON_SEMANTIC_ENABLED=true hatef-icons:full-test
+      - name: Measure offline API, long input and recovery, then restart and repeat
+        run: |
+          mkdir -p build/icons
+          cp /tmp/full-import.json build/icons/import.json
+          docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-first.json
+          docker restart hatef-icons-full
+          docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
+          test "$(docker inspect -f '{{.State.OOMKilled}}' hatef-icons-full)" = false
+      - name: Capture runtime diagnostics
+        if: always()
+        run: |
+          mkdir -p build/icons
+          docker inspect hatef-icons-full > build/icons/container.json || true
+          docker logs hatef-icons-full > build/icons/container.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semantic-icons-full-model-offline
+          path: build/icons
+          retention-days: 14
+      - name: Remove test container
+        if: always()
+        run: docker rm -f hatef-icons-full || true

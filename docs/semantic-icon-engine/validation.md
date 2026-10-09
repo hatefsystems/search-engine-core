@@ -72,4 +72,6 @@ ctest --test-dir build/profile --output-on-failure
   --vectors /tmp/vectors-int8 --output /tmp/int8.json
 ```
 
-Full-model container acceptance on the deployment host should repeat this corpus plus long descriptions and bursts under `--cpus 1 --memory 1536m`, with egress denied and read-only artifacts, before semantic mode is enabled. Record throttling, OOM kills, latency, fallback rate and restart behavior. For a much larger approved catalog, measure the scan cost again before choosing an approximate-nearest-neighbor index.
+The `full-model-offline` CI job prepares all approved icons and all vectors, then tests the actual model with network disabled, no swap, read-only mounts, 1 CPU and 1536 MiB. It records 50-query HTTP latency/recall, peak RSS, cgroup counters, long-input recovery and a second run after restart as a workflow artifact. Review the completed job before claiming that this gate passed.
+
+Deployment-host acceptance should still repeat this corpus plus long descriptions and bursts under `--cpus 1 --memory 1536m`, with egress denied and read-only artifacts, before semantic mode is enabled. Record throttling, OOM kills, latency, fallback rate and restart behavior. For a much larger approved catalog, measure the scan cost again before choosing an approximate-nearest-neighbor index.
