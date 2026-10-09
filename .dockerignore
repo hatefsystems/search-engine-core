@@ -16,3 +16,6 @@
 docs
 .cursor
 .codex
+services/semantic-icon-engine/data
+services/semantic-icon-engine/models
+services/semantic-icon-engine/vectors
