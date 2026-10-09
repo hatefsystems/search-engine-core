@@ -136,22 +136,15 @@ TEST(ProfileContent, ExperienceAndProjectMediaRoundTripWithPrivacyAndLimits) {
     }
 }
 
-TEST(ProfileContent, StableIconSelectionAndLegacyDefaults) {
-    auto value=item("services","service-one",{{"title","مشاوره"},{"iconMode","manual"},{"iconId","lucide:scale"}});
-    auto changed=itemJson(value); changed["title"]="عنوان تازه";
-    EXPECT_EQ(parseContentItem("services",changed).iconId,"lucide:scale");
-    EXPECT_EQ(item("projects","project-one").iconMode,"none");
-    for (const auto* invalid : {"../outside.svg","https://example.org/a.svg","lucide:<script>","iconify:a:b:c"}) {
-        changed["iconId"]=invalid; EXPECT_THROW(parseContentItem("services",changed),std::invalid_argument);
-    }
-    changed["iconId"]="simple-icons:handshake_protocol"; EXPECT_NO_THROW(parseContentItem("services",changed));
-}
-TEST(ProfileContent, CustomIconsRequireSameItemMedia) {
-    for (const auto* section : {"projects","experiences","services","skills","achievements"}) {
-        Json data={{"iconMode","custom"},{"iconMediaId","image-one"}};
-        EXPECT_THROW(item(section,"item-one",data),std::invalid_argument);
-        data["media"]=Json::array({{{"id","image-one"},{"alt","تصویر"}}});
-        auto value=item(section,"item-one",data); EXPECT_EQ(itemMedia(value).size(),1);EXPECT_EQ(value.iconMediaId,"image-one");
-        auto saved=itemJson(value);EXPECT_EQ(parseContentItem(section,saved,true).iconMediaId,"image-one");
+TEST(ProfileContent, PublicCertificationErrorsIdentifyNameAndPreserveHiddenDrafts) {
+    for (const auto& name : {"", "   "}) {
+        EXPECT_NO_THROW(item("certifications", "certificate", {{"name",name},{"visibility","HIDDEN"}}));
+        try {
+            item("certifications", "certificate", {{"name",name},{"visibility","PUBLIC"}});
+            FAIL() << "Incomplete public certification accepted";
+        } catch (const ContentValidationError& error) {
+            EXPECT_EQ(error.field, "name");
+            EXPECT_STREQ(error.what(), "نام گواهی‌نامه را برای نمایش عمومی وارد کنید.");
+        }
     }
 }

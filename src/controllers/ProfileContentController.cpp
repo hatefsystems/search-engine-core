@@ -120,7 +120,13 @@ void ProfileController::profileContent(uWS::HttpResponse<false>* res,uWS::HttpRe
                 }
                 person.version=expected+1;
                 json(res,{{"success",true},{"data",personProfileToJson(person)},{"canEdit",true}});
-            }catch(const std::exception& e){badRequest(res,e.what());}
+            }catch(const std::exception& e){
+                Json error={{"code","BAD_REQUEST"},{"message",e.what()},{"section",section},{"itemId",itemId}};
+                if(method=="post" && body.contains("item") && body["item"].is_object() && body["item"].contains("id") && body["item"]["id"].is_string())
+                    error["itemId"]=body["item"]["id"];
+                if(const auto* validation=dynamic_cast<const profile::ContentValidationError*>(&e)) error["field"]=validation->field;
+                json(res,{{"error",error}},"400 Bad Request");
+            }
         });
     }catch(const std::invalid_argument& e){badRequest(res,e.what());}catch(...){serverError(res);}
 }

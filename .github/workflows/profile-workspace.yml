@@ -31,6 +31,7 @@ jobs:
           NODE_PATH: /tmp/profile-ui-tests/node_modules
         run: |
           node tests/profile/workspace-browser-check.cjs
+          node tests/profile/media-autosave-browser-check.cjs
           node tests/profile/public-browser-check.cjs
           node tests/profile/icon-picker-browser-check.cjs
       - name: Upload screenshots
@@ -70,8 +71,11 @@ jobs:
           exit 1
       - name: API, privacy, persistence and media integration
         run: python3 tests/profile/advanced-api-check.py
+      - name: Independent media saves and persistence after recreation
+        run: PROFILE_TEST_RECREATE_APP=1 python3 tests/profile/media-api-check.py
       - name: Browser to real API integration
         run: |
+          node tests/profile/media-autosave-browser-check.cjs
           node tests/profile/editor-browser-check.cjs
           node tests/profile/advanced-browser-check.cjs
       - name: Populated professional profile and screenshot round trips

@@ -54,3 +54,12 @@ test('restoring against changed server version blocks silent overwrite',()=>{
     const f=fixture(async()=>{});f.saver.change('name','ه');const g=fixture(async()=>{},f.storage);g.saver.version=2;
     assert.equal(g.saver.restore({name:'نام دیگر'}).name,'ه');assert.equal(g.saver.blocked,true);
 });
+
+test('item errors and drafts survive reload without automatically resending invalid values',async()=>{
+    const a=fixture(async()=>{});a.saver.change('item',{name:''});
+    a.saver.reject('item',{name:''},{message:'required',field:'name'});
+    let calls=0;const b=fixture(async()=>{calls++;return {version:1};},a.storage);
+    assert.deepEqual(b.saver.restore({}),{item:{name:''}});
+    await b.clock.tick(1000);assert.equal(calls,0);assert.equal(b.saver.errors.item.field,'name');
+    assert.equal(await b.saver.retryErrors(),true);assert.equal(calls,1);
+});

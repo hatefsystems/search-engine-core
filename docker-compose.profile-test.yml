@@ -45,6 +45,7 @@ services:
       JS_MINIFIER_SERVICE_URL: http://127.0.0.1:3002
     volumes:
       - media:/app/profile-media
+      - profile_uploads:/app/uploads
   minifier:
     profiles: ['tests']
     image: hatef-profile-minifier:local
@@ -69,4 +70,5 @@ services:
       COMPLIANCE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
     command: ['ctest', '--test-dir', '/deps/build', '--output-on-failure', '--timeout', '45']
 volumes:
+  profile_uploads:
   media:

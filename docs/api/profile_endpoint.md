@@ -820,3 +820,38 @@ The public page and owner preview share the same expanded presentation. Related
 images, captions, project outcomes, readable date ranges and all populated fields
 remain visible. The section index includes all displayed sections; on smaller
 screens it becomes a keyboard-accessible menu.
+
+### Content validation and independent saves
+
+Content mutation errors retain HTTP 400 and `error.code: "BAD_REQUEST"`.
+They also identify the requested `section` and `itemId`; `field` is included when
+the validator identifies a specific field. For example, clearing the name of a
+public certification returns:
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "نام گواهی‌نامه را برای نمایش عمومی وارد کنید.",
+    "section": "certifications",
+    "itemId": "certificate-regression",
+    "field": "name"
+  }
+}
+```
+
+A rejected mutation does not change the stored item or advance its version.
+The editor retains the rejected draft locally, marks the affected item, and
+continues saving independent operations. Successful operations are acknowledged
+individually. Invalid drafts are retried after editing or an explicit retry.
+The last valid public item remains visible; invalid items are not automatically
+hidden. HTTP 409 still requires reconciliation.
+
+Avatar/cover upload and removal share the profile's serialized version sequence,
+but do not require every content draft to save first. Upload responses remain
+partial objects containing the media URL, version, size and MIME type; clients
+must merge these fields rather than replace the complete profile.
+
+Avatar and cover files are persisted in the application container's
+`/app/uploads` volume. See [upload migration](../operations/profile-uploads.md)
+before replacing a legacy container that has files in its writable layer.

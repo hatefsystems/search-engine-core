@@ -58,14 +58,21 @@ function start(port=4173){
      const section=parts[4],itemId=parts[5],def=sections.find(s=>s.key===section),items=state.sections[section]||=[];
      if(itemId==='order')state.sections[section]=body.ids.map(id=>items.find(i=>i.id===id));
      else if(method==='DELETE')state.sections[section]=items.filter(i=>i.id!==itemId);
-     else {const index=items.findIndex(i=>i.id===(itemId||body.item.id));if(index<0)items.push({...clone(def.defaults),...body.item});else Object.assign(items[index],body.item);}
+     else {
+      const index=items.findIndex(i=>i.id===(itemId||body.item.id));
+      const item={...clone(def.defaults),...(items[index]||{}),...body.item};
+      if(item.visibility==='PUBLIC' && !String(item[def.titleField]).trim())
+       return send({error:{code:'BAD_REQUEST',message:'نام گواهی‌نامه را برای نمایش عمومی وارد کنید.',section,itemId:item.id,field:def.titleField}},400);
+      if(index<0)items.push(item);else items[index]=item;
+     }
     }else if(['projects','experiences'].includes(parts[3])&&parts[5]==='media'){
      const entry=state.sections[parts[3]].find(i=>i.id===parts[4]);if(!entry)return send({},404);
      const mediaId=require('node:crypto').randomUUID().replaceAll('-','');media.set(mediaId,Buffer.from(body.image.split(',').pop(),'base64'));
      (entry.media||=[]).push({id:mediaId,alt:body.alt||''});
     }else if(parts[3]==='avatar'||parts[3]==='cover'){
-     const key=`${id}-${parts[3]}`;media.set(key,Buffer.from(body.image.split(',').pop(),'base64'));
-     state[parts[3]==='avatar'?'avatarUrl':'coverImageUrl']='/fixture-media/'+key;
+     const key=`${id}-${parts[3]}-${state.version}`;media.set(key,Buffer.from(body.image.split(',').pop(),'base64'));
+     const field=parts[3]==='avatar'?'avatarUrl':'coverImageUrl';state[field]='/fixture-media/'+key;
+     state.version++;return send({data:{[field]:state[field],version:state.version}});
     }
     else {const {version,...patch}=body;Object.assign(state,patch);}
     state.version++;return send({data:state});

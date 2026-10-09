@@ -4,10 +4,9 @@ import {readFile} from 'node:fs/promises';
 const dataURL=source=>`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 const root=new URL('../../public/assets/js/',import.meta.url);
 const autosave=dataURL(await readFile(new URL('profile-autosave.js',root),'utf8'));
-const picker=dataURL(await readFile(new URL('profile-icon-picker.js',root),'utf8'));
-const ui=dataURL((await readFile(new URL('profile-content-ui.js',root),'utf8')).replace('"./profile-icon-picker.js"',JSON.stringify(picker)));
-const source=(await readFile(new URL('profile-content-editor.js',root),'utf8')).replace(/(['"])\.\/profile-autosave\.js\1/,JSON.stringify(autosave)).replace(/(['"])\.\/profile-content-ui\.js\1/,JSON.stringify(ui));
-const {ProfileContentEditor}=await import(dataURL(source.replace('"./profile-icon-picker.js"',JSON.stringify(picker))));
+const ui=dataURL(await readFile(new URL('profile-content-ui.js',root),'utf8'));
+const source=(await readFile(new URL('profile-content-editor.js',root),'utf8')).replace(/(['"])\.\/profile-autosave\.js(?:\?[^\x22\x27]+)?\1/,JSON.stringify(autosave)).replace(/(['"])\.\/profile-content-ui\.js\1/,JSON.stringify(ui));
+const {ProfileContentEditor}=await import(dataURL(source));
 function fixture(server,api){
     const values=new Map();globalThis.localStorage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k),removeItem:k=>values.delete(k)};
     globalThis.document={getElementById:()=>({})};globalThis.window={addEventListener:()=>{}};
@@ -67,4 +66,75 @@ test('new mutually linked items are reserved before references or featured layou
     editor.change('projects',{id:'new-project',title:'Project',skillIds:['new-skill'],visibility:'PUBLIC'});
     editor.change('skills',{id:'new-skill',name:'C++',projectIds:['new-project'],visibility:'PUBLIC'});
     assert.equal(await editor.flush(),true);assert.deepEqual(calls.slice(0,2).map(c=>c.method),['POST','POST']);assert.ok(calls.at(-1).path.endsWith('/layout'));editor.queue.stop();
+});
+
+function memoryAPI(initial) {
+    let state=structuredClone(initial); const calls=[];
+    return {calls, get state(){return structuredClone(state);}, async api(path,method,body) {
+        calls.push({path,method,body:structuredClone(body)});
+        assert.equal(body.version,state.version);
+        const parts=path.split('/'), section=method==='POST'?parts.at(-1):parts.at(-2);
+        const entries=state.sections[section]||=[], index=entries.findIndex(i=>i.id===body.item.id);
+        const item={...(entries[index]||{}),...body.item};
+        if(item.visibility==='PUBLIC' && !(item.name||item.title)?.trim())
+            throw Object.assign(new Error('نام گواهی‌نامه را برای نمایش عمومی وارد کنید.'),{status:400,field:'name'});
+        if(index<0)entries.push(item);else entries[index]=item;
+        state.sections[section]=entries;state.version++;
+        return {data:structuredClone(state)};
+    }};
+}
+test('validation failure isolates an item, acknowledges successes and retries only after correction',async()=>{
+    const initial={version:1,sections:{certifications:[{id:'bad',name:'valid',visibility:'PUBLIC'}],projects:[{id:'good',title:'old'}]}};
+    const backend=memoryAPI(initial), {editor,values}=fixture(initial,backend.api);
+    editor.change('certifications',{id:'bad',name:'',visibility:'PUBLIC'});
+    editor.change('projects',{id:'good',title:'saved'});
+    assert.equal(await editor.flush(),false);
+    assert.equal(backend.state.sections.projects[0].title,'saved');
+    assert.equal(backend.state.sections.certifications[0].name,'valid');
+    assert.deepEqual(Object.keys(editor.queue.pending),['certifications/bad']);
+    assert.equal(editor.queue.errors['certifications/bad'].field,'name');
+    const persisted=JSON.parse(values.get(editor.queue.key));assert.equal(persisted.version,2);
+    assert.equal(persisted.errors['certifications/bad'].field,'name');
+    assert.equal(await editor.flush(),false);assert.equal(backend.calls.length,2);
+    editor.change('certifications',{id:'bad',name:'corrected',visibility:'PUBLIC'});
+    assert.equal(await editor.flush(),true);assert.equal(backend.calls.length,3);
+    assert.deepEqual(editor.queue.errors,{});assert.equal(values.size,0);editor.queue.stop();
+});
+test('acknowledged operation is not replayed after a later network failure',async()=>{
+    const initial={version:1,sections:{projects:[{id:'first',title:'old'},{id:'second',title:'old'}]}};
+    const backend=memoryAPI(initial);let fail=true;
+    const {editor}=fixture(initial,async(...args)=>{
+        if(args[2].item.id==='second' && fail) throw Object.assign(new Error('offline'),{status:503});
+        return backend.api(...args);
+    });
+    editor.change('projects',{id:'first',title:'saved'});editor.change('projects',{id:'second',title:'later'});
+    assert.equal(await editor.flush(),false);assert.equal(editor.queue.pending['projects/first'],undefined);
+    fail=false;clearTimeout(editor.queue.retry);editor.queue.retry=null;
+    assert.equal(await editor.flush(),true);assert.equal(backend.calls.filter(c=>c.body.item.id==='first').length,1);editor.queue.stop();
+});
+test('a late validation error cannot block a newer corrected value',async()=>{
+    const initial={version:1,sections:{certifications:[{id:'bad',name:'valid',visibility:'PUBLIC'}]}};
+    const backend=memoryAPI(initial);let reject;
+    const {editor}=fixture(initial,(...args)=>args[2].item.name===''?new Promise((resolve,r)=>{reject=r;}):backend.api(...args));
+    editor.change('certifications',{id:'bad',name:'',visibility:'PUBLIC'});
+    const flight=editor.flush();await new Promise(setImmediate);
+    editor.change('certifications',{id:'bad',name:'fixed',visibility:'PUBLIC'});
+    reject(Object.assign(new Error('invalid'),{status:400}));
+    assert.equal(await flight,true);assert.deepEqual(editor.queue.errors,{});assert.equal(backend.state.sections.certifications[0].name,'fixed');editor.queue.stop();
+});
+test('a failed reservation holds references while independent items save; correction releases dependencies',async()=>{
+    const backend=memoryAPI({version:1,sections:{}});let rejectReservation=true;
+    const {editor}=fixture(backend.state,(...args)=>{
+        if(args[1]==='POST'&&args[2].item.id==='skill'&&rejectReservation)throw Object.assign(new Error('limit'),{status:400});
+        return backend.api(...args);
+    });
+    editor.change('skills',{id:'skill',name:'C++',visibility:'PUBLIC'});
+    editor.change('projects',{id:'project',title:'linked',skillIds:['skill'],visibility:'PUBLIC'});
+    editor.change('certifications',{id:'certificate',name:'independent',visibility:'PUBLIC'});
+    assert.equal(await editor.flush(),false);
+    assert.equal(backend.state.sections.certifications[0].name,'independent');
+    assert.deepEqual(editor.queue.errors['projects/project'].dependencies,['skills/skill']);
+    assert.equal(backend.calls.some(c=>c.body.item.skillIds?.length),false);
+    rejectReservation=false;editor.change('skills',{id:'skill',name:'C++ corrected',visibility:'PUBLIC'});
+    assert.equal(await editor.flush(),true);assert.deepEqual(backend.state.sections.projects[0].skillIds,['skill']);editor.queue.stop();
 });

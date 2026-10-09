@@ -21,6 +21,17 @@
 #include <fstream>
 #include <filesystem>
 
+namespace {
+// A newly written file becomes permanent only after its URL is committed.
+struct PendingProfileImage {
+    std::string path;
+    ~PendingProfileImage() {
+        if (!path.empty()) { std::error_code ec; std::filesystem::remove(path, ec); }
+    }
+    void commit() { path.clear(); }
+};
+}
+
 ProfileController::ProfileController() {
     // Empty constructor - use lazy initialization pattern
     LOG_DEBUG("ProfileController created (lazy initialization)");
@@ -1944,12 +1955,14 @@ void ProfileController::uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpReq
                 // Save image to file
                 std::string extension = search_engine::common::ImageValidator::getExtension(imageInfo.type);
                 std::string filePath = saveImageToFile(imageData, profileId, "avatar", extension);
+                PendingProfileImage pendingImage{filePath.substr(1)};
 
                 // Update profile with avatar URL
                 personProfile.avatarUrl = filePath;
                 auto updateResult = getStorage()->updatePersonFields(personProfile, {"avatarUrl"}, personProfile.version);
 
                 if (updateResult.success) {
+                    pendingImage.commit();
                     nlohmann::json response = {
                         {"success", true},
                         {"message", "Avatar uploaded successfully"},
@@ -2067,12 +2080,14 @@ void ProfileController::uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequ
                 // Save image to file
                 std::string extension = search_engine::common::ImageValidator::getExtension(imageInfo.type);
                 std::string filePath = saveImageToFile(imageData, profileId, "cover", extension);
+                PendingProfileImage pendingImage{filePath.substr(1)};
 
                 // Update profile with cover URL
                 personProfile.coverImageUrl = filePath;
                 auto updateResult = getStorage()->updatePersonFields(personProfile, {"coverImageUrl"}, personProfile.version);
 
                 if (updateResult.success) {
+                    pendingImage.commit();
                     nlohmann::json response = {
                         {"success", true},
                         {"message", "Cover image uploaded successfully"},
@@ -2124,6 +2139,10 @@ std::string ProfileController::saveImageToFile(
 
     outFile.write(reinterpret_cast<const char*>(imageData.data()), imageData.size());
     outFile.close();
+    if (!outFile) {
+        std::error_code ec; std::filesystem::remove(filePath, ec);
+        throw std::runtime_error("Failed to write image: " + filePath);
+    }
 
     LOG_DEBUG("Saved " + imageType + " image to: " + filePath);
 

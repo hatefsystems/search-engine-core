@@ -1,7 +1,7 @@
 import {projectPublicProfile} from './profile-public.js';
 import {ProfileLinksEditor} from './profile-links-editor.js';
-import {ProfileContentEditor} from './profile-content-editor.js';
-import {ProfileAutosave} from './profile-autosave.js';
+import {ProfileContentEditor} from './profile-content-editor.js?v=media-save-3';
+import {ProfileAutosave} from './profile-autosave.js?v=media-save-3';
 
 const $ = id => document.getElementById(id);
 const fields = ['name', 'title', 'tagline', 'company', 'bio', 'location', 'availabilityStatus'];
@@ -10,12 +10,13 @@ const levels = {BEGINNER:'مبتدی', INTERMEDIATE:'متوسط', ADVANCED:'پی
 let id = document.body.dataset.profileId, slug = document.body.dataset.slug;
 let current = {}, autosave, contentEditor, linksEditor, fullData, latest, key = '', uploading = false;
 let mutationTail = Promise.resolve();
+const mediaPreviews = {};
 function mutate(operation) {
     const task = mutationTail.then(async () => {
         if (autosave?.stopped || autosave?.blocked || contentEditor?.queue.blocked) { const error = new Error('ابتدا تعارض اطلاعات را بررسی کنید.'); error.status = 409; throw error; }
         const result = await operation(autosave?.version ?? current.version);
-        if (autosave) autosave.version = result.data.version;
-        if (contentEditor) contentEditor.queue.version = result.data.version;
+        if (autosave) { autosave.version = result.data.version; autosave.persist(); }
+        if (contentEditor) { contentEditor.queue.version = result.data.version; contentEditor.queue.persist(); }
         return result;
     });
     mutationTail = task.catch(() => {}); return task;
@@ -30,7 +31,13 @@ const draftId = crypto.randomUUID();
 let previousDraftId = '';
 try { previousDraftId = sessionStorage.getItem('hatef.profile.tab') || ''; sessionStorage.setItem('hatef.profile.tab', draftId); }
 catch {}
-const status = text => { if (text === 'ذخیره شد' && (Object.keys(autosave?.pending || {}).length || Object.keys(contentEditor?.queue.pending || {}).length || Object.keys(linksEditor?.queue.pending || {}).length)) text = 'در حال ذخیره…'; $('save-status').textContent = text; $('save-status').dataset.saved = String(text === 'ذخیره شد'); };
+const status = text => {
+    if (uploading && text === 'ذخیره شد') text = 'در حال ذخیرهٔ تصویر…';
+    const pending = [autosave, contentEditor?.queue, linksEditor?.queue].reduce((count, queue) => count + Object.keys(queue?.pending || {}).length, 0);
+    const errors = Object.keys(contentEditor?.queue.errors || {}).length;
+    if (pending) text = `${errors ? 'نیاز به اصلاح' : text === 'ذخیره شد' ? 'در حال ذخیره…' : text} · ${pending.toLocaleString('fa-IR')} تغییر ذخیره‌نشده`;
+    $('save-status').textContent = text; $('save-status').dataset.saved = String(!pending && text === 'ذخیره شد');
+};
 const notice = text => { $('notice').textContent = text; $('notice').hidden = !text; };
 async function api(path, method = 'GET', body) {
     const response = await fetch(path, {method, credentials:'same-origin', cache:'no-store',
@@ -40,6 +47,7 @@ async function api(path, method = 'GET', body) {
     if (!response.ok) {
         const error = new Error(result.message || result.error?.message || 'درخواست انجام نشد؛ دوباره تلاش کنید.');
         error.status = response.status;
+        error.field = result.error?.field; error.section = result.error?.section; error.itemId = result.error?.itemId;
         const retry = response.headers.get('Retry-After');
         error.retryAfter = /^\d+$/.test(retry || '') ? Number(retry) : Math.max(1, (Date.parse(retry) - Date.now()) / 1000) || 3;
         throw error;
@@ -58,16 +66,21 @@ function editorData(data) {
 function image(id, url) {
     const element = $(id);
     let safe = '';
-    try { const parsed = new URL(url, location.origin); if (url && ['http:', 'https:'].includes(parsed.protocol)) safe = parsed.href; } catch {}
-    element.hidden = !safe;
-    if (safe && element.src !== safe) element.src = safe;
-    if (!safe) element.removeAttribute('src');
-    element.onerror = () => { element.hidden = true; };
+    try { const parsed = new URL(url, location.origin); if (url && (['http:', 'https:'].includes(parsed.protocol) || Object.values(mediaPreviews).includes(url))) safe = parsed.href; } catch {}
+    let message = element.parentElement.querySelector('.image-load-error');
+    if (!message) {message = document.createElement('span'); message.className = 'image-load-error'; message.setAttribute('role','status'); element.parentElement.append(message);}
+    message.textContent = 'تصویر در دسترس نیست؛ دوباره بارگذاری کنید.';
+    message.hidden = !safe || element.dataset.failedUrl !== safe;
+    element.hidden = !safe || element.dataset.failedUrl === safe;
+    element.onload = () => { delete element.dataset.failedUrl; element.hidden = false; message.hidden = true; };
+    element.onerror = () => { element.dataset.failedUrl = safe; element.hidden = true; message.hidden = false; };
+    if (safe && element.src !== safe) {delete element.dataset.failedUrl; message.hidden = true; element.src = safe;}
+    if (!safe) {element.removeAttribute('src'); delete element.dataset.failedUrl;}
 }
 function preview() {
     $('account-name').textContent = current.name || 'پروفایل من';
     $('account-title').textContent = current.title || '';
-    image('editor-avatar', current.avatarUrl); image('editor-cover', current.coverImageUrl);
+    image('editor-avatar', mediaPreviews.avatar || current.avatarUrl); image('editor-cover', mediaPreviews.cover || current.coverImageUrl);
     const content = contentEditor?.sections || fullData?.sections || {}, layout = contentEditor?.layout || fullData?.contentLayout || {};
     for (const [section, field, property] of [['about','bio','description'],['availability','availabilityStatus','status']]) {
         const input = $('profile-form').elements.namedItem(field);
@@ -117,7 +130,13 @@ function activate(data) {
     fullData = data; current = editorData(data);
     let recoveredDraft;
     autosave = new ProfileAutosave({id, draftId, version:current.version, status, conflict,
-        send: async patch => (await mutate(version => api(endpoint(), 'PUT', {...patch, version}))).data,
+        send: async patch => (await mutate(version => {
+            // An acknowledged image replacement supersedes an older recovered media edit.
+            for (const field of ['avatarUrl', 'coverImageUrl'])
+                if (Object.hasOwn(patch, field) && patch[field] !== autosave.pending[field]) delete patch[field];
+            if (Object.keys(patch).every(field => field === 'version')) return {data:{...fullData, version}};
+            return api(endpoint(), 'PUT', {...patch, version});
+        })).data,
         saved: data => {
             accept(data); contentEditor?.receive(data);
             if (recoveredDraft && !Object.keys(autosave.pending).length) {
@@ -182,12 +201,13 @@ $('dismiss-key').onclick = () => { key = ''; $('new-key').textContent = ''; $('k
 $('profile-form').onsubmit = event => event.preventDefault();
 for (const field of fields) $('profile-form').elements.namedItem(field).addEventListener('input', event => change(field, event.target.value));
 $('add-skill').onclick = () => { if ($('skills-editor').children.length < 50) skillRow().focus(); };
-for (const button of document.querySelectorAll('[data-clear]')) button.onclick = () => change(button.dataset.clear, '');
+for (const button of document.querySelectorAll('[data-clear]')) button.onclick = () => saveMedia(button.dataset.clear === 'avatarUrl' ? 'avatar' : 'cover', null);
 $('publish').onclick = async () => {
     if (!current.name.trim()) { contentEditor.select('basic'); notice('برای انتشار، نام فارسی را وارد کنید.'); $('profile-name').focus(); return; }
     $('publish').disabled = true; notice('');
     try {
-        if (!await autosave.flush() || !await contentEditor.flush() || !await linksEditor.flush()) { notice('ابتدا ذخیرهٔ تغییرات را کامل کنید.'); return; }
+        const basicSaved = await autosave.flush(), contentSaved = await contentEditor.flush(), linksSaved = await linksEditor.flush();
+        if (!basicSaved || !contentSaved || !linksSaved) { contentEditor.showFirstError(); notice('انتشار انجام نشد؛ تغییرات ذخیره‌نشده را بررسی کنید.'); return; }
         autosave.change('isPublic', true);
         if (!await autosave.flush()) notice('انتشار انجام نشد؛ وضعیت ذخیره را بررسی کنید.');
     } finally { $('publish').disabled = false; }
@@ -229,19 +249,49 @@ $('logout').onclick = async () => {
     } catch (error) { autosave.blocked = false; contentEditor.queue.blocked = false; linksEditor.queue.blocked = false; notice(error.message); }
     finally { $('logout').disabled = false; }
 };
-for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = async event => {
-    const file = event.target.files[0]; if (!file || uploading) return;
-    if (file.size > (kind === 'avatar' ? 5 : 10) * 1024 * 1024) { notice('اندازهٔ تصویر بیش از حد مجاز است.'); return; }
+async function saveMedia(kind, file) {
+    if (uploading) return;
+    const field = kind === 'avatar' ? 'avatarUrl' : 'coverImageUrl';
+    const input = $(`${kind}-file`);
+    let mediaSaved = false;
+    if (file && file.size > (kind === 'avatar' ? 5 : 10) * 1024 * 1024) {
+        notice('اندازهٔ تصویر بیش از حد مجاز است.'); input.value = ''; return;
+    }
     uploading = true; $('profile-form').inert = true; $('publish').disabled = true; notice('');
+    const panel = input.closest('.media-editor'); panel.setAttribute('aria-busy', 'true');
+    const progress = document.createElement('p'); progress.className = 'hint'; progress.setAttribute('role', 'status');
+    progress.textContent = file ? 'در حال بارگذاری تصویر…' : 'در حال حذف تصویر…'; panel.append(progress); status(progress.textContent);
+    preview();
     try {
-        if (!await autosave.flush() || !await contentEditor.flush()) throw new Error('ابتدا ذخیرهٔ تغییرات را کامل کنید.');
-        status('در حال ذخیرهٔ تصویر…');
-        const image = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
-        const result = await mutate(version => api(`${endpoint()}/${kind}`, 'POST', {image, version}));
-        autosave.version = result.data.version;
-        Object.assign(current, result.data); preview(); status('ذخیره شد');
-    } catch (error) { if (error.status === 409) { autosave.blocked = true; conflict(); } else notice(error.message || 'بارگذاری تصویر انجام نشد.'); }
-    finally { uploading = false; $('profile-form').inert = false; $('publish').disabled = false; event.target.value = ''; }
+        const image = file ? await new Promise((resolve, reject) => {
+            const reader = new FileReader(); reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('خواندن تصویر انجام نشد.')); reader.readAsDataURL(file);
+        }) : null;
+        if (file) { mediaPreviews[kind] = image; preview(); }
+        await mutate(async version => {
+            const result = file ? await api(`${endpoint()}/${kind}`, 'POST', {image, version})
+                : await api(endpoint(), 'PUT', {[field]:'', version});
+            // Commit only this media field, preserving all unrelated server and local state.
+            delete autosave.pending[field]; delete autosave.errors[field];
+            fullData = {...fullData, [field]:result.data[field] || '', version:result.data.version};
+            current = {...current, [field]:fullData[field], version:result.data.version};
+            contentEditor.receive({...contentEditor.server, [field]:fullData[field], version:result.data.version});
+            return result;
+        });
+        mediaSaved = true;
+    } catch (error) {
+        status('ذخیرهٔ تصویر انجام نشد.');
+        if (error.status === 409) conflict();
+        notice(error.message || 'بارگذاری تصویر انجام نشد.');
+    } finally {
+        delete mediaPreviews[kind]; preview();
+        uploading = false; $('profile-form').inert = false; $('publish').disabled = false;
+        panel.removeAttribute('aria-busy'); progress.remove(); input.value = '';
+        if (mediaSaved) status('ذخیره شد');
+    }
+}
+for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = event => {
+    const file = event.target.files[0]; if (file) saveMedia(kind, file);
 };
 for (const button of document.querySelectorAll('[data-section-shortcut]')) button.onclick = () => contentEditor?.select(button.dataset.sectionShortcut);
 $('add-section').onclick = () => $('section-picker').showModal();

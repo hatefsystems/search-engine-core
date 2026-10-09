@@ -20,9 +20,7 @@
           "law",
           "navigation"
         ],
-        "categories": [
-          "law"
-        ],
+        "categories": ["law"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -32,22 +30,9 @@
         },
         "raw": {
           "$schema": "../icon.schema.json",
-          "contributors": [
-            "mittalyashu",
-            "ericfennis",
-            "karsa-mistmere"
-          ],
-          "tags": [
-            "balance",
-            "legal",
-            "license",
-            "right",
-            "rule",
-            "law"
-          ],
-          "categories": [
-            "navigation"
-          ]
+          "contributors": ["mittalyashu", "ericfennis", "karsa-mistmere"],
+          "tags": ["balance", "legal", "license", "right", "rule", "law"],
+          "categories": ["navigation"]
         },
         "brand": false,
         "id": "lucide:scale",
@@ -64,9 +49,7 @@
         "labelEn": "file signature",
         "labelFa": "حقوق و قرارداد",
         "keywords": [],
-        "categories": [
-          "law"
-        ],
+        "categories": ["law"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -132,10 +115,7 @@
           "science",
           "multimedia"
         ],
-        "categories": [
-          "law",
-          "healthcare"
-        ],
+        "categories": ["law", "healthcare"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -145,10 +125,7 @@
         },
         "raw": {
           "$schema": "../icon.schema.json",
-          "contributors": [
-            "colebemis",
-            "jguddas"
-          ],
+          "contributors": ["colebemis", "jguddas"],
           "tags": [
             "pulse",
             "action",
@@ -211,13 +188,8 @@
       {
         "labelEn": "cloud",
         "labelFa": "زیرساخت ابری",
-        "keywords": [
-          "weather",
-          "weather"
-        ],
-        "categories": [
-          "cloud-infrastructure"
-        ],
+        "keywords": ["weather", "weather"],
+        "categories": ["cloud-infrastructure"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -233,12 +205,8 @@
             "ericfennis",
             "karsa-mistmere"
           ],
-          "tags": [
-            "weather"
-          ],
-          "categories": [
-            "weather"
-          ]
+          "tags": ["weather"],
+          "categories": ["weather"]
         },
         "brand": false,
         "id": "lucide:cloud",
@@ -252,15 +220,8 @@
       {
         "labelEn": "server",
         "labelFa": "زیرساخت ابری",
-        "keywords": [
-          "cloud",
-          "storage",
-          "development",
-          "devices"
-        ],
-        "categories": [
-          "cloud-infrastructure"
-        ],
+        "keywords": ["cloud", "storage", "development", "devices"],
+        "categories": ["cloud-infrastructure"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -270,18 +231,9 @@
         },
         "raw": {
           "$schema": "../icon.schema.json",
-          "contributors": [
-            "colebemis",
-            "ericfennis"
-          ],
-          "tags": [
-            "cloud",
-            "storage"
-          ],
-          "categories": [
-            "development",
-            "devices"
-          ]
+          "contributors": ["colebemis", "ericfennis"],
+          "tags": ["cloud", "storage"],
+          "categories": ["development", "devices"]
         },
         "brand": false,
         "id": "lucide:server",
@@ -295,16 +247,8 @@
       {
         "labelEn": "cloud cog",
         "labelFa": "زیرساخت ابری",
-        "keywords": [
-          "computing",
-          "ai",
-          "cluster",
-          "network",
-          "development"
-        ],
-        "categories": [
-          "cloud-infrastructure"
-        ],
+        "keywords": ["computing", "ai", "cluster", "network", "development"],
+        "categories": ["cloud-infrastructure"],
         "metadataVersion": 1,
         "persianProvenance": "curated dictionary; automatic association",
         "origin": {
@@ -314,18 +258,9 @@
         },
         "raw": {
           "$schema": "../icon.schema.json",
-          "contributors": [
-            "karsa-mistmere"
-          ],
-          "tags": [
-            "computing",
-            "ai",
-            "cluster",
-            "network"
-          ],
-          "categories": [
-            "development"
-          ]
+          "contributors": ["karsa-mistmere"],
+          "tags": ["computing", "ai", "cluster", "network"],
+          "categories": ["development"]
         },
         "brand": false,
         "id": "lucide:cloud-cog",

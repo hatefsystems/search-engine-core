@@ -30,11 +30,7 @@
       "lowConfidence": false,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:cloud",
-        "lucide:cloud-cog",
-        "lucide:cloud-upload"
-      ],
+      "relevant": ["lucide:cloud", "lucide:cloud-cog", "lucide:cloud-upload"],
       "text": "cloud infrastructure"
     },
     {
@@ -52,11 +48,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:cloud",
-        "lucide:cloud-cog",
-        "lucide:cloud-upload"
-      ],
+      "relevant": ["lucide:cloud", "lucide:cloud-cog", "lucide:cloud-upload"],
       "text": "رایانش ابری"
     },
     {
@@ -74,11 +66,7 @@
       "lowConfidence": false,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:cloud",
-        "lucide:cloud-cog",
-        "lucide:cloud-upload"
-      ],
+      "relevant": ["lucide:cloud", "lucide:cloud-cog", "lucide:cloud-upload"],
       "text": "زیرساخت ابری"
     },
     {
@@ -96,11 +84,7 @@
       "lowConfidence": false,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:cloud",
-        "lucide:cloud-cog",
-        "lucide:cloud-upload"
-      ],
+      "relevant": ["lucide:cloud", "lucide:cloud-cog", "lucide:cloud-upload"],
       "text": "cloud computing services"
     },
     {
@@ -118,11 +102,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:cloud",
-        "lucide:cloud-cog",
-        "lucide:cloud-upload"
-      ],
+      "relevant": ["lucide:cloud", "lucide:cloud-cog", "lucide:cloud-upload"],
       "text": "ابر و زیرساخت"
     },
     {
@@ -250,11 +230,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:scale",
-        "lucide:file-signature",
-        "lucide:briefcase"
-      ],
+      "relevant": ["lucide:scale", "lucide:file-signature", "lucide:briefcase"],
       "text": "legal contract"
     },
     {
@@ -272,11 +248,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:scale",
-        "lucide:file-signature",
-        "lucide:briefcase"
-      ],
+      "relevant": ["lucide:scale", "lucide:file-signature", "lucide:briefcase"],
       "text": "مشاوره حقوقی"
     },
     {
@@ -294,11 +266,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:scale",
-        "lucide:file-signature",
-        "lucide:briefcase"
-      ],
+      "relevant": ["lucide:scale", "lucide:file-signature", "lucide:briefcase"],
       "text": "وکالت و قرارداد"
     },
     {
@@ -316,11 +284,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:scale",
-        "lucide:file-signature",
-        "lucide:briefcase"
-      ],
+      "relevant": ["lucide:scale", "lucide:file-signature", "lucide:briefcase"],
       "text": "law services"
     },
     {
@@ -338,11 +302,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:scale",
-        "lucide:file-signature",
-        "lucide:briefcase"
-      ],
+      "relevant": ["lucide:scale", "lucide:file-signature", "lucide:briefcase"],
       "text": "عدالت"
     },
     {
@@ -580,11 +540,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:building",
-        "lucide:house",
-        "lucide:ruler"
-      ],
+      "relevant": ["lucide:building", "lucide:house", "lucide:ruler"],
       "text": "architecture construction"
     },
     {
@@ -602,11 +558,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:building",
-        "lucide:house",
-        "lucide:ruler"
-      ],
+      "relevant": ["lucide:building", "lucide:house", "lucide:ruler"],
       "text": "معماری ساختمان"
     },
     {
@@ -624,11 +576,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:building",
-        "lucide:house",
-        "lucide:ruler"
-      ],
+      "relevant": ["lucide:building", "lucide:house", "lucide:ruler"],
       "text": "طراحی داخلی"
     },
     {
@@ -646,11 +594,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:building",
-        "lucide:house",
-        "lucide:ruler"
-      ],
+      "relevant": ["lucide:building", "lucide:house", "lucide:ruler"],
       "text": "house construction"
     },
     {
@@ -668,11 +612,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:building",
-        "lucide:house",
-        "lucide:ruler"
-      ],
+      "relevant": ["lucide:building", "lucide:house", "lucide:ruler"],
       "text": "ساخت و ساز"
     },
     {
@@ -690,11 +630,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:palette",
-        "lucide:paintbrush",
-        "lucide:pen-tool"
-      ],
+      "relevant": ["lucide:palette", "lucide:paintbrush", "lucide:pen-tool"],
       "text": "graphic design"
     },
     {
@@ -712,11 +648,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:palette",
-        "lucide:paintbrush",
-        "lucide:pen-tool"
-      ],
+      "relevant": ["lucide:palette", "lucide:paintbrush", "lucide:pen-tool"],
       "text": "طراحی گرافیک"
     },
     {
@@ -734,11 +666,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:palette",
-        "lucide:paintbrush",
-        "lucide:pen-tool"
-      ],
+      "relevant": ["lucide:palette", "lucide:paintbrush", "lucide:pen-tool"],
       "text": "نقاشی"
     },
     {
@@ -756,11 +684,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:palette",
-        "lucide:paintbrush",
-        "lucide:pen-tool"
-      ],
+      "relevant": ["lucide:palette", "lucide:paintbrush", "lucide:pen-tool"],
       "text": "art design"
     },
     {
@@ -778,11 +702,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:palette",
-        "lucide:paintbrush",
-        "lucide:pen-tool"
-      ],
+      "relevant": ["lucide:palette", "lucide:paintbrush", "lucide:pen-tool"],
       "text": "هنر"
     },
     {
@@ -800,11 +720,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:sprout",
-        "lucide:tractor",
-        "lucide:wheat"
-      ],
+      "relevant": ["lucide:sprout", "lucide:tractor", "lucide:wheat"],
       "text": "agriculture farming"
     },
     {
@@ -822,11 +738,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:sprout",
-        "lucide:tractor",
-        "lucide:wheat"
-      ],
+      "relevant": ["lucide:sprout", "lucide:tractor", "lucide:wheat"],
       "text": "کشاورزی"
     },
     {
@@ -844,11 +756,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:sprout",
-        "lucide:tractor",
-        "lucide:wheat"
-      ],
+      "relevant": ["lucide:sprout", "lucide:tractor", "lucide:wheat"],
       "text": "باغبانی و کاشت"
     },
     {
@@ -866,11 +774,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:sprout",
-        "lucide:tractor",
-        "lucide:wheat"
-      ],
+      "relevant": ["lucide:sprout", "lucide:tractor", "lucide:wheat"],
       "text": "farming services"
     },
     {
@@ -888,11 +792,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:sprout",
-        "lucide:tractor",
-        "lucide:wheat"
-      ],
+      "relevant": ["lucide:sprout", "lucide:tractor", "lucide:wheat"],
       "text": "مزرعه"
     },
     {
@@ -1020,11 +920,7 @@
       "lowConfidence": false,
       "recallAt3": 0.3333333333333333,
       "recallAt5": 0.3333333333333333,
-      "relevant": [
-        "lucide:wrench",
-        "lucide:hammer",
-        "lucide:settings"
-      ],
+      "relevant": ["lucide:wrench", "lucide:hammer", "lucide:settings"],
       "text": "repair maintenance"
     },
     {
@@ -1042,11 +938,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:wrench",
-        "lucide:hammer",
-        "lucide:settings"
-      ],
+      "relevant": ["lucide:wrench", "lucide:hammer", "lucide:settings"],
       "text": "تعمیرات"
     },
     {
@@ -1064,11 +956,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:wrench",
-        "lucide:hammer",
-        "lucide:settings"
-      ],
+      "relevant": ["lucide:wrench", "lucide:hammer", "lucide:settings"],
       "text": "سرویس فنی"
     },
     {
@@ -1086,11 +974,7 @@
       "lowConfidence": true,
       "recallAt3": 0.6666666666666666,
       "recallAt5": 0.6666666666666666,
-      "relevant": [
-        "lucide:wrench",
-        "lucide:hammer",
-        "lucide:settings"
-      ],
+      "relevant": ["lucide:wrench", "lucide:hammer", "lucide:settings"],
       "text": "maintenance services"
     },
     {
@@ -1108,11 +992,7 @@
       "lowConfidence": true,
       "recallAt3": 1.0,
       "recallAt5": 1.0,
-      "relevant": [
-        "lucide:wrench",
-        "lucide:hammer",
-        "lucide:settings"
-      ],
+      "relevant": ["lucide:wrench", "lucide:hammer", "lucide:settings"],
       "text": "تعمیر و نگهداری"
     }
   ],

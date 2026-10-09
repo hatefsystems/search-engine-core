@@ -9,6 +9,11 @@
 
 namespace search_engine::profile {
 using Json = nlohmann::json;
+struct ContentValidationError : std::invalid_argument {
+    std::string field;
+    ContentValidationError(const std::string& message, const std::string& field)
+        : std::invalid_argument(message), field(field) {}
+};
 struct PartialDate { std::string calendar = "persian"; int year = 0, month = 0, day = 0; };
 inline void to_json(Json& json, const PartialDate& value) {
     json = Json{{"calendar", value.calendar}, {"year", value.year}, {"month", value.month}, {"day", value.day}};

@@ -23,7 +23,15 @@ Each icon exposes `id`, `source`, `name`, `labelEn`, `labelFa`, `keywords`, `cat
 Use `policy.metadataOverrides` for reviewed per-icon `labelFa`, `keywordsFa` and `keywordsEn`. For example:
 
 ```json
-{"metadataOverrides":{"lucide:cloud":{"labelFa":"زیرساخت ابری","keywordsFa":["میزبانی سازمانی"],"keywordsEn":["managed infrastructure"]}}}
+{
+  "metadataOverrides": {
+    "lucide:cloud": {
+      "labelFa": "زیرساخت ابری",
+      "keywordsFa": ["میزبانی سازمانی"],
+      "keywordsEn": ["managed infrastructure"]
+    }
+  }
+}
 ```
 
 Changing the dictionary or policy produces a new catalog. Rebuild or safely reuse text-identical vectors. Automatically associated Persian labels say so; explicit overrides say `editorial override`.
@@ -32,18 +40,18 @@ Profile modes are `auto`, `manual`, `custom`, `none`. Old records default to `no
 
 ## Endpoints
 
-| Private endpoint | Same-origin route | Behavior |
-| --- | --- | --- |
-| `GET /health/live` | Internal only | Process liveness |
-| `GET /health/ready` | Internal only | Catalog/model readiness; lexical mode is a valid degraded state |
-| `GET /metrics` | Internal only | Aggregate counters without query text |
-| `GET /v1/icons` | `GET /api/icons` | Catalog page |
-| `GET /v1/icons/search` | `GET /api/icons/search` | Lexical/synonym catalog search |
-| `GET /v1/icons/categories` | `GET /api/icons/categories` | Primary category counts |
-| `GET /v1/icons/sources` | `GET /api/icons/sources` | Source provenance and original notices |
-| `GET /v1/icons/{id}` | `GET /api/icons/{id}` | Stable ID metadata |
-| `POST /v1/icons/suggest` | `POST /api/icons/suggest` | Hybrid or fallback recommendation |
-| `GET /assets/icons/{source}/{name}.svg` | Same path | Sanitized local SVG; Iconify adds the collection segment |
+| Private endpoint                        | Same-origin route           | Behavior                                                        |
+| --------------------------------------- | --------------------------- | --------------------------------------------------------------- |
+| `GET /health/live`                      | Internal only               | Process liveness                                                |
+| `GET /health/ready`                     | Internal only               | Catalog/model readiness; lexical mode is a valid degraded state |
+| `GET /metrics`                          | Internal only               | Aggregate counters without query text                           |
+| `GET /v1/icons`                         | `GET /api/icons`            | Catalog page                                                    |
+| `GET /v1/icons/search`                  | `GET /api/icons/search`     | Lexical/synonym catalog search                                  |
+| `GET /v1/icons/categories`              | `GET /api/icons/categories` | Primary category counts                                         |
+| `GET /v1/icons/sources`                 | `GET /api/icons/sources`    | Source provenance and original notices                          |
+| `GET /v1/icons/{id}`                    | `GET /api/icons/{id}`       | Stable ID metadata                                              |
+| `POST /v1/icons/suggest`                | `POST /api/icons/suggest`   | Hybrid or fallback recommendation                               |
+| `GET /assets/icons/{source}/{name}.svg` | Same path                   | Sanitized local SVG; Iconify adds the collection segment        |
 
 Catalog parameters: `q` (500 chars), `category`, `source`, `style`, `limit` (1–100), `offset` (0–1,000,000). Responses contain `items`, `nextOffset` and `catalogVersion`. Recommendation accepts `text` (2000 chars), `title` (200), `description` (2000), category, context, preferredSource, preferredStyle and limit (1–20). Total request body is capped at 16 KiB. Unknown recommendation fields are rejected. No arbitrary fetch URL is accepted.
 

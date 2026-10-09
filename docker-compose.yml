@@ -47,6 +47,7 @@ services:
     container_name: core
     volumes:
       - profile_media:/app/profile-media
+      - profile_uploads:/app/uploads
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -369,6 +370,7 @@ networks:
     driver: bridge
 
 volumes:
+  profile_uploads:
   profile_media:
   mongodb_data:
   redis_data:

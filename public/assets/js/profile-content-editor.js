@@ -1,6 +1,6 @@
 import { mountIconPicker } from "./profile-icon-picker.js";
 const iconSections = ["projects", "experiences", "services", "skills", "achievements"];
-import { ProfileAutosave } from "./profile-autosave.js";
+import { ProfileAutosave } from "./profile-autosave.js?v=media-save-3";
 import {
   labels,
   enumLabels,
@@ -75,14 +75,16 @@ export class ProfileContentEditor {
       version: version(),
       status,
       conflict,
-      send: async (batch) => {
+      incremental: true,
+      errorsChanged: () => this.renderErrors(),
+      send: async (batch, {acknowledge, reject}) => {
         let data;
         const operations = Object.entries(batch).filter(
           ([key]) => key !== "version",
         );
         // Reserve all new item IDs first. Links between two new items (including
         // cycles) can then be written without depending on the order of typing.
-        for (const [, op] of operations) {
+        for (const [key, op] of operations) {
           if (
             op.kind !== "item" ||
             (this.server.sections?.[op.section] || []).some(
@@ -95,48 +97,69 @@ export class ProfileContentEditor {
             visibility: "HIDDEN",
             [titleFields[op.section]]: "",
           };
-          const result = await this.mutate((version) =>
-            this.api(`/api/profiles/${id}/content/${op.section}`, "POST", {
-              version,
-              item: initial,
-            }),
-          );
-          this.server = clone(result.data);
-          this.accept(result.data);
+          if (this.queue.errors[key]) continue;
+          try {
+            const result = await this.mutate((version) =>
+              this.api(`/api/profiles/${id}/content/${op.section}`, "POST", {version, item:initial}),
+            );
+            this.server = clone(result.data);
+            this.accept(result.data);
+          } catch (error) {
+            if (error.status !== 400) throw error;
+            reject(key, error);
+          }
         }
         const priority = { item: 0, delete: 1, order: 2, layout: 3 };
         operations.sort((a, b) => priority[a[1].kind] - priority[b[1].kind]);
         for (const [key, op] of operations) {
-          const result = await this.mutate(async (currentVersion) => {
-            const body = { version: currentVersion };
-            let path = `/api/profiles/${id}`;
-            let method = "PUT";
-            if (op.kind === "layout") {
-              path += "/layout";
-              Object.assign(body, op.value);
-            } else if (op.kind === "order") {
-              path += `/content/${op.section}/order`;
-              body.ids = op.ids;
-            } else {
-              path += `/content/${op.section}`;
-              const exists = (this.server.sections?.[op.section] || []).some(
-                (item) => item.id === op.id,
-              );
-              if (op.kind === "delete") {
-                if (!exists) return { data: this.server };
-                path += `/${op.id}`;
-                method = "DELETE";
+          if (this.queue.errors[key]) continue;
+          const missing = Object.entries(this.queue.pending).filter(([, pending]) =>
+            pending.kind === "item" && !(this.server.sections?.[pending.section] || []).some(i => i.id === pending.id));
+          const dependencies = missing.filter(([, pending]) => {
+            if (pending.id === op.id) return false;
+            if (op.kind === "order") return op.section === pending.section && op.ids.includes(pending.id);
+            if (op.kind === "layout") return (op.value.featured || []).some(ref => ref.section === pending.section && ref.id === pending.id);
+            return Object.entries(op.item || {}).some(([field, value]) => field.endsWith("Ids") && Array.isArray(value) && value.includes(pending.id));
+          }).map(([key]) => key);
+          if (dependencies.length) {
+            reject(key, {message:"ابتدا خطای آیتم مرتبط را برطرف کنید.", dependencies}); continue;
+          }
+          try {
+            const result = await this.mutate(async (currentVersion) => {
+              const body = { version: currentVersion };
+              let path = `/api/profiles/${id}`;
+              let method = "PUT";
+              if (op.kind === "layout") {
+                path += "/layout";
+                Object.assign(body, op.value);
+              } else if (op.kind === "order") {
+                path += `/content/${op.section}/order`;
+                body.ids = op.ids;
               } else {
-                method = exists ? "PUT" : "POST";
-                if (exists) path += `/${op.id}`;
-                body.item = op.item;
+                path += `/content/${op.section}`;
+                const exists = (this.server.sections?.[op.section] || []).some(
+                  (item) => item.id === op.id,
+                );
+                if (op.kind === "delete") {
+                  if (!exists) return { data: this.server };
+                  path += `/${op.id}`;
+                  method = "DELETE";
+                } else {
+                  method = exists ? "PUT" : "POST";
+                  if (exists) path += `/${op.id}`;
+                  body.item = op.item;
+                }
               }
-            }
-            return this.api(path, method, body);
-          });
-          data = result.data;
-          this.server = clone(data);
-          this.accept(data);
+              return this.api(path, method, body);
+            });
+            data = result.data;
+            this.server = clone(data);
+            this.accept(data);
+            acknowledge(key, data);
+          } catch (error) {
+            if (error.status !== 400) throw error;
+            reject(key, error);
+          }
         }
         return data || this.server;
       },
@@ -193,6 +216,7 @@ export class ProfileContentEditor {
     this.rebuild();
     this.render();
     this.renderPreview();
+    this.renderErrors();
     this.completion(data.completion);
   }
   receive(data) {
@@ -261,6 +285,55 @@ export class ProfileContentEditor {
   async flush() {
     return this.queue.flush();
   }
+  showFirstError() {
+    const key = Object.keys(this.queue.errors)[0];
+    const op = this.queue.pending[key];
+    if (!op) return;
+    if (op.id) this.selectedItems[op.section] = op.id;
+    this.select(op.section || "basic");
+  }
+  renderErrors() {
+    // Update only error decorations; never replace a form while the user types.
+    if (!this.root.querySelectorAll) return;
+    const errors = Object.entries(this.queue.errors);
+    const summary = document.getElementById("save-errors");
+    if (summary) {
+      summary.replaceChildren(); summary.hidden = !errors.length;
+      for (const [key, error] of errors) {
+        const op = this.queue.pending[key]; if (!op) continue;
+        summary.append(this.button(`${sectionLabels[op.section] || "تنظیمات صفحه"}: ${error.message}`, () => {
+          if (op.id) this.selectedItems[op.section] = op.id;
+          this.select(op.section || "basic");
+        }));
+      }
+      if (errors.length) summary.append(this.button("تلاش مجدد", () => this.queue.retryErrors()));
+    }
+    for (const button of document.querySelectorAll("#editor-section-nav [data-section]")) {
+      const count = errors.filter(([key]) => this.queue.pending[key]?.section === button.dataset.section).length;
+      button.querySelector(".save-error-count")?.remove();
+      if (count) button.append(el("small", ` ${count} خطا`, "save-error-count"));
+    }
+    for (const choice of this.root.querySelectorAll("[data-item-choice]")) {
+      choice.querySelector(".save-error-count")?.remove();
+      if (this.queue.errors[`${this.selected}/${choice.dataset.itemChoice}`])
+        choice.append(el("small", "ذخیره نشد", "save-error-count"));
+    }
+    for (const box of this.root.querySelectorAll(".content-item-form")) {
+      const error = this.queue.errors[`${this.selected}/${box.dataset.itemId}`];
+      let message = box.querySelector(".item-save-error");
+      if (!message) {message = el("div", "", "item-save-error"); message.setAttribute("role", "status"); box.append(message);}
+      message.replaceChildren(); message.hidden = !error;
+      for (const control of box.querySelectorAll("[aria-invalid]")) {control.removeAttribute("aria-invalid"); control.removeAttribute("aria-describedby");}
+      if (error) {
+        message.id = `save-error-${box.dataset.itemId}`;
+        message.append(el("p", error.message), this.button("تلاش مجدد", () => this.queue.retryErrors()));
+        const field = [...box.querySelectorAll("[data-field]")].find(control => control.dataset.field === error.field);
+        for (const control of field?.querySelectorAll("input, textarea, select") || []) {
+          control.setAttribute("aria-invalid", "true"); control.setAttribute("aria-describedby", message.id);
+        }
+      }
+    }
+  }
   stop() {
     this.queue.stop();
     try {
@@ -275,7 +348,7 @@ export class ProfileContentEditor {
     this.server = clone(data);
     this.queue.version = data.version;
     this.queue.blocked = false;
-    if (!keep) this.queue.pending = {};
+    if (!keep) { this.queue.pending = {}; this.queue.errors = {}; }
     this.queue.persist();
     this.rebuild();
     this.render();
@@ -372,7 +445,7 @@ export class ProfileContentEditor {
     document.getElementById("links-editor").hidden = !["contacts", "links"].includes(this.selected);
     this.root.hidden = ["basic", "links"].includes(this.selected);
     this.root.replaceChildren();
-    if (this.root.hidden) return;
+    if (this.root.hidden) { this.renderErrors(); return; }
     const section = this.selected, definition = this.schemas[section];
     const heading = el("div", "", "section-heading");
     const title = el("h2", sectionLabels[section]); title.tabIndex = -1;
@@ -439,7 +512,7 @@ export class ProfileContentEditor {
       const empty = el("div", "", "editor-empty");
       empty.append(el("span", "＋", "empty-symbol"),el("h3", "داستان حرفه‌ای شما از اینجا شروع می‌شود"),el("p", "اولین مورد را اضافه کنید. تا زمان انتخاب نمایش عمومی، خصوصی می‌ماند.","hint")); split.append(empty);
     }
-    panel.append(split, settings); this.root.append(panel);
+    panel.append(split, settings); this.root.append(panel); this.renderErrors();
   }
   itemForm(section, item, index) {
     const box = el("section", "", "content-item-form");
@@ -615,7 +688,9 @@ export class ProfileContentEditor {
       this.uploading = true; form.inert = true; publish.disabled = true; panel.setAttribute("aria-busy", "true");
       progress.textContent = "در حال بارگذاری تصویر…"; this.notice("");
       try {
-        if (!(await this.flush())) throw new Error("ابتدا ذخیرهٔ تغییرات را کامل کنید.");
+        await this.flush();
+        if (this.queue.pending[`${section}/${item.id}`] || this.queue.blocked || this.queue.retry)
+          throw new Error("ابتدا تغییرات همین آیتم را ذخیره کنید.");
         const image = await new Promise((resolve, reject) => {
           const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
         });

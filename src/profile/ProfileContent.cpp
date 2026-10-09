@@ -198,7 +198,10 @@ ContentItem parseContentItem(const std::string& section, const Json& input, bool
     }
     require(data["visibility"] == "PUBLIC" || data["visibility"] == "HIDDEN", "وضعیت نمایش نامعتبر است.");
     if (data["visibility"] == "PUBLIC") {
-        require(!data[def.titleField].get<std::string>().empty(), "برای نمایش عمومی، عنوان این بخش را کامل کنید.");
+        if (data[def.titleField].get<std::string>().find_first_not_of(" \t\r\n") == std::string::npos)
+            throw ContentValidationError(section == "certifications"
+                ? "نام گواهی‌نامه را برای نمایش عمومی وارد کنید."
+                : "برای نمایش عمومی، عنوان این بخش را کامل کنید.", def.titleField);
         if (section == "recommendations") require(!data["content"].get<std::string>().empty() && safeContentUrl(data["sourceUrl"]), "توصیه‌نامهٔ عمومی به متن و منبع نیاز دارد.");
         if (section == "contacts") require(!data["type"].get<std::string>().empty() && !data["value"].get<std::string>().empty(), "راه ارتباطی را کامل کنید.");
         if (data.contains("links")) for (const auto& link : data["links"]) require(safeContentUrl(link.value("url", "")), "لینک را کامل کنید.");

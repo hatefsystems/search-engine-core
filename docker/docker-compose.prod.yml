@@ -2,6 +2,8 @@ services:
   search-engine:
     image: ghcr.io/hatefsystems/search-engine-core:latest
     container_name: search-engine-core
+    volumes:
+      - profile_uploads:/app/uploads
     pull_policy: always
     restart: unless-stopped
     environment:
@@ -410,5 +412,6 @@ networks:
     driver: bridge
 
 volumes:
+  profile_uploads:
   mongodb_data:
   redis_data:

@@ -4,11 +4,11 @@ Measurements below were collected from actual native runs of this implementation
 
 ## Catalog and index
 
-| Source | Approved IDs (including duplicates) | Duplicate SVG records | Excluded | Rejected |
-| --- | ---: | ---: | ---: | ---: |
-| Lucide 0.468.0 | 1544 | 1 | 0 | 0 |
-| Iconify, reviewed Lucide collection | 2160 | 220 | 423062 | 0 |
-| Simple Icons 14.0.0 | 0 | 0 | 3247 | 0 |
+| Source                              | Approved IDs (including duplicates) | Duplicate SVG records | Excluded | Rejected |
+| ----------------------------------- | ----------------------------------: | --------------------: | -------: | -------: |
+| Lucide 0.468.0                      |                                1544 |                     1 |        0 |        0 |
+| Iconify, reviewed Lucide collection |                                2160 |                   220 |   423062 |        0 |
+| Simple Icons 14.0.0                 |                                   0 |                     0 |     3247 |        0 |
 
 Total approved: **3704 canonical IDs**. Both FP32 and INT8 indexing completed **3704/3704** embeddings. Every upstream source pack was discovered. The approved catalog is a policy-limited subset, not all 425,222 Iconify IDs.
 
@@ -20,11 +20,11 @@ Catalog snapshot `bac06580c1c646cd7b800aa6` occupies 69,484,544 bytes. Full inge
 
 The versioned 50-query dataset covers ten categories with Persian, English and mixed queries, including healthcare, education, law, architecture, design, agriculture, retail and repair. Each query has three labeled relevant IDs. Recall is the number of those IDs retrieved divided by three. Hit rate, also recorded in the JSON results, means at least one relevant ID was returned. Labels and synonyms were developed together; **this is not a held-out dataset**.
 
-| Mode | Recall@3 | Recall@5 | Mean ms | p95 ms | Peak RSS MiB | CPU seconds | Average CPU cores |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| lexical | 0.81 | 0.85 | 100.66 | 194.35 | 17.15 | 5.15 | 1.00 |
-| fp32 | 0.76 | 0.81 | 174.35 | 237.28 | 1115.18 | 12.11 | 1.08 |
-| int8 | 0.74 | 0.78 | 185.45 | 261.01 | 1052.13 | 12.55 | 1.07 |
+| Mode    | Recall@3 | Recall@5 | Mean ms | p95 ms | Peak RSS MiB | CPU seconds | Average CPU cores |
+| ------- | -------: | -------: | ------: | -----: | -----------: | ----------: | ----------------: |
+| lexical |     0.81 |     0.85 |  100.66 | 194.35 |        17.15 |        5.15 |              1.00 |
+| fp32    |     0.76 |     0.81 |  174.35 | 237.28 |      1115.18 |       12.11 |              1.08 |
+| int8    |     0.74 |     0.78 |  185.45 | 261.01 |      1052.13 |       12.55 |              1.07 |
 
 FP32 ONNX size: 470,268,510 bytes. Dynamic INT8 MatMul variant: 406,734,568 bytes. Tokenizer/model-card sizes are additional. Both variants used ONNX Runtime 1.20.1 and the same pinned E5 revision.
 

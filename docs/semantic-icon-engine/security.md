@@ -23,7 +23,10 @@ Example policy fragment, to be completed after review:
   },
   "publicBrands": ["simple-icons:reviewedbrand"],
   "iconLicenseReviews": {
-    "simple-icons:reviewedbrand": {"license":"MIT","licenseText":"ORIGINAL COMPLETE NOTICE"}
+    "simple-icons:reviewedbrand": {
+      "license": "MIT",
+      "licenseText": "ORIGINAL COMPLETE NOTICE"
+    }
   }
 }
 ```

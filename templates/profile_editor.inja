@@ -4,10 +4,10 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>ساخت و ویرایش صفحه | هاتف</title>
 <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
-<link rel="stylesheet" href="/assets/css/profile-editor.css">
+<link rel="stylesheet" href="/assets/css/profile-editor.css?v=media-save-3">
 <link rel="stylesheet" href="/assets/css/profile-content.css">
 <link rel="stylesheet" href="/assets/css/profile-workspace.css">
-<script type="module" src="/assets/js/profile-editor.js?v=workspace-2"></script>
+<script type="module" src="/assets/js/profile-editor.js?v=media-save-3"></script>
 </head>
 <body class="profile-editor-page" data-state="{{ state }}" data-slug="{{ slug }}" data-profile-id="{{ profileId }}">
 <header class="editor-masthead"><a class="brand" href="/">هاتف</a><h1>ویرایشگر پروفایل حرفه‌ای هاتف</h1></header>
@@ -37,6 +37,7 @@
 <nav class="workspace-shortcuts" aria-label="دسترسی سریع"><a href="/">خانه</a><button type="button" data-section-shortcut="basic" class="active">پروفایل من</button><button type="button" data-section-shortcut="services">خدمات</button><button type="button" data-section-shortcut="availability">فرصت‌های همکاری</button></nav>
 <span id="save-status" role="status" aria-live="polite">آمادهٔ شروع</span>
 <div class="actions"><a id="view-page" class="button secondary" href="/{{ encodedSlug }}" target="_blank" rel="noopener">مشاهده صفحه ↗</a><button id="publish" class="button primary" type="button">انتشار صفحه</button><button id="logout" class="button secondary" type="button">خروج از ویرایش</button></div></div>
+<div id="save-errors" class="notice" role="status" hidden></div>
 <div id="conflict" class="notice" hidden><p>اطلاعات در جای دیگری تغییر کرده است. نوشته‌های شما حفظ شده‌اند.</p><button id="reload-version" type="button" class="button secondary">بارگیری نسخهٔ جدید و مقایسه</button><div id="conflict-review" hidden><pre id="server-version"></pre><button id="keep-local" class="button secondary" type="button">ذخیرهٔ تغییرات من روی نسخهٔ جدید</button><button id="use-server" class="button quiet" type="button">استفاده از نسخهٔ جدید</button></div></div>
 <div class="mobile-tabs" role="tablist" aria-label="فرم و پیش‌نمایش"><button role="tab" type="button" id="form-tab" aria-controls="profile-form" aria-selected="true">اطلاعات صفحه</button><button role="tab" type="button" id="preview-tab" aria-controls="preview" aria-selected="false">پیش‌نمایش</button></div>
 <div class="editor-columns">

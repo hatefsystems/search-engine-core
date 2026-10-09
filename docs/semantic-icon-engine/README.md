@@ -102,15 +102,15 @@ Rollback means restoring the previous bundle into a new directory, pointing `ICO
 
 ## Troubleshooting
 
-| Symptom | Check/action |
-| --- | --- |
-| Readiness 503 | Check `current.json`, file permissions, SQLite checksum and nonzero approved icon count. Reimport or restore a valid snapshot. |
-| Ready in lexical mode | Semantic mode is disabled, or model/vector files are missing, corrupted or incompatible. Inspect the single startup warning; prepare a matching bundle and restart. |
-| 429 | Per-client token bucket or inference/bridge concurrency is full. Honor `Retry-After`; reduce request bursts. |
-| Timeout fallback | Two-second inference deadline elapsed. The running inference keeps its slot until it exits; new inference work is rejected instead of accumulating. |
-| Icons missing | Review license/brand exclusions and rejected SVG reasons. Check canonical ID and source revision. |
-| Import/index lock error | Another administrative writer is active. Do not remove locks to run concurrent writers. |
-| Wrong catalog after update | Readers pin snapshots. Restart after activating the new complete bundle. |
-| Memory pressure | Keep lexical mode active. Measure realistic request lengths and concurrency before enabling semantic mode or increasing its budget. |
+| Symptom                    | Check/action                                                                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Readiness 503              | Check `current.json`, file permissions, SQLite checksum and nonzero approved icon count. Reimport or restore a valid snapshot.                                      |
+| Ready in lexical mode      | Semantic mode is disabled, or model/vector files are missing, corrupted or incompatible. Inspect the single startup warning; prepare a matching bundle and restart. |
+| 429                        | Per-client token bucket or inference/bridge concurrency is full. Honor `Retry-After`; reduce request bursts.                                                        |
+| Timeout fallback           | Two-second inference deadline elapsed. The running inference keeps its slot until it exits; new inference work is rejected instead of accumulating.                 |
+| Icons missing              | Review license/brand exclusions and rejected SVG reasons. Check canonical ID and source revision.                                                                   |
+| Import/index lock error    | Another administrative writer is active. Do not remove locks to run concurrent writers.                                                                             |
+| Wrong catalog after update | Readers pin snapshots. Restart after activating the new complete bundle.                                                                                            |
+| Memory pressure            | Keep lexical mode active. Measure realistic request lengths and concurrency before enabling semantic mode or increasing its budget.                                 |
 
 `GET /health/live` tests process liveness. `GET /health/ready` reports catalog version, icon count, model status and runtime mode. `/metrics` exposes suggestion count, total successful suggestion seconds and inference timeout count on the private service. Query text is not logged by the Python service or C++ icon-route tracing. There is no public administrative endpoint.
