@@ -8,6 +8,7 @@ from app import ingest as ingestion
 from app.catalog import Catalog
 from app.text import CONFIG
 from app.ingest import ingest, atomic_json, simple_slug
+from scripts import bootstrap
 
 spec = importlib.util.spec_from_file_location(
     "manage", Path(__file__).resolve().parents[1] / "scripts/manage.py"
@@ -204,3 +205,65 @@ def test_incremental_source_reuse(tmp_path, sources, monkeypatch):
     assert report["total"] == 4
     with Catalog(root).db() as db:
         assert db.execute("SELECT count(*) FROM search").fetchone()[0] == 4
+
+
+def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch):
+    upstream, _ = sources
+    monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    result = bootstrap.bootstrap(tmp_path / "artifacts", upstream, skip_index=True)
+    assert result["approvedIcons"] == 4 and result["indexSkipped"]
+    assert result["indexedIcons"] is None
+    assert not (tmp_path / "artifacts/vectors").exists()
+
+
+def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch):
+    import numpy as np
+    from app import embeddings
+
+    calls = []
+
+    class Model:
+        version = "bootstrap-fixture"
+
+        def __init__(self, *args):
+            pass
+
+        def encode(self, texts):
+            calls.extend(texts)
+            return np.full((len(texts), 384), 1 / np.sqrt(384), dtype=np.float32)
+
+    upstream, _ = sources
+    monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(embeddings, "E5", Model)
+    root = tmp_path / "artifacts"
+    first = bootstrap.bootstrap(root, upstream)
+    assert first["indexedIcons"] == first["approvedIcons"] == 4
+    assert len(calls) == 4
+    second = bootstrap.bootstrap(root, upstream)
+    assert second == first and len(calls) == 4
+    assert (root / "data/current.json").stat().st_mode & 0o004
+    assert (root / "vectors/shard-000000.npy").stat().st_mode & 0o004
+
+
+def test_bootstrap_preserves_failure_and_rejects_concurrent_setup(
+    tmp_path, monkeypatch
+):
+    import fcntl
+
+    def fail(*args):
+        raise ValueError("fixture preparation failure")
+
+    monkeypatch.setattr(bootstrap, "prepare", fail)
+    with pytest.raises(ValueError, match="preparation failure"):
+        bootstrap.bootstrap(tmp_path, tmp_path / "upstream")
+    assert not (tmp_path / "data/current.json").exists()
+    with (tmp_path / ".setup.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(BlockingIOError):
+            bootstrap.bootstrap(tmp_path, tmp_path / "upstream")
+
+
+def test_bootstrap_rejects_invalid_batch(tmp_path):
+    with pytest.raises(ValueError, match="batch"):
+        bootstrap.bootstrap(tmp_path / "unused", tmp_path, batch=0)
+    assert not (tmp_path / "unused").exists()
