@@ -41,12 +41,26 @@ jobs:
             sleep 1
           done
           docker exec hatef-icons-test python -c "import json,urllib.request; r=urllib.request.Request('http://127.0.0.1:8080/v1/icons/suggest',data=json.dumps({'text':'زیرساخت ابری'}).encode(),headers={'Content-Type':'application/json'}); d=json.load(urllib.request.urlopen(r)); assert d['engine']=='lexical'; assert d['suggestions'][0]['id']=='lucide:cloud'; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
+      - name: Start the Compose runtime against prepared artifacts
+        env:
+          ICON_ARTIFACT_DIR: /tmp/icon-smoke
+        run: |
+          docker compose --profile icons up -d --build semantic-icon-engine
+          for attempt in $(seq 1 30); do
+            if docker compose exec -T semantic-icon-engine python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"; then break; fi
+            sleep 1
+          done
+          docker compose exec -T semantic-icon-engine python -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health/ready')); assert d['mode']=='lexical' and d['icons']==2; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
       - name: Container diagnostics
         if: always()
-        run: docker logs hatef-icons-test || true
+        run: |
+          docker logs hatef-icons-test || true
+          docker compose logs semantic-icon-engine || true
       - name: Clean up
         if: always()
-        run: docker rm -f hatef-icons-test || true
+        run: |
+          docker rm -f hatef-icons-test || true
+          docker compose --profile icons rm -sf semantic-icon-engine || true
   full-model-offline:
     runs-on: ubuntu-latest
     timeout-minutes: 25

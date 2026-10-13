@@ -130,7 +130,7 @@ services:
     pids_limit: 64
     cpus: ${ICON_SETUP_CPUS:-1.0}
     mem_limit: ${ICON_SETUP_MEMORY:-2048m}
-    tmpfs: [/tmp:size=128m,mode=1777]
+    tmpfs: ["/tmp:size=128m,mode=1777"]
     volumes:
       - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts
       - ${ICON_UPSTREAM_DIR:-./services/semantic-icon-engine/data/upstream}:/upstream
@@ -153,7 +153,7 @@ services:
     pids_limit: 64
     cpus: ${ICON_CPUS:-1.0}
     mem_limit: ${ICON_MEMORY:-1536m}
-    tmpfs: [/tmp:size=32m,mode=1777]
+    tmpfs: ["/tmp:size=32m,mode=1777"]
     volumes:
       - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts:ro
     environment:
