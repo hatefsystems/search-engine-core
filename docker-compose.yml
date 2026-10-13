@@ -118,9 +118,33 @@ services:
       - 1.1.1.1
       - 8.8.4.4
 
+  icon-setup:
+    profiles: [icon-setup]
+    build:
+      context: ./services/semantic-icon-engine
+      target: admin
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${ICON_SETUP_CPUS:-1.0}
+    mem_limit: ${ICON_SETUP_MEMORY:-2048m}
+    tmpfs: [/tmp:size=128m,mode=1777]
+    volumes:
+      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts
+      - ${ICON_UPSTREAM_DIR:-./services/semantic-icon-engine/data/upstream}:/upstream
+    environment:
+      ICON_THREADS: "1"
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+
   semantic-icon-engine:
     profiles: [icons]
-    build: ./services/semantic-icon-engine
+    build:
+      context: ./services/semantic-icon-engine
+      target: runtime
     restart: unless-stopped
     read_only: true
     user: "10001:10001"

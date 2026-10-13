@@ -1,8 +1,45 @@
 # Deployment and operations
 
-Run commands from the repository root. Use Python 3.12 and a separate administrative environment. The main application remains independent of the optional icon engine.
+Run commands from the repository root. Docker Compose setup is recommended; host Python is an alternative. The main application remains independent of the optional icon engine.
 
-## Prepare online
+## Prepare with Docker Compose (recommended)
+
+Keep the repository's normal `.env` configuration and run from the repository root:
+
+```sh
+docker compose --profile icon-setup run --rm --build icon-setup
+docker compose --profile icons up -d --build semantic-icon-engine
+docker compose up -d --build search-engine
+```
+
+Wait for the first command to exit successfully before starting the runtime. It runs a temporary administrative container using the pinned Python 3.12 image, hashed Python packages and Git. No host Python installation, virtual environment or compiler is needed. The `admin` Dockerfile target contains Git; the default `runtime` target remains non-root and starts only the API.
+
+Setup performs `prepare`, `ingest` and complete `index` in order. It verifies pinned revisions and model checksums, saves `import-report.json` and reports approved/indexed counts. The artifact mount is writable only in the setup container; the runtime mount remains read-only. Source clones and downloaded files are retained on the host:
+
+| Setting | Default |
+| --- | --- |
+| `ICON_ARTIFACT_DIR` | `./services/semantic-icon-engine/data/offline` |
+| `ICON_UPSTREAM_DIR` | `./services/semantic-icon-engine/data/upstream` |
+| `ICON_SETUP_CPUS` | `1.0` |
+| `ICON_SETUP_MEMORY` | `2048m` |
+
+Setup runs as root inside its temporary container so Docker-created bind directories are writable. New files use a 022 umask, making artifacts readable by runtime UID 10001. If switching to a host UID, create both mount directories first and use `run --user "$(id -u):$(id -g)"`; the UID must own any retained source clones and writable artifacts.
+
+The initial run needs network access and disk space for source clones, the roughly 470 MB model and catalog/vectors. Explicit reruns recheck upstream pins, reuse downloaded model files and resume already committed vector shards. Concurrent setup commands against the same artifact directory are rejected. Interrupted jobs can be rerun. When updating catalog/model pins, use a new artifact directory as described below; incompatible old vectors are never silently overwritten.
+
+To skip vector construction while keeping lexical search available:
+
+```sh
+docker compose --profile icon-setup run --rm --build icon-setup --skip-index
+# Build/resume vectors later, optionally reducing the administrative batch size:
+docker compose --profile icon-setup run --rm icon-setup --batch 4
+```
+
+`--skip-index` still prepares the pinned model. Semantic mode remains off by default. After successful indexing, put `ICON_SEMANTIC_ENABLED=true` in `.env` and recreate `semantic-icon-engine` with the `icons` profile to enable it. Normal `docker compose up` does not enable either optional profile, and runtime startup never prepares artifacts.
+
+The setup container forwards `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` from the shell or `.env`. Use a proxy address reachable from the container; `127.0.0.1` inside a container refers to that container. Docker image/package build downloads use Docker's own proxy configuration. Proxy credentials must remain outside Git.
+
+## Prepare online with host Python (alternative)
 
 ```sh
 python3.12 -m venv .venv-icons

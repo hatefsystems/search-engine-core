@@ -27,6 +27,7 @@ jobs:
           touch .env
           docker compose config -q
           docker compose --profile icons config -q
+          docker compose --profile icon-setup config -q
       - name: Build with synthetic catalog
         run: |
           python services/semantic-icon-engine/tests/make_smoke_catalog.py /tmp/icon-smoke/data
@@ -53,18 +54,20 @@ jobs:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       TOKENIZERS_PARALLELISM: 'false'
+      ICON_ARTIFACT_DIR: /tmp/icon-full
+      ICON_UPSTREAM_DIR: /tmp/icon-upstream
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Prepare pinned full catalog, model and vectors as an administrative job
+      - name: Prepare pinned full catalog, model and vectors through Compose
         run: |
-          pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
-          python services/semantic-icon-engine/scripts/manage.py prepare --upstream /tmp/icon-upstream --models /tmp/icon-full/models
-          python services/semantic-icon-engine/scripts/manage.py ingest --upstream /tmp/icon-upstream --data /tmp/icon-full/data > /tmp/full-import.json
-          python services/semantic-icon-engine/scripts/manage.py index --data /tmp/icon-full/data --models /tmp/icon-full/models --vectors /tmp/icon-full/vectors --batch 8
-          chmod -R a+rX /tmp/icon-full
+          touch .env
+          docker compose --profile icon-setup run --rm --build --no-deps icon-setup
+          sha256sum /tmp/icon-full/vectors/shard-*.npy > /tmp/icon-vectors.sha256
+          docker compose --profile icon-setup run --rm --no-deps icon-setup
+          sha256sum --check /tmp/icon-vectors.sha256
       - name: Build and start the full-model runtime with enforced ceilings
         run: |
           docker build -t hatef-icons:full-test services/semantic-icon-engine
@@ -72,7 +75,7 @@ jobs:
       - name: Measure offline API, long input and recovery, then restart and repeat
         run: |
           mkdir -p build/icons
-          cp /tmp/full-import.json build/icons/import.json
+          cp /tmp/icon-full/import-report.json build/icons/import.json
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-first.json
           docker restart hatef-icons-full
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
