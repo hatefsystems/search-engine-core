@@ -135,7 +135,8 @@ jobs:
         run: |
           docker compose --profile icons up -d --no-build --pull never semantic-icon-engine
           id=$(docker compose ps -q semantic-icon-engine)
-          docker cp services/semantic-icon-engine/tests/. "$id:/tmp/checks"
+          python3 -c "import json,pathlib; root=pathlib.Path('services/semantic-icon-engine/tests'); print(json.dumps({name:(root/name).read_text() for name in ['container_probe.py','evaluation.json']}))" > /tmp/icon-probe.json
+          docker exec -i "$id" python -c "import json,sys,pathlib; root=pathlib.Path('/tmp/checks'); root.mkdir(); [(root/name).write_text(body) for name,body in json.load(sys.stdin).items()]" < /tmp/icon-probe.json
           docker exec "$id" python /tmp/checks/container_probe.py > build/icons/compose.json
           docker compose --profile icons stop semantic-icon-engine
       - name: Save validated preparation artifacts on trusted master only
