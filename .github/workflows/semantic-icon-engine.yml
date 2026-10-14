@@ -104,6 +104,7 @@ jobs:
           touch .env
           docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build --no-deps -v /tmp/icon-release:/release --entrypoint python icon-setup scripts/package.py
       - name: Build the complete release image once
+        id: release-image
         uses: docker/build-push-action@v7
         with:
           context: ./services/semantic-icon-engine
@@ -117,6 +118,10 @@ jobs:
           provenance: false
           cache-from: type=gha,scope=semantic-icons-release
           cache-to: type=gha,scope=semantic-icons-release,mode=max,ignore-error=true
+      - name: Verify the loaded platform manifest against the build output
+        env:
+          EXPECTED_ICON_DIGEST: ${{ steps.release-image.outputs.digest }}
+        run: python3 scripts/publish_icon_image.py --verify-only --expected-digest "$EXPECTED_ICON_DIGEST"
       - name: Test the bundled image without network or host artifacts
         run: |
           docker run -d --name hatef-icons-full --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -e ICON_SEMANTIC_ENABLED=true hatef-icons:release-test
@@ -154,7 +159,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish the tested image without rebuilding
         if: env.PUBLISH_IMAGES == 'true'
-        run: python3 scripts/publish_icon_image.py
+        env:
+          EXPECTED_ICON_DIGEST: ${{ steps.release-image.outputs.digest }}
+        run: python3 scripts/publish_icon_image.py --expected-digest "$EXPECTED_ICON_DIGEST"
       - name: Capture runtime diagnostics
         if: always()
         run: |
