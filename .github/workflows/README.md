@@ -282,3 +282,7 @@ If you want to always rebuild (not recommended):
 
 Your workflow now intelligently detects when rebuilds are needed based on actual source file changes, saving CI/CD time and ensuring fresh images when code changes. Just commit your changes and let the smart caching system handle the rest! 🚀
 
+
+## Complete semantic icon image
+
+The Docker orchestrator calls `semantic-icon-engine.yml` to validate, prepare and package the complete icon image. It runs on PRs without publication and on trusted master with GHCR publication after all service gates pass. Preparation artifacts are cached by exact semantic inputs; the release image is built once and reused for offline and production Compose tests, then pushed without another build. Production Compose consumes the published image with no host icon/model mounts. See [the runbook](../../docs/semantic-icon-engine/README.md).

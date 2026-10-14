@@ -905,8 +905,10 @@ REDIS_URI=tcp://localhost:6379
 1. **Start services** (includes Browserless + Kafka + Zookeeper):
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
+
+The default Compose stack uses published images. To deploy the complete icon service as well, follow the [icon deployment guide](docs/semantic-icon-engine/README.md).
 
 ### Production Deployment
 

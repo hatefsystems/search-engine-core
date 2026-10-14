@@ -1,0 +1,65 @@
+# Explicit development builds. Production uses docker-compose.yml alone.
+services:
+  search-engine:
+    image: hatef/core:dev
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_BASE_IMAGE:
+        RUNTIME_BASE_IMAGE:
+        BUILD_JOBS: ${BUILD_JOBS:-2}
+  semantic-icon-engine:
+    image: hatef/semantic-icons:dev
+    pull_policy: build
+    build:
+      context: ./services/semantic-icon-engine
+      target: runtime
+    volumes:
+      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts:ro
+    environment:
+      ICON_DATA_DIR: /artifacts/data
+      ICON_MODEL_DIR: /artifacts/models
+      ICON_VECTOR_DIR: /artifacts/vectors
+  js-minifier:
+    image: hatef/js-minifier:dev
+    pull_policy: build
+    build: ./js-minifier-service
+  redis-sync:
+    image: hatef/redis-sync:dev
+    pull_policy: build
+    build: ./redis-sync-service
+  crawler-scheduler:
+    image: hatef/crawler-scheduler:dev
+    pull_policy: build
+    build: ./crawler-scheduler
+    volumes:
+      - ./crawler-scheduler/app:/app/app
+  crawler-flower:
+    image: hatef/crawler-scheduler:dev
+    pull_policy: build
+    build: ./crawler-scheduler
+
+  icon-setup:
+    profiles: [icon-setup]
+    build:
+      context: ./services/semantic-icon-engine
+      target: admin
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${ICON_SETUP_CPUS:-1.0}
+    mem_limit: ${ICON_SETUP_MEMORY:-2048m}
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    volumes:
+      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts
+      - ${ICON_UPSTREAM_DIR:-./services/semantic-icon-engine/data/upstream}:/upstream
+    environment:
+      ICON_THREADS: "1"
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+

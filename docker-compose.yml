@@ -34,16 +34,8 @@ services:
   #     - search-network
   search-engine:
     platform: linux/amd64
-    # Recheck the application build on up; unchanged layers stay cached.
-    pull_policy: build
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        # Optional overrides. Unset values use the published defaults in Dockerfile.
-        BUILD_BASE_IMAGE:
-        RUNTIME_BASE_IMAGE:
-        BUILD_JOBS: ${BUILD_JOBS:-2}
+    image: ${SEARCH_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core:latest}
+    pull_policy: missing
     container_name: core
     volumes:
       - profile_media:/app/profile-media
@@ -118,33 +110,11 @@ services:
       - 1.1.1.1
       - 8.8.4.4
 
-  icon-setup:
-    profiles: [icon-setup]
-    build:
-      context: ./services/semantic-icon-engine
-      target: admin
-    restart: "no"
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    pids_limit: 64
-    cpus: ${ICON_SETUP_CPUS:-1.0}
-    mem_limit: ${ICON_SETUP_MEMORY:-2048m}
-    tmpfs: ["/tmp:size=128m,mode=1777"]
-    volumes:
-      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts
-      - ${ICON_UPSTREAM_DIR:-./services/semantic-icon-engine/data/upstream}:/upstream
-    environment:
-      ICON_THREADS: "1"
-      HTTP_PROXY: ${HTTP_PROXY:-}
-      HTTPS_PROXY: ${HTTPS_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-}
-
   semantic-icon-engine:
     profiles: [icons]
-    build:
-      context: ./services/semantic-icon-engine
-      target: runtime
+    image: ${ICON_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core/semantic-icon-engine:latest}
+    pull_policy: missing
+    platform: linux/amd64
     restart: unless-stopped
     read_only: true
     user: "10001:10001"
@@ -154,12 +124,10 @@ services:
     cpus: ${ICON_CPUS:-1.0}
     mem_limit: ${ICON_MEMORY:-1536m}
     tmpfs: ["/tmp:size=32m,mode=1777"]
-    volumes:
-      - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts:ro
     environment:
-      ICON_DATA_DIR: /artifacts/data
-      ICON_MODEL_DIR: /artifacts/models
-      ICON_VECTOR_DIR: /artifacts/vectors
+      ICON_DATA_DIR: /opt/icon-artifacts/data
+      ICON_MODEL_DIR: /opt/icon-artifacts/models
+      ICON_VECTOR_DIR: /opt/icon-artifacts/vectors
       ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-false}
       ICON_THREADS: "1"
       ICON_TIMEOUT_SECONDS: "2"
@@ -174,9 +142,7 @@ services:
       options: {max-size: 10m, max-file: "3"}
 
   js-minifier:
-    build:
-      context: ./js-minifier-service
-      dockerfile: Dockerfile
+    image: ${JS_MINIFIER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/js-minifier:latest}
     container_name: js-minifier
     restart: unless-stopped
     pull_policy: if_not_present
@@ -296,13 +262,12 @@ services:
 
   # Crawler Scheduler - Progressive Warm-up Task Scheduler
   crawler-scheduler:
-    build: ./crawler-scheduler
+    image: ${CRAWLER_SCHEDULER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest}
     container_name: crawler-scheduler-worker
     restart: unless-stopped
     command: celery -A app.celery_app worker --beat --loglevel=info
     volumes:
       - ./crawler-scheduler/data:/app/data
-      - ./crawler-scheduler/app:/app/app  # Hot reload for development
     environment:
       # Celery Configuration
       - CELERY_BROKER_URL=redis://redis:6379/2
@@ -345,7 +310,7 @@ services:
   
   # Flower Web UI - Scheduler Monitoring Dashboard
   crawler-flower:
-    build: ./crawler-scheduler
+    image: ${CRAWLER_SCHEDULER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest}
     container_name: crawler-scheduler-flower
     restart: unless-stopped
     command: celery -A app.celery_app flower --port=5555
@@ -366,7 +331,7 @@ services:
 
   # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
   redis-sync:
-    build: ./redis-sync-service
+    image: ${REDIS_SYNC_IMAGE:-ghcr.io/hatefsystems/search-engine-core/redis-sync:latest}
     container_name: redis-sync
     restart: unless-stopped
     environment:

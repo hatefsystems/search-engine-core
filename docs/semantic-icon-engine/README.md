@@ -1,15 +1,61 @@
 # Deployment and operations
 
-Run commands from the repository root. Docker Compose setup is recommended; host Python is an alternative. The main application remains independent of the optional icon engine.
+Run commands from the repository root. Deploy the complete CI-published image; no host Python, icon preparation or local image build is needed. The main application remains independent of the optional icon engine.
 
-## Prepare with Docker Compose (recommended)
+## Deploy complete published images (recommended)
+
+After a trusted `master` CI run publishes the images, keep the normal `.env` configuration and run:
+
+```sh
+docker compose --profile icons pull
+docker compose --profile icons up -d --no-build
+```
+
+Every active service in the default Compose file has an image reference and no build definition. The icon image includes the approved SQLite/SVG catalog, pinned model/tokenizer/model card, complete vector index, original notices and `release.json` with per-file SHA-256 checksums. Artifacts live at `/opt/icon-artifacts` inside the image; no host artifact mount is required. Source clones, import/index checkpoints and build tooling are excluded from the release package.
+
+The existing dedicated production stack also supports `--profile icons`:
+
+```sh
+docker compose -f docker/docker-compose.prod.yml --profile icons pull
+docker compose -f docker/docker-compose.prod.yml --profile icons up -d --no-build
+```
+
+Default references use `latest` for convenience. For reproducible deployments, set the **full digest references** from the CI publication summary in `.env`:
+
+```dotenv
+# Replace the placeholders with the real published digests.
+SEARCH_ENGINE_IMAGE=ghcr.io/hatefsystems/search-engine-core@sha256:CORE_DIGEST
+ICON_ENGINE_IMAGE=ghcr.io/hatefsystems/search-engine-core/semantic-icon-engine@sha256:ICON_DIGEST
+# Optional semantic inference; lexical remains the default.
+ICON_SEMANTIC_ENABLED=true
+```
+
+`JS_MINIFIER_IMAGE`, `REDIS_SYNC_IMAGE` and `CRAWLER_SCHEDULER_IMAGE` can also select full image/digest references in the default stack. Preserve the previous references for rollback; restore them and run `pull`/`up --no-build`. Profile data and uploaded media remain in the existing persistent volumes. Do not mount a host folder over `/opt/icon-artifacts`, which would hide the bundled files.
+
+The first icon image is published only after this implementation is merged and its `master` CI completes. PR runs build and test but never publish or save the trusted preparation cache. Allow `GITHUB_TOKEN` to write packages. New GHCR packages can be private: either configure package visibility for anonymous pulls or authenticate the deployment host with `docker login ghcr.io` and an appropriately scoped read-packages credential.
+
+## CI preparation, testing and publication
+
+The main Docker build orchestrator calls `semantic-icon-engine.yml` on the existing CI/CD triggers. It:
+
+1. Runs security/API/vector/package tests and validates production/development Compose configurations.
+2. Restores preparation artifacts only for an exact hash of source pins, license policy/notices, normalization, parser/index code and dependency/base-image inputs. Changed inputs generate a new catalog/index. Only successful trusted master runs save this cache; code-only API changes can reuse prepared artifacts.
+3. On a cache miss, uses the one-shot admin container to prepare/import/index and verifies an unchanged second index run. No host Python dependencies are installed for this preparation job.
+4. Validates full catalog/vector coverage and stages only runtime files. The cache is revalidated before packaging; it is not an authority for licensing or integrity.
+5. Builds the `release` target once using a named artifact context. Model, catalog and vector files use separate image layers; source clones and secrets are not supplied to that context.
+6. Tests that same image without network or artifact mounts, non-root/read-only, at 1 CPU and 1536 MiB with no swap. Verifies all bundled checksums, 50 queries, long-input recovery and restart. Then starts the same image through production Compose without any build or artifact volume.
+7. On trusted master only, tags/pushes the tested local image to GHCR without rebuilding and checks the registry config digest against the tested image ID. Tags include commit, run ID and attempt. `latest` advances only if the publishing commit is still master HEAD. The immutable reference is recorded in `published-image.json` and the workflow summary.
+
+Preparation artifacts and BuildKit layers use separate caches. The runtime needs no external model/icon network access. Deleting the CI preparation cache is safe; the next run regenerates it from pinned inputs. Cache storage can be evicted by GitHub, which also causes a normal regeneration.
+
+## Prepare with Docker Compose for local development
 
 Keep the repository's normal `.env` configuration and run from the repository root:
 
 ```sh
-docker compose --profile icon-setup run --rm --build icon-setup
-docker compose --profile icons up -d --build semantic-icon-engine
-docker compose up -d --build search-engine
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build icon-setup
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icons up -d --build semantic-icon-engine
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build search-engine
 ```
 
 Wait for the first command to exit successfully before starting the runtime. It runs a temporary administrative container using the pinned Python 3.12 image, hashed Python packages and Git. No host Python installation, virtual environment or compiler is needed. The `admin` Dockerfile target contains Git; the default `runtime` target remains non-root and starts only the API.
@@ -30,9 +76,9 @@ The initial run needs network access and disk space for source clones, the rough
 To skip vector construction while keeping lexical search available:
 
 ```sh
-docker compose --profile icon-setup run --rm --build icon-setup --skip-index
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build icon-setup --skip-index
 # Build/resume vectors later, optionally reducing the administrative batch size:
-docker compose --profile icon-setup run --rm icon-setup --batch 4
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm icon-setup --batch 4
 ```
 
 `--skip-index` still prepares the pinned model. Semantic mode remains off by default. After successful indexing, put `ICON_SEMANTIC_ENABLED=true` in `.env` and recreate `semantic-icon-engine` with the `icons` profile to enable it. Normal `docker compose up` does not enable either optional profile, and runtime startup never prepares artifacts.
@@ -76,53 +122,42 @@ Each 512-row shard is written before its atomic manifest entry. An interrupted r
 
 After a catalog update, use a **new vector directory**. `--reuse-vectors /path/to/previous/vectors` reuses rows with the same model version, icon ID and searchable-text hash. Other rows are encoded anew. Model/normalization/dictionary changes reject incompatible reuse. Never edit snapshot files in place.
 
-## Start through the existing Compose project
+## Start a local development build
 
 ```sh
 # Keep the repository's normal .env configuration.
 chmod -R a+rX "$ICON_ARTIFACT_DIR"
 docker compose --profile icons config -q
-docker compose --profile icons up -d --build semantic-icon-engine
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icons up -d --build semantic-icon-engine
 # Rebuild the main application to install the C++ bridge and editor changes.
-docker compose up -d --build search-engine
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build search-engine
 # Optional, after a complete or deliberately partial index is ready:
-ICON_SEMANTIC_ENABLED=true docker compose --profile icons up -d semantic-icon-engine
+ICON_SEMANTIC_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icons up -d semantic-icon-engine
 ```
 
 The service binds only container port 8080 on `search-network`, without a published host port. Defaults: 1 CPU, 1536 MiB, one worker, one inference slot, 64 PIDs, non-root UID/GID 10001, read-only root filesystem, dropped capabilities and a 32 MiB temporary filesystem. `ICON_CPUS`, `ICON_MEMORY`, `ICON_ARTIFACT_DIR`, and `ICON_SEMANTIC_ENABLED` are Compose overrides. These ceilings are not proof of production capacity. Validate them with the intended catalog and request lengths.
 
 With `icons` disabled, the main application still starts. The bridge returns 503 for icon requests. Profile creation, editing and autosave remain available. Existing selections persist, although catalog images cannot load until the service returns. Custom images continue through the existing profile media service. To stop the optional service explicitly: `docker compose --profile icons stop semantic-icon-engine`.
 
-## Package for a disconnected host
+## Transfer a published image to a disconnected host
+
+On a connected machine, pull the chosen digest and export it:
 
 ```sh
-.venv-icons/bin/python services/semantic-icon-engine/scripts/manage.py export \
-  "$ICON_ARTIFACT_DIR" /tmp/hatef-icons-offline.tgz
-docker compose --profile icons build semantic-icon-engine
-docker image save "$(docker compose --profile icons images -q semantic-icon-engine)" \
-  -o /tmp/hatef-icons-image.tar
-(cd /tmp && sha256sum hatef-icons-offline.tgz hatef-icons-image.tar > hatef-icons-SHA256SUMS)
+docker pull "$ICON_ENGINE_IMAGE"
+docker tag "$ICON_ENGINE_IMAGE" hatef-icons:offline
+docker save hatef-icons:offline -o /tmp/hatef-icons-image.tar
+sha256sum /tmp/hatef-icons-image.tar > /tmp/hatef-icons-image.tar.sha256
 ```
 
-Transfer the two archives, checksums and this pinned repository revision through your artifact distribution process. The artifact archive contains catalog, source notices, model, tokenizer, model card and vectors. The image archive supplies all runtime dependencies; no package installation is required on the disconnected host. Keep the checksums through a trusted channel; an archive's internal checksums detect corruption, not malicious replacement of the entire archive.
-
-On the destination, verify the outer checksums, then restore into a **new** directory:
+Transfer the image archive and its trusted checksum. On the destination, verify the checksum and load the image, set `ICON_ENGINE_IMAGE=hatef-icons:offline` in `.env`, and run:
 
 ```sh
-cd /path/to/transfers
-sha256sum -c hatef-icons-SHA256SUMS
 docker load -i /path/to/hatef-icons-image.tar
-# Run manage.py in an existing administrative environment, or in the loaded image:
-docker run --rm --network none --user "$(id -u):$(id -g)" \
-  -v /path/to/transfers:/transfer:ro -v /srv/hatef:/destination \
-  --entrypoint python LOADED_IMAGE \
-  scripts/manage.py restore /transfer/hatef-icons-offline.tgz /destination/icons
-export ICON_ARTIFACT_DIR=/srv/hatef/icons
-# Use the matching loaded image name/tag; do not request a disconnected build.
 docker compose --profile icons up -d --no-build --pull never semantic-icon-engine
 ```
 
-Preserve the Compose project/image name across hosts or tag the loaded image to the name shown by `docker compose --profile icons config --images`. Bundle restore rejects absolute/traversal paths, links, duplicate archive entries, checksum mismatches and excessive expanded bytes (20 GiB default, configurable). It stages extraction before activation. It refuses an existing destination.
+The image contains model, catalog and vectors, so no separate icon bundle restore is needed. The existing `manage.py export/restore` commands remain available for explicit administrative data transfers and development mounts.
 
 ## Updates, backup and recovery
 
@@ -135,7 +170,7 @@ Preserve the Compose project/image name across hosts or tag the loaded image to 
 
 A model upgrade requires updating its revision **and** reviewed checksums, preparing it, building a separate index and evaluating it. Quantization creates a separate derived manifest with parent checksums and a separate embedding version. Do not mix vector shards between versions.
 
-Rollback means restoring the previous bundle into a new directory, pointing `ICON_ARTIFACT_DIR` at it and restarting only the icon service. Profile IDs remain stored; an ID absent from the rollback catalog may be temporarily unavailable. Never delete profile selections during rollback.
+For a published deployment, rollback means restoring the previous `ICON_ENGINE_IMAGE` digest and recreating the icon service. For a development mount, restore the previous bundle into a new directory, point `ICON_ARTIFACT_DIR` at it and recreate the local service. Profile IDs remain stored; an ID absent from the rollback catalog may be temporarily unavailable. Never delete profile selections during rollback.
 
 ## Troubleshooting
 
