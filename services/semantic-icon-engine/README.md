@@ -6,12 +6,11 @@ Start with the [deployment and operations guide](../../docs/semantic-icon-engine
 
 Runtime startup never downloads sources, models or vectors. Preparation, ingestion, indexing and quantization are explicit administrative commands. The optional Compose `icons` profile defaults to lexical matching; set `ICON_SEMANTIC_ENABLED=true` only after preparing compatible vectors and validating the resource budget on the deployment host.
 
-For first-time setup, run from the repository root with the normal `.env` configured:
+For deployment, use the CI-published complete image from the repository root:
 
 ```sh
-docker compose --profile icon-setup run --rm --build icon-setup
-docker compose --profile icons up -d --build semantic-icon-engine
-docker compose up -d --build search-engine
+docker compose --profile icons pull
+docker compose --profile icons up -d --no-build
 ```
 
-The temporary setup container includes Python 3.12, hashed dependencies and Git. It downloads pinned sources/model, imports approved icons and builds all vectors into the persistent artifact directory. No host Python or virtual environment is required. Setup exits on failure; start the runtime only after it succeeds. See the runbook for lexical-only setup, proxy settings and offline distribution.
+The image contains the validated catalog, pinned model and complete vectors. First publication occurs after a trusted master CI run; pin `ICON_ENGINE_IMAGE` to its published digest for repeatable deployment and rollback. No setup container, host Python or artifact mount is needed in production. Explicit local development builds and the setup job use `docker-compose.dev.yml`; see the runbook.

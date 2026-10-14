@@ -25,6 +25,9 @@ permissions:
   actions: write
 
 jobs:
+  build-semantic-icons:
+    uses: ./.github/workflows/semantic-icon-engine.yml
+
   build-js-minifier:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/build-js-minifier.yml

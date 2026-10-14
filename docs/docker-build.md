@@ -58,10 +58,19 @@ References: [GHCR access and visibility](https://docs.github.com/en/packages/lea
 
 ## Local builds
 
-For normal development, run:
+The default Compose file deploys published images. With the normal `.env` configured:
 
 ```bash
-docker compose up
+docker compose --profile icons pull
+docker compose --profile icons up -d --no-build
+```
+
+Use `SEARCH_ENGINE_IMAGE` and `ICON_ENGINE_IMAGE` to pin full digest references. The bundled icon image is published by the reusable icon workflow called from the main orchestrator; it includes model, catalog and vectors and is tested before publication. See [the icon runbook](semantic-icon-engine/README.md).
+
+For explicit local development builds, run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
 The search-engine service builds the application using the published `build-deps`
@@ -74,7 +83,7 @@ existing `.env` is still used for its runtime configuration.
 `pull_policy: build` rechecks the application build on every `up`, including when
 an application image already exists. Docker reuses unchanged layers; changing only
 web assets does not recompile C++. The core targets `linux/amd64`, matching the
-published bases. Other Compose services retain their existing build behavior.
+published bases. Other development services build through the explicit development override; the default Compose file has no build directives.
 
 `bash scripts/build-docker.sh` builds just the core as `searchenginecore:latest`
 with the same Dockerfile defaults. Set `BUILD_JOBS` to adjust compilation parallelism
@@ -97,7 +106,7 @@ python3 scripts/docker_images.py prepare --env-file build/docker-bases.env
 set -a
 source build/docker-bases.env
 set +a
-docker compose up
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
 Only this explicit maintenance path requires Python 3 and an active Buildx builder

@@ -1,6 +1,7 @@
 """Run inside the network-isolated full-model container; emit measured HTTP results."""
 
 import json
+import hashlib
 from pathlib import Path
 import statistics
 import time
@@ -31,8 +32,16 @@ for attempt in range(90):
 else:
     raise AssertionError("full-model container did not become ready")
 assert ready["mode"] == "hybrid" and ready["icons"] > 0
+release_root = Path("/opt/icon-artifacts")
+release = json.loads((release_root / "release.json").read_text())
+assert release["approvedIcons"] == release["indexedIcons"] == ready["icons"]
+for name, expected in release["files"].items():
+    with (release_root / name).open("rb") as stream:
+        assert hashlib.file_digest(stream, "sha256").hexdigest() == expected, name
+assert (release_root / "models/README.md").is_file()
+assert not (release_root / "upstream").exists()
 results = []
-for case in json.loads(Path("/checks/evaluation.json").read_text()):
+for case in json.loads(Path(__file__).with_name("evaluation.json").read_text()):
     begin = time.monotonic()
     response = request("/v1/icons/suggest", {"text": case["text"], "limit": 5})
     elapsed = (time.monotonic() - begin) * 1000
@@ -72,6 +81,7 @@ peak = next(
     if line.startswith("VmHWM:")
 )
 report = {
+    "release": {k: v for k, v in release.items() if k != "files"},
     "ready": ready,
     "requests": len(results),
     "meanHttpMs": statistics.mean(r["latencyMs"] for r in results),

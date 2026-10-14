@@ -1,10 +1,10 @@
 name: Semantic icon engine
 on:
-  pull_request:
-    paths: ['services/semantic-icon-engine/**', 'src/controllers/IconEngineController*', 'docker-compose.yml', '.github/workflows/semantic-icon-engine.yml']
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
+  packages: write
 jobs:
   unit-and-offline-container:
     runs-on: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
           touch .env
           docker compose config -q
           docker compose --profile icons config -q
-          docker compose --profile icon-setup config -q
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup config -q
       - name: Build with synthetic catalog
         run: |
           python services/semantic-icon-engine/tests/make_smoke_catalog.py /tmp/icon-smoke/data
@@ -45,12 +45,12 @@ jobs:
         env:
           ICON_ARTIFACT_DIR: /tmp/icon-smoke
         run: |
-          docker compose --profile icons up -d --build semantic-icon-engine
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icons up -d --build semantic-icon-engine
           for attempt in $(seq 1 30); do
-            if docker compose exec -T semantic-icon-engine python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"; then break; fi
+            if docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T semantic-icon-engine python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"; then break; fi
             sleep 1
           done
-          docker compose exec -T semantic-icon-engine python -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health/ready')); assert d['mode']=='lexical' and d['icons']==2; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T semantic-icon-engine python -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health/ready')); assert d['mode']=='lexical' and d['icons']==2; assert urllib.request.urlopen('http://127.0.0.1:8080/assets/icons/lucide/cloud.svg').status==200"
       - name: Container diagnostics
         if: always()
         run: |
@@ -62,50 +62,113 @@ jobs:
           docker rm -f hatef-icons-test || true
           docker compose --profile icons rm -sf semantic-icon-engine || true
   full-model-offline:
+    needs: unit-and-offline-container
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    concurrency:
+      group: icon-images-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.number || 'publish' }}
+      cancel-in-progress: false
     env:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       TOKENIZERS_PARALLELISM: 'false'
       ICON_ARTIFACT_DIR: /tmp/icon-full
       ICON_UPSTREAM_DIR: /tmp/icon-upstream
+      PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: docker/setup-docker-action@v5
         with:
-          python-version: '3.12'
+          daemon-config: '{"features":{"containerd-snapshotter":true}}'
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Restore complete artifacts for exactly these preparation inputs
+        id: artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/icon-full
+          key: icons-artifacts-v1-${{ runner.os }}-${{ hashFiles('services/semantic-icon-engine/config/**', 'services/semantic-icon-engine/licenses/**', 'services/semantic-icon-engine/app/text.py', 'services/semantic-icon-engine/app/svg.py', 'services/semantic-icon-engine/app/ingest.py', 'services/semantic-icon-engine/app/catalog.py', 'services/semantic-icon-engine/app/embeddings.py', 'services/semantic-icon-engine/scripts/manage.py', 'services/semantic-icon-engine/scripts/bootstrap.py', 'services/semantic-icon-engine/requirements.txt', 'services/semantic-icon-engine/Dockerfile') }}
       - name: Prepare pinned full catalog, model and vectors through Compose
+        if: steps.artifacts.outputs.cache-hit != 'true'
         run: |
           touch .env
-          docker compose --profile icon-setup run --rm --build --no-deps icon-setup
+          sudo mkdir -p /tmp/icon-full /tmp/icon-upstream
+          sudo chown -R 0:0 /tmp/icon-full /tmp/icon-upstream
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build --no-deps icon-setup
           sha256sum /tmp/icon-full/vectors/shard-*.npy > /tmp/icon-vectors.sha256
-          docker compose --profile icon-setup run --rm --no-deps icon-setup
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps icon-setup
           sha256sum --check /tmp/icon-vectors.sha256
-      - name: Build and start the full-model runtime with enforced ceilings
+      - name: Validate and stage only complete runtime artifacts
         run: |
-          docker build -t hatef-icons:full-test services/semantic-icon-engine
-          docker run -d --name hatef-icons-full --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v /tmp/icon-full:/artifacts:ro -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -e ICON_DATA_DIR=/artifacts/data -e ICON_MODEL_DIR=/artifacts/models -e ICON_VECTOR_DIR=/artifacts/vectors -e ICON_SEMANTIC_ENABLED=true hatef-icons:full-test
-      - name: Measure offline API, long input and recovery, then restart and repeat
+          touch .env
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build --no-deps -v /tmp/icon-release:/release --entrypoint python icon-setup scripts/package.py
+      - name: Build the complete release image once
+        uses: docker/build-push-action@v7
+        with:
+          context: ./services/semantic-icon-engine
+          target: release
+          build-contexts: icon-artifacts=/tmp/icon-release/package
+          build-args: VCS_REF=${{ github.sha }}
+          platforms: linux/amd64
+          tags: hatef-icons:release-test
+          load: true
+          push: false
+          provenance: false
+          cache-from: type=gha,scope=semantic-icons-release
+          cache-to: type=gha,scope=semantic-icons-release,mode=max,ignore-error=true
+      - name: Test the bundled image without network or host artifacts
         run: |
+          docker run -d --name hatef-icons-full --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -e ICON_SEMANTIC_ENABLED=true hatef-icons:release-test
           mkdir -p build/icons
           cp /tmp/icon-full/import-report.json build/icons/import.json
+          cp /tmp/icon-release/package/release.json build/icons/release.json
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-first.json
           docker restart hatef-icons-full
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
           test "$(docker inspect -f '{{.State.OOMKilled}}' hatef-icons-full)" = false
+          docker stop hatef-icons-full
+      - name: Deploy the same bundled image through production Compose
+        env:
+          ICON_ENGINE_IMAGE: hatef-icons:release-test
+          ICON_SEMANTIC_ENABLED: 'true'
+        run: |
+          docker compose --profile icons up -d --no-build --pull never semantic-icon-engine
+          id=$(docker compose ps -q semantic-icon-engine)
+          docker cp services/semantic-icon-engine/tests/. "$id:/tmp/checks"
+          docker exec "$id" python /tmp/checks/container_probe.py > build/icons/compose.json
+          docker compose --profile icons stop semantic-icon-engine
+      - name: Save validated preparation artifacts on trusted master only
+        if: env.PUBLISH_IMAGES == 'true' && steps.artifacts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/icon-full
+          key: ${{ steps.artifacts.outputs.cache-primary-key }}
+      - name: Log in to GHCR after all image tests pass
+        if: env.PUBLISH_IMAGES == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the tested image without rebuilding
+        if: env.PUBLISH_IMAGES == 'true'
+        run: python3 scripts/publish_icon_image.py
       - name: Capture runtime diagnostics
         if: always()
         run: |
           mkdir -p build/icons
           docker inspect hatef-icons-full > build/icons/container.json || true
           docker logs hatef-icons-full > build/icons/container.log 2>&1 || true
+          docker compose logs semantic-icon-engine > build/icons/compose.log 2>&1 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: semantic-icons-full-model-offline
           path: build/icons
           retention-days: 14
-      - name: Remove test container
+      - name: Remove test containers
         if: always()
-        run: docker rm -f hatef-icons-full || true
+        run: |
+          docker rm -f hatef-icons-full || true
+          docker compose --profile icons rm -sf semantic-icon-engine || true
