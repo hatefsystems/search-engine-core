@@ -246,3 +246,17 @@ TEST(ProfileTemplate, PublicPresentationIsInertEscapedJson) {
     EXPECT_NE(html.find("id=\"public-profile-data\""),std::string::npos);
     EXPECT_NE(html.find("&lt;/template&gt;"),std::string::npos);
 }
+
+TEST(ProfileTemplate, InitialPublicDocumentUsesCurrentLayoutBeforeScriptsRun) {
+    auto data = fixture();
+    data["profile"]["professionalSummary"] = "معرفی فعلی پروفایل";
+    data["publicPresentation"] = json{{"name","نام اصلی"},{"sections",json::object()}}.dump();
+    const auto html = render(data);
+    EXPECT_NE(html.find("<body class=\"public-profile-page\">"), std::string::npos);
+    EXPECT_NE(html.find("id=\"public-profile-root\" data-profile-render=\"server\""), std::string::npos);
+    EXPECT_NE(html.find("class=\"pp-hero\""), std::string::npos);
+    EXPECT_NE(html.find("معرفی فعلی پروفایل"), std::string::npos);
+    for (const auto* retired : {"class=\"profile-page\"", "class=\"profile-header\"", "class=\"profile-section\"", "/assets/css/profile-header.css", "/assets/css/profile-content.css", "/assets/js/profile-header.js"})
+        EXPECT_EQ(html.find(retired), std::string::npos) << retired;
+    exportFixture("initial.html", html);
+}

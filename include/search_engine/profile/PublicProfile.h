@@ -110,6 +110,8 @@ inline void addPersonHeaderData(nlohmann::json& data) {
             !person[key].get_ref<const std::string&>().empty();
     };
     data["headerName"] = hasText("displayName") ? person["displayName"] : person["name"];
+    data["headerTitle"] = hasText("title") ? person["title"].get<std::string>() : person.value("tagline", "");
+    data["headerBio"] = hasText("professionalSummary") ? person["professionalSummary"].get<std::string>() : person.value("bio", "");
     data["headerSkills"] = nlohmann::json::array();
     const bool leveled = person.contains("skillsWithLevel") && !person["skillsWithLevel"].empty();
     if (leveled) {
