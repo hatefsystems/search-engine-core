@@ -1,4 +1,5 @@
 /* Shared public page and draft preview: full-bleed cover and sticky top navigation. */
+.profile-loading .pp-skeleton{background:#e8e3f0;border-radius:12px}.profile-loading .pp-intro>*{grid-column:2}.pp-skeleton-title{height:28px;width:min(320px,85%);margin-top:20px}.pp-skeleton-line{height:16px;width:min(520px,95%);margin-top:20px}.pp-skeleton-section{min-height:160px}
 .public-profile-page{margin:0;background:#f8f8fc;color:#202237;font:15px/1.9 'Vazirmatn FD',Tahoma,sans-serif;color-scheme:light}
 .public-profile{--pp-purple:#5909ce;--pp-ink:#202237;--pp-muted:#555b70;--pp-line:#e5e5ef;position:relative;isolation:isolate;min-height:100vh;padding:18px clamp(12px,2.7vw,48px);background:#f8f8fc;overflow-wrap:anywhere}
 .public-profile *{box-sizing:border-box;min-width:0}.public-profile :is(h1,h2,h3,h4,p){margin:0}.public-profile [hidden]{display:none!important}

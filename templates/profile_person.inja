@@ -26,43 +26,24 @@
     <meta name="robots" content="index, follow">
     
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
-    <link rel="stylesheet" href="/assets/css/profile-public.css">
-    <script type="module" src="/assets/js/profile-public.js"></script>
+    <link rel="stylesheet" href="/assets/css/profile-public.css?v=20261017-first-paint">
+    <script src="/assets/js/profile-public-bootstrap.js?v=20261017-first-paint"></script>
+    <script type="module" src="/assets/js/profile-public.js?v=20261017-first-paint" data-public-profile-module></script>
 </head>
 <body class="public-profile-page">
     {% if exists("publicPresentation") %}<template id="public-profile-data">{{ publicPresentation }}</template>{% endif %}
-    <div id="public-profile-root" data-profile-render="server">
-        <div class="public-profile" id="profile-home">
-            <div class="pp-backdrop" aria-hidden="true">{% if existsIn(profile, "coverImageUrl") and profile.coverImageUrl != "" %}<img src="{{ profile.coverImageUrl }}" alt="" decoding="async">{% endif %}</div>
-            <a class="pp-skip" href="#profile-content">رفتن به محتوای پروفایل</a>
-            <nav class="pp-nav" aria-label="ناوبری پروفایل"><a class="pp-brand" href="/">هاتف</a><a href="#profile-content">پروفایل {{ headerName }}</a></nav>
-            <main class="pp-main" id="profile-content" tabindex="-1">
-                <section class="pp-hero" aria-label="معرفی">
-                    <div class="pp-avatar">
-                        <span class="pp-monogram"><svg class="avatar-placeholder" viewBox="0 0 100 100" width="100" height="100" aria-hidden="true"><circle cx="50" cy="36" r="17" fill="currentColor"/><path d="M18 89c0-24 14-34 32-34s32 10 32 34" fill="currentColor"/></svg></span>
-                        {% if existsIn(profile, "avatarUrl") and profile.avatarUrl != "" %}<img src="{{ profile.avatarUrl }}" alt="تصویر پروفایل {{ headerName }}" decoding="async">{% endif %}
-                    </div>
-                    <div class="pp-intro">
-                        {% if availabilityLabel != "" %}<span class="pp-availability">{{ availabilityLabel }}</span>{% endif %}
-                        <h1 dir="auto">{{ headerName }}</h1>
-                        {% if existsIn(profile, "englishName") and profile.englishName != "" %}<p class="pp-english"><bdi lang="en" dir="ltr">{{ profile.englishName }}</bdi></p>{% endif %}
-                        {% if headerTitle != "" %}<p class="pp-title" dir="auto">{{ headerTitle }}</p>{% endif %}
-                        {% if existsIn(profile, "tagline") and profile.tagline != "" and profile.tagline != headerTitle and profile.tagline != headerBio %}<p class="pp-bio" dir="auto">{{ profile.tagline }}</p>{% endif %}
-                        {% if existsIn(profile, "location") and profile.location != "" %}<p class="pp-location" dir="auto">{{ profile.location }}</p>{% endif %}
-                    </div>
-                </section>
-                <div class="pp-sections">
-                    {% if headerBio != "" %}<section class="pp-section pp-about" id="section-about"><h2>درباره من</h2><p dir="auto">{{ headerBio }}</p></section>{% endif %}
-                    {% if exists("advancedSections") %}{% include "components/profile_sections.inja" %}
-                    {% else %}
-                        {% if length(headerSkills) > 0 %}<section class="pp-section pp-section-skills" id="section-skills"><h2>مهارت‌های کلیدی</h2><div class="pp-card-list">{% for skill in headerSkills %}<article class="pp-card"><h3><bdi>{{ skill.name }}</bdi></h3>{% if skill.levelLabel != "" %}<p>{{ skill.levelLabel }}</p>{% endif %}</article>{% endfor %}</div></section>{% endif %}
-                        {% if existsIn(profile, "education") and profile.education != "" %}<section class="pp-section" id="section-education"><h2>تحصیلات</h2><p dir="auto">{{ profile.education }}</p>{% if existsIn(profile, "school") and profile.school != "" %}<p dir="auto">{{ profile.school }}</p>{% endif %}</section>{% endif %}
-                    {% endif %}
-                    {% if length(links) > 0 %}<section class="pp-section" id="section-links"><h2>پیوندها</h2><div class="pp-contact-links">{% for link in links %}<div class="pp-contact-link"><a href="/l/{{ link.id }}" target="_blank" rel="noopener noreferrer" dir="auto">{{ link.title }}</a></div>{% endfor %}</div></section>{% endif %}
+    <div id="public-profile-root" data-profile-render="loading">
+        <div class="public-profile profile-loading" aria-busy="true" aria-label="بارگذاری پروفایل">
+            <div class="pp-nav"><a class="pp-brand" href="/">هاتف</a></div>
+            <main class="pp-main">
+                <div class="pp-hero">
+                    <div class="pp-avatar pp-skeleton" aria-hidden="true"></div>
+                    <div class="pp-intro"><p role="status">در حال بارگذاری پروفایل…</p><div class="pp-skeleton pp-skeleton-title" aria-hidden="true"></div><div class="pp-skeleton pp-skeleton-line" aria-hidden="true"></div></div>
                 </div>
-                <footer class="pp-footer"><strong>هاتف</strong><small>ساخته‌شده با <a href="/" lang="en" dir="ltr">Hatef.ir</a></small></footer>
+                <div class="pp-section pp-skeleton-section" aria-hidden="true"><div class="pp-skeleton pp-skeleton-title"></div><div class="pp-skeleton pp-skeleton-line"></div></div>
             </main>
         </div>
     </div>
+    <noscript id="public-profile-fallback"><style>.profile-loading{display:none}</style>{% include "components/profile_public_readonly.inja" %}</noscript>
 </body>
 </html>

@@ -253,7 +253,10 @@ TEST(ProfileTemplate, InitialPublicDocumentUsesCurrentLayoutBeforeScriptsRun) {
     data["publicPresentation"] = json{{"name","نام اصلی"},{"sections",json::object()}}.dump();
     const auto html = render(data);
     EXPECT_NE(html.find("<body class=\"public-profile-page\">"), std::string::npos);
-    EXPECT_NE(html.find("id=\"public-profile-root\" data-profile-render=\"server\""), std::string::npos);
+    EXPECT_NE(html.find("id=\"public-profile-root\" data-profile-render=\"loading\""), std::string::npos);
+    EXPECT_NE(html.find("<noscript id=\"public-profile-fallback\">"), std::string::npos);
+    const auto fallbackStart = html.find("<noscript id=\"public-profile-fallback\">");
+    EXPECT_EQ(html.substr(0, fallbackStart).find("<h1"), std::string::npos);
     EXPECT_NE(html.find("class=\"pp-hero\""), std::string::npos);
     EXPECT_NE(html.find("معرفی فعلی پروفایل"), std::string::npos);
     for (const auto* retired : {"class=\"profile-page\"", "class=\"profile-header\"", "class=\"profile-section\"", "/assets/css/profile-header.css", "/assets/css/profile-content.css", "/assets/js/profile-header.js"})
