@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.manage import prepare
 from app.ingest import ingest, atomic_json
 from app.catalog import Catalog
+from app.knowledge import build_bank, KnowledgeBank, ConceptDocuments, prepare_proposals
 
 
 def bootstrap(artifacts, upstream, skip_index=False, batch=8):
@@ -35,8 +36,17 @@ def bootstrap(artifacts, upstream, skip_index=False, batch=8):
             "indexedIcons": None,
             "indexSkipped": skip_index,
         }
+        knowledge_report = build_bank(
+            root / "knowledge", Path(upstream) / "esco/dataset.zip", catalog
+        )
+        result["knowledgeConcepts"] = (
+            knowledge_report["escoSkills"]
+            + knowledge_report["escoOccupations"]
+            + knowledge_report["editorialPersianConcepts"]
+            + knowledge_report["escoGroups"]
+        )
         if not skip_index:
-            from app.embeddings import E5, build
+            from app.embeddings import E5, Vectors, build
 
             print("Building or resuming vectors", flush=True)
             model = E5(root / "models", int(os.getenv("ICON_THREADS", "1")))
@@ -44,6 +54,16 @@ def bootstrap(artifacts, upstream, skip_index=False, batch=8):
             if spec["count"] != catalog.count:
                 raise ValueError("index is incomplete")
             result["indexedIcons"] = spec["count"]
+            bank = KnowledgeBank(root / "knowledge")
+            docs = ConceptDocuments(bank)
+            build(root / "knowledge-vectors", docs, model, batch)
+            result["knowledgeMappings"] = prepare_proposals(
+                bank,
+                catalog,
+                model,
+                Vectors(root / "vectors", catalog, model),
+                Vectors(root / "knowledge-vectors", docs, model),
+            )
         print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
         return result
 

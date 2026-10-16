@@ -13,6 +13,7 @@ from app.catalog import Catalog
 from app.embeddings import E5, Vectors
 from app.ingest import atomic_json, digest
 from app.text import CONFIG
+from app.knowledge import KnowledgeBank, ConceptDocuments
 
 
 def package(artifacts, output):
@@ -54,6 +55,43 @@ def package(artifacts, output):
                 files.append("vectors/" + shard[key])
     if seen != expected:
         raise ValueError("release vector IDs do not match the catalog")
+    bank = KnowledgeBank(root / "knowledge")
+    documents = ConceptDocuments(bank)
+    concept_vectors = Vectors(root / "knowledge-vectors", documents, model)
+    if concept_vectors.count != documents.count:
+        raise ValueError("release requires complete concept vectors")
+    with bank.db() as db:
+        expected_concepts = {r[0] for r in db.execute("SELECT id FROM concepts")}
+    concept_ids = set()
+    files += [
+        "knowledge/knowledge.json",
+        "knowledge/" + bank.path.name,
+        "knowledge-vectors/vectors.json",
+    ]
+    for shard in concept_vectors.shards:
+        ids = json.loads((root / "knowledge-vectors" / shard["ids"]).read_text())
+        matrix = np.load(
+            root / "knowledge-vectors" / shard["vectors"],
+            mmap_mode="r",
+            allow_pickle=False,
+        )
+        if (
+            matrix.shape != (len(ids), 384)
+            or matrix.dtype != np.float32
+            or not np.isfinite(matrix).all()
+            or not np.allclose(np.linalg.norm(matrix, axis=1), 1, atol=1e-5)
+            or len(set(ids)) != len(ids)
+            or concept_ids.intersection(ids)
+        ):
+            raise ValueError("invalid concept vector shard")
+        concept_ids.update(ids)
+        for key in ("vectors", "ids", "texts"):
+            if shard.get(key):
+                if Path(shard[key]).name != shard[key]:
+                    raise ValueError("unsafe concept shard path")
+                files.append("knowledge-vectors/" + shard[key])
+    if concept_ids != expected_concepts:
+        raise ValueError("concept vector IDs do not match bank")
     checks = {}
     # Reject symlinks even when their target has an otherwise valid checksum.
     for name in files:
@@ -74,6 +112,10 @@ def package(artifacts, output):
             "embeddingVersion": model.version,
             "approvedIcons": catalog.count,
             "indexedIcons": vectors.count,
+            "knowledgeVersion": bank.manifest["version"],
+            "concepts": documents.count,
+            "indexedConcepts": concept_vectors.count,
+            "knowledgeLockSha256": digest(CONFIG / "knowledge.lock.json"),
             "sourceLockSha256": digest(CONFIG / "sources.lock.json"),
             "files": checks,
         }

@@ -59,6 +59,7 @@ def sources(tmp_path, monkeypatch):
         },
     )
     policy = json.loads((CONFIG / "policy.json").read_text())
+    policy["reviewedBrandSources"] = []
     policy_path = tmp_path / "policy.json"
     atomic_json(policy_path, policy)
     return upstream, policy_path
@@ -207,16 +208,17 @@ def test_incremental_source_reuse(tmp_path, sources, monkeypatch):
         assert db.execute("SELECT count(*) FROM search").fetchone()[0] == 4
 
 
-def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch):
+def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch, knowledge_fixture):
     upstream, _ = sources
     monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
     result = bootstrap.bootstrap(tmp_path / "artifacts", upstream, skip_index=True)
-    assert result["approvedIcons"] == 4 and result["indexSkipped"]
+    assert result["approvedIcons"] == 5 and result["indexSkipped"]
     assert result["indexedIcons"] is None
     assert not (tmp_path / "artifacts/vectors").exists()
 
 
-def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch):
+def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch, knowledge_fixture):
     import numpy as np
     from app import embeddings
 
@@ -234,13 +236,15 @@ def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch):
 
     upstream, _ = sources
     monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
     monkeypatch.setattr(embeddings, "E5", Model)
     root = tmp_path / "artifacts"
     first = bootstrap.bootstrap(root, upstream)
-    assert first["indexedIcons"] == first["approvedIcons"] == 4
-    assert len(calls) == 4
+    assert first["indexedIcons"] == first["approvedIcons"] == 5
+    assert first["knowledgeConcepts"] == 5
+    assert len(calls) == 10
     second = bootstrap.bootstrap(root, upstream)
-    assert second == first and len(calls) == 4
+    assert second == first and len(calls) == 10
     assert (root / "data/current.json").stat().st_mode & 0o004
     assert (root / "vectors/shard-000000.npy").stat().st_mode & 0o004
 
@@ -267,3 +271,50 @@ def test_bootstrap_rejects_invalid_batch(tmp_path):
     with pytest.raises(ValueError, match="batch"):
         bootstrap.bootstrap(tmp_path / "unused", tmp_path, batch=0)
     assert not (tmp_path / "unused").exists()
+
+
+def test_reviewed_simple_icons_and_devicon_preserve_brand_colors(tmp_path, sources):
+    upstream, path = sources
+    policy = json.loads(path.read_text())
+    policy["reviewedBrandSources"] = ["simple-icons", "iconify:devicon"]
+    atomic_json(path, policy)
+    atomic_json(
+        upstream / "simple-icons/_data/simple-icons.json",
+        [{"title": "Terraform", "hex": "844FBA"}],
+    )
+    (upstream / "simple-icons/icons/terraform.svg").write_text(
+        '<svg viewBox="0 0 24 24"><path d="M0 0h2"/></svg>'
+    )
+    atomic_json(
+        upstream / "iconify/json/devicon.json",
+        {
+            "prefix": "devicon",
+            "info": {"license": {"spdx": "MIT"}},
+            "width": 128,
+            "height": 128,
+            "icons": {
+                "amazonwebservices": {"body": '<path fill="#f90" d="M0 0h2"/>'},
+                "terraform": {"body": '<path fill="#5c4ee5" d="M0 0h3"/>'},
+            },
+        },
+    )
+    report = ingest(tmp_path / "data", upstream, path)
+    catalog = Catalog(tmp_path / "data")
+    assert catalog.get("simple-icons:terraform")["brand"]
+    assert catalog.get("iconify:devicon:terraform")["brand"]
+    assert catalog.search("AWS")[0]["id"] == "iconify:devicon:amazonwebservices"
+    assert report["acceptedBySource"]["simple-icons"] == 1
+    with catalog.db() as db:
+        svg = db.execute(
+            "SELECT svg FROM assets WHERE hash=?",
+            (catalog.get("simple-icons:terraform")["hash"],),
+        ).fetchone()[0]
+        assert 'fill="#844FBA"' in svg
+        devicon = catalog.get("iconify:devicon:terraform")
+        assert (
+            "#5c4ee5"
+            in db.execute(
+                "SELECT svg FROM assets WHERE hash=?", (devicon["hash"],)
+            ).fetchone()[0]
+        )
+    assert all(c["labelFa"] != c["category"] for c in catalog.categories())

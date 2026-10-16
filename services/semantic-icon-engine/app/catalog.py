@@ -3,7 +3,7 @@ import hashlib
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
-from .text import expand
+from .text import expand, equivalents, category_label
 
 
 def connect(path, readonly=False):
@@ -81,7 +81,7 @@ class Catalog:
 
     def search(self, text="", category="", source="", style="", limit=20, offset=0):
         args, where, join, order = [], [], "", "i.id"
-        tokens = list(dict.fromkeys(expand(text).split()))[:48]
+        tokens = list(dict.fromkeys(expand(text, related=True).split()))[:48]
         if tokens:
             join = " JOIN search s ON s.id=i.id"
             where.append("search MATCH ?")
@@ -89,8 +89,20 @@ class Catalog:
             order = "bm25(search),i.id"
         for key, val in [("category", category), ("source", source), ("style", style)]:
             if val:
-                where.append("i." + key + "=?")
+                if key == "category":
+                    where.append(
+                        "EXISTS (SELECT 1 FROM json_each(i.metadata,'$.categories') WHERE value=?)"
+                    )
+                else:
+                    where.append("i." + key + "=?")
                 args.append(val)
+        order_args = []
+        if tokens:
+            direct = equivalents(text)
+            exact = [value.replace(" ", "-") for value in direct]
+            placeholders = ",".join("?" for _ in exact)
+            order = f"CASE WHEN i.name IN ({placeholders}) THEN 0 ELSE 1 END," + order
+            order_args.extend(exact)
         sql = (
             "SELECT i.* FROM icons i"
             + join
@@ -100,4 +112,18 @@ class Catalog:
             + " LIMIT ? OFFSET ?"
         )
         with self.db() as db:
-            return [metadata(r) for r in db.execute(sql, (*args, limit, offset))]
+            return [
+                metadata(r)
+                for r in db.execute(sql, (*args, *order_args, limit, offset))
+            ]
+
+    def categories(self):
+        with self.db() as db:
+            return [
+                {"category": row[0], "labelFa": category_label(row[0]), "count": row[1]}
+                for row in db.execute(
+                    "SELECT c.value,count(DISTINCT i.id) FROM icons i, "
+                    "json_each(i.metadata,'$.categories') c "
+                    "GROUP BY c.value ORDER BY c.value"
+                )
+            ]

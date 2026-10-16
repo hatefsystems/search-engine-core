@@ -6,6 +6,28 @@ permissions:
   contents: read
   packages: write
 jobs:
+  review-workbench-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Install isolated review UI test dependencies
+        run: |
+          npm install --prefix /tmp/review-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/review-ui-tests/node_modules/.bin/playwright install --with-deps chromium --only-shell
+      - name: Verify explicit review actions and blind annotation UI
+        env:
+          NODE_PATH: /tmp/review-ui-tests/node_modules
+        run: node services/semantic-icon-engine/tests/human-review-browser-check.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: persian-review-ui-checks
+          path: build/persian-review-ui/
+          retention-days: 14
   unit-and-offline-container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -13,7 +35,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: services/semantic-icon-engine/requirements.txt
       - name: Install runtime and test dependencies
@@ -64,16 +86,19 @@ jobs:
   full-model-offline:
     needs: unit-and-offline-container
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     concurrency:
       group: icon-images-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.number || 'publish' }}
-      cancel-in-progress: false
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
-      OMP_NUM_THREADS: '1'
-      OPENBLAS_NUM_THREADS: '1'
-      TOKENIZERS_PARALLELISM: 'false'
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      TOKENIZERS_PARALLELISM: "false"
       ICON_ARTIFACT_DIR: /tmp/icon-full
       ICON_UPSTREAM_DIR: /tmp/icon-upstream
+      ICON_SETUP_CPUS: "2.0"
+      ICON_SETUP_MEMORY: "4096m"
+      ICON_SETUP_THREADS: "2"
       PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v6
@@ -88,7 +113,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /tmp/icon-full
-          key: icons-artifacts-v1-${{ runner.os }}-${{ hashFiles('services/semantic-icon-engine/config/**', 'services/semantic-icon-engine/licenses/**', 'services/semantic-icon-engine/app/text.py', 'services/semantic-icon-engine/app/svg.py', 'services/semantic-icon-engine/app/ingest.py', 'services/semantic-icon-engine/app/catalog.py', 'services/semantic-icon-engine/app/embeddings.py', 'services/semantic-icon-engine/scripts/manage.py', 'services/semantic-icon-engine/scripts/bootstrap.py', 'services/semantic-icon-engine/requirements.txt', 'services/semantic-icon-engine/Dockerfile') }}
+          key: icons-artifacts-v1-${{ runner.os }}-${{ hashFiles('services/semantic-icon-engine/config/**', 'services/semantic-icon-engine/licenses/**', 'services/semantic-icon-engine/app/text.py', 'services/semantic-icon-engine/app/knowledge.py', 'services/semantic-icon-engine/app/svg.py', 'services/semantic-icon-engine/app/ingest.py', 'services/semantic-icon-engine/app/catalog.py', 'services/semantic-icon-engine/app/embeddings.py', 'services/semantic-icon-engine/scripts/manage.py', 'services/semantic-icon-engine/scripts/bootstrap.py', 'services/semantic-icon-engine/requirements.txt', 'services/semantic-icon-engine/Dockerfile') }}
       - name: Prepare pinned full catalog, model and vectors through Compose
         if: steps.artifacts.outputs.cache-hit != 'true'
         run: |
@@ -103,6 +128,26 @@ jobs:
         run: |
           touch .env
           docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build --no-deps -v /tmp/icon-release:/release --entrypoint python icon-setup scripts/package.py
+      - name: Verify every Persian draft against pinned ESCO and export human handoff
+        env:
+          REVIEW_ENGINE_REVISION: ${{ github.sha }}
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --entrypoint python icon-setup scripts/translate_esco.py download-source --archive /upstream/esco/dataset.zip
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --entrypoint python icon-setup scripts/translate_esco.py validate --archive /upstream/esco/dataset.zip
+          mkdir -p build/persian-review
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py translations --archive /upstream/esco/dataset.zip --output /review/translations
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py export-catalog --data /artifacts/data --output /review/catalog.json
+          catalog_version=$(python3 -c 'import json; print(json.load(open("/tmp/icon-full/data/current.json"))["version"])')
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py new-study --engine-revision "$REVIEW_ENGINE_REVISION" --catalog-version "$catalog_version" --output /review/acceptance/authoring.json
+          cp docs/semantic-icon-engine/persian-human-review.md build/persian-review/README.md
+          cp services/semantic-icon-engine/config/esco-fa-drafts/manifest.json build/persian-review/translation-manifest.json
+          cp services/semantic-icon-engine/licenses/translation-model.txt build/persian-review/TRANSLATION-NOTICE.txt
+      - name: Upload Persian review packets without asserting human completion
+        uses: actions/upload-artifact@v4
+        with:
+          name: persian-review-handoff
+          path: build/persian-review/
+          retention-days: 30
       - name: Build the complete release image once
         id: release-image
         uses: docker/build-push-action@v7
@@ -133,10 +178,15 @@ jobs:
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
           test "$(docker inspect -f '{{.State.OOMKilled}}' hatef-icons-full)" = false
           docker stop hatef-icons-full
+      - name: Measure the frozen Persian 500-query benchmark (report only)
+        run: |
+          mkdir -p build/icons/benchmarks
+          chmod 0777 build/icons/benchmarks
+          docker run --rm --name hatef-icons-benchmark --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -v "$PWD/build/icons/benchmarks:/results" hatef-icons:release-test python scripts/benchmark.py --data /opt/icon-artifacts/data --models /opt/icon-artifacts/models --vectors /opt/icon-artifacts/vectors --queries /checks/evaluation-fa-500.json --output /results/fa-500-hybrid-search.json
       - name: Deploy the same bundled image through production Compose
         env:
           ICON_ENGINE_IMAGE: hatef-icons:release-test
-          ICON_SEMANTIC_ENABLED: 'true'
+          ICON_SEMANTIC_ENABLED: "true"
         run: |
           docker compose --profile icons up -d --no-build --pull never semantic-icon-engine
           id=$(docker compose ps -q semantic-icon-engine)
@@ -178,5 +228,5 @@ jobs:
       - name: Remove test containers
         if: always()
         run: |
-          docker rm -f hatef-icons-full || true
+          docker rm -f hatef-icons-full hatef-icons-benchmark || true
           docker compose --profile icons rm -sf semantic-icon-engine || true

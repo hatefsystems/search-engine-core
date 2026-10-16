@@ -17,7 +17,7 @@ services:
       ICON_DATA_DIR: /opt/icon-artifacts/data
       ICON_MODEL_DIR: /opt/icon-artifacts/models
       ICON_VECTOR_DIR: /opt/icon-artifacts/vectors
-      ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-false}
+      ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-true}
       ICON_THREADS: "1"
       ICON_TIMEOUT_SECONDS: "2"
     networks: [search-network]

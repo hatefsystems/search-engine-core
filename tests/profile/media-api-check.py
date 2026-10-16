@@ -30,6 +30,9 @@ def call(path, method='GET', body=None, expected=200, owner=True):
     with response:
         raw = response.read()
         assert response.status == expected, (path, response.status, raw[:400])
+        if response.status == 204:
+            assert not raw, '204 response must have an empty body'
+            return None
         if 'application/json' in response.headers.get('Content-Type', ''):
             return json.loads(raw)
         assert response.headers.get('Content-Type') == 'image/png'
@@ -124,4 +127,4 @@ try:
     print('Passed: structured validation, unchanged public item, independent media/content, upload/replace/delete, invalid image/auth/version, and volume persistence' if os.environ.get('PROFILE_TEST_RECREATE_APP') == '1' else 'Passed: media API and structured validation regressions')
 finally:
     if profile_id and key:
-        call('/api/profiles/' + profile_id, 'DELETE')
+        call('/api/profiles/' + profile_id, 'DELETE', expected=204)

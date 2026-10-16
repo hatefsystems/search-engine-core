@@ -30,10 +30,8 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
   const details = node("details"); details.append(node("summary","جستجو در آیکن‌ها"));
   const filters = node("div"); filters.className = "icon-filters";
   const search = node("input"); search.type = "search"; search.placeholder = "نام یا کاربرد آیکن"; search.maxLength = 500; search.setAttribute("aria-label","جستجوی آیکن");
-  const [sourceLabel, source] = select("منبع", [["","همه"],["lucide","Lucide"],["iconify","Iconify"],["simple-icons","Simple Icons"]]);
-  const [styleLabel, style] = select("سبک", [["","همه"],["outline","خطی"],["filled","توپر"],["mixed","ترکیبی"],["brand","نشان تجاری"]]);
   const [categoryLabel, category] = select("دسته", [["","همه"]]);
-  filters.append(search, sourceLabel, styleLabel, categoryLabel);
+  filters.append(search, categoryLabel);
   const results = node("div"); results.className = "icon-results";
   const pages = node("div"); pages.className = "icon-pages";
   let offset = 0, nextOffset = null, lastText = null, autoTimer, searchTimer, autoGeneration = 0, searchGeneration = 0, autoController, searchController;
@@ -41,6 +39,7 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
   const next = button("بعدی",()=>{if(nextOffset!==null){offset=nextOffset;browse();}});
   pages.append(previous,next); details.append(filters,results,pages); panel.append(modeLabel,preview,status,suggestions,custom,details);
   function refresh() {
+    refreshSelection();
     mode.value = item.iconMode || "none"; const url = iconUrl(item,profileId); preview.hidden = !url;
     if (url) preview.src = url; else preview.removeAttribute("src");
     custom.replaceChildren(); custom.hidden = item.iconMode !== "custom";
@@ -50,17 +49,31 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
       custom.append(label); if (!item.media?.length) custom.append(node("p","ابتدا تصویر را از بخش تصاویر همین آیتم بارگذاری کنید."));
     }
   }
+  function refreshSelection() {
+    for (const grid of [results, suggestions]) for (const choice of grid.querySelectorAll("button[data-icon-id]")) {
+      const selected = ["auto", "manual"].includes(item.iconMode) && choice.dataset.iconId === item.iconId;
+      choice.setAttribute("aria-pressed", String(selected));
+      choice.classList.toggle("is-selected", selected);
+      const badge = choice.querySelector(".icon-selection-badge");
+      if (badge) badge.hidden = !selected;
+    }
+  }
   function choose(icon) {
     if (!canonical.test(icon.id) || icon.id.length > 200) return;
-    ++autoGeneration; autoController?.abort(); item.iconMode="manual";item.iconId=icon.id;item.iconMediaId="";refresh();onChange();
+    ++autoGeneration; autoController?.abort(); item.iconMode="manual";item.iconId=icon.id;item.iconMediaId="";refresh();status.textContent=`آیکن «${icon.labelFa || icon.labelEn || icon.name || icon.id}» انتخاب شد.`;onChange();
   }
   function fill(container, icons) {
+    const focusedId = container.contains(document.activeElement) ? document.activeElement.dataset.iconId : null;
     container.replaceChildren();
     for (const icon of icons) {
       if (!canonical.test(icon.id)) continue;
-      const b = button(icon.labelFa || icon.labelEn || icon.name || icon.id,()=>choose(icon)); b.title=icon.id;b.dataset.iconId=icon.id;
+      const label = icon.labelFa || icon.labelEn || icon.name || icon.id;
+      const b = button(label,()=>choose(icon)); b.title=label;b.dataset.iconId=icon.id;b.setAttribute("aria-label",label);
+      const badge = node("span","✓ انتخاب‌شده");badge.className="icon-selection-badge";badge.setAttribute("aria-hidden","true");badge.hidden=true;b.append(badge);
       const image=node("img");image.src=iconUrl({iconMode:"manual",iconId:icon.id},profileId);image.alt="";image.width=24;image.height=24;image.loading="lazy";b.prepend(image);container.append(b);
     }
+    refreshSelection();
+    if (focusedId) [...container.querySelectorAll("button[data-icon-id]")].find(choice=>choice.dataset.iconId===focusedId)?.focus();
   }
   for (const grid of [results,suggestions]) grid.addEventListener("keydown",event=>{
     if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
@@ -82,7 +95,7 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
   }
   async function browse() {
     const generation=++searchGeneration;searchController?.abort();const controller=searchController=new AbortController();const timeout=setTimeout(()=>controller.abort(),3000);
-    const params=new URLSearchParams({q:search.value,source:source.value,style:style.value,category:category.value,limit:24,offset});
+    const params=new URLSearchParams({q:search.value,category:category.value,limit:24,offset});
     try {
       const data=await request(`/api/icons/search?${params}`,{},controller.signal);
       if(generation!==searchGeneration || !panel.isConnected)return;
@@ -99,11 +112,11 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
     } else item.iconMediaId="";
     refresh();onChange();if(item.iconMode==="auto")suggest();
   };
-  for(const control of [search,source,style,category])control.addEventListener("input",()=>{clearTimeout(searchTimer);offset=0;searchTimer=setTimeout(browse,350);});
+  for(const control of [search,category])control.addEventListener("input",()=>{clearTimeout(searchTimer);offset=0;searchTimer=setTimeout(browse,350);});
   let categoriesLoaded=false;
   details.addEventListener("toggle",async()=>{
     if(!details.open)return;browse();
-    if(!categoriesLoaded){categoriesLoaded=true;try{const data=await request("/api/icons/categories",{},AbortSignal.timeout(3000));for(const value of data.categories || []){const option=node("option",value.category);option.value=value.category;category.append(option);}}catch{categoriesLoaded=false;}}
+    if(!categoriesLoaded){categoriesLoaded=true;try{const data=await request("/api/icons/categories",{},AbortSignal.timeout(3000));for(const value of data.categories || []){const option=node("option",value.labelFa || "سایر");option.value=value.category;category.append(option);}}catch{categoriesLoaded=false;}}
   });
   panel.notify=()=>{
     refresh();const text=JSON.stringify([item[titleField],item.description,item.summary]);

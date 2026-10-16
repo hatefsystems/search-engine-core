@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "esco": {
+    "version": "1.2.1",
+    "url": "https://ec.europa.eu/esco/download/ESCO%20dataset%20-%20v1.2.1%20-%20classification%20-%20en%20-%20csv.zip",
+    "sha256": "f9761b0b52be1828b38a3e5e0ae59a93a7b0ce358bc800f52f57a8b002adeb3e",
+    "language": "en",
+    "expectedOccupations": 3039,
+    "expectedSkills": 13939,
+    "attribution": "European Commission, ESCO v1.2.1; adapted with Hatef Persian editorial overlays.",
+    "noticeURL": "https://commission.europa.eu/legal-notice_en",
+    "expectedISCOGroups": 619,
+    "expectedSkillGroups": 640
+  }
+}

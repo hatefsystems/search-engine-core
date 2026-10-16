@@ -53,6 +53,28 @@ def prepare(upstream, models):
             ["git", "-C", str(dest), "checkout", "--detach", lock[source]["revision"]],
             check=True,
         )
+    # The official ESCO archive is a pinned preparation input, never fetched
+    # from the request path. Exact checksum makes cache reuse reproducible.
+    knowledge_lock = json.loads((CONFIG / "knowledge.lock.json").read_text())["esco"]
+    archive = upstream / "esco" / "dataset.zip"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    if not archive.exists():
+        target = archive.with_suffix(".part")
+        with urllib.request.urlopen(
+            knowledge_lock["url"], timeout=60
+        ) as response, target.open("wb") as out:
+            total = 0
+            while chunk := response.read(1024 * 1024):
+                total += len(chunk)
+                if total > 50 * 1024**2:
+                    raise ValueError("ESCO download exceeds size limit")
+                out.write(chunk)
+        if digest(target) != knowledge_lock["sha256"]:
+            target.unlink()
+            raise ValueError("ESCO archive checksum mismatch")
+        os.replace(target, archive)
+    if digest(archive) != knowledge_lock["sha256"]:
+        raise ValueError("ESCO archive checksum mismatch")
     model = lock["model"]
     dest = Path(models)
     dest.mkdir(parents=True, exist_ok=True)

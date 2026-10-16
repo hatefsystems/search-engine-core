@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "translationRecordsPrepared": 18237,
+  "humanReviewedTranslationRecords": 0,
+  "independentHumanEvaluationPerformed": false,
+  "independentHumanQueriesAuthored": 0,
+  "humanAnnotationsReceived": 0,
+  "acceptanceEvaluated": false,
+  "acceptancePassed": null,
+  "target": {
+    "cases": 500,
+    "domains": 25,
+    "casesPerDomain": 20,
+    "hitAt3": 0.9
+  },
+  "protocol": "hatef-blind-two-rater-v1",
+  "requiredExternalWork": [
+    "Human specialist review of the source-bound Persian drafts.",
+    "Unseen Persian phrases authored by real people.",
+    "Two distinct independent, blinded annotators and third-person adjudication for disagreements."
+  ],
+  "notice": "Tools and machine drafts are prepared. No human reviewers or independent human scores have been fabricated."
+}

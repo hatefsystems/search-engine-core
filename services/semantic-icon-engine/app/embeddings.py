@@ -224,8 +224,15 @@ def _build(root, catalog, model, batch, priority, max_icons, reuse_root):
         )
 
     with catalog.db() as db:
+        table = getattr(catalog, "embedding_table", "icons")
+        if table not in ("icons", "concepts"):
+            raise ValueError("invalid embedding document table")
+        # Similar lengths reduce batch padding; IDs and document text stay
+        # unchanged, so existing vectors remain compatible and reusable.
+        order = "length(search_text),id" if table == "concepts" else "id"
         for row in db.execute(
-            "SELECT * FROM icons ORDER BY (category=?) DESC,id", (priority or "",)
+            f"SELECT * FROM {table} ORDER BY (category=?) DESC,{order}",
+            (priority or "",),
         ):
             if checkpoint.execute(
                 "SELECT 1 FROM done WHERE id=?", (row["id"],)

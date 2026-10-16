@@ -11,7 +11,7 @@ import unicodedata
 from pathlib import Path
 from .catalog import connect, initialize
 from .svg import sanitize, valid_id, iconify_svg
-from .text import CONFIG, VERSION, enrich, expand
+from .text import CONFIG, VERSION, enrich, expand, document_text
 
 
 def digest(path):
@@ -69,7 +69,9 @@ def records(source, root):
         for item in items.get("icons", []) if isinstance(items, dict) else items:
             name = simple_slug(item)
             path = root / "icons" / f"{name}.svg"
-            yield name, path.read_text() if path.exists() else "", [item["title"]], item
+            aliases = item.get("aliases", {}).get("aka", [])
+            tags = [item["title"], *(a for a in aliases if isinstance(a, str))]
+            yield name, path.read_text() if path.exists() else "", tags, item
 
 
 def ingest(root, upstream, policy_path=None, stop_after=None):
@@ -127,7 +129,7 @@ def _ingest(root, upstream, policy_path, stop_after):
                     "ATTACH DATABASE ? AS previous", (str(root / old["catalog"]),)
                 )
                 for source in sources:
-                    if previous["sourceLock"][source] != lock[source]:
+                    if previous["sourceLock"].get(source) != lock[source]:
                         continue
                     if not db.execute(
                         "SELECT 1 FROM state WHERE key=?", ("copied:" + source,)
@@ -173,7 +175,10 @@ def _ingest(root, upstream, policy_path, stop_after):
         try:
             if not valid_id(icon_id):
                 raise ValueError("invalid ID")
-            individual = raw.get("license", {}).get("type", "CC0-1.0")
+            collection_license = provenance["license"]
+            if isinstance(collection_license, dict):
+                collection_license = collection_license.get("spdx", "")
+            individual = raw.get("license", {}).get("type", collection_license)
             if brand and individual not in policy["allowedLicenses"]:
                 decision(
                     icon_id, "excluded", "individual icon license disallowed", source
@@ -184,7 +189,11 @@ def _ingest(root, upstream, policy_path, stop_after):
                 brand
                 and individual != "CC0-1.0"
                 and not (
-                    review.get("license") == individual and review.get("licenseText")
+                    (review.get("license") == individual and review.get("licenseText"))
+                    or (
+                        individual == collection_license
+                        and provenance.get("licenseText")
+                    )
                 )
             ):
                 decision(
@@ -194,9 +203,22 @@ def _ingest(root, upstream, policy_path, stop_after):
                     source,
                 )
                 return
-            if brand and icon_id not in policy["publicBrands"]:
+            source_record = source + (
+                ":" + provenance["collection"] if "collection" in provenance else ""
+            )
+            if (
+                brand
+                and icon_id not in policy["publicBrands"]
+                and source_record not in policy.get("reviewedBrandSources", [])
+            ):
                 decision(icon_id, "excluded", "brand exposure requires review", source)
                 return
+            if source == "simple-icons" and re.fullmatch(
+                r"[0-9A-Fa-f]{6}", raw.get("hex", "")
+            ):
+                # Simple Icons paths inherit the published brand color. Devicon
+                # already supplies its original per-path palette.
+                svg = svg.replace("<svg ", '<svg fill="#' + raw["hex"] + '" ', 1)
             safe, hash_ = sanitize(svg)
             editorial = policy.get("metadataOverrides", {}).get(icon_id, {})
             extra = editorial.get("keywordsFa", []) + editorial.get("keywordsEn", [])
@@ -205,7 +227,7 @@ def _ingest(root, upstream, policy_path, stop_after):
             ):
                 raise ValueError("invalid editorial keywords")
             tags = list(tags) + extra
-            cats, fa = enrich(icon_id.split(":")[-1], tags)
+            cats, fa = enrich(icon_id.split(":")[-1], tags, brand=brand)
             fa = editorial.get("labelFa", fa)
             if not isinstance(fa, str) or len(fa) > 500:
                 raise ValueError("invalid editorial label")
@@ -222,7 +244,7 @@ def _ingest(root, upstream, policy_path, stop_after):
                 "labelFa": fa,
                 "keywords": tags,
                 "categories": cats,
-                "metadataVersion": 1,
+                "metadataVersion": 2,
                 "persianProvenance": (
                     "editorial override"
                     if editorial
@@ -237,16 +259,7 @@ def _ingest(root, upstream, policy_path, stop_after):
                 is not None
             )
             db.execute("INSERT OR IGNORE INTO assets VALUES(?,?)", (hash_, safe))
-            text = expand(
-                " ".join(
-                    [
-                        icon_id.split(":")[-1].replace("-", " "),
-                        metadata["labelEn"],
-                        fa,
-                        *tags,
-                    ]
-                )
-            )
+            text = document_text(icon_id.split(":")[-1], metadata["labelEn"], fa, tags)
             db.execute(
                 "INSERT INTO icons VALUES(?,?,?,?,?,?,?,?,?)",
                 (
@@ -367,6 +380,14 @@ def _ingest(root, upstream, policy_path, stop_after):
                     set(pack.get("icons", {})) | set(pack.get("aliases", {}))
                 ):
                     icon_id = f"iconify:{prefix}:{name}"
+                    if (
+                        review.get("includeIcons")
+                        and name not in review["includeIcons"]
+                    ):
+                        decision(
+                            icon_id, "excluded", "outside reviewed icon subset", source
+                        )
+                        continue
                     if reason:
                         decision(icon_id, "excluded", reason, source)
                         continue
@@ -422,6 +443,13 @@ def _ingest(root, upstream, policy_path, stop_after):
         "total": total,
         "diskBytes": target.stat().st_size,
         "completeDiscovery": True,
+        "acceptedBySource": {
+            source: sum(
+                reports[source]["counts"].get(status, 0)
+                for status in ("imported", "duplicated")
+            )
+            for source in sources
+        },
         "sourceLock": sources,
         "metadataFingerprint": fingerprint,
         "reusedSources": sorted(reused),

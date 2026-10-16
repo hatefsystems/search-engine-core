@@ -1,0 +1,1546 @@
+{
+  "schema": 1,
+  "sourceSha256": "f9761b0b52be1828b38a3e5e0ae59a93a7b0ce358bc800f52f57a8b002adeb3e",
+  "authorship": "Codex AI assistant; source-definition-based editorial corrections, not human review",
+  "humanReviewed": 0,
+  "translationStatus": "machine-draft",
+  "corrections": [
+    {
+      "id": "hatef:concept:002cf679-6e55-5fc9-8126-80940f498abe",
+      "labelEn": "tend paint mixer",
+      "sourceSha256": "722780cfe790f77ca2007d787a5470a3a60218ac70c35688f206c76f99a5729d",
+      "labelFa": "کار با دستگاه مخلوط‌کن رنگ"
+    },
+    {
+      "id": "hatef:concept:013f1be8-a734-50e3-9896-2540b4db4671",
+      "labelEn": "SPARK",
+      "sourceSha256": "f89709b2c4ef8196543b43a427a782509cccc22c4ccf265ac6cd98a07c5bc5f7",
+      "labelFa": "اسپارک (فریم‌ورک جاوا)"
+    },
+    {
+      "id": "hatef:concept:014c65b9-b1e4-5f7e-b50d-05df70ca80f6",
+      "labelEn": "mount photos",
+      "sourceSha256": "a43312a4949533a2d86e0aaecb2b8ff4f8c1d8e10203b2314b01643e79b0a0ed",
+      "labelFa": "قاب‌گیری و نصب عکس‌ها"
+    },
+    {
+      "id": "hatef:concept:02305c01-9575-5e2a-b0be-f7338a0977a1",
+      "labelEn": "iOS",
+      "sourceSha256": "3069f358fa72b419a08b8d743a273cfca14f729f1ad527ef219bea167cbb3be9",
+      "labelFa": "آی‌اواس"
+    },
+    {
+      "id": "hatef:concept:023a16a5-4d5e-5fe6-92f2-1d315b47f9be",
+      "labelEn": "kinesiologist",
+      "sourceSha256": "a2d06cd48fff2f87a6b429f2e8f1a17cfc97b5072c3aac55bffa38197ceeeabd",
+      "labelFa": "متخصص حرکت‌شناسی"
+    },
+    {
+      "id": "hatef:concept:024e594c-06e3-5661-adc8-3690666d8ab5",
+      "labelEn": "fasciatherapy",
+      "sourceSha256": "f1c03ae3ef0d5515905498f7465a3657ea46b10b0da8889b49ef8d8065c1ea4a",
+      "labelFa": "فاشیادرمانی"
+    },
+    {
+      "id": "hatef:concept:038cbdc2-147c-5d9b-8027-37dbb50d6ea2",
+      "labelEn": "Unreal Engine",
+      "sourceSha256": "7f1d48db010f36884876ae72295bfeb0fb8c15b10e393eb899e84938c9ee04f9",
+      "labelFa": "موتور بازی‌سازی آنریل انجین"
+    },
+    {
+      "id": "hatef:concept:068296f3-cd9d-523b-a3cb-8b9f83cbb0a6",
+      "labelEn": "aviation English",
+      "sourceSha256": "6ff9dfc369a9d435358c2cdaedd963e48691c39fdb297c721d103ebc7aad3458",
+      "labelFa": "زبان انگلیسی هوانوردی"
+    },
+    {
+      "id": "hatef:concept:0b7f4c1a-1d5a-50a4-9cac-8bba0bcdc4fb",
+      "labelEn": "iridology",
+      "sourceSha256": "f7c07f1d4ce3d309f79c54e8ab9227dcfb34e8957714bc0923478f9a8e8241bb",
+      "labelFa": "عنبیه‌شناسی"
+    },
+    {
+      "id": "hatef:concept:0be6df4c-1bf1-56e8-8f3d-5fd4dc86a7b9",
+      "labelEn": "embryology",
+      "sourceSha256": "c450abe6eb4ed1bec74c86ca2237194265d30b5a1b687f3615d3d99570865c9b",
+      "labelFa": "جنین‌شناسی"
+    },
+    {
+      "id": "hatef:concept:0c36545f-fb2d-53fe-bf3d-93cb8410e4be",
+      "labelEn": "urogynaecology",
+      "sourceSha256": "e94f902da8736d9e9355ca6e6cb2f0916682c31b080631af91b0f6bb3f781de4",
+      "labelFa": "اورولوژی زنان و اختلالات کف لگن"
+    },
+    {
+      "id": "hatef:concept:0d1e5fda-5205-54c6-abf7-ded626330f4a",
+      "labelEn": "write Javanese",
+      "sourceSha256": "75a4e103a26c79bc3b73b5bafa364d139d117663874130b43f2fae61dc1f03da",
+      "labelFa": "نوشتن به زبان جاوه‌ای"
+    },
+    {
+      "id": "hatef:concept:0e1097ef-9ad1-5e0b-a994-ced151796bc6",
+      "labelEn": "GDPR",
+      "sourceSha256": "e4f5f9ee43b95339f3bceb327878578805b14d3bfe3c8d08361b2870d6e9df94",
+      "labelFa": "مقررات عمومی حفاظت از داده‌ها (GDPR)"
+    },
+    {
+      "id": "hatef:concept:0e62bfa8-5c91-5c37-9268-dabacb87cae2",
+      "labelEn": "cryptocurrency",
+      "sourceSha256": "abf0f74c5a706d5dec6a48fec72aa90496423a5335cbd405d7adf82542019d7d",
+      "labelFa": "رمزارز"
+    },
+    {
+      "id": "hatef:concept:0f21ba04-2f87-5635-83f9-909e34a20864",
+      "labelEn": "thermohydraulics",
+      "sourceSha256": "0ac44abae3869add0bb05931cc5edbc857292495e953ab0e4bbb88e42ca1afdf",
+      "labelFa": "ترموهیدرولیک"
+    },
+    {
+      "id": "hatef:concept:0f90c56b-6e8e-55ed-a5f9-3fd018897e3e",
+      "labelEn": "monk/nun",
+      "sourceSha256": "1ca4fa98291b618486adf204709ca07dbf17e05e3adc85db9dd0677ecc7b3cef",
+      "labelFa": "راهب یا راهبه"
+    },
+    {
+      "id": "hatef:concept:103ec954-6740-5bd9-8575-5028826646a8",
+      "labelEn": "tend auger-press",
+      "sourceSha256": "60a0f14cabae94adf1d1204c842aee90f473ee91d84a053e65a1b79316033995",
+      "labelFa": "کار با پرس مارپیچی"
+    },
+    {
+      "id": "hatef:concept:1090247b-8e80-51e1-9b39-f6642e5336a9",
+      "labelEn": "Gamemaker Studio",
+      "sourceSha256": "ce969397cd7f00812a9482550add6089b370c7d774d7a52961e4f3e7f9b0b5ea",
+      "labelFa": "گیم‌میکر استودیو"
+    },
+    {
+      "id": "hatef:concept:11f5a684-e62f-5023-892f-99b65602c978",
+      "labelEn": "Synfig",
+      "sourceSha256": "95e4c3f1de5b82b4d6fe28e06fbe33099d9e6361b84d3980571ec9dbebc4ea9a",
+      "labelFa": "نرم‌افزار انیمیشن‌سازی سینفیگ"
+    },
+    {
+      "id": "hatef:concept:11fd5db5-ae7c-529b-8016-2badd445be5e",
+      "labelEn": "boilermaker",
+      "sourceSha256": "eb5ef91f6db1deeb7539801d8b77d769710f91d844ddb3c7aaaa73fd25a25b7b",
+      "labelFa": "سازنده و تعمیرکار دیگ بخار"
+    },
+    {
+      "id": "hatef:concept:12495d83-8995-51d4-bca6-1c1cb73460c9",
+      "labelEn": "Oracle WebLogic",
+      "sourceSha256": "9536f7618e05daced8ff9bb300ea563afd35c083e3993bc487739ca10ab7427d",
+      "labelFa": "اوراکل وب‌لاجیک"
+    },
+    {
+      "id": "hatef:concept:1253ddf9-4880-5409-aa16-da83cd5339c7",
+      "labelEn": "imagesetter",
+      "sourceSha256": "56ce03a1450f2224193c4e23903a5c9ed4d654b99321edcca1ace032f5d56381",
+      "labelFa": "اپراتور ایمیج‌ستر"
+    },
+    {
+      "id": "hatef:concept:12cf6b73-93dc-5d07-be26-83ecafd53187",
+      "labelEn": "tend lehr",
+      "sourceSha256": "d4a4c9346ccbd2b58cf519b61e41b4a5f0d5c26d52afc79c0c8e81a65e6bfefa",
+      "labelFa": "کار با کورهٔ تنش‌زدایی شیشه"
+    },
+    {
+      "id": "hatef:concept:15a4f351-8308-5308-aca0-f84d82182601",
+      "labelEn": "Informatica PowerCenter",
+      "sourceSha256": "22c82edd856f398713a0bcb7496a08e78715d9d3b31616edd3f96c6c424a1195",
+      "labelFa": "اینفورماتیکا پاورسنتر"
+    },
+    {
+      "id": "hatef:concept:15c98ce6-720b-57a3-b028-baa5d9245f65",
+      "labelEn": "desktop publishing",
+      "sourceSha256": "6968770280dc35215177d48e34159e807e57ad14ac98c1832949a9b24781a604",
+      "labelFa": "نشر رومیزی"
+    },
+    {
+      "id": "hatef:concept:16aa3f44-0ef6-5308-80e7-7d5c12efc98c",
+      "labelEn": "paleography",
+      "sourceSha256": "34d05d1a1d42ef602799790596d76fccd882b6a6d0cff94c2120a10f1ffa21fa",
+      "labelFa": "خط‌شناسی نسخه‌های کهن"
+    },
+    {
+      "id": "hatef:concept:18acac39-84e6-5b41-b6a5-ce711d045e79",
+      "labelEn": "BlackArch",
+      "sourceSha256": "c8f371c83c076fc59807f38bc9920fcacd117a05be536bf9ae41db3ea41ab2c4",
+      "labelFa": "توزیع بلک‌آرچ لینوکس"
+    },
+    {
+      "id": "hatef:concept:18c096b1-10b2-5387-8c68-b8cbe102114e",
+      "labelEn": "Internet of Things",
+      "sourceSha256": "0dcf7badc3ddef9aeb3274a3e37d6ce40ff5d66de70c4a984dcf298ddec748ca",
+      "labelFa": "اینترنت اشیا"
+    },
+    {
+      "id": "hatef:concept:1a1092e8-9507-52dd-a73f-e402c4507b98",
+      "labelEn": "ASP.NET",
+      "sourceSha256": "8c3f3fc511a9f9214be608fce0ca7a263a6c7d643e973222875a25862a04bb36",
+      "labelFa": "ای‌اس‌پی دات‌نت"
+    },
+    {
+      "id": "hatef:concept:1aaa566b-f27a-5292-8dc8-7983e203f6a9",
+      "labelEn": "Microsoft Visual C++",
+      "sourceSha256": "19e872a9fb03b129fb1b093a2d9780f9316c3228f72f7aa8ad126fafaecaa20b",
+      "labelFa": "مایکروسافت ویژوال سی‌پلاس‌پلاس"
+    },
+    {
+      "id": "hatef:concept:1bf9994a-2873-58ec-a5d1-577b098f5c15",
+      "labelEn": "CryEngine",
+      "sourceSha256": "55a10dc827c5118b37e8a43de55b45aa98e42db310bf7da7dd8d6dd9089b264b",
+      "labelFa": "موتور بازی‌سازی کرای‌انجین"
+    },
+    {
+      "id": "hatef:concept:1dd00b25-343f-54c5-b373-5a4fdd05eea2",
+      "labelEn": "proofreader",
+      "sourceSha256": "c178756f1692f23ae509db188d84112fe14b03955b4559833acd770e66f8291f",
+      "labelFa": "نمونه‌خوان"
+    },
+    {
+      "id": "hatef:concept:1e3c3041-14e9-5e5c-84ca-a90013d40221",
+      "labelEn": "merchandiser",
+      "sourceSha256": "90f62f6ca88bd67e8983cc1e333f834ccec4d829a16b2a656c4c28f8842a0afc",
+      "labelFa": "مسئول چیدمان کالا"
+    },
+    {
+      "id": "hatef:concept:1fd6019c-9e11-515b-9e4b-aa76c0cf2aef",
+      "labelEn": "Apache Tomcat",
+      "sourceSha256": "88554ea5c22d24c1eb92ec158f8ee0c82a123f0dc9b258e3efd9855e4df86b37",
+      "labelFa": "آپاچی تامکت"
+    },
+    {
+      "id": "hatef:concept:2030b21f-2eb8-596c-a1ed-ed1064875687",
+      "labelEn": "lay marquetry",
+      "sourceSha256": "9d35dd5add1e1f7d8982c85a38122ae7fc4eeba664585793e3b179cef4b5c1d4",
+      "labelFa": "اجرای معرق‌کاری چوب"
+    },
+    {
+      "id": "hatef:concept:22311057-edc2-564d-91f2-a2912a17c038",
+      "labelEn": "operating watercraft",
+      "sourceSha256": "0c96144994addd0aec97c462945e5cbd35b9bca27715a53ec622fdfe2042c78a",
+      "labelFa": "هدایت و بهره‌برداری از شناورها"
+    },
+    {
+      "id": "hatef:concept:24354391-ca8e-5b32-b7ab-5527799c7b67",
+      "labelEn": "marksmanship",
+      "sourceSha256": "b47433baebf84a2149c8896c5d186df11eeebe58c641404a0bcc2aef9a5ea550",
+      "labelFa": "مهارت تیراندازی دقیق"
+    },
+    {
+      "id": "hatef:concept:24e25beb-1dce-5d51-b057-73440063cdbb",
+      "labelEn": "psychopathology",
+      "sourceSha256": "866400bd2cdd6d7e17a3654231cc1b290e8fccae90ee7a8407caa78220efc9ff",
+      "labelFa": "آسیب‌شناسی روانی"
+    },
+    {
+      "id": "hatef:concept:2504aad5-5ff2-5efb-966d-eff1d61ef99b",
+      "labelEn": "cognitive computing",
+      "sourceSha256": "8adadf289f3e14897d4673aba268c802f1327ed0c4baea969dfe7e8a3c285fa1",
+      "labelFa": "رایانش شناختی"
+    },
+    {
+      "id": "hatef:concept:25189cd1-08be-522c-ac6f-b16fef42debb",
+      "labelEn": "APL",
+      "sourceSha256": "25b612cc3564d0cd8504b9db1acfef12a722eb0c924b2c6cdef7b4a18339994f",
+      "labelFa": "زبان برنامه‌نویسی ای‌پی‌ال (APL)"
+    },
+    {
+      "id": "hatef:concept:25b99310-1e89-55b0-892b-68cb2effbff9",
+      "labelEn": "IBM Informix",
+      "sourceSha256": "da076f978b2796167834ff5b64d9afa29356c6a24e184d4e174f47bd8460a655",
+      "labelFa": "آی‌بی‌ام اینفورمیکس"
+    },
+    {
+      "id": "hatef:concept:25d6c3f6-9ae8-54e8-8b72-de0b6e620103",
+      "labelEn": "distributed computing",
+      "sourceSha256": "e544a9b6ebe6aec479b6a79a7c9ee7b64782ce56d3ef86eb613660a35b65b057",
+      "labelFa": "رایانش توزیع‌شده"
+    },
+    {
+      "id": "hatef:concept:26487707-95d1-5910-82e6-ea209c0f36d5",
+      "labelEn": "pet sitter",
+      "sourceSha256": "84a2448c665fefc336cf88ac5cda87f44f5b05d73e0c63ecc8b847b80bb94b6f",
+      "labelFa": "مراقب حیوانات خانگی"
+    },
+    {
+      "id": "hatef:concept:27848b3e-35fa-59a5-bc48-a7b92d9b7150",
+      "labelEn": "handle carriers",
+      "sourceSha256": "87db5ff87bb436facbfe99700d8b943dc5d56d24c8ef86b197f00fddb9c49540",
+      "labelFa": "مدیریت حمل‌کنندگان و جابه‌جایی کالا"
+    },
+    {
+      "id": "hatef:concept:2a20609e-d67f-5f65-b482-fa9ecaeb71a6",
+      "labelEn": "optoelectronics",
+      "sourceSha256": "417894ddefba7ba60508cf7f1bb447cfc7c0abe16ebd7a9baa0a0078700870e6",
+      "labelFa": "اپتوالکترونیک"
+    },
+    {
+      "id": "hatef:concept:2a5d884c-450d-58a3-94ec-74eb8795e29a",
+      "labelEn": "pedorthics",
+      "sourceSha256": "c8b86ca1fc8a90cb23c0b5b44cd2b7a7720bed28a9faf7644089d7573fa8152d",
+      "labelFa": "ساخت و اصلاح کفش طبی"
+    },
+    {
+      "id": "hatef:concept:2a8678b8-35b5-5edc-b531-2f2d80742f3a",
+      "labelEn": "engage composers",
+      "sourceSha256": "66addbef836a97d1de6cdb2ede35822b10a016a804ac5bf9fe49a6b2c544481f",
+      "labelFa": "به‌کارگیری آهنگسازان",
+      "descriptionFa": "استفاده از خدمات آهنگسازان حرفه‌ای برای نوشتن پارتیتور یک قطعهٔ موسیقی."
+    },
+    {
+      "id": "hatef:concept:2beaba5d-0c5b-5f13-97ce-6d586ba0dbbf",
+      "labelEn": "phoniatrics",
+      "sourceSha256": "96e23c055d733665cbfa967ab0dc38f1352fc461198b91f54bf1fb59f3df5ed9",
+      "labelFa": "پزشکی اختلالات صدا و گفتار"
+    },
+    {
+      "id": "hatef:concept:2c10f704-2030-5950-ba71-dc5208bd270a",
+      "labelEn": "sophrologist",
+      "sourceSha256": "9318b7a109250faf331073e9d8f4a5f7248b1cbe8464f7d20393b5cfddde4cfc",
+      "labelFa": "متخصص سوفرولوژی"
+    },
+    {
+      "id": "hatef:concept:2c3d7221-d281-5324-9684-d71bedaeae7d",
+      "labelEn": "catcher",
+      "sourceSha256": "e31f7a2fd446c0d3becbd7756b9809eb530f8712d499f81fb0f7caad7abd428c",
+      "labelFa": "کارگر گرفتن طیور"
+    },
+    {
+      "id": "hatef:concept:2c686aa2-bf36-538e-99a1-38bb38c743d6",
+      "labelEn": "ObjectStore",
+      "sourceSha256": "be06785bc61dff1748464c906a9b856227de6530ffebc2fca2bea4ecce130407",
+      "labelFa": "پایگاه دادهٔ آبجکت‌استور"
+    },
+    {
+      "id": "hatef:concept:2decf124-b537-5b58-a8ea-cfef88d6f717",
+      "labelEn": "Wireshark",
+      "sourceSha256": "180923579be1f5d37dcbaad2317ae624f94d8fb2a752a4934cba5992337eac28",
+      "labelFa": "وایرشارک"
+    },
+    {
+      "id": "hatef:concept:2e66fdf9-8245-5bfb-bd34-5664f2d7bbf5",
+      "labelEn": "Swift (computer programming)",
+      "sourceSha256": "950d1d724fb1594ca39fe3a9404761812f003bf5ff6b03a612f948b1a598d444",
+      "labelFa": "زبان برنامه‌نویسی سوئیفت"
+    },
+    {
+      "id": "hatef:concept:2ede9421-c021-5670-8186-de9928fbcab5",
+      "labelEn": "orthotics",
+      "sourceSha256": "9ee6ddd7485e82676d10f9785efed064a45ccda98f203440a40ce6f3a2c0dffe",
+      "labelFa": "ارتزسازی"
+    },
+    {
+      "id": "hatef:concept:2fa0d68d-0719-5e16-b2f1-2dc7e094e4c9",
+      "labelEn": "LINQ",
+      "sourceSha256": "5fd14ce57e4e475416849d334bdb80c3576b03c27833007e0fec7cb458166c10",
+      "labelFa": "زبان پرس‌وجوی لینک (LINQ)"
+    },
+    {
+      "id": "hatef:concept:32e007c0-8902-59d0-9677-46ffea195282",
+      "labelEn": "fingerspelling",
+      "sourceSha256": "0a3c0ac3c2f502b5ccd64297f69a9432d375d84024696b039c745ce50df48594",
+      "labelFa": "هجی‌کردن با انگشتان"
+    },
+    {
+      "id": "hatef:concept:32f9055f-4f0b-59f2-b0bf-9bd48f769ba9",
+      "labelEn": "bioleaching",
+      "sourceSha256": "e40f10cae78f82f323da56cce758d907d575e19bf014eec3ddbe14c2712f7c37",
+      "labelFa": "زیست‌لیچینگ (استخراج زیستی مواد معدنی)"
+    },
+    {
+      "id": "hatef:concept:33159086-9585-510a-86ce-3868eda642ac",
+      "labelEn": "subtitler",
+      "sourceSha256": "42a374cf49084dd4a9e80f1d55b647cc0c65dc33dcfb124e61b22e1075403ef1",
+      "labelFa": "زیرنویس‌گذار"
+    },
+    {
+      "id": "hatef:concept:36613aca-ac0b-5763-9b56-b35e7f900e5b",
+      "labelEn": "id Tech",
+      "sourceSha256": "3cfcf0a50689ea7eda79526f908b35bea4ac0db8c860cc7434bd05f14f0e3041",
+      "labelFa": "موتور بازی‌سازی آی‌دی تک"
+    },
+    {
+      "id": "hatef:concept:36d7dbf2-9fa1-55e3-9140-56381d22a243",
+      "labelEn": "brewmaster",
+      "sourceSha256": "cf606e8aad446a280d549571203de3589754997aa1d4f241b43f06de8f4d173f",
+      "labelFa": "متخصص آبجوسازی"
+    },
+    {
+      "id": "hatef:concept:37ae51d4-44f5-5c31-9d80-4197fdc81109",
+      "labelEn": "webmaster",
+      "sourceSha256": "ba453e7c018dfd7ad0982634612da594f82510c022bc03fd91b83a7e5df026f4",
+      "labelFa": "مدیر وب‌سایت"
+    },
+    {
+      "id": "hatef:concept:37fb7890-59c9-5a42-90a5-72b4f3c6b1ee",
+      "labelEn": "defibrillation",
+      "sourceSha256": "ebf829aee80eb6e5ef34cb1facd1be53740a2fb8f68c4666b491e273f2eae0fe",
+      "labelFa": "دفیبریلاسیون"
+    },
+    {
+      "id": "hatef:concept:38839509-f468-5919-a23f-8ebd9cc3f0e5",
+      "labelEn": "Adobe Illustrator",
+      "sourceSha256": "e4f35bc7d00e2309b5a2b4de63272b99ae59b1c96e1deb86e2e578d156c584dd",
+      "labelFa": "ادوبی ایلاستریتور"
+    },
+    {
+      "id": "hatef:concept:3a0dbce3-0a2d-5e2a-b62e-dd9a6a7eacd3",
+      "labelEn": "woodturning",
+      "sourceSha256": "d75f7ed755d8d1956e4916e564927e65f3702d647c9e234bd42d9c74bf32c352",
+      "labelFa": "خراطی چوب"
+    },
+    {
+      "id": "hatef:concept:3ad5c305-377b-54d0-82b9-ab179bf782ce",
+      "labelEn": "shipbroker",
+      "sourceSha256": "b54226e373c592e70312c95e178cac32abb287f8944b41191e5551682b0ad48b",
+      "labelFa": "کارگزار معاملات کشتی"
+    },
+    {
+      "id": "hatef:concept:3c8c6542-4dd9-52ff-bc2c-1241d5f09a82",
+      "labelEn": "OWASP ZAP",
+      "sourceSha256": "ccc31755fcfdb3438989c48ba32b7af4d52f3d43c89bb0ceaeef291c5ed474b0",
+      "labelFa": "ابزار امنیتی اوواسپ زپ (OWASP ZAP)"
+    },
+    {
+      "id": "hatef:concept:3ea82ed3-f00d-54a9-ac05-96f690ba15e6",
+      "labelEn": "Engrade",
+      "sourceSha256": "255a81b9e85032d3d9d2da0bf4fab48ce731ad5d56906ca3eb30e6ce2c3b36b9",
+      "labelFa": "سامانهٔ آموزشی اِن‌گرید"
+    },
+    {
+      "id": "hatef:concept:4090a554-ae1e-5446-afc7-ac16ebef97d3",
+      "labelEn": "SAP Data Services",
+      "sourceSha256": "0b697d461e1075d9a1d39d195ee993d9e3cedba0bb69103e3d05fa9f6b55bd15",
+      "labelFa": "خدمات دادهٔ اس‌ای‌پی"
+    },
+    {
+      "id": "hatef:concept:4442f0cb-d748-5b5e-bf5c-ede94f067661",
+      "labelEn": "reprography",
+      "sourceSha256": "b1565459bd2257f9efbb44cad81a3dc5828a2dc693287c25cd7eff8a44ee839b",
+      "labelFa": "تکثیر و بازتولید اسناد و تصاویر"
+    },
+    {
+      "id": "hatef:concept:471146ab-91ae-5bd1-8c15-3d8fa2abb79e",
+      "labelEn": "Apache Maven",
+      "sourceSha256": "6afa2b880b84b8f6141f1c4f032170af8bf8dca2b76709901616586f2a337a24",
+      "labelFa": "آپاچی میون"
+    },
+    {
+      "id": "hatef:concept:4762a131-959c-5edb-a8b9-3d825ec80758",
+      "labelEn": "Microsoft Visio",
+      "sourceSha256": "2ab87628a7fe80caa5c88d004a5d06acf710f50eaf55fafb51f580537c474dd6",
+      "labelFa": "مایکروسافت ویزیو"
+    },
+    {
+      "id": "hatef:concept:47cc92bb-01a0-5cc7-b56e-d1cbe1cb08ad",
+      "labelEn": "aquaponics",
+      "sourceSha256": "31b8ddbea18b6b38549d0083b07402b36ae1881749d7100f3efc33787d295609",
+      "labelFa": "آکواپونیک (کشت تلفیقی گیاه و آبزی)"
+    },
+    {
+      "id": "hatef:concept:48e5da6d-ffad-5024-b5d1-b93324b928cd",
+      "labelEn": "iconography",
+      "sourceSha256": "49151e733fcbcfd4c86f01170cc0fcd870fc2aaeee72e1b814954bd1b6316b17",
+      "labelFa": "شمایل‌نگاری"
+    },
+    {
+      "id": "hatef:concept:48f2ca48-7fe2-529f-99a2-7ee6644221ef",
+      "labelEn": "DB2",
+      "sourceSha256": "acd7445be40f4ad71061b5e39fa56c9f0090f10f73625215973b27d3d04c4fa5",
+      "labelFa": "پایگاه دادهٔ دی‌بی‌تو (DB2)"
+    },
+    {
+      "id": "hatef:concept:49657004-dc3a-5b28-b85d-23018227bf74",
+      "labelEn": "etiopathy",
+      "sourceSha256": "8d101449265340569d51cbafa5c10a5ad87bb7ecb263b4e0dd33e7b769cc1a82",
+      "labelFa": "اتیوپاتی"
+    },
+    {
+      "id": "hatef:concept:4a8cec3b-e79f-5d40-9810-31f10a9a02c0",
+      "labelEn": "WordPress",
+      "sourceSha256": "0d69f21a2ac5154e5f3503ccf6e74b46356021eca3e4abe03c50dc954ac57645",
+      "labelFa": "وردپرس"
+    },
+    {
+      "id": "hatef:concept:4da5145f-eae3-5547-aa24-6327ed45b8e0",
+      "labelEn": "hang chain hoists",
+      "sourceSha256": "8b023dea3083f2be6fb0e7f850ee4f1210304216d64017085e92cdd5cf250547",
+      "labelFa": "نصب بالابرهای زنجیری"
+    },
+    {
+      "id": "hatef:concept:4e6a0c17-eae8-5849-a69d-2465297f016c",
+      "labelEn": "Adobe Photoshop",
+      "sourceSha256": "05a027a6589d0a9c9bae08721629a02ca9ff90fc9b44138d6f66e06f622df255",
+      "labelFa": "ادوبی فتوشاپ"
+    },
+    {
+      "id": "hatef:concept:4e72e4e0-dcfc-599f-b4bf-70422decbdb8",
+      "labelEn": "bathymetry",
+      "sourceSha256": "c6eeaa9b4d87cb767cd71d9b3b56ea10a85af2dcaaa1bba3022455f5e6149be4",
+      "labelFa": "عمق‌سنجی آب‌ها"
+    },
+    {
+      "id": "hatef:concept:4ed89bea-5b08-5b48-ab63-4d612a0de549",
+      "labelEn": "olfaction",
+      "sourceSha256": "4b7758d4f5d33d8be1376191b3d744ee9921b140e665560a78d72f947e508c8f",
+      "labelFa": "حس بویایی"
+    },
+    {
+      "id": "hatef:concept:4ed8c5d3-740a-5093-a31c-fac39e56e7fb",
+      "labelEn": "Nessus",
+      "sourceSha256": "a3735cbc6e48e0499dde47157933311ae855b0d02331d61378d52122b528aa97",
+      "labelFa": "ابزار امنیتی نسوس"
+    },
+    {
+      "id": "hatef:concept:4efd94be-4b23-570b-8ffe-30ed17a3643a",
+      "labelEn": "osteology",
+      "sourceSha256": "4eb07b96d2676bda837577c595a26d054ca251459977393ad80c65650eefc0c7",
+      "labelFa": "استخوان‌شناسی"
+    },
+    {
+      "id": "hatef:concept:5000f998-31c4-52e8-8cdc-27be5f6ba6dc",
+      "labelEn": "bind books",
+      "sourceSha256": "08382acc06b3b4c59a269e2f23e0ba3677b83900866ab5b7aa58f9653196ba25",
+      "labelFa": "صحافی کتاب"
+    },
+    {
+      "id": "hatef:concept:51818e25-4077-5951-b111-72d60cc85728",
+      "labelEn": "auriculotherapy",
+      "sourceSha256": "f4329a40080082991925ce326620d569b8ce70c98895886aaaf41b00895b0f14",
+      "labelFa": "گوش‌درمانی"
+    },
+    {
+      "id": "hatef:concept:51b4724a-9339-5107-8ce1-7fc7ed0f4ecc",
+      "labelEn": "casino cashier",
+      "sourceSha256": "c6b791441dfcb93a547cf9dade92565ae276924ebb21ac334a01379eeeea1b59",
+      "labelFa": "صندوق‌دار کازینو"
+    },
+    {
+      "id": "hatef:concept:521f6ac3-5e37-536d-8062-d945430845bb",
+      "labelEn": "logopaedics",
+      "sourceSha256": "34859c530275256f258244eb628726ffdab1f0adee0e5b242dbec2d38c19c801",
+      "labelFa": "گفتاردرمانی"
+    },
+    {
+      "id": "hatef:concept:523b0b23-9953-5835-a01a-c7c9acbe4acc",
+      "labelEn": "WizIQ",
+      "sourceSha256": "90bbe694a1f6e7481e6f94da97f168d14b51dcbb236af26456ebb2a851c09dbc",
+      "labelFa": "سامانهٔ آموزشی ویزآی‌کیو"
+    },
+    {
+      "id": "hatef:concept:5244124c-4a97-565e-9ac6-73b84ee4f0a4",
+      "labelEn": "WebCMS",
+      "sourceSha256": "12e7ed8090756f401e59aa14c3fa79c3bccd6325a9639453728c545faaaa5a91",
+      "labelFa": "سامانهٔ مدیریت محتوای وب (WebCMS)"
+    },
+    {
+      "id": "hatef:concept:526ac063-5cea-546e-88da-5c5228baa698",
+      "labelEn": "blueprints",
+      "sourceSha256": "3eaacfe574207c6f10c419dc9d149179113098cbaf2b147e48f5c32546880078",
+      "labelFa": "خواندن نقشه‌های فنی"
+    },
+    {
+      "id": "hatef:concept:534488ab-6c66-51fd-aaa0-2bf58876a899",
+      "labelEn": "Nexpose",
+      "sourceSha256": "5648c61722e36d9ec728d457668932f38eb0a2fdedadbc55ca7d271281f54ac9",
+      "labelFa": "ابزار امنیتی نکسپوز"
+    },
+    {
+      "id": "hatef:concept:53889b44-a695-54b7-b97f-4334602d92f8",
+      "labelEn": "archaeobotany",
+      "sourceSha256": "9461346e455078bc4ef593c2af6a111cfb47c17d875a9fe86adc2fbcdccadbd4",
+      "labelFa": "گیاه‌باستان‌شناسی"
+    },
+    {
+      "id": "hatef:concept:539d6998-64df-57b1-8cbd-b22d535b78cb",
+      "labelEn": "trendwatching",
+      "sourceSha256": "0ce948bef5c32765e192165aa321cc29198d30113e7d1b28721f0c4cd9498b4b",
+      "labelFa": "پایش روندها"
+    },
+    {
+      "id": "hatef:concept:543e42ab-11eb-517e-a8e5-09829e6319f2",
+      "labelEn": "QlikView Expressor",
+      "sourceSha256": "2e3e38746b80376538235460663a27eb40c644ce1bdf98775fd65ac36dae00c3",
+      "labelFa": "کلیک‌ویو اکسپرسور"
+    },
+    {
+      "id": "hatef:concept:5766b7d3-78a4-59b6-b54f-9565002739f0",
+      "labelEn": "Ruby (computer programming)",
+      "sourceSha256": "7255b10ac16f26cc0de26445feb31137f87d30805545ed3178e84cc539da3a97",
+      "labelFa": "زبان برنامه‌نویسی روبی"
+    },
+    {
+      "id": "hatef:concept:5784d26f-e62f-5e5e-99eb-e3885483fd1d",
+      "labelEn": "CA Datacom/DB",
+      "sourceSha256": "5db5ebb69d298eb910fed5fc0c26b15294cd0ee64ebc08771a5da36cc75bd48c",
+      "labelFa": "پایگاه دادهٔ سی‌ای دیتاکام"
+    },
+    {
+      "id": "hatef:concept:5789fcc8-7ee3-5987-876f-00e2422cbc1a",
+      "labelEn": "SA8000",
+      "sourceSha256": "6a72ee0b3bc0338d48647623e3b6561726a24ed9105a571987bb8a6f05430c33",
+      "labelFa": "استاندارد مسئولیت اجتماعی SA8000"
+    },
+    {
+      "id": "hatef:concept:579c586c-b11c-529c-8b05-60ff6116fbc3",
+      "labelEn": "MOEM",
+      "sourceSha256": "fecdfa508016297d9864092eecd9471be1327ad4af30372dab0b9afd2615bc3b",
+      "labelFa": "ریزسامانه‌های اپتوالکترومکانیکی (MOEM)"
+    },
+    {
+      "id": "hatef:concept:57a45432-d086-5cfe-8a05-86bd912e8e94",
+      "labelEn": "cytotechnologist",
+      "sourceSha256": "48319e6b50498fa44b68ce9ee577dc00862457f2ef1fc0d7dd159c33e85ad1a3",
+      "labelFa": "کارشناس فناوری سلول‌شناسی"
+    },
+    {
+      "id": "hatef:concept:5813ab41-a470-59c7-95f1-ae1ae14d2b51",
+      "labelEn": "maxillo-facial, oral, and dental surgery",
+      "sourceSha256": "9b449a0ece7bf306245689cb01ae774a3f4c3f8065b4d6896596214d0fdc9a35",
+      "labelFa": "جراحی فک، صورت، دهان و دندان"
+    },
+    {
+      "id": "hatef:concept:58c8fde7-c6da-5ee2-a310-4478a6c51904",
+      "labelEn": "cut clay",
+      "sourceSha256": "529d37885ceb886f1b96415c71875051151d079331ece8d8028d27012645261c",
+      "labelFa": "برش گل رس"
+    },
+    {
+      "id": "hatef:concept:5914e702-9208-5664-931c-7ad954cda74f",
+      "labelEn": "verger",
+      "sourceSha256": "cfc54e2e10a21b0a31349ce54b410de5670c9af7502219b65ec53085daeb67bd",
+      "labelFa": "خادم و متصدی امور کلیسا"
+    },
+    {
+      "id": "hatef:concept:59aeaa45-0b34-52d4-9e44-c701c98a16a4",
+      "labelEn": "VBScript",
+      "sourceSha256": "237efb015a9e454f47bccf7144183424fa7b9170797aa9ae0bea90ab026a7f58",
+      "labelFa": "زبان وی‌بی‌اسکریپت"
+    },
+    {
+      "id": "hatef:concept:5b226744-3081-5a3c-af27-badf2e0ab9a8",
+      "labelEn": "write Berber",
+      "sourceSha256": "561b6844fb184ff269f0013d180bd2af536d81ec5bf144be170661e59e1fb5f9",
+      "labelFa": "نوشتن به زبان بربری"
+    },
+    {
+      "id": "hatef:concept:5f5b057e-33ef-5ae9-90ff-af72131df2e2",
+      "labelEn": "Oracle Relational Database",
+      "sourceSha256": "9290fa342eba4976ef8e45638899c94d1065e03129bf0912bea7ac8894d18cfd",
+      "labelFa": "پایگاه دادهٔ رابطه‌ای اوراکل"
+    },
+    {
+      "id": "hatef:concept:5f85cf68-1ea4-540f-8a93-d3faf884f5a8",
+      "labelEn": "balneotherapy",
+      "sourceSha256": "df3b029618ee245e77db38bce3f470499131beade69209f094ae762e8021fb8d",
+      "labelFa": "حمام‌درمانی"
+    },
+    {
+      "id": "hatef:concept:60ccc8ae-7cd8-5273-8b6c-6c95847ca17f",
+      "labelEn": "SketchBook Pro",
+      "sourceSha256": "56685c783b6471e36d2d4f694d81129a473ca8836bba93fbec11ffb44ccbba8e",
+      "labelFa": "نرم‌افزار اسکچ‌بوک پرو"
+    },
+    {
+      "id": "hatef:concept:6233407b-c53e-5be2-a8d4-a3fac35866ea",
+      "labelEn": "percolation",
+      "sourceSha256": "dfc0a2e5e3be9780a7acf0c5dd5b1d6aab37173548df7d7cd8cd7847f05628bf",
+      "labelFa": "تراوش مایع در محیط متخلخل"
+    },
+    {
+      "id": "hatef:concept:630e89bf-51c9-58ac-8d00-c5db4c2db22c",
+      "labelEn": "animate 3D organic forms",
+      "sourceSha256": "74f5e44c4208f5402dc71b5a55a5cf1a43bfd6b5513fd09797a35ce51ecdd860",
+      "labelFa": "متحرک‌سازی فرم‌های آلی سه‌بعدی"
+    },
+    {
+      "id": "hatef:concept:657fbb42-0f31-5b21-ae0f-f68ad47494a2",
+      "labelEn": "tend pug mills",
+      "sourceSha256": "c933e71e3061866cef5ed1764ff2a2437736e0fc4713a1861f45d317e38010b6",
+      "labelFa": "کار با دستگاه ورزدهی گل رس"
+    },
+    {
+      "id": "hatef:concept:65ec2cc4-af49-535a-bac5-a3ba27984a2e",
+      "labelEn": "LAMS",
+      "sourceSha256": "bd467ed901f932501ea9700cc7817bc68d248cb874c10e367c210b411fc6c995",
+      "labelFa": "سامانهٔ آموزش الکترونیکی لمز (LAMS)"
+    },
+    {
+      "id": "hatef:concept:679f3f21-3203-5be2-821b-a8f90f2b7b39",
+      "labelEn": "phlebotomist",
+      "sourceSha256": "573de0709989fbf51c5d2ca9a1f47e70322476b5c81ab402d14f4dc19af1ed51",
+      "labelFa": "کارشناس خون‌گیری"
+    },
+    {
+      "id": "hatef:concept:6a0cbc74-c7b8-5386-b24a-c18b9b64ad0b",
+      "labelEn": "ICT help desk manager",
+      "sourceSha256": "07d71fdb139a0b2158d987e927e074b0e6e5f7daa4ef2d4602406a5b87988bcf",
+      "labelFa": "مدیر میز خدمت فناوری اطلاعات"
+    },
+    {
+      "id": "hatef:concept:6c3ea159-38d1-5264-9585-68964644bcaa",
+      "labelEn": "venereology",
+      "sourceSha256": "83ea3e3a8dd6d4cedbd8a61660ca90852639a21a07d9049ccee5ca8bcebaae11",
+      "labelFa": "بیماری‌شناسی آمیزشی"
+    },
+    {
+      "id": "hatef:concept:6c4e807a-70c0-5de0-8dc4-0fa0099268ab",
+      "labelEn": "operating watercraft",
+      "sourceSha256": "f4e0130e2a9f6b576464f8012921c1515469776653a78f5b206b4b0cb82d3fcb",
+      "labelFa": "هدایت و بهره‌برداری از شناورها"
+    },
+    {
+      "id": "hatef:concept:6cddc897-e10e-5db9-bf23-05dfc4b17c0a",
+      "labelEn": "digitise documents",
+      "sourceSha256": "f145aceb4b67fe5a675ddbd81a32f362bc2eb4d76bc01790cae635355e020d3b",
+      "labelFa": "دیجیتال‌سازی اسناد"
+    },
+    {
+      "id": "hatef:concept:6ceca6a8-f853-51fb-b2bd-a101e3718dc0",
+      "labelEn": "alkylation",
+      "sourceSha256": "733b82849097170e38ab4f75ec61dcbe16880dbcb85a9d087cd83463188e0938",
+      "labelFa": "آلکیلاسیون"
+    },
+    {
+      "id": "hatef:concept:6da63cb3-70d5-5257-97d8-4643e51e5006",
+      "labelEn": "viticulture",
+      "sourceSha256": "236ed48ecc259440cf3fe2ddc29ba8b19103eb5775adb83d110bcbfa2f87cc60",
+      "labelFa": "تاک‌پروری"
+    },
+    {
+      "id": "hatef:concept:6dc398b2-7a3f-5ee1-b491-e4686d74bc4a",
+      "labelEn": "3D texturing",
+      "sourceSha256": "7b3eed46ed299504517da36038588a3a2dbfdb333f896cdbd260a94f0813edd3",
+      "labelFa": "بافت‌دهی سه‌بعدی"
+    },
+    {
+      "id": "hatef:concept:6e0a9a75-fd02-5f44-8d8c-84d21d65769d",
+      "labelEn": "JavaScript Framework",
+      "sourceSha256": "b6f0229c4e83502e303ec782d2c96b2696c66697ee49a21e75ebb420d212e497",
+      "labelFa": "فریم‌ورک جاوااسکریپت"
+    },
+    {
+      "id": "hatef:concept:6f023383-d3da-57ae-9ed3-2c53abfbbc12",
+      "labelEn": "C++",
+      "sourceSha256": "070ebece5b94bab841b11cc9fbabbc8aa9fcc9ef84e1e8536c1af959001bc1b9",
+      "labelFa": "زبان سی‌پلاس‌پلاس"
+    },
+    {
+      "id": "hatef:concept:6f289d2d-307c-5e0b-9334-37f5d67e2407",
+      "labelEn": "IBM WebSphere",
+      "sourceSha256": "d67bffd2087381e8d78100db73759905a17b8c677fe17d4518cd2d4a23b60678",
+      "labelFa": "آی‌بی‌ام وب‌اسفیر"
+    },
+    {
+      "id": "hatef:concept:7050ae77-d431-579f-9537-0d0ed16e0038",
+      "labelEn": "affix memorial plaques",
+      "sourceSha256": "711770fe99d2f185c5227fc368b511c2f1b90c3bf687981f4b61ca96e5c4d8ef",
+      "labelFa": "نصب پلاک‌های یادبود"
+    },
+    {
+      "id": "hatef:concept:70ef05c5-e0f2-50c9-affc-286d6bf325b3",
+      "labelEn": "dermato-venereology",
+      "sourceSha256": "1d82b558c8c41648f48cfc29e700569260c00e748bc73ed8604342d1da9d49e1",
+      "labelFa": "تخصص پوست و بیماری‌های آمیزشی"
+    },
+    {
+      "id": "hatef:concept:72f4f6f3-caaf-55af-be3d-7f6034bc4127",
+      "labelEn": "BlackBerry",
+      "sourceSha256": "596edb1300f31b2f956a6741200d1b28e22ff21a3b215a2ae2997a62f27dcab9",
+      "labelFa": "بلک‌بری"
+    },
+    {
+      "id": "hatef:concept:74d30afb-fa18-582d-97b4-8cc397ad56ad",
+      "labelEn": "Groovy",
+      "sourceSha256": "07f5ae798e06553798b4301bc5ff6b51ff5545b13dfa6a47e84ccbf9cdd3666c",
+      "labelFa": "زبان برنامه‌نویسی گرووی"
+    },
+    {
+      "id": "hatef:concept:7561de0d-2a40-5052-ab5f-b85126269530",
+      "labelEn": "embalmer",
+      "sourceSha256": "55e1a482ae9a4c2c0d5d12a23fee0abba5d59f69095a887bf3c32d06b8310d21",
+      "labelFa": "متصدی مومیایی و حفظ جسد"
+    },
+    {
+      "id": "hatef:concept:75abb7c8-26ea-5def-af18-ff3dec11b04e",
+      "labelEn": "bioeconomy",
+      "sourceSha256": "b92c21c5e606d70e347dd31defa088dbbad121e0703c17665bbb8b4a53e8d369",
+      "labelFa": "اقتصاد زیستی"
+    },
+    {
+      "id": "hatef:concept:770c1f52-2322-5d40-8c59-122183c2fcb6",
+      "labelEn": "GameSalad",
+      "sourceSha256": "2f53896ada2006e1f08017582df582cc3f9d24ab6a79e1d529c90d06066b3e38",
+      "labelFa": "موتور بازی‌سازی گیم‌سالاد"
+    },
+    {
+      "id": "hatef:concept:77acb1d2-56d9-5d61-9032-303a088a591b",
+      "labelEn": "Javanese",
+      "sourceSha256": "c67fa93108ff41ef99f47a7616e16983a734de15683ec821fa20da3157f7620b",
+      "labelFa": "زبان جاوه‌ای"
+    },
+    {
+      "id": "hatef:concept:78fd3e26-c03a-5cac-a31b-d5c1be8e3cf8",
+      "labelEn": "periodisation",
+      "sourceSha256": "66f98e62b2a1b0849086b524ae4b58b5ea5aadc39cbe5be4ee317548cbba328d",
+      "labelFa": "دوره‌بندی تاریخی"
+    },
+    {
+      "id": "hatef:concept:79f42eb3-589d-5be3-944d-12824e40f952",
+      "labelEn": "SQL Server Integration Services",
+      "sourceSha256": "c21c7bdded3130fb073443964ed79ceea4706839917b9ff2ce9125f77e06637a",
+      "labelFa": "خدمات یکپارچه‌سازی اس‌کیوال سرور"
+    },
+    {
+      "id": "hatef:concept:7b15db29-438f-5d1a-b0f1-c417293b3d96",
+      "labelEn": "photojournalist",
+      "sourceSha256": "81e9f02fff640758aeef70d945b3717ec59e87082136661f0c95628d06f7fa88",
+      "labelFa": "عکاس خبری"
+    },
+    {
+      "id": "hatef:concept:7bedc562-947e-5d71-bce7-46862c6b85c4",
+      "labelEn": "froth flotation processes",
+      "sourceSha256": "06c0cc2a6d6e49f682963a54db272c83898cb9335a810fad8486874dba95c6d4",
+      "labelFa": "فرایندهای شناورسازی با کف"
+    },
+    {
+      "id": "hatef:concept:7cedd389-8439-531d-8dc4-9154fa006d32",
+      "labelEn": "impact investing",
+      "sourceSha256": "034b7038221ac97fbe4e714de5bece14067b83e670edabcd908e9d357a41013b",
+      "labelFa": "سرمایه‌گذاری اثرگذار"
+    },
+    {
+      "id": "hatef:concept:7d769eb9-4e8a-55b4-a69b-630e1c4b381d",
+      "labelEn": "au pair",
+      "sourceSha256": "7cb28a47eb0b193e2fcbcb8b3bd852ac8a2995000ee33b50fc9bfe8e5c85c918",
+      "labelFa": "پرستار کودک مقیم خانوادهٔ میزبان (اوپر)"
+    },
+    {
+      "id": "hatef:concept:7daf51bb-98fd-5a28-892e-ff27047902eb",
+      "labelEn": "neuropharmacology",
+      "sourceSha256": "06444c7ca1127b899a2b3a3f192c9d46c30df921fd9890e03ba1cc7e5e071a24",
+      "labelFa": "داروشناسی عصبی"
+    },
+    {
+      "id": "hatef:concept:80537246-4daa-5019-b79a-3dcb56cba55b",
+      "labelEn": "Litmos",
+      "sourceSha256": "6cdeded58977fa4ec186a91c94969980284fa72feee506dc711900fc3cb6324d",
+      "labelFa": "سامانهٔ آموزشی لیتْموس"
+    },
+    {
+      "id": "hatef:concept:81275418-7688-5150-9d81-be7d3570fdda",
+      "labelEn": "cybernetics",
+      "sourceSha256": "7edfe2db70442d5111e4a66a19c825148047c5ecf8396b20fa049d331afa8d3c",
+      "labelFa": "سایبرنتیک"
+    },
+    {
+      "id": "hatef:concept:81a57264-7a63-55bf-8b73-9adeac9f9d5f",
+      "labelEn": "microfinance",
+      "sourceSha256": "0e3938a0bd6857f1f13f9ab78ab55deeea2e14059593396fff83445b971f9c47",
+      "labelFa": "تأمین مالی خرد"
+    },
+    {
+      "id": "hatef:concept:824a4a1f-7e9e-5ee8-ba1a-48da6279f7b0",
+      "labelEn": "postediting",
+      "sourceSha256": "9c52e7a6a6028daee83558edc1f28c1bbc731a88050578d338cd46c82d06fc85",
+      "labelFa": "پس‌ویرایش ترجمه"
+    },
+    {
+      "id": "hatef:concept:82b30b44-58c8-5d46-b6ae-b206cac4c713",
+      "labelEn": "terrazzo setter",
+      "sourceSha256": "1f68e70e4ae439ac3ed68760a18e31e780202cf6d1eb8eef9cb93409b1c82392",
+      "labelFa": "مجری کف‌پوش ترازو"
+    },
+    {
+      "id": "hatef:concept:82de0a2c-b5b0-5ff4-85d1-e3a6a0cf8af9",
+      "labelEn": "biosecurity",
+      "sourceSha256": "471711e723a792de51607434b9fd000daa4cad2bb04aae48d99ed29ba0d97355",
+      "labelFa": "امنیت زیستی"
+    },
+    {
+      "id": "hatef:concept:841a0361-425d-5955-a6d4-e1ce6eb76991",
+      "labelEn": "psychic",
+      "sourceSha256": "a57378eec6c65f7ec77129494ded69f78f6c66a0a2f0ca388c35a64bfaf3cd59",
+      "labelFa": "مدعی توانایی‌های فراحسی"
+    },
+    {
+      "id": "hatef:concept:84d70aed-da2d-5e43-9135-ad140307d35a",
+      "labelEn": "filigree maker",
+      "sourceSha256": "6bfd3876a8833a651f54cae7e8f12b6a1601a297a04325bba7eb42fbdace9c2c",
+      "labelFa": "ملیله‌ساز"
+    },
+    {
+      "id": "hatef:concept:863ac918-4901-5cd3-ae64-31c8d639a7c2",
+      "labelEn": "agritourism",
+      "sourceSha256": "e04cc89b2e082a17ebd4eb33a8318f33cc6837e3eb63fa2b002e9e9984f38163",
+      "labelFa": "گردشگری کشاورزی"
+    },
+    {
+      "id": "hatef:concept:87300443-8dd6-5103-94ce-cbe83ea3cd20",
+      "labelEn": "prop master/prop mistress",
+      "sourceSha256": "31e88ce80c18cb2820bee8f8ab4aad86e529adf0b12742d436e4b7210da61d35",
+      "labelFa": "مسئول وسایل صحنه"
+    },
+    {
+      "id": "hatef:concept:8a266a74-789c-512f-9d8e-753c3772c1f5",
+      "labelEn": "ornithology",
+      "sourceSha256": "e873d9e352dab69d21b1af3ac88a6985c62a12be38577a5c5e1f65a861af259e",
+      "labelFa": "پرنده‌شناسی"
+    },
+    {
+      "id": "hatef:concept:8bdb3d4c-441f-5f7f-b681-7f15b155e46e",
+      "labelEn": "SPARQL",
+      "sourceSha256": "d6165eb3281e5b2fe1c69f64772dc738ee8bf635d59d641b99a6d094b01a37fc",
+      "labelFa": "زبان پرس‌وجوی اسپارکل (SPARQL)"
+    },
+    {
+      "id": "hatef:concept:8c4fd9df-4050-5495-b52f-25c3118adf0f",
+      "labelEn": "digital curation",
+      "sourceSha256": "b9402945514ebe19398380e5d26705041e8628d9fb01a1b727997810485dfbb6",
+      "labelFa": "مدیریت و نگهداری محتوای دیجیتال"
+    },
+    {
+      "id": "hatef:concept:8c8fe328-dded-5e8f-bc1f-de46cec8bcca",
+      "labelEn": "STAF",
+      "sourceSha256": "a3cc30c4b901bf77911fa8d9b24020d3669924bcaef40f94a76169d89d860087",
+      "labelFa": "ابزار مدیریت پیکربندی استاف (STAF)"
+    },
+    {
+      "id": "hatef:concept:8df8cabe-95c9-5a22-8b2d-e66d04e1d008",
+      "labelEn": "Objective-C",
+      "sourceSha256": "ed337af5cacf75964c880111f31f78ca9dfd07606124f55167d6dfe32079f745",
+      "labelFa": "زبان آبجکتیو سی"
+    },
+    {
+      "id": "hatef:concept:8e0c77b7-2d54-5f06-bee1-fb1408303725",
+      "labelEn": "compose playlist",
+      "sourceSha256": "2bcedd376cc05ccf5393e343cb86b256d4893760e72b7f17cea170b850b4bf42",
+      "labelFa": "تنظیم فهرست پخش"
+    },
+    {
+      "id": "hatef:concept:8ec0bfd4-465b-5083-9199-d658091965f3",
+      "labelEn": "agronomist",
+      "sourceSha256": "d8e9a97283ccfb25289dc04954d917bb552c5e710293f7d057655ff52e783bc9",
+      "labelFa": "متخصص زراعت"
+    },
+    {
+      "id": "hatef:concept:8ee66e66-77b4-5068-9178-c789dbd69a3b",
+      "labelEn": "CoffeeScript",
+      "sourceSha256": "0be4bd2a85c6f090b326c9ef22b3cb7f6535cb9aa6fa9263c2945819a729af67",
+      "labelFa": "زبان کافی‌اسکریپت"
+    },
+    {
+      "id": "hatef:concept:90066f3f-fa55-5412-bc57-c165e7c6e6d6",
+      "labelEn": "N1QL",
+      "sourceSha256": "d5e7cf64a4166c0cc3ff84ad46329f89ec16347fc97fe7045009ca718c4794cc",
+      "labelFa": "زبان پرس‌وجوی نیکل (N1QL)"
+    },
+    {
+      "id": "hatef:concept:90c0e0ee-6eac-51af-9f32-924ecca1f124",
+      "labelEn": "R",
+      "sourceSha256": "a04fed8d13a7d4b92e8f11e09a5058cf6e14fc24d6c1379ea861cdfbb76bef60",
+      "labelFa": "زبان برنامه‌نویسی آر"
+    },
+    {
+      "id": "hatef:concept:90f43127-cbb6-52c4-9761-0f647b77fa32",
+      "labelEn": "matrose",
+      "sourceSha256": "a9c0c967959f4c3daab97fafddca6afe2368e52b40a7bd153863ceca0cc0cc19",
+      "labelFa": "ملوان کشتی‌های آبراه‌های داخلی"
+    },
+    {
+      "id": "hatef:concept:917b92c0-d8f9-56ab-8456-bcdfd7c587a5",
+      "labelEn": "tune bicycles",
+      "sourceSha256": "74f61c723b591b057bb9a05094ede3efe7aeb32683e929dadc468a83c4475438",
+      "labelFa": "تنظیم و سرویس دوچرخه"
+    },
+    {
+      "id": "hatef:concept:923c8a31-ed77-5d07-b95e-9d87e8c9709e",
+      "labelEn": "SMED",
+      "sourceSha256": "4f20db89ae4a64cae5c5d1be35500b447a0e3259f7385ce683642658ac71b07a",
+      "labelFa": "تعویض سریع قالب (SMED)"
+    },
+    {
+      "id": "hatef:concept:949a68f8-cabc-54f9-8254-cdd9ee1cb612",
+      "labelEn": "acoustics",
+      "sourceSha256": "5d8308f621e240c1acad1436c719654c1ce1f4734e5e17367ffc0b2ea0dc7d4d",
+      "labelFa": "صوت‌شناسی"
+    },
+    {
+      "id": "hatef:concept:98097612-8ec4-56e1-9ed7-f805d6627a46",
+      "labelEn": "contextualise records collection",
+      "sourceSha256": "9a062c1fcfe468995822ac39b5c2f7983da2d0272934e1aff65b00b599300539",
+      "labelFa": "توصیف و زمینه‌گذاری مجموعهٔ اسناد"
+    },
+    {
+      "id": "hatef:concept:984d593e-004b-57d4-ba3d-2cd875c88594",
+      "labelEn": "bookmaker",
+      "sourceSha256": "b1a30b375ea119f4e6cc43715ef263d564b59fde1dd2a12c80e765f5ba302768",
+      "labelFa": "کارگزار شرط‌بندی"
+    },
+    {
+      "id": "hatef:concept:98764524-d188-5efc-b932-a80e64aaf3e7",
+      "labelEn": "C#",
+      "sourceSha256": "e1f23f9d43eacf4b2a575323b3f72eb7dacdf79d50b5a68a0731d88379656ea8",
+      "labelFa": "زبان سی‌شارپ"
+    },
+    {
+      "id": "hatef:concept:9933047a-4a26-5541-81b2-6777e9a23542",
+      "labelEn": "Xcode",
+      "sourceSha256": "afb314503547743090b06e3e088855ee9e2c76e96ef710a26515114608135ce4",
+      "labelFa": "محیط توسعهٔ اکس‌کد"
+    },
+    {
+      "id": "hatef:concept:99c5c27f-6223-5821-896f-5e54acf51ac6",
+      "labelEn": "photoengraving",
+      "sourceSha256": "d2731b9e95d9cbe2271f210962e1b81803206eed1ee96f6724bd39210a02273c",
+      "labelFa": "حکاکی نوری"
+    },
+    {
+      "id": "hatef:concept:9b9c1993-3cef-5866-8d07-9a438f5771df",
+      "labelEn": "forester",
+      "sourceSha256": "18c8f4668a77e8812acc2d76dab16cad49027fb014936fb962c51ef256a451e4",
+      "labelFa": "کارشناس جنگل‌داری"
+    },
+    {
+      "id": "hatef:concept:9cbde93e-9441-5992-9c8a-94183d532b2f",
+      "labelEn": "Draughtspersons",
+      "sourceSha256": "a95cac723b57c9b4e5d1f05e3d36eb8cecbf57799e13954f9f4c1f0d56521174",
+      "labelFa": "نقشه‌کشان فنی"
+    },
+    {
+      "id": "hatef:concept:9da77313-c614-5e93-aa15-d63dc74d2b4b",
+      "labelEn": "engine minder",
+      "sourceSha256": "e73fa8c62d3e998cfcb7debc63258dd4db8bda9610f0710abac9838b14f81c05",
+      "labelFa": "متصدی موتور شناورهای آبراه‌های داخلی"
+    },
+    {
+      "id": "hatef:concept:9e581f0a-78a7-51af-a373-a80dd2efa16d",
+      "labelEn": "geochronology",
+      "sourceSha256": "86c24abaf9dc2433135eb1daed13a092b7cef6c0f4dbfc8ed3556db2a0735ed9",
+      "labelFa": "زمین‌گاه‌شناسی"
+    },
+    {
+      "id": "hatef:concept:a1df0f25-9a4c-59fa-abad-e2db412a5ad9",
+      "labelEn": "SAP R3",
+      "sourceSha256": "e6944697fd3b3467445da2d129cdfda1c3bee042064c8fab2299028d3f09d9bf",
+      "labelFa": "سامانهٔ اس‌ای‌پی آر۳"
+    },
+    {
+      "id": "hatef:concept:a4607437-694a-595e-a72d-c2102e9fbe21",
+      "labelEn": "prompter",
+      "sourceSha256": "da8dc697b3bcf885a0094f886be2e13a549d06fff1398d36049f9bc8970304c7",
+      "labelFa": "یادآور دیالوگ و حرکات صحنه"
+    },
+    {
+      "id": "hatef:concept:a50943e9-4006-5e88-81c4-936321aa0318",
+      "labelEn": "microoptics",
+      "sourceSha256": "e7f372d23514e7c035298d02bab120781068307b974f9848d1559f19f16692c1",
+      "labelFa": "ریزاپتیک"
+    },
+    {
+      "id": "hatef:concept:a5c59d4e-3512-5dc1-9c6e-dee16ebc511c",
+      "labelEn": "tend metal planer",
+      "sourceSha256": "d9ca970c7de66f64ad24e6adcebde58f9363dc80211d2d39ae3e088703421fec",
+      "labelFa": "کار با دستگاه صفحه‌تراش فلز"
+    },
+    {
+      "id": "hatef:concept:a5cc4262-00e7-5c4d-af2d-2febf6231eb2",
+      "labelEn": "pyrotechnician",
+      "sourceSha256": "a927e4a48124aff0b8b8ce8442d168d3e770f34515bd93436965ea1a353a8981",
+      "labelFa": "متخصص جلوه‌های آتش‌بازی صحنه"
+    },
+    {
+      "id": "hatef:concept:a5f967ca-4921-5a91-a10b-1974f325d9a9",
+      "labelEn": "lepidoptery",
+      "sourceSha256": "52237bf1a8cc2ae5eb8fac29dcff45ff89073a65470d712576c209e068a51bc6",
+      "labelFa": "پروانه‌شناسی"
+    },
+    {
+      "id": "hatef:concept:a7e482a9-7201-5f75-a922-e5d13cdce382",
+      "labelEn": "resource description framework query language",
+      "sourceSha256": "1dc2f3543bfe248f25778f16cbeef31e4aaccb600f7902e60c95b5250692308d",
+      "labelFa": "زبان پرس‌وجوی چارچوب توصیف منابع"
+    },
+    {
+      "id": "hatef:concept:a874d7ff-48a4-572a-a49c-6ba3d6be9b50",
+      "labelEn": "otorhinolaryngology",
+      "sourceSha256": "f1a7c913bc2228c538cbdca07959b842753e33e5e7e781d63bb347bcbbbe0f88",
+      "labelFa": "تخصص گوش، حلق و بینی"
+    },
+    {
+      "id": "hatef:concept:a95cbb20-8a9e-5641-982e-36e00788d98b",
+      "labelEn": "nitroglycerin neutraliser",
+      "sourceSha256": "f61a497f9ecf299ee8f0591e3afaa1e7bcef126e4a6268051966fa97c74984ab",
+      "labelFa": "متصدی خنثی‌سازی اسید در تولید نیتروگلیسیرین"
+    },
+    {
+      "id": "hatef:concept:a9b16565-bc21-5166-bc67-e334e0010454",
+      "labelEn": "helmsman",
+      "sourceSha256": "8a52ea700fa16a61073391e7cfbdfb2e2869090df3f5c54a979a1205a9b8225a",
+      "labelFa": "سکان‌دار"
+    },
+    {
+      "id": "hatef:concept:ab3358e3-3b18-5b6e-8c86-fd8e738e2bbe",
+      "labelEn": "epigraphy",
+      "sourceSha256": "f81b4f70e603aa76b058f45f2e7119927bc7e52334e8cb554fb3083200e8570d",
+      "labelFa": "کتیبه‌شناسی"
+    },
+    {
+      "id": "hatef:concept:ab78dadb-41ba-53c9-b694-63372a1a362f",
+      "labelEn": "enameller",
+      "sourceSha256": "a121ae1183a36a9b79449eee0a1b2b5536bfcbf804c6138fcc5c2ddbaffe81f6",
+      "labelFa": "میناکار"
+    },
+    {
+      "id": "hatef:concept:aba37720-1a7c-5451-8eca-93f5c9fb629b",
+      "labelEn": "adapt props",
+      "sourceSha256": "85dede85bc661963113b2d375ea927c8e8f9029212836895c6dd8fc76b3ae50e",
+      "labelFa": "تطبیق و تغییر وسایل صحنه"
+    },
+    {
+      "id": "hatef:concept:ac008288-5d9b-5258-8717-aaeb704ae642",
+      "labelEn": "motion capture",
+      "sourceSha256": "8670b52d737b2dbee589b96d1270697c7b97bc2e1601556924a46ea25764acb5",
+      "labelFa": "ضبط حرکت"
+    },
+    {
+      "id": "hatef:concept:ad2c251c-95ca-5876-b66c-a27892249a83",
+      "labelEn": "distributed directory information services",
+      "sourceSha256": "feb33664c65d46c2ea9723d5646f54d7084285a142d29d8894191538c66fe2fa",
+      "labelFa": "خدمات اطلاعات دایرکتوری توزیع‌شده"
+    },
+    {
+      "id": "hatef:concept:ad40ea82-9356-56ce-b29e-bb747b78dca4",
+      "labelEn": "shipwright",
+      "sourceSha256": "86b981b18c03534f8bcbe8fffb733c8c1f27087bebaf8aa87e36f0d65869b93c",
+      "labelFa": "سازنده و تعمیرکار شناور"
+    },
+    {
+      "id": "hatef:concept:adf5a1dc-20d0-5016-bfc3-b8250a70f7ec",
+      "labelEn": "tend metal sawing machine",
+      "sourceSha256": "e7568673bf5152ba3c883d045a73b94797a178bd610d0b86fe0815892a9f70b1",
+      "labelFa": "کار با دستگاه اره‌کاری فلز"
+    },
+    {
+      "id": "hatef:concept:af26db06-04c9-54bb-b255-cb2bb067757f",
+      "labelEn": "select scripts",
+      "sourceSha256": "75931339bbab4d74a1b525e04c5504f576e593d0ee93cb5f8246394dc3847096",
+      "labelFa": "انتخاب فیلم‌نامه‌ها"
+    },
+    {
+      "id": "hatef:concept:af53b5ba-7ea8-5d1d-a60a-8b38a85842e1",
+      "labelEn": "LDAP",
+      "sourceSha256": "9588e041941e6e13a845214532356aec4419da1a2a2c88c169ff3e74239242b2",
+      "labelFa": "پروتکل دسترسی سبک به دایرکتوری (LDAP)"
+    },
+    {
+      "id": "hatef:concept:afa65084-dc7e-5c7b-b7db-2f8b79d53320",
+      "labelEn": "astropsychology",
+      "sourceSha256": "1489a21bfcabc45c973f49c8de365464a89df00b6478acb6ddf8cebda53779a0",
+      "labelFa": "روان‌شناسی مبتنی بر طالع‌بینی"
+    },
+    {
+      "id": "hatef:concept:b04e3e86-4045-5ac9-91c3-6eb0d28ecfe7",
+      "labelEn": "firmware",
+      "sourceSha256": "a06f4707e5f7a7304fbb31afb72940fcf23d6e60aeaea1edcd3b12cdbe4a8a35",
+      "labelFa": "میان‌افزار"
+    },
+    {
+      "id": "hatef:concept:b0b6e6df-d3d0-57c5-8f40-cceb01a52fdf",
+      "labelEn": "DevOps",
+      "sourceSha256": "18290ab26dea015034ebb20c7211bb34285b275258633fd8c583745385ebacd6",
+      "labelFa": "دواپس"
+    },
+    {
+      "id": "hatef:concept:b23aca30-bc4a-5e7b-a9d6-d31015ae8456",
+      "labelEn": "Oracle Data Integrator",
+      "sourceSha256": "0efb9f61f137ef4f1012d68e57a2251aa9c76a60a20335f5a104ad666d17a11d",
+      "labelFa": "اوراکل دیتا اینتگریتور"
+    },
+    {
+      "id": "hatef:concept:b4c62506-dcdc-5ff2-979c-e5cf329ebadb",
+      "labelEn": "groom",
+      "sourceSha256": "11808f58260ca2486d2e759b1dbd8fd464a4b5382c8ad03d2a167b7178f8cb56",
+      "labelFa": "تیمارگر اسب"
+    },
+    {
+      "id": "hatef:concept:b576b3cf-0443-580c-8492-e9f5dfa249f5",
+      "labelEn": "body artist",
+      "sourceSha256": "ac4806fee76e53ae11dbd81618e0741ee83960daad4a1fe979fb163d0827b50e",
+      "labelFa": "هنرمند تزیین بدن (تاتو و پیرسینگ)"
+    },
+    {
+      "id": "hatef:concept:b6b6e808-8ee4-50d2-a138-5f5c358f9fd7",
+      "labelEn": "Parrot Security OS",
+      "sourceSha256": "127e9360d701aeceda5a6251a0fe537d23016e91c1d9dfd834f3a41c999bef8c",
+      "labelFa": "سیستم‌عامل پاروت سکیوریتی"
+    },
+    {
+      "id": "hatef:concept:b6e30d2a-2880-568d-9586-d46a354f7f20",
+      "labelEn": "adobe creative suite",
+      "sourceSha256": "901ac71cd136dea4f28d513d2db2a14cd2ff717179f3d397060ef2613641eba2",
+      "labelFa": "مجموعهٔ نرم‌افزارهای خلاقانهٔ ادوبی"
+    },
+    {
+      "id": "hatef:concept:b77c7066-49ad-56fa-a122-263011830344",
+      "labelEn": "mycology",
+      "sourceSha256": "bf67472e0b803de423c29cc4ffe795ddf724c3fb45b6228bc1e015cfd5e0eaba",
+      "labelFa": "قارچ‌شناسی"
+    },
+    {
+      "id": "hatef:concept:b9ba27f6-b88d-5821-be8b-6f6457576227",
+      "labelEn": "transcreation",
+      "sourceSha256": "1b9631147574f680c9aca6fa619743a88bdc9e91e11d628ac1229a91b5d2e54e",
+      "labelFa": "بازآفرینی خلاقانهٔ محتوا در ترجمه"
+    },
+    {
+      "id": "hatef:concept:ba41f5b7-aff2-5752-ade0-5fed259df10e",
+      "labelEn": "Metasploit",
+      "sourceSha256": "e5e8d650d83e2fd2c90c9635b90c33d855b17f8a92ca6cf32d0c09aa6fa613d8",
+      "labelFa": "ابزار امنیتی متاسپلویت"
+    },
+    {
+      "id": "hatef:concept:ba6dc075-0888-5b77-8ebe-37fbc328acc8",
+      "labelEn": "CSS",
+      "sourceSha256": "d951a2585389a2ac69e4bfbaf1ded86fab12234789dddf25ee25f9955ea94fd1",
+      "labelFa": "سی‌اس‌اس"
+    },
+    {
+      "id": "hatef:concept:bc25a940-c25c-53d1-b760-42c257dea559",
+      "labelEn": "demographer",
+      "sourceSha256": "a2c631cee5f20ff4456743bb7c3d5df92234353168cb78d6b0889bcbe108b816",
+      "labelFa": "جمعیت‌شناس"
+    },
+    {
+      "id": "hatef:concept:be356497-b10c-57fe-960a-8d6be87a841d",
+      "labelEn": "tend lathe",
+      "sourceSha256": "8e4ca3f6e3262e4b68ba0438ce4981e14439499e43c6d4ec92f004641ca64436",
+      "labelFa": "کار با دستگاه تراش"
+    },
+    {
+      "id": "hatef:concept:bf78d2df-b3af-5158-9af5-fe7b887ba94a",
+      "labelEn": "Microsoft Access",
+      "sourceSha256": "e6e65117c1b9a8ff5f89cee793d9f094fb1a851e42a2f48a35187e64ba8832a7",
+      "labelFa": "مایکروسافت اکسس"
+    },
+    {
+      "id": "hatef:concept:c10a9425-857d-59f1-af7a-576372c3d651",
+      "labelEn": "OpenEdge Advanced Business Language",
+      "sourceSha256": "3206da1d6739513cb12362e773a73ef29c5dcc0965fd0bfa29f7efd483c7137e",
+      "labelFa": "زبان پیشرفتهٔ کسب‌وکار اوپن‌اج"
+    },
+    {
+      "id": "hatef:concept:c2a2b365-6c49-5ad3-b70f-2e413a838e7f",
+      "labelEn": "MDX",
+      "sourceSha256": "e340422e7a5a844fd6bb53f04c902e898284db371e7897cbc8a2e4a9be592938",
+      "labelFa": "زبان پرس‌وجوی چندبعدی ام‌دی‌اکس (MDX)"
+    },
+    {
+      "id": "hatef:concept:c491761c-3996-54a6-a1e5-a12243ab26e3",
+      "labelEn": "shotfirer",
+      "sourceSha256": "194838ce128c681497ca0cbd9f7ebd3905d4d2434d7ac3bd8408d6d4a0efdfd5",
+      "labelFa": "متصدی عملیات آتش‌باری"
+    },
+    {
+      "id": "hatef:concept:c523af22-ed1b-5fb2-8cb4-fcd3a20df06e",
+      "labelEn": "paperhanger",
+      "sourceSha256": "9ad972495a5caabc3cc6527b0d1e59ad4961de706615e975122f7600ca798e8d",
+      "labelFa": "نصاب کاغذدیواری"
+    },
+    {
+      "id": "hatef:concept:c53d6c25-0d3a-5588-9c63-d41c34d335cc",
+      "labelEn": "IBM InfoSphere Information Server",
+      "sourceSha256": "ac6e5fa21e5e6c2879b985e230219ae82b26262a58ddee87d7e71db92c58a87c",
+      "labelFa": "سرور اطلاعات آی‌بی‌ام اینفواسفیر"
+    },
+    {
+      "id": "hatef:concept:c691e2da-1a1a-5d07-b8c7-2ba211a82684",
+      "labelEn": "hydrography",
+      "sourceSha256": "fd0546337a59152727bbbe1bd28c828467a9954b830564a9843c0a62446899a5",
+      "labelFa": "آب‌نگاری"
+    },
+    {
+      "id": "hatef:concept:c6c49cc9-2957-59ac-aa26-06eb2b22b243",
+      "labelEn": "arboriculturist",
+      "sourceSha256": "be328df57b958ab6c11aba17e25cbd91683e019a888d211aa192cb1382674ca5",
+      "labelFa": "کارشناس پرورش و نگهداری درختان"
+    },
+    {
+      "id": "hatef:concept:c7d27beb-d8df-56f9-8684-8b095f40384c",
+      "labelEn": "IBM InfoSphere DataStage",
+      "sourceSha256": "7dc8229037405e5bdbecd66f979cd71c51f1009ae3f641d229406739523f2036",
+      "labelFa": "آی‌بی‌ام اینفواسفیر دیتاستیج"
+    },
+    {
+      "id": "hatef:concept:c933d031-d415-5424-92f6-12538bddd20b",
+      "labelEn": "KDevelop",
+      "sourceSha256": "1faf5a58340e5645f344fb0c33dfd191b8a15e0115dab14d970514a317660fc8",
+      "labelFa": "محیط توسعهٔ کی‌دِولوپ"
+    },
+    {
+      "id": "hatef:concept:ccd4e649-ed41-530c-a016-402a11f740b3",
+      "labelEn": "THC Hydra",
+      "sourceSha256": "68c1bd7c89b1a6ddb28ae6f17ccfdcc7623c66a43a6fa8e024382fb2528c7093",
+      "labelFa": "ابزار آزمون امنیتی تی‌اچ‌سی هایدرا"
+    },
+    {
+      "id": "hatef:concept:cd05404e-13e5-5676-b346-07237d32bb57",
+      "labelEn": "ICT help desk agent",
+      "sourceSha256": "58bb9b38a6c51cdac9ab372ae8ae5d272c849226995bcb10416d046c08ca804d",
+      "labelFa": "کارشناس میز خدمت فناوری اطلاعات"
+    },
+    {
+      "id": "hatef:concept:cd07388a-c9bf-55b4-b23d-2fecb2825018",
+      "labelEn": "Jenkins (tools for software configuration management)",
+      "sourceSha256": "46b69e77f9f853723b74f90e936916d640b57b6173534d3049e02beaeadf34b3",
+      "labelFa": "جنکینز (ابزار مدیریت پیکربندی نرم‌افزار)"
+    },
+    {
+      "id": "hatef:concept:cd20c3be-5bc7-5753-86e3-2e59a785d90e",
+      "labelEn": "insourcing strategy",
+      "sourceSha256": "9b5045618f3e4f5b8b6c32b102456805ebe2530bee6434b9f6be36f8dd80097a",
+      "labelFa": "راهبرد درون‌سپاری"
+    },
+    {
+      "id": "hatef:concept:ce69a127-5975-5ce8-a65d-f7cfee8180cb",
+      "labelEn": "TripleStore",
+      "sourceSha256": "93f834970749f459ead1f26dbe02da92b77fdd6bf2334c825a1acc6668d8cb1d",
+      "labelFa": "پایگاه دادهٔ سه‌تایی‌های آر‌دی‌اف"
+    },
+    {
+      "id": "hatef:concept:cf5fd0dd-c4d8-5798-af03-75412d2044ee",
+      "labelEn": "brew house operator",
+      "sourceSha256": "87dc4aac235a343a3f7010f89f1f2cff9c64ed1dbded8e618fa85cd0684b49a5",
+      "labelFa": "اپراتور سالن آبجوسازی"
+    },
+    {
+      "id": "hatef:concept:d053dfd1-2921-5ac4-ac6e-27dba88b2089",
+      "labelEn": "dresser",
+      "sourceSha256": "01319e635ba9e61c0f1e4ea41cde26520b764c95f56c07d6ec73a50cee9e32bb",
+      "labelFa": "دستیار لباس اجرا"
+    },
+    {
+      "id": "hatef:concept:d0ff0e9a-5d3a-5db6-bf06-79c1e39895b8",
+      "labelEn": "palaeoclimatology",
+      "sourceSha256": "6058b7d9153de1bd150c5c3a1d1c21485a624c86f37cd9cf9abfaf9a033cb55e",
+      "labelFa": "دیرینه‌اقلیم‌شناسی"
+    },
+    {
+      "id": "hatef:concept:d57986c5-6ba0-5082-90bb-3894e1a48cad",
+      "labelEn": "ecopedagogy",
+      "sourceSha256": "6503b7075672406370e91e48dd4a49fd06f6cd7379f31d47aeec1eecce54accf",
+      "labelFa": "آموزش‌وپرورش بوم‌شناختی"
+    },
+    {
+      "id": "hatef:concept:d68f3990-7b16-5eb6-a10c-136e2208150a",
+      "labelEn": "agronomy",
+      "sourceSha256": "c68ab685e71a6ff1bd11c87cf3a41d7531e96cc0382b969780b7b7ab93febbe3",
+      "labelFa": "زراعت‌شناسی"
+    },
+    {
+      "id": "hatef:concept:d6924079-72b4-5bed-a2df-e6039100bfe8",
+      "labelEn": "COBOL",
+      "sourceSha256": "9e4cba014f5d1a0288ccd6086cfd29d1f3db6e04c268864b2cd1c9222052eab1",
+      "labelFa": "زبان برنامه‌نویسی کوبول"
+    },
+    {
+      "id": "hatef:concept:d81354c0-7e73-56ca-9fcf-dc6bf3d59bc9",
+      "labelEn": "vlogger",
+      "sourceSha256": "6491a6b428dedbf9abef98c54f02f69504f925d502cfd2fe8d43d709c82dd534",
+      "labelFa": "وبلاگ‌نویس ویدئویی"
+    },
+    {
+      "id": "hatef:concept:d860f473-9a69-5884-883c-6af004a84dd5",
+      "labelEn": "biomarkers",
+      "sourceSha256": "6f98353a385a7b4c23baf992032e7f854d2b0ba4bae23d554eb02738779bf319",
+      "labelFa": "نشانگرهای زیستی"
+    },
+    {
+      "id": "hatef:concept:d8849a60-2e4b-5332-bf41-fd4905ab7dbb",
+      "labelEn": "XQuery",
+      "sourceSha256": "9797cf7190b1c90db7965cc951f2c92e9fa1596ef7242ac71a62c5b9d1a11e65",
+      "labelFa": "زبان پرس‌وجوی اکس‌کوئری"
+    },
+    {
+      "id": "hatef:concept:db2d9069-393f-556d-97bb-670c338be993",
+      "labelEn": "metalogic",
+      "sourceSha256": "b7d53dfc8265a9f335ea54b1e25562e9758f523b79dbc183e4e7bed3786383c6",
+      "labelFa": "فرامنطق"
+    },
+    {
+      "id": "hatef:concept:dc05441b-c3c2-54e6-ac74-8e80821b2cdd",
+      "labelEn": "edge banding",
+      "sourceSha256": "4c30d083b87bc7fcfd537c81253869a935f442f74536d0d8dfe2ecac226c3786",
+      "labelFa": "نوارکاری لبه"
+    },
+    {
+      "id": "hatef:concept:dc59c50f-1280-5324-9a7f-855342443570",
+      "labelEn": "intermodalism",
+      "sourceSha256": "d9577e58991183f49586c9b59313b81dbe8472d867506f057b1573c7ac9fa54b",
+      "labelFa": "حمل‌ونقل بین‌شیوه‌ای"
+    },
+    {
+      "id": "hatef:concept:dd8f7d6d-b24c-5a76-bc34-cb51b0c37f89",
+      "labelEn": "lipspeaking",
+      "sourceSha256": "9803091c29999ccba5806f6f59cede8ce542b5933b8a308a1be7450698b61ed1",
+      "labelFa": "بازگویی بی‌صدا با حرکات لب"
+    },
+    {
+      "id": "hatef:concept:dd9050cb-b213-5489-b674-f72517f3a24b",
+      "labelEn": "prop maker",
+      "sourceSha256": "fb8ac5e79c6b5c26225ecbfe4e27a450ec9ba7ba4a6050c14807d9f7bdd45a30",
+      "labelFa": "سازندهٔ وسایل صحنه"
+    },
+    {
+      "id": "hatef:concept:e002bec5-476b-5543-986f-f48112160037",
+      "labelEn": "OmniPage",
+      "sourceSha256": "67c3a79fa6150da5fda078a604190d8e0a74b80f37292d28f6163415e7dd4763",
+      "labelFa": "نرم‌افزار تشخیص متن اومنی‌پیج"
+    },
+    {
+      "id": "hatef:concept:e05b7c82-5900-5dae-98c3-887330e16c2d",
+      "labelEn": "ABAP",
+      "sourceSha256": "08a393c198c8c6bb0a12b6dcf93cb3bf60c049c86daae59cd1e534d8005e666c",
+      "labelFa": "زبان برنامه‌نویسی ای‌بی‌ای‌پی (ABAP)"
+    },
+    {
+      "id": "hatef:concept:e0bd465a-004a-51cc-96aa-c7973b44cfaa",
+      "labelEn": "Occitan",
+      "sourceSha256": "015ae65c4b1324fed4e9c699ee1a02fd10122dda7547ff795bbefcd49fcc43a7",
+      "labelFa": "زبان اکسیتان"
+    },
+    {
+      "id": "hatef:concept:e45b1f75-3f49-5677-aab4-fc2325411233",
+      "labelEn": "promoter",
+      "sourceSha256": "34f71f1d9ae86af142fd08f9ed30f1f6a5d504849d8e5ae7dbdaa3e5cca7264f",
+      "labelFa": "برگزارکننده و مروج اجراهای هنری"
+    },
+    {
+      "id": "hatef:concept:e46f5953-f2fc-5603-adfe-86967fac4225",
+      "labelEn": "OpenEdge Database",
+      "sourceSha256": "cf805b866242bdf8a2518d5951ca8fd655bdc108955e199da895215b9e0b347d",
+      "labelFa": "پایگاه دادهٔ اوپن‌اج"
+    },
+    {
+      "id": "hatef:concept:e51ecde0-6b13-5093-ba84-6512bf1c9023",
+      "labelEn": "mineralogist",
+      "sourceSha256": "4dd917b461a0b2cd2cde822b77376041bd89abdaf06cb8b1b4d92333e3c77886",
+      "labelFa": "کانی‌شناس"
+    },
+    {
+      "id": "hatef:concept:e6785db8-60be-50d3-893d-aca988186f8e",
+      "labelEn": "immunohaematology",
+      "sourceSha256": "03b4dc090e9741c3e02d2e4540b781d621fbcd31e0f50c3a59f76572c61ccd9b",
+      "labelFa": "ایمنی‌شناسی خون"
+    },
+    {
+      "id": "hatef:concept:e771d1ba-d51f-566a-b193-7b9ea4b4291c",
+      "labelEn": "crimping",
+      "sourceSha256": "ca17831621b3e4299d9ddc6a6d60cf489125e79b28d1d57f35458329dcc246d4",
+      "labelFa": "اتصال با پرس‌کاری (کریمپ)"
+    },
+    {
+      "id": "hatef:concept:e906046e-edbd-562c-aaf2-2892577f321d",
+      "labelEn": "SQL",
+      "sourceSha256": "ae62d371d8c3ab7dcc951498e5fcd599be0257c0958876370faa99d5040bc9d5",
+      "labelFa": "زبان پرس‌وجوی اس‌کیوال"
+    },
+    {
+      "id": "hatef:concept:ea9ac162-53a5-56bd-a236-a6897c33e249",
+      "labelEn": "NoSQL",
+      "sourceSha256": "c700ce109374193db0990dbe246f661d0d27a14b47ef1f102c31a8696218edc4",
+      "labelFa": "پایگاه دادهٔ غیررابطه‌ای نو‌اس‌کیوال"
+    },
+    {
+      "id": "hatef:concept:edf1e63f-9f7f-5df5-8bfe-f6c14dea2056",
+      "labelEn": "MarkLogic",
+      "sourceSha256": "0b5eef5980f4e16ec61b379e3bfdeeaddc54f2b6fd49d8078cb0ba7740596f37",
+      "labelFa": "پایگاه دادهٔ مارک‌لاجیک"
+    },
+    {
+      "id": "hatef:concept:f0a7c4ae-dbcf-5e98-bab9-418b004a18bc",
+      "labelEn": "AJAX",
+      "sourceSha256": "f7603d7f3ce082ec4145ea33cd70fcf4534f32e2291bd55b30265d42e1f75332",
+      "labelFa": "فناوری ایجکس"
+    },
+    {
+      "id": "hatef:concept:f13d6724-6ca4-5c0d-8cd5-34f848e42006",
+      "labelEn": "buttonholing",
+      "sourceSha256": "77e3d2d85934e2d59a0f3d9dbe5e7124227ca78c704429a7c6c2ffc24a7c2665",
+      "labelFa": "جادکمه‌دوزی"
+    },
+    {
+      "id": "hatef:concept:f16f2b90-9d69-5b22-b064-fa7a45f27859",
+      "labelEn": "helminthology",
+      "sourceSha256": "c1ba4cedadcfe09cddf9155a0f3cfaaff0fd1fe3a92934e43bc4935b0814d46d",
+      "labelFa": "کرم‌شناسی (کرم‌های انگلی)"
+    },
+    {
+      "id": "hatef:concept:f28dcac5-ab6a-5847-8cad-33b10ce83008",
+      "labelEn": "blockchain",
+      "sourceSha256": "67268c14a17954d53f5ef3799dd2cd0d3a16dfb0ae120efef4cffe32d8c19818",
+      "labelFa": "زنجیرهٔ بلوکی"
+    },
+    {
+      "id": "hatef:concept:f38fa8c6-4a4b-5fc7-9924-5f44274f0c06",
+      "labelEn": "handyperson",
+      "sourceSha256": "e86c95151364645592c47df3d61b9349126074b218abcf8a2ef49692b28b6240",
+      "labelFa": "تعمیرکار همه‌فن‌حریف"
+    },
+    {
+      "id": "hatef:concept:f48b4c6a-2236-57c2-aea6-c3544d84b157",
+      "labelEn": "agroecology",
+      "sourceSha256": "c4645d4ff9c8fd8eaa7ffb409ae201dbf486ed35225f2dcd83ee382fe8e658cc",
+      "labelFa": "بوم‌شناسی کشاورزی"
+    },
+    {
+      "id": "hatef:concept:f4944d1b-9d80-53ab-9188-c7f6d3613650",
+      "labelEn": "fertigation",
+      "sourceSha256": "83efa81ae4ce742e4accd814c4c3f7862e2fa054b78f913220e0fb9d4fad02c5",
+      "labelFa": "کودآبیاری"
+    },
+    {
+      "id": "hatef:concept:f4d6c2c0-cfe6-581b-8f3b-8ba7fef73deb",
+      "labelEn": "Schoology",
+      "sourceSha256": "4d7e76132563e01eaed4c6207cc9e47a6805a058e742c18ff57d21bd3411cd48",
+      "labelFa": "سامانهٔ آموزشی اسکولوجی"
+    },
+    {
+      "id": "hatef:concept:f5ab24e5-1395-5b1b-8b9f-e9c5877d91fa",
+      "labelEn": "cloud identity manager",
+      "sourceSha256": "dde338b79a8a60474db069629c34672414bf5b02b0a0a897f967cde0bf61b8ce",
+      "labelFa": "مدیر هویت ابری"
+    },
+    {
+      "id": "hatef:concept:f8d05263-1f23-5633-8823-d5088183cf0b",
+      "labelEn": "MATLAB",
+      "sourceSha256": "f7fe8f26c69a9a2efbd711b582f7cb2dce912168e2146bba97e626985faea150",
+      "labelFa": "متلب"
+    },
+    {
+      "id": "hatef:concept:f8df0b02-8bca-5f2e-abab-ae11d232af66",
+      "labelEn": "stagehand",
+      "sourceSha256": "800c8af0165d931ee0b405f47edad9950ca16d9a54ad6bf357e48f7eb5c69825",
+      "labelFa": "دستیار فنی صحنه"
+    },
+    {
+      "id": "hatef:concept:facfc03e-0b01-5e5f-a4cd-3654737c6bf1",
+      "labelEn": "neuropsychiatry",
+      "sourceSha256": "558c8da371690c20f992cda59681f102535e2f09b59da96794547fa8b2620166",
+      "labelFa": "عصب‌روان‌پزشکی"
+    },
+    {
+      "id": "hatef:concept:fcbe2291-5ebf-5044-8d2e-2bda445e4f77",
+      "labelEn": "ABBYY FineReader",
+      "sourceSha256": "88302686e0f615237f449feeab2a12d756d7ee3f5fd7325d89bc768bd2345ee7",
+      "labelFa": "نرم‌افزار تشخیص متن ابی فاین‌ریدر"
+    },
+    {
+      "id": "hatef:concept:fce6add3-1133-5575-9f4f-239fd5419e5b",
+      "labelEn": "sophrology",
+      "sourceSha256": "952d7c2b532219a9214b89f1b7783ea4edb1ed7334717add0ef7ca5c199f4366",
+      "labelFa": "سوفرولوژی (روش آرام‌سازی)"
+    }
+  ]
+}

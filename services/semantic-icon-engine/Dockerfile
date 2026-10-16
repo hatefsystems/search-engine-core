@@ -26,6 +26,8 @@ LABEL org.opencontainers.image.source="https://github.com/hatefsystems/search-en
 COPY --link --from=icon-artifacts --chown=10001:10001 /models/ /opt/icon-artifacts/models/
 COPY --link --from=icon-artifacts --chown=10001:10001 /data/ /opt/icon-artifacts/data/
 COPY --link --from=icon-artifacts --chown=10001:10001 /vectors/ /opt/icon-artifacts/vectors/
+COPY --link --from=icon-artifacts --chown=10001:10001 /knowledge/ /opt/icon-artifacts/knowledge/
+COPY --link --from=icon-artifacts --chown=10001:10001 /knowledge-vectors/ /opt/icon-artifacts/knowledge-vectors/
 COPY --link --from=icon-artifacts --chown=10001:10001 /release.json /opt/icon-artifacts/release.json
 ENV ICON_DATA_DIR=/opt/icon-artifacts/data ICON_MODEL_DIR=/opt/icon-artifacts/models ICON_VECTOR_DIR=/opt/icon-artifacts/vectors
 

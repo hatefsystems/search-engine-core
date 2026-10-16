@@ -62,12 +62,12 @@ Wait for the first command to exit successfully before starting the runtime. It 
 
 Setup performs `prepare`, `ingest` and complete `index` in order. It verifies pinned revisions and model checksums, saves `import-report.json` and reports approved/indexed counts. The artifact mount is writable only in the setup container; the runtime mount remains read-only. Source clones and downloaded files are retained on the host:
 
-| Setting | Default |
-| --- | --- |
-| `ICON_ARTIFACT_DIR` | `./services/semantic-icon-engine/data/offline` |
+| Setting             | Default                                         |
+| ------------------- | ----------------------------------------------- |
+| `ICON_ARTIFACT_DIR` | `./services/semantic-icon-engine/data/offline`  |
 | `ICON_UPSTREAM_DIR` | `./services/semantic-icon-engine/data/upstream` |
-| `ICON_SETUP_CPUS` | `1.0` |
-| `ICON_SETUP_MEMORY` | `2048m` |
+| `ICON_SETUP_CPUS`   | `1.0`                                           |
+| `ICON_SETUP_MEMORY` | `2048m`                                         |
 
 Setup runs as root inside its temporary container so Docker-created bind directories are writable. New files use a 022 umask, making artifacts readable by runtime UID 10001. If switching to a host UID, create both mount directories first and use `run --user "$(id -u):$(id -g)"`; the UID must own any retained source clones and writable artifacts.
 
@@ -81,7 +81,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-se
 docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm icon-setup --batch 4
 ```
 
-`--skip-index` still prepares the pinned model. Semantic mode remains off by default. After successful indexing, put `ICON_SEMANTIC_ENABLED=true` in `.env` and recreate `semantic-icon-engine` with the `icons` profile to enable it. Normal `docker compose up` does not enable either optional profile, and runtime startup never prepares artifacts.
+`--skip-index` prepares the pinned model, icon catalog and ESCO bank without building vectors. The optional `icons` Compose profile enables semantic mode by default; missing or incompatible assets fall back to lexical matching. Set `ICON_SEMANTIC_ENABLED=false` to explicitly disable inference. Normal `docker compose up` does not enable either optional profile, and runtime startup never prepares artifacts.
 
 The setup container forwards `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` from the shell or `.env`. Use a proxy address reachable from the container; `127.0.0.1` inside a container refers to that container. Docker image/package build downloads use Docker's own proxy configuration. Proxy credentials must remain outside Git.
 
@@ -92,15 +92,12 @@ python3.12 -m venv .venv-icons
 .venv-icons/bin/pip install --require-hashes -r services/semantic-icon-engine/requirements.txt
 export ICON_ARTIFACT_DIR="$PWD/services/semantic-icon-engine/data/offline"
 mkdir -p "$ICON_ARTIFACT_DIR"
-.venv-icons/bin/python services/semantic-icon-engine/scripts/manage.py prepare \
+.venv-icons/bin/python services/semantic-icon-engine/scripts/bootstrap.py \
   --upstream "$PWD/services/semantic-icon-engine/data/upstream" \
-  --models "$ICON_ARTIFACT_DIR/models"
-.venv-icons/bin/python services/semantic-icon-engine/scripts/manage.py ingest \
-  --upstream "$PWD/services/semantic-icon-engine/data/upstream" \
-  --data "$ICON_ARTIFACT_DIR/data"
+  --artifacts "$ICON_ARTIFACT_DIR" --batch 8
 ```
 
-`prepare` explicitly fetches the source commit IDs in `config/sources.lock.json` and downloads the pinned ONNX model, tokenizer and model card. Model SHA-256 checksums are verified. Git object identities and tracked-file cleanliness are checked at import. Neither command runs at API startup. Retain the full model card and source notices with the artifacts.
+`bootstrap.py` prepares the pinned source commits, model and ESCO archive, builds the icon catalog and knowledge bank, embeds both, and precomputes icon proposals. Checksums and source revisions are verified. It runs only as an explicit administrative command. Retain the model card and source notices with the artifacts. Use `--skip-index` for catalog/bank preparation without vectors. The lower-level `manage.py prepare`, `ingest` and `index` commands remain available for icon-only diagnostics; they do not by themselves prepare the complete knowledge release.
 
 Default policy discovers every source pack but publishes only reviewed data. See [security.md](security.md) before expanding that policy. A complete discovery report does **not** mean every upstream icon was approved. Import output includes counts, exclusion reasons, source revisions, snapshot version and database bytes. SQLite stores SVG blobs once per hash and retains each canonical ID and alias independently.
 
