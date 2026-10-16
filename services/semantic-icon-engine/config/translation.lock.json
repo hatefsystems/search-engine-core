@@ -16,5 +16,7 @@
     "target_vocabulary.json": "2a7940f6f06ef49a59e2941fce9de0017cd47fe661d4cf8855f9982f43f68cda",
     "src.spm.model": "8595a973d0f43dd25225a0eb3411ffbdf8ae4736e41d800995b1d25ac2c6019a",
     "tgt.spm.model": "6aedb8783f67ae6310ebe5f9c0798f6fcdf7bfcff877d548d039d7bc53ca6548"
-  }
+  },
+  "algorithmVersion": 2,
+  "noRepeatNgramSize": 8
 }

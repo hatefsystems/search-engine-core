@@ -107,6 +107,7 @@ class DraftTranslator:
             inter_threads=4,
         )
         self.beam = spec["beamSize"]
+        self.no_repeat = spec["noRepeatNgramSize"]
         self.identity = hashlib.sha256(
             json.dumps(spec, sort_keys=True).encode()
         ).hexdigest()
@@ -120,17 +121,50 @@ class DraftTranslator:
                 "SELECT source,target FROM translations WHERE model=?", (self.identity,)
             )
         }
-        self.truncated = set()
+        self.cache.execute(
+            "CREATE TABLE IF NOT EXISTS warnings(model TEXT,source TEXT,reasons TEXT,PRIMARY KEY(model,source))"
+        )
+        self.warnings = {
+            s: json.loads(reasons)
+            for s, reasons in self.cache.execute(
+                "SELECT source,reasons FROM warnings WHERE model=?", (self.identity,)
+            )
+        }
 
     def segments(self, text):
         # No truncation: split at sentence boundaries, then at token boundaries.
-        parts = re.split(r"(?<=[.!?])\s+|\n+", clean_source(text))
+        # Keep paragraph and bullet boundaries before normalizing whitespace.
+        text = re.sub(r"</?(?:p|li|ul|ol)\b[^>]*>|<br\b[^>]*>", "\n", text, flags=re.I)
+        text = html.unescape(re.sub(r"<[^>]*>", " ", text))
+        parts = re.split(r"(?<=[.!?;])\s+|[\r\n]+|\s+-\s+", text)
         out = []
         for part in parts:
-            tokens = self.source.encode(part, out_type=str)
+            tokens = self.source.encode(clean_source(part), out_type=str)
             for start in range(0, len(tokens), 160):
                 out.append(self.source.decode(tokens[start : start + 160]))
         return out
+
+    def recover(self, tokens):
+        result = self.translator.translate_batch(
+            [tokens + ["</s>"]],
+            beam_size=self.beam,
+            max_decoding_length=384,
+            no_repeat_ngram_size=self.no_repeat,
+            disable_unk=True,
+            return_end_token=True,
+        )[0]
+        target = result.hypotheses[0]
+        if target and target[-1] == "</s>":
+            text = clean_fa(self.target.decode(target[:-1]))
+            if text:
+                return text, False
+        if len(tokens) <= 1:
+            # Explicitly retain an untranslatable source fragment for a human.
+            return self.source.decode(tokens), True
+        middle = len(tokens) // 2
+        left, left_literal = self.recover(tokens[:middle])
+        right, right_literal = self.recover(tokens[middle:])
+        return clean_fa(left + " " + right), left_literal or right_literal
 
     def prepare(self, strings, name):
         missing = {
@@ -152,15 +186,27 @@ class DraftTranslator:
                 max_decoding_length=384,
                 disable_unk=True,
                 return_end_token=True,
+                no_repeat_ngram_size=self.no_repeat,
             )
             for original, result in zip(batch, results, strict=True):
                 tokens = result.hypotheses[0]
-                if not tokens or tokens[-1] != "</s>":
-                    raise ValueError(
-                        "translation hit decoding limit; retry with shorter source: "
-                        + original[:80]
+                translated = (
+                    clean_fa(self.target.decode(tokens[:-1]))
+                    if tokens and tokens[-1] == "</s>"
+                    else ""
+                )
+                if not translated:
+                    translated, literal = self.recover(
+                        self.source.encode(original, out_type=str)
                     )
-                translated = clean_fa(self.target.decode(tokens[:-1]))
+                    reasons = ["adaptive-segmentation"] + (
+                        ["untranslated-fragment"] if literal else []
+                    )
+                    self.warnings[original] = reasons
+                    self.cache.execute(
+                        "INSERT OR REPLACE INTO warnings VALUES(?,?,?)",
+                        (self.identity, original, json.dumps(reasons)),
+                    )
                 if not translated:
                     raise ValueError("empty translation for nonempty source")
                 self.values[original] = translated
@@ -248,6 +294,19 @@ def _generate(
             "reviewer": "",
         }
         draft["qualityFlags"] = quality_flags(row, draft)
+        if getattr(translator, "warnings", {}):
+            strings = [
+                clean_source(row["labelEn"], True),
+                row["descriptionEn"],
+                *[clean_source(v, True) for v in row["aliasesEn"]],
+            ]
+            extra = {
+                flag
+                for value in strings
+                for piece in translator.segments(value)
+                for flag in translator.warnings.get(piece, [])
+            }
+            draft["qualityFlags"].extend(sorted(extra))
         drafts.append(draft)
     provenance = (
         {
@@ -327,6 +386,7 @@ def write_drafts(
             "batchSize": 32,
             "intraThreads": execution.get("intraThreads"),
             "interThreads": execution.get("interThreads"),
+            "noRepeatNgramSize": spec["noRepeatNgramSize"],
         },
         "preparation": provenance or {},
         "glossarySource": "assistant-authored knowledge-fa.json; not human reviewed",
@@ -340,6 +400,9 @@ def write_drafts(
         "sourceAliasCount": sum(len(r["aliasesEn"]) for r in rows),
         "persianScriptTitles": sum(has_persian(r["labelFa"]) for r in drafts),
         "flaggedRecords": sum(bool(r["qualityFlags"]) for r in drafts),
+        "recordsWithLiteralFragments": sum(
+            "untranslated-fragment" in r["qualityFlags"] for r in drafts
+        ),
         "qualityFlags": dict(
             Counter(flag for r in drafts for flag in r["qualityFlags"])
         ),
