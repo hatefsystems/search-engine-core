@@ -63,6 +63,7 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
     ++autoGeneration; autoController?.abort(); item.iconMode="manual";item.iconId=icon.id;item.iconMediaId="";refresh();status.textContent=`آیکن «${icon.labelFa || icon.labelEn || icon.name || icon.id}» انتخاب شد.`;onChange();
   }
   function fill(container, icons) {
+    const focusedId = container.contains(document.activeElement) ? document.activeElement.dataset.iconId : null;
     container.replaceChildren();
     for (const icon of icons) {
       if (!canonical.test(icon.id)) continue;
@@ -72,6 +73,7 @@ export function mountIconPicker({item, profileId, titleField = "title", onChange
       const image=node("img");image.src=iconUrl({iconMode:"manual",iconId:icon.id},profileId);image.alt="";image.width=24;image.height=24;image.loading="lazy";b.prepend(image);container.append(b);
     }
     refreshSelection();
+    if (focusedId) [...container.querySelectorAll("button[data-icon-id]")].find(choice=>choice.dataset.iconId===focusedId)?.focus();
   }
   for (const grid of [results,suggestions]) grid.addEventListener("keydown",event=>{
     if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
