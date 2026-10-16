@@ -60,7 +60,7 @@ services:
       - ${ICON_ARTIFACT_DIR:-./services/semantic-icon-engine/data/offline}:/artifacts
       - ${ICON_UPSTREAM_DIR:-./services/semantic-icon-engine/data/upstream}:/upstream
     environment:
-      ICON_THREADS: "1"
+      ICON_THREADS: ${ICON_SETUP_THREADS:-1}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       NO_PROXY: ${NO_PROXY:-}

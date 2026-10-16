@@ -67,13 +67,16 @@ jobs:
     timeout-minutes: 60
     concurrency:
       group: icon-images-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.number || 'publish' }}
-      cancel-in-progress: false
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
       TOKENIZERS_PARALLELISM: "false"
       ICON_ARTIFACT_DIR: /tmp/icon-full
       ICON_UPSTREAM_DIR: /tmp/icon-upstream
+      ICON_SETUP_CPUS: "2.0"
+      ICON_SETUP_MEMORY: "4096m"
+      ICON_SETUP_THREADS: "2"
       PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v6
