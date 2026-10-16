@@ -18,19 +18,35 @@ from app.matching import Matcher
 from app.knowledge import KnowledgeBank
 
 
-def load_cases(path, require_reviewed=False):
+def load_cases(path, require_reviewed=False, require_independent=False):
+    require_reviewed = require_reviewed or require_independent
     data = json.loads(Path(path).read_text())
     if not data or len({row["id"] for row in data}) != len(data):
         raise ValueError("benchmark needs nonempty cases with unique IDs")
     for row in data:
-        if require_reviewed and (
+        if (require_reviewed or require_independent) and (
             row.get("reviewStatus") != "reviewed" or not row.get("reviewer", "").strip()
         ):
             raise ValueError(
                 "acceptance benchmark requires reviewer-attributed reviewed labels for every case"
             )
-        if not row.get("text") or not row.get("domain") or not row.get("relevant"):
+        if (
+            not row.get("text")
+            or not row.get("domain")
+            or (
+                not row.get("relevant")
+                and not (
+                    require_reviewed
+                    and row.get("noSuitableIcon") is True
+                    and row.get("relevant") == []
+                )
+            )
+        ):
             raise ValueError("missing benchmark text, domain or relevance labels")
+    if require_independent:
+        from scripts.human_review import validate_independent_cases
+
+        validate_independent_cases(data)
     return data
 
 
@@ -43,12 +59,37 @@ def benchmark(
     knowledge=None,
     knowledge_vectors=None,
     require_reviewed=False,
+    require_independent=False,
+    engine_revision=None,
+    acceptance_manifest=None,
 ):
     start = time.perf_counter()
     if bool(models) != bool(vectors):
         raise ValueError("models and vectors must be supplied together")
-    cases = load_cases(queries, require_reviewed)
+    require_reviewed = require_reviewed or require_independent
+    cases = load_cases(queries, require_reviewed, require_independent)
     cat = Catalog(data)
+    if require_independent:
+        from scripts.human_review import validate_independent_cases, identity, PROTOCOL
+
+        if not engine_revision:
+            raise ValueError(
+                "independent acceptance requires the evaluated --engine-revision"
+            )
+        validate_independent_cases(cases, cat.manifest["version"], engine_revision)
+        if not acceptance_manifest:
+            raise ValueError(
+                "independent acceptance requires the frozen --acceptance-manifest"
+            )
+        frozen = json.loads(Path(acceptance_manifest).read_text())
+        if (
+            frozen.get("protocol") != PROTOCOL
+            or frozen.get("frozenLabelsSha256") != identity(cases)
+            or frozen.get("queries") != 500
+            or frozen.get("engineRevision") != engine_revision
+            or frozen.get("catalogVersion") != cat.manifest["version"]
+        ):
+            raise ValueError("frozen acceptance manifest or labels mismatch")
     model = index = None
     if models:
         from app.embeddings import E5, Vectors
@@ -134,6 +175,13 @@ def benchmark(
         "targetHitAt3": 0.9,
         "targetMet": sum(row["hitAt3"] for row in rows) >= math.ceil(0.9 * len(rows)),
         "acceptanceEvaluated": require_reviewed,
+        "independentAcceptanceEvaluated": require_independent,
+        "acceptanceManifestSha256": (
+            hashlib.sha256(Path(acceptance_manifest).read_bytes()).hexdigest()
+            if require_independent
+            else None
+        ),
+        "evaluatedEngineRevision": engine_revision,
         "acceptancePassed": (
             (sum(row["hitAt3"] for row in rows) >= math.ceil(0.9 * len(rows)))
             if require_reviewed
@@ -169,6 +217,19 @@ if __name__ == "__main__":
         help="Reject pending or unattributed labels; needed for an acceptance report",
     )
     parser.add_argument("--route", choices=["search", "suggest"], default="search")
+    parser.add_argument(
+        "--require-independent",
+        action="store_true",
+        help="Require a frozen 500-case, human-authored two-rater holdout with version checks",
+    )
+    parser.add_argument(
+        "--engine-revision",
+        help="Exact engine revision evaluated; required for independent acceptance",
+    )
+    parser.add_argument(
+        "--acceptance-manifest",
+        help="Freeze report with immutable label digest; required for independent acceptance",
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     result = benchmark(
@@ -180,6 +241,9 @@ if __name__ == "__main__":
         args.knowledge,
         args.knowledge_vectors,
         args.require_reviewed,
+        args.require_independent,
+        args.engine_revision,
+        args.acceptance_manifest,
     )
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     atomic_json(args.output, result)

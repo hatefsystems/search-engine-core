@@ -1,0 +1,27 @@
+{
+  "records": 18237,
+  "titleCoverage": 18237,
+  "persianScriptTitles": 18237,
+  "descriptionCoverage": 18104,
+  "nonemptySourceDescriptions": 18104,
+  "translatedAliasCount": 117009,
+  "sourceAliasCount": 117009,
+  "flaggedRecords": 1299,
+  "qualityFlags": {
+    "alias-needs-review": 737,
+    "shared-persian-title": 579
+  },
+  "recordsWithLiteralFragments": 0,
+  "humanReviewed": 0,
+  "sourceVersion": "1.2.1",
+  "sourceSha256": "f9761b0b52be1828b38a3e5e0ae59a93a7b0ce358bc800f52f57a8b002adeb3e",
+  "status": "machine-draft",
+  "manifestSha256": "948bd72d67fb1e9a815747f9ac041d21ec533c8da20a182d0fcaff45fb3b6515",
+  "assistantCorrectedRecords": 256,
+  "sourceVerification": "Exact full ESCO source ID set, per-record source hashes, all description and alias cardinalities checked.",
+  "preparationRun": "https://github.com/hatefsystems/search-engine-core/actions/runs/38916833556",
+  "rawArchiveSha256": "ee99bc3b1bf8b53f2964355a963613f95e4b5a8098dc8bec33db0c0512482b8d",
+  "humanReviewPackets": 183,
+  "runtimeAliasesActivated": false,
+  "notice": "Structural completeness and Persian script coverage do not establish translation accuracy. Every record still requires human review."
+}

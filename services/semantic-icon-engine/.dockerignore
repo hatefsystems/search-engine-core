@@ -4,3 +4,4 @@ vectors
 __pycache__
 .pytest_cache
 tests
+config/esco-fa-drafts/.generation.lock

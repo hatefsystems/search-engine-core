@@ -66,7 +66,12 @@ jobs:
           PREPARATION_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           python services/semantic-icon-engine/scripts/translate_esco.py download-source --archive /tmp/esco.zip
-          python services/semantic-icon-engine/scripts/translate_esco.py merge --archive /tmp/esco.zip --parts /tmp/parts --output /tmp/esco-fa-drafts --run-url "$PREPARATION_RUN_URL"
+          python services/semantic-icon-engine/scripts/translate_esco.py merge --archive /tmp/esco.zip --parts /tmp/parts --output /tmp/esco-fa-raw --run-url "$PREPARATION_RUN_URL"
+          if [ -f services/semantic-icon-engine/config/esco-fa-corrections.json ]; then
+            python services/semantic-icon-engine/scripts/correct_fa_drafts.py --archive /tmp/esco.zip --drafts /tmp/esco-fa-raw --output /tmp/esco-fa-drafts
+          else
+            mv /tmp/esco-fa-raw /tmp/esco-fa-drafts
+          fi
           python services/semantic-icon-engine/scripts/translate_esco.py validate --archive /tmp/esco.zip --output /tmp/esco-fa-drafts
       - uses: actions/upload-artifact@v4
         with:

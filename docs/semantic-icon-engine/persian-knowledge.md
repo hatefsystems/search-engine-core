@@ -34,6 +34,8 @@ The private `/v1/concepts/search` and `/v1/concepts/{id}` endpoints make the ban
 
 ## Review Persian ESCO overlays
 
+Complete machine drafts and an offline human workbench are now available. They remain separate from trusted runtime overlays. See [full translation and independent acceptance handoff](persian-human-review.md) for coverage, model provenance, strict source-bound imports and the two-rater human protocol. The new independent acceptance collection starts with empty human-authored phrase slots, not the older assistant templates.
+
 Export a manageable batch from prepared artifacts:
 
 ```sh

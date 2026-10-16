@@ -6,6 +6,28 @@ permissions:
   contents: read
   packages: write
 jobs:
+  review-workbench-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Install isolated review UI test dependencies
+        run: |
+          npm install --prefix /tmp/review-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/review-ui-tests/node_modules/.bin/playwright install --with-deps chromium --only-shell
+      - name: Verify explicit review actions and blind annotation UI
+        env:
+          NODE_PATH: /tmp/review-ui-tests/node_modules
+        run: node services/semantic-icon-engine/tests/human-review-browser-check.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: persian-review-ui-checks
+          path: build/persian-review-ui/
+          retention-days: 14
   unit-and-offline-container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -106,6 +128,26 @@ jobs:
         run: |
           touch .env
           docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --build --no-deps -v /tmp/icon-release:/release --entrypoint python icon-setup scripts/package.py
+      - name: Verify every Persian draft against pinned ESCO and export human handoff
+        env:
+          REVIEW_ENGINE_REVISION: ${{ github.sha }}
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --entrypoint python icon-setup scripts/translate_esco.py download-source --archive /upstream/esco/dataset.zip
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps --entrypoint python icon-setup scripts/translate_esco.py validate --archive /upstream/esco/dataset.zip
+          mkdir -p build/persian-review
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py translations --archive /upstream/esco/dataset.zip --output /review/translations
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py export-catalog --data /artifacts/data --output /review/catalog.json
+          catalog_version=$(python3 -c 'import json; print(json.load(open("/tmp/icon-full/data/current.json"))["version"])')
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile icon-setup run --rm --no-deps -v "$PWD/build/persian-review:/review" --entrypoint python icon-setup scripts/human_review.py new-study --engine-revision "$REVIEW_ENGINE_REVISION" --catalog-version "$catalog_version" --output /review/acceptance/authoring.json
+          cp docs/semantic-icon-engine/persian-human-review.md build/persian-review/README.md
+          cp services/semantic-icon-engine/config/esco-fa-drafts/manifest.json build/persian-review/translation-manifest.json
+          cp services/semantic-icon-engine/licenses/translation-model.txt build/persian-review/TRANSLATION-NOTICE.txt
+      - name: Upload Persian review packets without asserting human completion
+        uses: actions/upload-artifact@v4
+        with:
+          name: persian-review-handoff
+          path: build/persian-review/
+          retention-days: 30
       - name: Build the complete release image once
         id: release-image
         uses: docker/build-push-action@v7
