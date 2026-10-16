@@ -7,6 +7,7 @@ import statistics
 import time
 import urllib.request
 import urllib.error
+import urllib.parse
 
 BASE = "http://127.0.0.1:8080"
 
@@ -32,6 +33,35 @@ for attempt in range(90):
 else:
     raise AssertionError("full-model container did not become ready")
 assert ready["mode"] == "hybrid" and ready["icons"] > 0
+# Regression checks run against the real bundled catalog, not fixture metadata.
+category_rows = request("/v1/icons/categories")["categories"]
+assert category_rows and all(
+    row["labelFa"] and not row["labelFa"].isascii() for row in category_rows
+)
+for query in ["قلب", "دل", "heart", "دوست داشتن"]:
+    result = request(
+        "/v1/icons/search?" + urllib.parse.urlencode({"q": query, "limit": 20})
+    )
+    assert result["engine"] == "hybrid", result
+    assert result["items"][0]["id"] == "lucide:heart", (query, result)
+for source, expected in [
+    ("simple-icons", "simple-icons:terraform"),
+    ("iconify", "iconify:devicon:terraform"),
+]:
+    result = request(
+        "/v1/icons/search?" + urllib.parse.urlencode({"q": "ترافورم", "source": source})
+    )
+    assert any(item["id"] == expected for item in result["items"]), result
+for query in ["AWS", "آمازون وب سرویسز"]:
+    result = request("/v1/icons/search?" + urllib.parse.urlencode({"q": query}))
+    assert any("amazonwebservices" in item["id"] for item in result["items"]), result
+for path, color in [
+    ("simple-icons/terraform", b"#844FBA"),
+    ("iconify/devicon/terraform", b"#5c4ee5"),
+]:
+    with urllib.request.urlopen(BASE + "/assets/icons/" + path + ".svg") as asset:
+        assert color in asset.read()
+
 release_root = Path("/opt/icon-artifacts")
 release = json.loads((release_root / "release.json").read_text())
 assert release["approvedIcons"] == release["indexedIcons"] == ready["icons"]

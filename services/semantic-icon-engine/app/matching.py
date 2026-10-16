@@ -1,5 +1,14 @@
 import json
-from .text import CONFIG, SYNONYMS, normalize, categories, terms, expand
+from .text import (
+    CONFIG,
+    SYNONYMS,
+    normalize,
+    categories,
+    terms,
+    expand,
+    brand_matches,
+    lexical_tier,
+)
 
 
 class Matcher:
@@ -12,6 +21,84 @@ class Matcher:
             if row
             else json.loads((CONFIG / "policy.json").read_text())
         )
+
+    def search(self, text="", category="", source="", style="", limit=20, offset=0):
+        """Bounded hybrid browsing. Exact names outrank related/semantic matches."""
+        if not text.strip():
+            items = self.catalog.search("", category, source, style, limit + 1, offset)
+            return {
+                "items": items[:limit],
+                "nextOffset": offset + limit if len(items) > limit else None,
+                "engine": "lexical",
+                "catalogVersion": self.catalog.manifest["version"],
+            }
+        lexical = self.catalog.search(text, category, source, style, limit=500)
+        positions = {item["id"]: rank for rank, item in enumerate(lexical)}
+        candidates = {item["id"]: item for item in lexical}
+        semantic = {}
+        if self.model and self.vectors:
+            try:
+                semantic = dict(self.vectors.nearest(self.model.query(text), 150))
+                for icon_id in semantic:
+                    if icon_id not in candidates and (
+                        item := self.catalog.get(icon_id)
+                    ):
+                        candidates[icon_id] = item
+            except Exception:
+                pass
+        ranked = []
+        for item in candidates.values():
+            if (
+                (category and category not in item.get("categories", []))
+                or (source and source != item["source"])
+                or (style and style != item["style"])
+                or not brand_matches(item, text)
+            ):
+                continue
+            is_lexical = item["id"] in positions
+            similarity = semantic.get(item["id"], 0.0)
+            # E5 similarities are ranking scores, not calibrated probabilities.
+            if not is_lexical and similarity < self.policy.get(
+                "searchSemanticThreshold", 0.75
+            ):
+                continue
+            tier = lexical_tier(item, text)
+            source_priority = {"lucide": 0, "simple-icons": 1}.get(item["source"], 2)
+            ranked.append(
+                (
+                    (
+                        tier,
+                        source_priority,
+                        0 if is_lexical else 1,
+                        positions.get(item["id"], 500) if is_lexical else -similarity,
+                        item["id"],
+                    ),
+                    item,
+                )
+            )
+        ranked.sort(key=lambda pair: pair[0])
+        # Deduplicate identical artwork and Lucide mirrors; keep the saved IDs valid.
+        output, hashes, families = [], set(), set()
+        for _, item in ranked:
+            family = (
+                ("lucide", item["name"])
+                if (
+                    item["source"] == "lucide"
+                    or item["id"].startswith("iconify:lucide:")
+                )
+                else (item["source"], item["id"])
+            )
+            if item["hash"] in hashes or family in families:
+                continue
+            hashes.add(item["hash"])
+            families.add(family)
+            output.append(item)
+        return {
+            "items": output[offset : offset + limit],
+            "nextOffset": offset + limit if len(output) > offset + limit else None,
+            "engine": "hybrid" if semantic else "lexical",
+            "catalogVersion": self.catalog.manifest["version"],
+        }
 
     def suggest(
         self,
@@ -44,7 +131,7 @@ class Matcher:
             if item["id"] in seen:
                 continue
             seen.add(item["id"])
-            if item.get("brand") and not terms(item["labelEn"]).issubset(terms(text)):
+            if not brand_matches(item, text):
                 continue
             ct = terms(
                 expand(
@@ -76,6 +163,7 @@ class Matcher:
                 + 0.05 * (item["source"] == (preferredSource or "lucide"))
                 + 0.01 * (item["style"] == preferredStyle)
             )
+            score += {0: 1.0, 1: 0.3, 2: 0.1}.get(lexical_tier(item, text), 0.0)
             ranked.append((score, item))
         ranked.sort(key=lambda x: (-x[0], x[1]["id"]))
         output = []

@@ -166,15 +166,7 @@ def create_app(root=None, model_dir=None, vector_dir=None):
 
     @app.get("/v1/icons/categories")
     def categories():
-        with catalog().db() as db:
-            return {
-                "categories": [
-                    dict(r)
-                    for r in db.execute(
-                        "SELECT category,count(*) AS count FROM icons WHERE category!='' GROUP BY category ORDER BY category"
-                    )
-                ]
-            }
+        return {"categories": catalog().categories()}
 
     @app.get("/v1/icons/sources")
     def sources():
@@ -190,7 +182,7 @@ def create_app(root=None, model_dir=None, vector_dir=None):
 
     @app.get("/v1/icons")
     @app.get("/v1/icons/search")
-    def search(
+    async def search(
         q: str = Query("", max_length=500),
         category: str = Query("", max_length=80),
         source: str = Query("", max_length=32),
@@ -198,12 +190,33 @@ def create_app(root=None, model_dir=None, vector_dir=None):
         limit: int = Query(20, ge=1, le=100),
         offset: int = Query(0, ge=0, le=1000000),
     ):
-        items = catalog().search(q, category, source, style, limit + 1, offset)
-        return {
-            "items": items[:limit],
-            "nextOffset": offset + limit if len(items) > limit else None,
-            "catalogVersion": catalog().manifest["version"],
-        }
+        catalog()
+        args = dict(
+            text=q,
+            category=category,
+            source=source,
+            style=style,
+            limit=limit,
+            offset=offset,
+        )
+        if not q.strip() or not app.state.matcher.model:
+            return await asyncio.to_thread(app.state.matcher.search, **args)
+        # Share the existing single inference slot with automatic suggestions.
+        # Typing and pagination remain functional while another query is running.
+        if not app.state.slot.acquire(blocking=False):
+            result = await asyncio.to_thread(Matcher(app.state.catalog).search, **args)
+            return {**result, "reason": "inference_busy"}
+        future = app.state.executor.submit(app.state.matcher.search, **args)
+        future.add_done_callback(lambda _: app.state.slot.release())
+        try:
+            return await asyncio.wait_for(
+                asyncio.shield(asyncio.wrap_future(future)),
+                timeout=float(os.getenv("ICON_TIMEOUT_SECONDS", "2")),
+            )
+        except asyncio.TimeoutError:
+            app.state.timeouts += 1
+            result = await asyncio.to_thread(Matcher(app.state.catalog).search, **args)
+            return {**result, "reason": "semantic_timeout"}
 
     @app.post("/v1/icons/suggest")
     async def suggest(body: SuggestionRequest):

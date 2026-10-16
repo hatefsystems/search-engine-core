@@ -1,16 +1,1356 @@
-{"version":1,"categories":{
-"cloud-infrastructure":{"fa":"زیرساخت ابری","aliases":["cloud","cloud computing","infrastructure","رایانش ابری","زیرساخت ابری","ابر","کلاد"]},
-"software-automation":{"fa":"گردش کار و خودکارسازی","aliases":["workflow","git branch","pipeline","deployment","automation","CI/CD","cicd","devops","خودکارسازی","اتوماسیون","استقرار","انتشار خودکار","پایپ لاین","پایپلاین","گردش کار"]},
-"law":{"fa":"حقوق و قرارداد","aliases":["scale","file signature","legal","law","contract","وکیل","وکالت","حقوقی","قرارداد","عدالت"]},
-"healthcare":{"fa":"پزشکی و سلامت","aliases":["stethoscope","heart pulse","hospital","medical","healthcare","doctor","پزشکی","سلامت","درمان","پزشک","پرستاری"]},
-"education":{"fa":"آموزش و یادگیری","aliases":["graduation cap","book open","education","teaching","school","آموزش","تدریس","یادگیری","مدرسه","دانشگاه"]},
-"architecture":{"fa":"معماری و ساختمان","aliases":["building","house","ruler","architecture","construction","معماری","ساختمان","ساخت و ساز","طراحی داخلی"]},
-"design":{"fa":"طراحی و هنر","aliases":["palette","paintbrush","pen tool","design","art","گرافیک","هنر","طراحی گرافیک","نقاشی"]},
-"agriculture":{"fa":"کشاورزی و باغبانی","aliases":["sprout","tractor","wheat","agriculture","farming","کشاورزی","باغبانی","کاشت","مزرعه"]},
-"retail":{"fa":"فروش و تجارت","aliases":["shopping cart","store","shopping bag","retail","shop","فروشگاه","خرده فروشی","فروش","خرید"]},
-"repair":{"fa":"تعمیرات و خدمات فنی","aliases":["wrench","hammer","settings","repair","maintenance","تعمیر","تعمیرات","سرویس فنی","نگهداری"]},
-"finance":{"fa":"مالی و حسابداری","aliases":["calculator","wallet","banknote","finance","accounting","حسابداری","مالی","بودجه"]},
-"transport":{"fa":"حمل و نقل","aliases":["truck","bus","car","transport","logistics","حمل و نقل","لجستیک","باربری"]},
-"security":{"fa":"امنیت و حفاظت","aliases":["shield","lock","security","امنیت","حفاظت","رمزنگاری"]},
-"food":{"fa":"غذا و آشپزی","aliases":["utensils","chef hat","cooking","restaurant","آشپزی","رستوران","غذا"]},
-"general":{"fa":"خدمات عمومی","aliases":["briefcase","service","خدمات عمومی"]}}}
+{
+  "version": 2,
+  "categories": {
+    "cloud-infrastructure": {
+      "fa": "زیرساخت ابری",
+      "aliases": [
+        "cloud",
+        "cloud computing",
+        "infrastructure",
+        "رایانش ابری",
+        "زیرساخت ابری",
+        "ابر",
+        "کلاد"
+      ]
+    },
+    "software-automation": {
+      "fa": "گردش کار و خودکارسازی",
+      "aliases": [
+        "workflow",
+        "git branch",
+        "pipeline",
+        "deployment",
+        "automation",
+        "CI/CD",
+        "cicd",
+        "devops",
+        "خودکارسازی",
+        "اتوماسیون",
+        "استقرار",
+        "انتشار خودکار",
+        "پایپ لاین",
+        "پایپلاین",
+        "گردش کار"
+      ]
+    },
+    "law": {
+      "fa": "حقوق و قرارداد",
+      "aliases": [
+        "scale",
+        "file signature",
+        "legal",
+        "law",
+        "contract",
+        "وکیل",
+        "وکالت",
+        "حقوقی",
+        "قرارداد",
+        "عدالت"
+      ]
+    },
+    "healthcare": {
+      "fa": "پزشکی و سلامت",
+      "aliases": [
+        "stethoscope",
+        "heart pulse",
+        "hospital",
+        "medical",
+        "healthcare",
+        "doctor",
+        "پزشکی",
+        "سلامت",
+        "درمان",
+        "پزشک",
+        "پرستاری"
+      ]
+    },
+    "education": {
+      "fa": "آموزش و یادگیری",
+      "aliases": [
+        "graduation cap",
+        "book open",
+        "education",
+        "teaching",
+        "school",
+        "آموزش",
+        "تدریس",
+        "یادگیری",
+        "مدرسه",
+        "دانشگاه"
+      ]
+    },
+    "architecture": {
+      "fa": "معماری و ساختمان",
+      "aliases": [
+        "building",
+        "house",
+        "ruler",
+        "architecture",
+        "construction",
+        "معماری",
+        "ساختمان",
+        "ساخت و ساز",
+        "طراحی داخلی"
+      ]
+    },
+    "design": {
+      "fa": "طراحی و هنر",
+      "aliases": [
+        "palette",
+        "paintbrush",
+        "pen tool",
+        "design",
+        "art",
+        "گرافیک",
+        "هنر",
+        "طراحی گرافیک",
+        "نقاشی"
+      ]
+    },
+    "agriculture": {
+      "fa": "کشاورزی و باغبانی",
+      "aliases": [
+        "sprout",
+        "tractor",
+        "wheat",
+        "agriculture",
+        "farming",
+        "کشاورزی",
+        "باغبانی",
+        "کاشت",
+        "مزرعه"
+      ]
+    },
+    "retail": {
+      "fa": "فروش و تجارت",
+      "aliases": [
+        "shopping cart",
+        "store",
+        "shopping bag",
+        "retail",
+        "shop",
+        "فروشگاه",
+        "خرده فروشی",
+        "فروش",
+        "خرید"
+      ]
+    },
+    "repair": {
+      "fa": "تعمیرات و خدمات فنی",
+      "aliases": [
+        "wrench",
+        "hammer",
+        "settings",
+        "repair",
+        "maintenance",
+        "تعمیر",
+        "تعمیرات",
+        "سرویس فنی",
+        "نگهداری"
+      ]
+    },
+    "finance": {
+      "fa": "مالی و حسابداری",
+      "aliases": [
+        "calculator",
+        "wallet",
+        "banknote",
+        "finance",
+        "accounting",
+        "حسابداری",
+        "مالی",
+        "بودجه"
+      ]
+    },
+    "transport": {
+      "fa": "حمل و نقل",
+      "aliases": [
+        "truck",
+        "bus",
+        "car",
+        "transport",
+        "logistics",
+        "حمل و نقل",
+        "لجستیک",
+        "باربری"
+      ]
+    },
+    "security": {
+      "fa": "امنیت و حفاظت",
+      "aliases": [
+        "shield",
+        "lock",
+        "security",
+        "امنیت",
+        "حفاظت",
+        "رمزنگاری"
+      ]
+    },
+    "food": {
+      "fa": "غذا و آشپزی",
+      "aliases": [
+        "utensils",
+        "chef hat",
+        "cooking",
+        "restaurant",
+        "آشپزی",
+        "رستوران",
+        "غذا"
+      ]
+    },
+    "general": {
+      "fa": "خدمات عمومی",
+      "aliases": [
+        "briefcase",
+        "service",
+        "خدمات عمومی"
+      ]
+    },
+    "emotions": {
+      "fa": "احساسات و علاقه",
+      "aliases": [
+        "emotion",
+        "love",
+        "احساسات",
+        "علاقه",
+        "عشق",
+        "محبت"
+      ]
+    },
+    "communication": {
+      "fa": "ارتباطات و شبکه‌های اجتماعی",
+      "aliases": [
+        "communication",
+        "phone",
+        "message",
+        "mail",
+        "ارتباطات",
+        "تماس",
+        "پیام",
+        "ایمیل"
+      ]
+    },
+    "technology": {
+      "fa": "فناوری و برنامه‌نویسی",
+      "aliases": [
+        "programming",
+        "technology",
+        "developer",
+        "code",
+        "فناوری",
+        "برنامه نویسی",
+        "توسعه نرم افزار"
+      ]
+    },
+    "brands": {
+      "fa": "شرکت‌ها و برندها",
+      "aliases": [
+        "brand",
+        "company",
+        "logo",
+        "برند",
+        "شرکت",
+        "لوگو"
+      ]
+    },
+    "media": {
+      "fa": "رسانه و سرگرمی",
+      "aliases": [
+        "media",
+        "music",
+        "video",
+        "camera",
+        "رسانه",
+        "موسیقی",
+        "ویدیو",
+        "دوربین"
+      ]
+    },
+    "nature": {
+      "fa": "طبیعت و آب‌وهوا",
+      "aliases": [
+        "nature",
+        "weather",
+        "sun",
+        "moon",
+        "طبیعت",
+        "آب و هوا",
+        "خورشید",
+        "ماه"
+      ]
+    },
+    "navigation": {
+      "fa": "جهت‌ها و موقعیت",
+      "aliases": [
+        "navigation",
+        "arrow",
+        "map",
+        "location",
+        "جهت",
+        "نقشه",
+        "موقعیت"
+      ]
+    },
+    "files": {
+      "fa": "فایل‌ها و اسناد",
+      "aliases": [
+        "file",
+        "folder",
+        "document",
+        "فایل",
+        "پوشه",
+        "سند"
+      ]
+    }
+  },
+  "concepts": {
+    "heart": {
+      "fa": "قلب",
+      "aliases": [
+        "heart",
+        "قلب",
+        "دل"
+      ],
+      "related": [
+        "عشق",
+        "علاقه",
+        "محبت",
+        "دوست داشتن",
+        "love",
+        "affection"
+      ],
+      "category": "emotions"
+    },
+    "heart-pulse": {
+      "fa": "قلب ضربان‌دار",
+      "aliases": [
+        "heart pulse",
+        "قلب ضربان‌دار",
+        "ضربان قلب",
+        "تپش قلب",
+        "heartbeat"
+      ],
+      "related": [
+        "مراقبت از بیمار",
+        "سلامت قلب"
+      ],
+      "category": "healthcare"
+    },
+    "stethoscope": {
+      "fa": "گوشی پزشکی",
+      "aliases": [
+        "stethoscope",
+        "گوشی پزشکی",
+        "گوشی معاینه"
+      ],
+      "related": [
+        "پزشک",
+        "معاینه",
+        "مراقبت از بیمار"
+      ],
+      "category": "healthcare"
+    },
+    "hospital": {
+      "fa": "بیمارستان",
+      "aliases": [
+        "hospital",
+        "بیمارستان",
+        "درمانگاه"
+      ],
+      "related": [
+        "بیمار",
+        "درمان"
+      ],
+      "category": "healthcare"
+    },
+    "cloud": {
+      "fa": "ابر",
+      "aliases": [
+        "cloud",
+        "ابر",
+        "کلاد"
+      ],
+      "related": [],
+      "category": "cloud-infrastructure"
+    },
+    "server": {
+      "fa": "سرور",
+      "aliases": [
+        "server",
+        "سرور",
+        "سرویس دهنده"
+      ],
+      "related": [],
+      "category": "cloud-infrastructure"
+    },
+    "database": {
+      "fa": "پایگاه داده",
+      "aliases": [
+        "database",
+        "پایگاه داده",
+        "دیتابیس"
+      ],
+      "related": [],
+      "category": "technology"
+    },
+    "code": {
+      "fa": "کد",
+      "aliases": [
+        "code",
+        "کد",
+        "برنامه نویسی"
+      ],
+      "related": [],
+      "category": "technology"
+    },
+    "terminal": {
+      "fa": "ترمینال",
+      "aliases": [
+        "terminal",
+        "ترمینال",
+        "خط فرمان"
+      ],
+      "related": [],
+      "category": "technology"
+    },
+    "workflow": {
+      "fa": "گردش کار",
+      "aliases": [
+        "workflow",
+        "گردش کار",
+        "ورک فلو"
+      ],
+      "related": [],
+      "category": "software-automation"
+    },
+    "container": {
+      "fa": "کانتینر",
+      "aliases": [
+        "container",
+        "کانتینر"
+      ],
+      "related": [],
+      "category": "cloud-infrastructure"
+    },
+    "network": {
+      "fa": "شبکه",
+      "aliases": [
+        "network",
+        "شبکه"
+      ],
+      "related": [],
+      "category": "cloud-infrastructure"
+    },
+    "shield": {
+      "fa": "سپر",
+      "aliases": [
+        "shield",
+        "سپر"
+      ],
+      "related": [],
+      "category": "security"
+    },
+    "lock": {
+      "fa": "قفل",
+      "aliases": [
+        "lock",
+        "قفل"
+      ],
+      "related": [],
+      "category": "security"
+    },
+    "key": {
+      "fa": "کلید",
+      "aliases": [
+        "key",
+        "کلید"
+      ],
+      "related": [],
+      "category": "security"
+    },
+    "phone": {
+      "fa": "تلفن",
+      "aliases": [
+        "phone",
+        "تلفن",
+        "تماس تلفنی"
+      ],
+      "related": [],
+      "category": "communication"
+    },
+    "mail": {
+      "fa": "نامه",
+      "aliases": [
+        "mail",
+        "نامه",
+        "ایمیل",
+        "پست الکترونیکی"
+      ],
+      "related": [],
+      "category": "communication"
+    },
+    "message-circle": {
+      "fa": "گفتگو",
+      "aliases": [
+        "message circle",
+        "گفتگو",
+        "چت",
+        "گفت و گو"
+      ],
+      "related": [],
+      "category": "communication"
+    },
+    "user": {
+      "fa": "کاربر",
+      "aliases": [
+        "user",
+        "کاربر",
+        "شخص"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "users": {
+      "fa": "کاربران",
+      "aliases": [
+        "users",
+        "کاربران",
+        "گروه",
+        "تیم"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "briefcase": {
+      "fa": "کیف کار",
+      "aliases": [
+        "briefcase",
+        "کیف کار",
+        "کسب و کار"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "search": {
+      "fa": "جستجو",
+      "aliases": [
+        "search",
+        "جستجو",
+        "جست و جو",
+        "ذره بین"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "settings": {
+      "fa": "تنظیمات",
+      "aliases": [
+        "settings",
+        "تنظیمات",
+        "چرخ دنده"
+      ],
+      "related": [],
+      "category": "repair"
+    },
+    "wrench": {
+      "fa": "آچار",
+      "aliases": [
+        "wrench",
+        "آچار"
+      ],
+      "related": [],
+      "category": "repair"
+    },
+    "hammer": {
+      "fa": "چکش",
+      "aliases": [
+        "hammer",
+        "چکش"
+      ],
+      "related": [],
+      "category": "repair"
+    },
+    "home": {
+      "fa": "خانه",
+      "aliases": [
+        "home",
+        "خانه",
+        "منزل"
+      ],
+      "related": [],
+      "category": "architecture"
+    },
+    "house": {
+      "fa": "خانه",
+      "aliases": [
+        "house",
+        "خانه",
+        "منزل"
+      ],
+      "related": [],
+      "category": "architecture"
+    },
+    "building": {
+      "fa": "ساختمان",
+      "aliases": [
+        "building",
+        "ساختمان"
+      ],
+      "related": [],
+      "category": "architecture"
+    },
+    "book": {
+      "fa": "کتاب",
+      "aliases": [
+        "book",
+        "کتاب"
+      ],
+      "related": [],
+      "category": "education"
+    },
+    "book-open": {
+      "fa": "کتاب باز",
+      "aliases": [
+        "book open",
+        "کتاب باز"
+      ],
+      "related": [],
+      "category": "education"
+    },
+    "graduation-cap": {
+      "fa": "کلاه فارغ‌التحصیلی",
+      "aliases": [
+        "graduation cap",
+        "کلاه فارغ‌التحصیلی",
+        "فارغ التحصیلی"
+      ],
+      "related": [],
+      "category": "education"
+    },
+    "wallet": {
+      "fa": "کیف پول",
+      "aliases": [
+        "wallet",
+        "کیف پول"
+      ],
+      "related": [],
+      "category": "finance"
+    },
+    "banknote": {
+      "fa": "اسکناس",
+      "aliases": [
+        "banknote",
+        "اسکناس"
+      ],
+      "related": [],
+      "category": "finance"
+    },
+    "calculator": {
+      "fa": "ماشین حساب",
+      "aliases": [
+        "calculator",
+        "ماشین حساب"
+      ],
+      "related": [],
+      "category": "finance"
+    },
+    "credit-card": {
+      "fa": "کارت بانکی",
+      "aliases": [
+        "credit card",
+        "کارت بانکی",
+        "کارت اعتباری"
+      ],
+      "related": [],
+      "category": "finance"
+    },
+    "shopping-cart": {
+      "fa": "سبد خرید",
+      "aliases": [
+        "shopping cart",
+        "سبد خرید"
+      ],
+      "related": [],
+      "category": "retail"
+    },
+    "store": {
+      "fa": "فروشگاه",
+      "aliases": [
+        "store",
+        "فروشگاه",
+        "مغازه"
+      ],
+      "related": [],
+      "category": "retail"
+    },
+    "shopping-bag": {
+      "fa": "کیسه خرید",
+      "aliases": [
+        "shopping bag",
+        "کیسه خرید"
+      ],
+      "related": [],
+      "category": "retail"
+    },
+    "car": {
+      "fa": "خودرو",
+      "aliases": [
+        "car",
+        "خودرو",
+        "ماشین"
+      ],
+      "related": [],
+      "category": "transport"
+    },
+    "bus": {
+      "fa": "اتوبوس",
+      "aliases": [
+        "bus",
+        "اتوبوس"
+      ],
+      "related": [],
+      "category": "transport"
+    },
+    "truck": {
+      "fa": "کامیون",
+      "aliases": [
+        "truck",
+        "کامیون"
+      ],
+      "related": [],
+      "category": "transport"
+    },
+    "bike": {
+      "fa": "دوچرخه",
+      "aliases": [
+        "bike",
+        "دوچرخه"
+      ],
+      "related": [],
+      "category": "transport"
+    },
+    "plane": {
+      "fa": "هواپیما",
+      "aliases": [
+        "plane",
+        "هواپیما"
+      ],
+      "related": [],
+      "category": "transport"
+    },
+    "sprout": {
+      "fa": "جوانه",
+      "aliases": [
+        "sprout",
+        "جوانه"
+      ],
+      "related": [],
+      "category": "agriculture"
+    },
+    "tree": {
+      "fa": "درخت",
+      "aliases": [
+        "tree",
+        "درخت"
+      ],
+      "related": [],
+      "category": "nature"
+    },
+    "flower": {
+      "fa": "گل",
+      "aliases": [
+        "flower",
+        "گل"
+      ],
+      "related": [],
+      "category": "nature"
+    },
+    "sun": {
+      "fa": "خورشید",
+      "aliases": [
+        "sun",
+        "خورشید"
+      ],
+      "related": [],
+      "category": "nature"
+    },
+    "moon": {
+      "fa": "ماه",
+      "aliases": [
+        "moon",
+        "ماه"
+      ],
+      "related": [],
+      "category": "nature"
+    },
+    "star": {
+      "fa": "ستاره",
+      "aliases": [
+        "star",
+        "ستاره"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "smile": {
+      "fa": "لبخند",
+      "aliases": [
+        "smile",
+        "لبخند",
+        "خنده"
+      ],
+      "related": [],
+      "category": "emotions"
+    },
+    "thumbs-up": {
+      "fa": "پسندیدن",
+      "aliases": [
+        "thumbs up",
+        "پسندیدن",
+        "لایک",
+        "تایید"
+      ],
+      "related": [],
+      "category": "emotions"
+    },
+    "camera": {
+      "fa": "دوربین",
+      "aliases": [
+        "camera",
+        "دوربین"
+      ],
+      "related": [],
+      "category": "media"
+    },
+    "image": {
+      "fa": "تصویر",
+      "aliases": [
+        "image",
+        "تصویر",
+        "عکس"
+      ],
+      "related": [],
+      "category": "media"
+    },
+    "music": {
+      "fa": "موسیقی",
+      "aliases": [
+        "music",
+        "موسیقی",
+        "آهنگ"
+      ],
+      "related": [],
+      "category": "media"
+    },
+    "video": {
+      "fa": "ویدیو",
+      "aliases": [
+        "video",
+        "ویدیو",
+        "فیلم"
+      ],
+      "related": [],
+      "category": "media"
+    },
+    "map": {
+      "fa": "نقشه",
+      "aliases": [
+        "map",
+        "نقشه"
+      ],
+      "related": [],
+      "category": "navigation"
+    },
+    "map-pin": {
+      "fa": "نشان موقعیت",
+      "aliases": [
+        "map pin",
+        "نشان موقعیت",
+        "لوکیشن",
+        "مکان"
+      ],
+      "related": [],
+      "category": "navigation"
+    },
+    "arrow": {
+      "fa": "پیکان",
+      "aliases": [
+        "arrow",
+        "پیکان",
+        "فلش"
+      ],
+      "related": [],
+      "category": "navigation"
+    },
+    "file": {
+      "fa": "فایل",
+      "aliases": [
+        "file",
+        "فایل",
+        "پرونده"
+      ],
+      "related": [],
+      "category": "files"
+    },
+    "folder": {
+      "fa": "پوشه",
+      "aliases": [
+        "folder",
+        "پوشه"
+      ],
+      "related": [],
+      "category": "files"
+    },
+    "calendar": {
+      "fa": "تقویم",
+      "aliases": [
+        "calendar",
+        "تقویم"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "clock": {
+      "fa": "ساعت",
+      "aliases": [
+        "clock",
+        "ساعت"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "bell": {
+      "fa": "زنگ",
+      "aliases": [
+        "bell",
+        "زنگ",
+        "اعلان"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "check": {
+      "fa": "تیک",
+      "aliases": [
+        "check",
+        "تیک",
+        "تایید"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "download": {
+      "fa": "دانلود",
+      "aliases": [
+        "download",
+        "دانلود",
+        "بارگیری"
+      ],
+      "related": [],
+      "category": "files"
+    },
+    "upload": {
+      "fa": "آپلود",
+      "aliases": [
+        "upload",
+        "آپلود",
+        "بارگذاری"
+      ],
+      "related": [],
+      "category": "files"
+    },
+    "trash": {
+      "fa": "سطل زباله",
+      "aliases": [
+        "trash",
+        "سطل زباله",
+        "حذف"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "link": {
+      "fa": "پیوند",
+      "aliases": [
+        "link",
+        "پیوند",
+        "لینک"
+      ],
+      "related": [],
+      "category": "communication"
+    },
+    "globe": {
+      "fa": "کره زمین",
+      "aliases": [
+        "globe",
+        "کره زمین",
+        "جهان"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "award": {
+      "fa": "جایزه",
+      "aliases": [
+        "award",
+        "جایزه"
+      ],
+      "related": [],
+      "category": "general"
+    },
+    "palette": {
+      "fa": "پالت رنگ",
+      "aliases": [
+        "palette",
+        "پالت رنگ"
+      ],
+      "related": [],
+      "category": "design"
+    },
+    "paintbrush": {
+      "fa": "قلم مو",
+      "aliases": [
+        "paintbrush",
+        "قلم مو"
+      ],
+      "related": [],
+      "category": "design"
+    },
+    "scale": {
+      "fa": "ترازو",
+      "aliases": [
+        "scale",
+        "ترازو"
+      ],
+      "related": [],
+      "category": "law"
+    },
+    "utensils": {
+      "fa": "قاشق و چنگال",
+      "aliases": [
+        "utensils",
+        "قاشق و چنگال"
+      ],
+      "related": [],
+      "category": "food"
+    },
+    "amazonwebservices": {
+      "fa": "آمازون وب سرویسز",
+      "aliases": [
+        "amazonwebservices",
+        "آمازون وب سرویسز",
+        "aws",
+        "amazon web services",
+        "amazon aws",
+        "ای دبلیو اس",
+        "آمازون"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "terraform": {
+      "fa": "ترافورم",
+      "aliases": [
+        "terraform",
+        "ترافورم",
+        "ترافرم",
+        "hashicorp terraform"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "kubernetes": {
+      "fa": "کوبرنتیز",
+      "aliases": [
+        "kubernetes",
+        "کوبرنتیز",
+        "k8s",
+        "کوبرنیتیز"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "docker": {
+      "fa": "داکر",
+      "aliases": [
+        "docker",
+        "داکر"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "python": {
+      "fa": "پایتون",
+      "aliases": [
+        "python",
+        "پایتون"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "javascript": {
+      "fa": "جاوااسکریپت",
+      "aliases": [
+        "javascript",
+        "جاوااسکریپت",
+        "java script",
+        "جاوا اسکریپت"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "typescript": {
+      "fa": "تایپ‌اسکریپت",
+      "aliases": [
+        "typescript",
+        "تایپ‌اسکریپت",
+        "تایپ اسکریپت"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "postgresql": {
+      "fa": "پستگرس‌کیوال",
+      "aliases": [
+        "postgresql",
+        "پستگرس‌کیوال",
+        "postgres",
+        "پستگرس",
+        "پستگرس کیوال"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "mysql": {
+      "fa": "مای‌اس‌کیوال",
+      "aliases": [
+        "mysql",
+        "مای‌اس‌کیوال",
+        "مای اس کیو ال"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "redis": {
+      "fa": "ردیس",
+      "aliases": [
+        "redis",
+        "ردیس"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "github": {
+      "fa": "گیت‌هاب",
+      "aliases": [
+        "github",
+        "گیت‌هاب",
+        "git hub",
+        "گیت هاب"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "gitlab": {
+      "fa": "گیت‌لب",
+      "aliases": [
+        "gitlab",
+        "گیت‌لب",
+        "git lab",
+        "گیت لب"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "git": {
+      "fa": "گیت",
+      "aliases": [
+        "git",
+        "گیت"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "linux": {
+      "fa": "لینوکس",
+      "aliases": [
+        "linux",
+        "لینوکس"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "ubuntu": {
+      "fa": "اوبونتو",
+      "aliases": [
+        "ubuntu",
+        "اوبونتو"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "ansible": {
+      "fa": "انسیبل",
+      "aliases": [
+        "ansible",
+        "انسیبل"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "nginx": {
+      "fa": "انجین‌ایکس",
+      "aliases": [
+        "nginx",
+        "انجین‌ایکس",
+        "انجین ایکس"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "prometheus": {
+      "fa": "پرومتئوس",
+      "aliases": [
+        "prometheus",
+        "پرومتئوس"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "grafana": {
+      "fa": "گرافانا",
+      "aliases": [
+        "grafana",
+        "گرافانا"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "react": {
+      "fa": "ری‌اکت",
+      "aliases": [
+        "react",
+        "ری‌اکت",
+        "ری اکت"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "angular": {
+      "fa": "انگولار",
+      "aliases": [
+        "angular",
+        "انگولار",
+        "آنگولار"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "vuejs": {
+      "fa": "ویو",
+      "aliases": [
+        "vuejs",
+        "ویو",
+        "vue",
+        "ویو جی اس"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "dotnetcore": {
+      "fa": "دات‌نت",
+      "aliases": [
+        "dotnetcore",
+        "دات‌نت",
+        "dotnet",
+        "دات نت",
+        "net core"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "amazon": {
+      "fa": "آمازون",
+      "aliases": [
+        "amazon",
+        "آمازون"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "google": {
+      "fa": "گوگل",
+      "aliases": [
+        "google",
+        "گوگل"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "microsoft": {
+      "fa": "مایکروسافت",
+      "aliases": [
+        "microsoft",
+        "مایکروسافت"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "apple": {
+      "fa": "اپل",
+      "aliases": [
+        "apple",
+        "اپل"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "telegram": {
+      "fa": "تلگرام",
+      "aliases": [
+        "telegram",
+        "تلگرام"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    },
+    "linkedin": {
+      "fa": "لینکدین",
+      "aliases": [
+        "linkedin",
+        "لینکدین"
+      ],
+      "related": [],
+      "category": "technology",
+      "brand": true
+    }
+  }
+}
