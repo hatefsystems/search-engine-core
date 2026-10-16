@@ -1,0 +1,72 @@
+name: Prepare Persian ESCO machine drafts
+on:
+  push:
+    branches: ["work/esco-persian-draft-preparation-*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/semantic-icon-engine/requirements-translation.txt
+      - name: Install isolated, hash-locked administrative translator
+        run: pip install --require-hashes -r services/semantic-icon-engine/requirements-translation.txt
+      - name: Restore resumable translation cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/esco-translation-cache.sqlite
+          key: esco-fa-draft-v1-${{ matrix.partition }}-${{ hashFiles('services/semantic-icon-engine/config/translation.lock.json', 'services/semantic-icon-engine/config/knowledge.lock.json', 'services/semantic-icon-engine/scripts/translate_esco.py') }}
+      - name: Download only pinned source and model files
+        run: |
+          python services/semantic-icon-engine/scripts/translate_esco.py download-source --archive /tmp/esco.zip
+          python services/semantic-icon-engine/scripts/translate_esco.py download-model --model /tmp/quickmt
+      - name: Translate a deterministic, disjoint partition without human claims
+        env:
+          PARTITION_INDEX: ${{ matrix.partition }}
+        run: python services/semantic-icon-engine/scripts/translate_esco.py generate --archive /tmp/esco.zip --model /tmp/quickmt --threads 1 --partition-count 16 --partition-index "$PARTITION_INDEX" --output /tmp/part
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esco-fa-part-${{ matrix.partition }}
+          path: /tmp/part/
+          retention-days: 30
+  merge:
+    needs: translate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install --require-hashes -r services/semantic-icon-engine/requirements-translation.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: esco-fa-part-*
+          path: /tmp/parts
+      - name: Verify complete source coverage and globally recompute warnings
+        env:
+          PREPARATION_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python services/semantic-icon-engine/scripts/translate_esco.py download-source --archive /tmp/esco.zip
+          python services/semantic-icon-engine/scripts/translate_esco.py merge --archive /tmp/esco.zip --parts /tmp/parts --output /tmp/esco-fa-drafts --run-url "$PREPARATION_RUN_URL"
+          python services/semantic-icon-engine/scripts/translate_esco.py validate --archive /tmp/esco.zip --output /tmp/esco-fa-drafts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esco-fa-complete-machine-drafts
+          path: /tmp/esco-fa-drafts/
+          retention-days: 30

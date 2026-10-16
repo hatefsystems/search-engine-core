@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "repository": "quickmt/quickmt-en-fa",
+  "revision": "e6b227180baab6a3e3ca9a07e08c96debb40bbe7",
+  "license": "CC-BY-4.0",
+  "modelCardURL": "https://huggingface.co/quickmt/quickmt-en-fa",
+  "beamSize": 5,
+  "sourceLanguage": "en",
+  "targetLanguage": "fa",
+  "ctranslate2": "4.6.0",
+  "sentencepiece": "0.2.1",
+  "checksums": {
+    "model.bin": "ed71bb84740363f63d21a2b626e6b3440e39e5653d21768d4a59f30cd8eb73f1",
+    "config.json": "66edc5d58ceb812a41b4b784497001f815c35400884f40984b19de29e1bc3d69",
+    "source_vocabulary.json": "d77f59608efb9961c1648e967306c1f82bc46efc7592de87d9857764a42a9e76",
+    "target_vocabulary.json": "2a7940f6f06ef49a59e2941fce9de0017cd47fe661d4cf8855f9982f43f68cda",
+    "src.spm.model": "8595a973d0f43dd25225a0eb3411ffbdf8ae4736e41d800995b1d25ac2c6019a",
+    "tgt.spm.model": "6aedb8783f67ae6310ebe5f9c0798f6fcdf7bfcff877d548d039d7bc53ca6548"
+  }
+}
