@@ -16,6 +16,6 @@
 </div></article>
 {% endfor %}
 </div>
-{% if section.hasMore %}<noscript><p>برای نمایش ادامهٔ این بخش، جاوااسکریپت مرورگر را فعال کنید.</p></noscript>{% endif %}
+{% if section.hasMore %}<p class="pp-load-status">برای نمایش ادامهٔ این بخش، جاوااسکریپت مرورگر باید فعال و صفحه به‌طور کامل بارگذاری شده باشد.</p>{% endif %}
 </section>
 {% endfor %}

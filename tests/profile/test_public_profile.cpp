@@ -251,12 +251,14 @@ TEST(ProfileTemplate, InitialPublicDocumentUsesCurrentLayoutBeforeScriptsRun) {
     auto data = fixture();
     data["profile"]["professionalSummary"] = "معرفی فعلی پروفایل";
     data["publicPresentation"] = json{{"name","نام اصلی"},{"sections",json::object()}}.dump();
+    data["advancedSections"] = json::array({{{"key","skills"},{"label","مهارت‌ها"},{"items",json::array({{{"id","one"},{"heading","مهارت"},{"summary",""},{"fields",json::array()},{"links",json::array()},{"media",json::array()},{"iconUrl",""},{"isRecommendation",false}}})},{"hasMore",true}}});
     const auto html = render(data);
     EXPECT_NE(html.find("<body class=\"public-profile-page\">"), std::string::npos);
     EXPECT_NE(html.find("id=\"public-profile-root\" data-profile-render=\"loading\""), std::string::npos);
     EXPECT_NE(html.find("<noscript id=\"public-profile-fallback\">"), std::string::npos);
     const auto fallbackStart = html.find("<noscript id=\"public-profile-fallback\">");
     EXPECT_EQ(html.substr(0, fallbackStart).find("<h1"), std::string::npos);
+    EXPECT_EQ(html.find("</noscript>"), html.rfind("</noscript>"));
     EXPECT_NE(html.find("class=\"pp-hero\""), std::string::npos);
     EXPECT_NE(html.find("معرفی فعلی پروفایل"), std::string::npos);
     for (const auto* retired : {"class=\"profile-page\"", "class=\"profile-header\"", "class=\"profile-section\"", "/assets/css/profile-header.css", "/assets/css/profile-content.css", "/assets/js/profile-header.js"})
