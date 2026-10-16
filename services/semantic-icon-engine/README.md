@@ -14,3 +14,5 @@ docker compose --profile icons up -d --no-build
 ```
 
 The image contains the validated catalog, pinned model and complete vectors. First publication occurs after a trusted master CI run; pin `ICON_ENGINE_IMAGE` to its published digest for repeatable deployment and rollback. No setup container, host Python or artifact mount is needed in production. Explicit local development builds and the setup job use `docker-compose.dev.yml`; see the runbook.
+
+The frozen [500-query Persian benchmark](../../docs/semantic-icon-engine/persian-500-benchmark.md) measures manual search across 25 domains. Its current hybrid Hit@3 is 29.2%; the 90% target has not been reached. Full per-query evidence and reproduction commands are included.

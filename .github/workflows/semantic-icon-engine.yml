@@ -133,6 +133,11 @@ jobs:
           docker exec hatef-icons-full python /checks/container_probe.py > build/icons/full-model-restart.json
           test "$(docker inspect -f '{{.State.OOMKilled}}' hatef-icons-full)" = false
           docker stop hatef-icons-full
+      - name: Measure the frozen Persian 500-query benchmark (report only)
+        run: |
+          mkdir -p build/icons/benchmarks
+          chmod 0777 build/icons/benchmarks
+          docker run --rm --name hatef-icons-benchmark --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --cpus 1 --memory 1536m --memory-swap 1536m --tmpfs /tmp:size=32m -v "$PWD/services/semantic-icon-engine/tests:/checks:ro" -v "$PWD/build/icons/benchmarks:/results" hatef-icons:release-test python scripts/benchmark.py --data /opt/icon-artifacts/data --models /opt/icon-artifacts/models --vectors /opt/icon-artifacts/vectors --queries /checks/evaluation-fa-500.json --output /results/fa-500-hybrid-search.json
       - name: Deploy the same bundled image through production Compose
         env:
           ICON_ENGINE_IMAGE: hatef-icons:release-test
@@ -178,5 +183,5 @@ jobs:
       - name: Remove test containers
         if: always()
         run: |
-          docker rm -f hatef-icons-full || true
+          docker rm -f hatef-icons-full hatef-icons-benchmark || true
           docker compose --profile icons rm -sf semantic-icon-engine || true
