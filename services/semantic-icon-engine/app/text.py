@@ -7,7 +7,7 @@ import unicodedata
 from pathlib import Path
 
 CONFIG = Path(__file__).resolve().parents[1] / "config"
-VERSION = "fa-en-v3"
+VERSION = "fa-en-v4"
 SYNONYMS = json.loads((CONFIG / "synonyms.json").read_text())
 
 
@@ -77,6 +77,7 @@ def equivalents(text):
 
 
 def expand(text, related=False):
+    # Category association is not synonymy: never inject all category terms.
     return normalize(
         text
         + " "
@@ -84,10 +85,16 @@ def expand(text, related=False):
             " ".join(SYNONYMS["concepts"][key]["aliases"])
             for key in concepts(text, related=related)
         )
-        + " "
-        + " ".join(
-            " ".join(SYNONYMS["categories"][key]["aliases"]) for key in categories(text)
-        )
+    )
+
+
+def document_text(name, label_en, label_fa, tags):
+    # Raw upstream tags remain searchable, but ambiguous tags cannot synthesize
+    # translated labels or propagate a whole category's vocabulary.
+    direct = concepts(name.replace("-", " "))
+    aliases = [a for key in direct for a in SYNONYMS["concepts"][key]["aliases"]]
+    return normalize(
+        " ".join([name.replace("-", " "), label_en, label_fa, *tags, *aliases])
     )
 
 
@@ -97,7 +104,7 @@ def category_label(key):
 
 def enrich(name, tags, brand=False):
     value = name.replace("-", " ") + " " + " ".join(tags)
-    matched = concepts(value, brands=brand)
+    matched = list(concepts(name.replace("-", " "), brands=brand))
     cats = list(
         dict.fromkeys(
             [

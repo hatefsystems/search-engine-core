@@ -7,11 +7,12 @@ import pytest
 
 from app.embeddings import build
 from app.ingest import digest
+from app.knowledge import KnowledgeBank, ConceptDocuments
 from scripts import package as release
 
 
 @pytest.fixture
-def artifacts(tmp_path, catalog, monkeypatch):
+def artifacts(tmp_path, catalog, monkeypatch, knowledge_fixture):
     root = tmp_path / "artifacts"
     root.mkdir()
     shutil.copytree(catalog.root, root / "data")
@@ -37,6 +38,9 @@ def artifacts(tmp_path, catalog, monkeypatch):
 
     monkeypatch.setattr(release, "E5", Model)
     build(root / "vectors", catalog, Model())
+    knowledge_fixture(root / "knowledge", None, catalog)
+    bank = KnowledgeBank(root / "knowledge")
+    build(root / "knowledge-vectors", ConceptDocuments(bank), Model())
     (root / "upstream").mkdir()
     (root / "upstream/private-extra").write_text("do not package source clones")
     return root
@@ -46,6 +50,7 @@ def test_package_complete_and_excludes_administrative_files(tmp_path, artifacts)
     target = tmp_path / "release"
     manifest = release.package(artifacts, target)
     assert manifest["approvedIcons"] == manifest["indexedIcons"] == 12
+    assert manifest["concepts"] == manifest["indexedConcepts"] == 5
     assert not (target / "upstream").exists()
     assert not (target / "vectors/checkpoint.sqlite").exists()
     for name, expected in manifest["files"].items():
@@ -80,5 +85,15 @@ def test_package_rejects_corrupt_or_partial_release(tmp_path, artifacts, corrupt
         p.rename(original)
         p.symlink_to(original)
     with pytest.raises(ValueError):
+        release.package(artifacts, tmp_path / "release")
+    assert not (tmp_path / "release").exists()
+
+
+def test_package_rejects_incomplete_concept_index(tmp_path, artifacts):
+    path = artifacts / "knowledge-vectors/vectors.json"
+    spec = json.loads(path.read_text())
+    spec["count"] -= 1
+    path.write_text(json.dumps(spec))
+    with pytest.raises(ValueError, match="complete concept"):
         release.package(artifacts, tmp_path / "release")
     assert not (tmp_path / "release").exists()

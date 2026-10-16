@@ -10,7 +10,64 @@ from app.catalog import Catalog, connect
 from app.ingest import atomic_json, digest
 from app.matching import Matcher
 from app.svg import sanitize
-from app.text import enrich, expand, category_label
+from app.text import enrich, expand, category_label, document_text
+
+
+def test_svg_scale_tag_does_not_translate_resize_as_legal_scales():
+    categories, fa = enrich("expand", ["scale", "resize"])
+    assert fa != "ترازو" and "law" not in categories
+    assert "ترازو" not in document_text("expand", "expand", fa, ["scale"])
+
+
+def test_strong_semantics_can_outrank_a_weak_lexical_candidate(catalog, monkeypatch):
+    monkeypatch.setattr(
+        catalog, "search", lambda *args, **kwargs: [catalog.get("lucide:briefcase")]
+    )
+
+    class Model:
+        def query(self, text):
+            return text
+
+    class Vectors:
+        count = 1
+
+        def nearest(self, vector, limit):
+            return [("lucide:cloud", 0.96)]
+
+    matcher = Matcher(catalog, Model(), Vectors())
+    assert (
+        matcher.search("عبارتی با تطبیق متنی ضعیف")["items"][0]["id"] == "lucide:cloud"
+    )
+    assert matcher.suggest("عبارتی با تطبیق متنی ضعیف")["lowConfidence"]
+
+
+def test_lucide_mirror_uses_canonical_id_and_preserves_explicit_source(
+    catalog, monkeypatch
+):
+    original = catalog.get
+    mirror = {
+        **original("lucide:cloud"),
+        "id": "iconify:lucide:cloud",
+        "source": "iconify",
+    }
+    monkeypatch.setattr(
+        catalog, "get", lambda id_: mirror if id_ == mirror["id"] else original(id_)
+    )
+
+    class Model:
+        def query(self, text):
+            return text
+
+    class Vectors:
+        def nearest(self, vector, limit):
+            return [(mirror["id"], 0.99)]
+
+    matcher = Matcher(catalog, Model(), Vectors())
+    assert matcher.search("عبارت معنایی")["items"][0]["id"] == "lucide:cloud"
+    assert (
+        matcher.search("عبارت معنایی", source="iconify")["items"][0]["id"]
+        == mirror["id"]
+    )
 
 
 @pytest.fixture

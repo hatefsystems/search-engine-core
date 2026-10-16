@@ -1,3 +1,5 @@
+> Historical initial measurements below predate the shared ranker and ESCO bank. The Compose profile now enables semantic mode with compatible prepared assets. See [Persian knowledge](persian-knowledge.md) and the [500-query report](persian-500-benchmark.md) for current results and pending human acceptance.
+
 # Validation and measured behavior
 
 Measurements below were collected from actual native runs of this implementation. The machine details and complete per-query outputs are in `measurements/`. They are a development-set comparison, not a production SLA or independent accuracy study.

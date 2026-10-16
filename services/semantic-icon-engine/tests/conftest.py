@@ -11,6 +11,108 @@ from app.text import enrich, expand
 
 
 @pytest.fixture
+def knowledge_fixture(tmp_path, monkeypatch):
+    """Exercise the real ESCO importer with a small pinned archive."""
+    import csv
+    import io
+    import shutil
+    import zipfile
+    from app import knowledge
+
+    config = tmp_path / "knowledge-config"
+    shutil.copytree(knowledge.CONFIG, config)
+    monkeypatch.setattr(knowledge, "CONFIG", config)
+    archive = tmp_path / "esco-fixture.zip"
+    skill = "http://data.europa.eu/esco/skill/cloud"
+    occupation = "http://data.europa.eu/esco/occupation/cloud-engineer"
+    group = "http://data.europa.eu/esco/skillgroup/cloud"
+    isco = "http://data.europa.eu/esco/isco/C1"
+    tables = {
+        "skills_en.csv": [
+            dict(
+                conceptUri=skill,
+                preferredLabel="cloud infrastructure",
+                status="released",
+                altLabels="cloud\ncloud systems",
+                description="manage infrastructure",
+            ),
+            dict(
+                conceptUri=skill,
+                preferredLabel="cloud infrastructure",
+                status="released",
+                altLabels="cloud computing",
+                description="manage infrastructure",
+            ),
+        ],
+        "occupations_en.csv": [
+            dict(
+                conceptUri=occupation,
+                preferredLabel="cloud engineer",
+                status="released",
+            )
+        ],
+        "ISCOGroups_en.csv": [
+            dict(conceptUri=isco, preferredLabel="engineers", status="released")
+        ],
+        "skillGroups_en.csv": [
+            dict(conceptUri=group, preferredLabel="cloud skills", status="released")
+        ],
+        "occupationSkillRelations_en.csv": [
+            dict(occupationUri=occupation, skillUri=skill, relationType="essential")
+        ],
+        "skillSkillRelations_en.csv": [],
+        "broaderRelationsSkillPillar_en.csv": [
+            dict(conceptUri=skill, broaderUri=group)
+        ],
+        "broaderRelationsOccPillar_en.csv": [
+            dict(conceptUri=occupation, broaderUri=isco)
+        ],
+    }
+    with zipfile.ZipFile(archive, "w") as z:
+        for name, rows in tables.items():
+            stream = io.StringIO()
+            writer = csv.DictWriter(
+                stream,
+                fieldnames=sorted({key for row in rows for key in row}) or ["unused"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+            z.writestr(name, stream.getvalue())
+    lock = json.loads((config / "knowledge.lock.json").read_text())
+    lock["esco"].update(
+        sha256=digest(archive),
+        expectedOccupations=1,
+        expectedSkills=1,
+        expectedISCOGroups=1,
+        expectedSkillGroups=1,
+    )
+    atomic_json(config / "knowledge.lock.json", lock)
+    atomic_json(
+        config / "knowledge-fa.json",
+        {
+            "version": 1,
+            "concepts": [
+                {
+                    "id": "hatef:concept:cloud",
+                    "labelEn": "cloud",
+                    "labelFa": "زیرساخت ابری",
+                    "aliasesFa": ["رایانش ابری", "ابر"],
+                    "aliasesEn": ["cloud infrastructure"],
+                    "icons": ["cloud"],
+                }
+            ],
+            "escoOverrides": [],
+        },
+    )
+
+    def make(root, unused_archive, catalog):
+        return knowledge.build_bank(root, archive, catalog)
+
+    make.archive, make.config, make.skill = archive, config, skill
+    return make
+
+
+@pytest.fixture
 def catalog(tmp_path):
     root = tmp_path / "data"
     root.mkdir()

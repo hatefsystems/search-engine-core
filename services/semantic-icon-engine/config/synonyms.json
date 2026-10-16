@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "categories": {
     "cloud-infrastructure": {
       "fa": "زیرساخت ابری",
@@ -10,7 +10,13 @@
         "رایانش ابری",
         "زیرساخت ابری",
         "ابر",
-        "کلاد"
+        "کلاد",
+        "خدمات ابری",
+        "ابری"
+      ],
+      "icons": [
+        "cloud",
+        "server"
       ]
     },
     "software-automation": {
@@ -31,12 +37,15 @@
         "پایپ لاین",
         "پایپلاین",
         "گردش کار"
+      ],
+      "icons": [
+        "workflow",
+        "git-branch"
       ]
     },
     "law": {
       "fa": "حقوق و قرارداد",
       "aliases": [
-        "scale",
         "file signature",
         "legal",
         "law",
@@ -46,6 +55,11 @@
         "حقوقی",
         "قرارداد",
         "عدالت"
+      ],
+      "icons": [
+        "scale",
+        "gavel",
+        "file-signature"
       ]
     },
     "healthcare": {
@@ -62,6 +76,11 @@
         "درمان",
         "پزشک",
         "پرستاری"
+      ],
+      "icons": [
+        "stethoscope",
+        "hospital",
+        "heart-pulse"
       ]
     },
     "education": {
@@ -77,6 +96,10 @@
         "یادگیری",
         "مدرسه",
         "دانشگاه"
+      ],
+      "icons": [
+        "graduation-cap",
+        "book-open"
       ]
     },
     "architecture": {
@@ -91,6 +114,11 @@
         "ساختمان",
         "ساخت و ساز",
         "طراحی داخلی"
+      ],
+      "icons": [
+        "building",
+        "house",
+        "ruler"
       ]
     },
     "design": {
@@ -105,6 +133,11 @@
         "هنر",
         "طراحی گرافیک",
         "نقاشی"
+      ],
+      "icons": [
+        "palette",
+        "paintbrush",
+        "pen-tool"
       ]
     },
     "agriculture": {
@@ -119,6 +152,11 @@
         "باغبانی",
         "کاشت",
         "مزرعه"
+      ],
+      "icons": [
+        "sprout",
+        "tractor",
+        "wheat"
       ]
     },
     "retail": {
@@ -133,6 +171,10 @@
         "خرده فروشی",
         "فروش",
         "خرید"
+      ],
+      "icons": [
+        "shopping-cart",
+        "store"
       ]
     },
     "repair": {
@@ -147,6 +189,10 @@
         "تعمیرات",
         "سرویس فنی",
         "نگهداری"
+      ],
+      "icons": [
+        "wrench",
+        "hammer"
       ]
     },
     "finance": {
@@ -160,6 +206,11 @@
         "حسابداری",
         "مالی",
         "بودجه"
+      ],
+      "icons": [
+        "calculator",
+        "wallet",
+        "banknote"
       ]
     },
     "transport": {
@@ -173,6 +224,11 @@
         "حمل و نقل",
         "لجستیک",
         "باربری"
+      ],
+      "icons": [
+        "truck",
+        "bus",
+        "car"
       ]
     },
     "security": {
@@ -184,6 +240,10 @@
         "امنیت",
         "حفاظت",
         "رمزنگاری"
+      ],
+      "icons": [
+        "shield",
+        "lock"
       ]
     },
     "food": {
@@ -196,6 +256,10 @@
         "آشپزی",
         "رستوران",
         "غذا"
+      ],
+      "icons": [
+        "utensils",
+        "chef-hat"
       ]
     },
     "general": {
@@ -204,6 +268,9 @@
         "briefcase",
         "service",
         "خدمات عمومی"
+      ],
+      "icons": [
+        "briefcase"
       ]
     },
     "emotions": {

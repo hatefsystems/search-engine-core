@@ -1,19 +1,20 @@
+"""Deterministic evidence fusion. Weak semantics never auto-select an icon."""
+
 import json
 from .text import (
     CONFIG,
     SYNONYMS,
-    normalize,
     categories,
-    terms,
-    expand,
+    concepts,
     brand_matches,
     lexical_tier,
 )
 
 
 class Matcher:
-    def __init__(self, catalog, model=None, vectors=None):
+    def __init__(self, catalog, model=None, vectors=None, knowledge=None):
         self.catalog, self.model, self.vectors = catalog, model, vectors
+        self.knowledge = knowledge
         with catalog.db() as db:
             row = db.execute("SELECT value FROM state WHERE key='policy'").fetchone()
         self.policy = (
@@ -22,23 +23,16 @@ class Matcher:
             else json.loads((CONFIG / "policy.json").read_text())
         )
 
-    def search(self, text="", category="", source="", style="", limit=20, offset=0):
-        """Bounded hybrid browsing. Exact names outrank related/semantic matches."""
-        if not text.strip():
-            items = self.catalog.search("", category, source, style, limit + 1, offset)
-            return {
-                "items": items[:limit],
-                "nextOffset": offset + limit if len(items) > limit else None,
-                "engine": "lexical",
-                "catalogVersion": self.catalog.manifest["version"],
-            }
+    def _rank(self, text, category="", source="", style=""):
         lexical = self.catalog.search(text, category, source, style, limit=500)
-        positions = {item["id"]: rank for rank, item in enumerate(lexical)}
         candidates = {item["id"]: item for item in lexical}
+        positions = {item["id"]: rank for rank, item in enumerate(lexical)}
         semantic = {}
+        available = False
         if self.model and self.vectors:
             try:
                 semantic = dict(self.vectors.nearest(self.model.query(text), 150))
+                available = True
                 for icon_id in semantic:
                     if icon_id not in candidates and (
                         item := self.catalog.get(icon_id)
@@ -46,6 +40,25 @@ class Matcher:
                         candidates[icon_id] = item
             except Exception:
                 pass
+        anchors = {}
+        for cat in categories(text):
+            for rank, name in enumerate(
+                SYNONYMS["categories"].get(cat, {}).get("icons", [])
+            ):
+                for icon_id in ["lucide:" + name, "iconify:lucide:" + name]:
+                    if item := self.catalog.get(icon_id):
+                        candidates[icon_id] = item
+                        anchors[icon_id] = max(
+                            anchors.get(icon_id, 0), 0.50 - 0.025 * rank
+                        )
+        mapped = (
+            self.knowledge.icon_candidates(text, self.model) if self.knowledge else {}
+        )
+        for icon_id in mapped:
+            if item := self.catalog.get(icon_id):
+                candidates[icon_id] = item
+        brand_query = bool(concepts(text, brands=True))
+        semantic_positions = {icon_id: rank for rank, icon_id in enumerate(semantic)}
         ranked = []
         for item in candidates.values():
             if (
@@ -55,31 +68,54 @@ class Matcher:
                 or not brand_matches(item, text)
             ):
                 continue
-            is_lexical = item["id"] in positions
-            similarity = semantic.get(item["id"], 0.0)
-            # E5 similarities are ranking scores, not calibrated probabilities.
-            if not is_lexical and similarity < self.policy.get(
-                "searchSemanticThreshold", 0.75
+            icon_id = item["id"]
+            tier = lexical_tier(item, text)
+            sim = semantic.get(icon_id, 0)
+            if (
+                icon_id not in positions
+                and icon_id not in anchors
+                and icon_id not in mapped
+                and sim < self.policy.get("searchSemanticThreshold", 0.75)
             ):
                 continue
-            tier = lexical_tier(item, text)
-            source_priority = {"lucide": 0, "simple-icons": 1}.get(item["source"], 2)
-            ranked.append(
-                (
-                    (
-                        tier,
-                        source_priority,
-                        0 if is_lexical else 1,
-                        positions.get(item["id"], 500) if is_lexical else -similarity,
-                        item["id"],
-                    ),
-                    item,
-                )
+            # Comparable reciprocal ranks let either retriever improve ordering.
+            fusion = 1 / (60 + positions[icon_id]) if icon_id in positions else 0
+            fusion += (
+                1 / (60 + semantic_positions[icon_id])
+                if icon_id in semantic_positions
+                else 0
             )
-        ranked.sort(key=lambda pair: pair[0])
-        # Deduplicate identical artwork and Lucide mirrors; keep the saved IDs valid.
+            score = 12 * fusion
+            score += 2.0 * max(
+                0.0, sim - self.policy.get("searchSemanticThreshold", 0.75)
+            )
+            score += {0: 1.4, 1: 0.65, 2: 0.30, 3: 0.40, 4: 0.18}.get(tier, 0)
+            score += anchors.get(icon_id, 0)
+            evidence = "exact" if tier == 0 else "related"
+            if item.get("brand") and brand_query:
+                score += 1.0
+            if icon_id in mapped:
+                score += mapped[icon_id]["score"]
+                evidence = mapped[icon_id]["evidence"]
+            # Source is only a deterministic tie break; it never suppresses a
+            # stronger semantic or concept match.
+            preferred = 0 if item["source"] == "lucide" else 1
+            ranked.append((score, preferred, item, evidence))
+        ranked.sort(key=lambda row: (-row[0], row[1], row[2]["id"]))
         output, hashes, families = [], set(), set()
-        for _, item in ranked:
+        for score, _, item, evidence in ranked:
+            mapping = mapped.get(item["id"], {})
+            # A mirrored Lucide glyph shares relevance with the canonical ID.
+            # Preserve the family's best score while returning its stable direct
+            # identity, unless the caller explicitly filters the source.
+            if item["id"].startswith("iconify:lucide:") and not source:
+                direct = self.catalog.get("lucide:" + item["name"])
+                if (
+                    direct
+                    and (not category or category in direct.get("categories", []))
+                    and (not style or style == direct["style"])
+                ):
+                    item = direct
             family = (
                 ("lucide", item["name"])
                 if (
@@ -92,11 +128,31 @@ class Matcher:
                 continue
             hashes.add(item["hash"])
             families.add(family)
-            output.append(item)
+            output.append(
+                {
+                    **item,
+                    "score": round(score, 6),
+                    "evidence": evidence,
+                    "conceptId": mapping.get("conceptId"),
+                    "rank": len(output) + 1,
+                }
+            )
+        return output, available
+
+    def search(self, text="", category="", source="", style="", limit=20, offset=0):
+        if not text.strip():
+            items = self.catalog.search("", category, source, style, limit + 1, offset)
+            return {
+                "items": items[:limit],
+                "nextOffset": offset + limit if len(items) > limit else None,
+                "engine": "lexical",
+                "catalogVersion": self.catalog.manifest["version"],
+            }
+        output, available = self._rank(text, category, source, style)
         return {
             "items": output[offset : offset + limit],
             "nextOffset": offset + limit if len(output) > offset + limit else None,
-            "engine": "hybrid" if semantic else "lexical",
+            "engine": "hybrid" if available else "lexical",
             "catalogVersion": self.catalog.manifest["version"],
         }
 
@@ -109,88 +165,19 @@ class Matcher:
         preferredStyle="",
         limit=5,
     ):
-        candidates = self.catalog.search(text, limit=150)
-        cats = set(categories(text))
-        semantic = {}
-        available = False
-        if category:
-            cats.add(category)
-        for cat in sorted(cats):
-            candidates += self.catalog.search(category=cat, limit=60)
-        if self.model and self.vectors:
-            try:
-                semantic = dict(self.vectors.nearest(self.model.query(text), 100))
-                available = True
-                candidates += [m for i in semantic if (m := self.catalog.get(i))]
-            except Exception:
-                pass  # Inference failure must leave lexical search functional.
-        qt = terms(expand(text))
-        ranked = []
-        seen = set()
-        for item in candidates:
-            if item["id"] in seen:
-                continue
-            seen.add(item["id"])
-            if not brand_matches(item, text):
-                continue
-            ct = terms(
-                expand(
-                    item["name"].replace("-", " ")
-                    + " "
-                    + " ".join(item.get("keywords", []))
-                )
+        output, available = self._rank(text)
+        confident = bool(output and output[0]["evidence"] in ("exact", "curated"))
+        if confident and output[0]["evidence"] == "curated":
+            top = output[0]
+            confident = not any(
+                candidate["evidence"] == "curated"
+                and candidate.get("conceptId") != top.get("conceptId")
+                and top["score"] - candidate["score"] < 0.2
+                for candidate in output[1:]
             )
-            lexical = len(qt & ct) / max(1, len(qt))
-            category_score = float(bool(cats & set(item.get("categories", []))))
-            weights = self.policy["weights"]
-            score = (
-                weights["lexical"] * lexical
-                + weights["category"] * category_score
-                + weights["semantic"] * max(0.0, semantic.get(item["id"], 0.0))
-            )
-            if not available:
-                score /= max(1e-9, weights["lexical"] + weights["category"])
-            canonical = any(
-                normalize(item["name"])
-                in {
-                    normalize(a)
-                    for a in SYNONYMS["categories"].get(c, {}).get("aliases", [])
-                }
-                for c in cats
-            )
-            score += (
-                0.06 * canonical
-                + 0.05 * (item["source"] == (preferredSource or "lucide"))
-                + 0.01 * (item["style"] == preferredStyle)
-            )
-            score += {0: 1.0, 1: 0.3, 2: 0.1}.get(lexical_tier(item, text), 0.0)
-            ranked.append((score, item))
-        ranked.sort(key=lambda x: (-x[0], x[1]["id"]))
-        output = []
-        hashes = set()
-        families = set()
-        for score, item in ranked:
-            family = (
-                ("lucide", item["name"])
-                if item["source"] == "lucide"
-                or item["id"].startswith("iconify:lucide:")
-                else (item["source"], item["id"])
-            )
-            if item["hash"] in hashes or family in families:
-                continue
-            hashes.add(item["hash"])
-            families.add(family)
-            output.append({**item, "score": round(score, 6), "rank": len(output) + 1})
-            if len(output) >= limit:
-                break
-        fallback = not output or output[0]["score"] < self.policy["confidenceThreshold"]
+        output = output[:limit]
         if not output and (generic := self.catalog.get("lucide:briefcase")):
-            output = [{**generic, "score": 0.0, "rank": 1}]
-        margin = (
-            output[0]["score"] - output[1]["score"]
-            if len(output) > 1
-            else (output[0]["score"] if output else 0.0)
-        )
+            output = [{**generic, "score": 0.0, "rank": 1, "evidence": "fallback"}]
         return {
             "suggestions": output,
             "engine": "hybrid" if available else "lexical",
@@ -201,7 +188,7 @@ class Matcher:
                 if self.vectors and self.catalog.count
                 else 0.0
             ),
-            "lowConfidence": fallback or margin < self.policy["confidenceMargin"],
+            "lowConfidence": not confident,
             "scoreMeaning": "ranking score, not probability",
             "context": context,
         }

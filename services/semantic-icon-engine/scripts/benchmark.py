@@ -15,24 +15,41 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.catalog import Catalog
 from app.ingest import atomic_json
 from app.matching import Matcher
+from app.knowledge import KnowledgeBank
 
 
-def load_cases(path):
+def load_cases(path, require_reviewed=False):
     data = json.loads(Path(path).read_text())
     if not data or len({row["id"] for row in data}) != len(data):
         raise ValueError("benchmark needs nonempty cases with unique IDs")
     for row in data:
+        if require_reviewed and (
+            row.get("reviewStatus") != "reviewed" or not row.get("reviewer", "").strip()
+        ):
+            raise ValueError(
+                "acceptance benchmark requires reviewer-attributed reviewed labels for every case"
+            )
         if not row.get("text") or not row.get("domain") or not row.get("relevant"):
             raise ValueError("missing benchmark text, domain or relevance labels")
     return data
 
 
-def benchmark(data, queries, models=None, vectors=None, route="search"):
+def benchmark(
+    data,
+    queries,
+    models=None,
+    vectors=None,
+    route="search",
+    knowledge=None,
+    knowledge_vectors=None,
+    require_reviewed=False,
+):
     start = time.perf_counter()
-    cat = Catalog(data)
-    model = index = None
     if bool(models) != bool(vectors):
         raise ValueError("models and vectors must be supplied together")
+    cases = load_cases(queries, require_reviewed)
+    cat = Catalog(data)
+    model = index = None
     if models:
         from app.embeddings import E5, Vectors
 
@@ -40,8 +57,15 @@ def benchmark(data, queries, models=None, vectors=None, route="search"):
         index = Vectors(vectors, cat, model)
         if index.count != cat.count:
             raise ValueError("benchmark requires a complete vector index")
-    matcher = Matcher(cat, model, index)
-    cases = load_cases(queries)
+    knowledge_root = Path(knowledge) if knowledge else Path(data).parent / "knowledge"
+    bank = None
+    if (knowledge_root / "knowledge.json").exists():
+        bank = KnowledgeBank(knowledge_root)
+        if model:
+            bank.attach_vectors(
+                model, knowledge_vectors or Path(data).parent / "knowledge-vectors"
+            )
+    matcher = Matcher(cat, model, index, bank)
     # Validate availability against the real catalog, without changing any label.
     with cat.db() as db:
         available = {row[0] for row in db.execute("SELECT id FROM icons")}
@@ -95,15 +119,26 @@ def benchmark(data, queries, models=None, vectors=None, route="search"):
         "schema": 1,
         "dataset": str(Path(queries).name),
         "datasetSha256": hashlib.sha256(Path(queries).read_bytes()).hexdigest(),
-        "labeling": "Agent-curated frozen expected icon IDs; not an independent human audit or random production sample.",
+        "labeling": (
+            "Reviewer-attributed labels supplied in the dataset; reviewer identity and independence are not automatically authenticated."
+            if require_reviewed
+            else "Agent-curated frozen expected icon IDs; not an independent human audit or random production sample."
+        ),
         "scope": "Direct ranking function, unfiltered, no HTTP rate limits/timeouts; semantic-only retrieval threshold remains active.",
         "route": route,
+        "knowledgeVersion": bank.manifest["version"] if bank else None,
         "requestedEngine": "hybrid" if model else "lexical",
         "catalogVersion": cat.manifest["version"],
         "catalogIcons": cat.count,
         "embeddingVersion": model.version if model else None,
         "targetHitAt3": 0.9,
         "targetMet": sum(row["hitAt3"] for row in rows) >= math.ceil(0.9 * len(rows)),
+        "acceptanceEvaluated": require_reviewed,
+        "acceptancePassed": (
+            (sum(row["hitAt3"] for row in rows) >= math.ceil(0.9 * len(rows)))
+            if require_reviewed
+            else None
+        ),
         **summary(rows),
         "domains": {domain: summary(group) for domain, group in by_domain.items()},
         "meanMs": statistics.mean(latency),
@@ -126,10 +161,26 @@ if __name__ == "__main__":
     )
     parser.add_argument("--models")
     parser.add_argument("--vectors")
+    parser.add_argument("--knowledge")
+    parser.add_argument("--knowledge-vectors")
+    parser.add_argument(
+        "--require-reviewed",
+        action="store_true",
+        help="Reject pending or unattributed labels; needed for an acceptance report",
+    )
     parser.add_argument("--route", choices=["search", "suggest"], default="search")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
-    result = benchmark(args.data, args.queries, args.models, args.vectors, args.route)
+    result = benchmark(
+        args.data,
+        args.queries,
+        args.models,
+        args.vectors,
+        args.route,
+        args.knowledge,
+        args.knowledge_vectors,
+        args.require_reviewed,
+    )
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     atomic_json(args.output, result)
     print(

@@ -1,8 +1,30 @@
 # Persian 500-query icon benchmark
 
+## Current ESCO/Persian iteration
+
+The new shared ranker and Persian knowledge layer match a frozen expected icon among the first three results for **467/500 cases (93.4%)** with real E5 inference, up from the original hybrid baseline of **146/500 (29.2%)**. Lexical plus curated Persian mappings reaches **463/500 (92.6%)**, up from **89/500 (17.8%)**. The dataset and relevance labels have not changed.
+
+**This meets the numerical development target, not independent human acceptance.** The implementation was developed with access to these cases. The separate review packet remains pending; its proposed labels have not been treated as approved or evaluated as a holdout. Both new reports record `acceptanceEvaluated=false` and `acceptancePassed=null`.
+
+| Measure                                 | Current lexical + curated mappings |  Current hybrid |
+| --------------------------------------- | ---------------------------------: | --------------: |
+| Hit@1                                   |                              85.8% |           86.0% |
+| Hit@3                                   |                    92.6% (463/500) | 93.4% (467/500) |
+| Misses at 3                             |                                 37 |              33 |
+| Empty results                           |                                 13 |               0 |
+| Cases with a frozen expected ID present |                            490/500 |         490/500 |
+
+The pinned model indexed all 7,770 approved icons and 18,504 concepts. All 500 hybrid queries used semantic retrieval. Local direct-ranking latency averaged 49.47 ms (P95 59.76 ms), with peak RSS 1,109.8 MiB. These native measurements have no Docker CPU/memory ceiling and are not production guarantees. The full-image CI repeats the benchmark separately under the existing limits.
+
+Catalog identity: `d5d5d387eb4c71f3c9ed15e8`. Knowledge identity: `35cfbfbe24b244d07bf81d36`. Embedding identity: `9e7de405834077a2725957fa46473582fe56119600a86eed34abcd14119dc60d`.
+
+Full evidence: [current lexical results](measurements/fa-500-v2/lexical-search.json), [current hybrid results](measurements/fa-500-v2/hybrid-search.json), and [knowledge build/proposal counts](measurements/fa-500-v2/knowledge-build.json). The [knowledge workflow](persian-knowledge.md) explains untranslated ESCO entries, mapping review states and human acceptance. New artwork does not retroactively change frozen expected IDs; absent expected IDs still count as misses.
+
+## Original baseline, preserved
+
 Measured on 2026-10-16 against the ranking code in PR #64, commit `bac0e43ab1ff67128be4b00779f1afa3477c8db2` (identical tree to local `609b17f`).
 
-**The 90% target was not met.** Hybrid manual search matched an expected icon in its first three results for **146/500 queries (29.2%)**. Lexical search matched **89/500 (17.8%)**. These are frozen-label matching rates, not independently audited human relevance scores.
+**The original baseline did not meet the 90% target.** Hybrid manual search matched an expected icon in its first three results for **146/500 queries (29.2%)**. Lexical search matched **89/500 (17.8%)**. These are frozen-label matching rates, not independently audited human relevance scores.
 
 ## Method
 

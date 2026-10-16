@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from .catalog import Catalog
 from .matching import Matcher
+from .knowledge import KnowledgeBank
 from .svg import valid_id
 
 
@@ -86,6 +87,8 @@ def create_app(root=None, model_dir=None, vector_dir=None):
         state.catalog = None
         state.matcher = None
         state.model_status = "disabled"
+        state.knowledge = None
+        state.knowledge_status = "unavailable"
         state.calls = 0
         state.seconds = 0.0
         state.timeouts = 0
@@ -115,7 +118,23 @@ def create_app(root=None, model_dir=None, vector_dir=None):
                     logging.warning(
                         "Semantic assets unavailable; lexical fallback active"
                     )
-            state.matcher = Matcher(cat, model, vectors)
+            try:
+                base = cat.root.parent
+                state.knowledge = KnowledgeBank(
+                    os.getenv("ICON_KNOWLEDGE_DIR", str(base / "knowledge"))
+                )
+                state.knowledge_status = "lexical"
+                if model:
+                    state.knowledge.attach_vectors(
+                        model,
+                        os.getenv(
+                            "ICON_KNOWLEDGE_VECTOR_DIR", str(base / "knowledge-vectors")
+                        ),
+                    )
+                    state.knowledge_status = "hybrid"
+            except (OSError, ValueError, sqlite3.Error):
+                logging.warning("Knowledge bank unavailable; icon-only fallback active")
+            state.matcher = Matcher(cat, model, vectors, state.knowledge)
         except (OSError, ValueError, sqlite3.Error):
             logging.warning("Catalog unavailable; readiness false")
         yield
@@ -155,6 +174,7 @@ def create_app(root=None, model_dir=None, vector_dir=None):
             "icons": cat.count,
             "model": app.state.model_status,
             "mode": "hybrid" if app.state.model_status == "ready" else "lexical",
+            "knowledge": app.state.knowledge_status,
         }
 
     @app.get("/metrics")
@@ -204,7 +224,9 @@ def create_app(root=None, model_dir=None, vector_dir=None):
         # Share the existing single inference slot with automatic suggestions.
         # Typing and pagination remain functional while another query is running.
         if not app.state.slot.acquire(blocking=False):
-            result = await asyncio.to_thread(Matcher(app.state.catalog).search, **args)
+            result = await asyncio.to_thread(
+                Matcher(app.state.catalog, knowledge=app.state.knowledge).search, **args
+            )
             return {**result, "reason": "inference_busy"}
         future = app.state.executor.submit(app.state.matcher.search, **args)
         future.add_done_callback(lambda _: app.state.slot.release())
@@ -215,7 +237,9 @@ def create_app(root=None, model_dir=None, vector_dir=None):
             )
         except asyncio.TimeoutError:
             app.state.timeouts += 1
-            result = await asyncio.to_thread(Matcher(app.state.catalog).search, **args)
+            result = await asyncio.to_thread(
+                Matcher(app.state.catalog, knowledge=app.state.knowledge).search, **args
+            )
             return {**result, "reason": "semantic_timeout"}
 
     @app.post("/v1/icons/suggest")
@@ -241,9 +265,42 @@ def create_app(root=None, model_dir=None, vector_dir=None):
             return result
         except asyncio.TimeoutError:
             app.state.timeouts += 1
-            result = await asyncio.to_thread(Matcher(app.state.catalog).suggest, **args)
+            result = await asyncio.to_thread(
+                Matcher(app.state.catalog, knowledge=app.state.knowledge).suggest,
+                **args,
+            )
             result["reason"] = "semantic_timeout"
             return result
+
+    @app.get("/v1/concepts/search")
+    async def concept_search(
+        q: str = Query("", max_length=500), limit: int = Query(10, ge=1, le=50)
+    ):
+        if not app.state.knowledge:
+            raise HTTPException(503, "knowledge_unavailable")
+        if not app.state.slot.acquire(blocking=False):
+            raise HTTPException(429, "inference_busy", headers={"Retry-After": "1"})
+        future = app.state.executor.submit(app.state.knowledge.search, q, limit)
+        future.add_done_callback(lambda _: app.state.slot.release())
+        try:
+            items = await asyncio.wait_for(
+                asyncio.shield(asyncio.wrap_future(future)),
+                timeout=float(os.getenv("ICON_TIMEOUT_SECONDS", "2")),
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(503, "semantic_timeout")
+        return {"items": items, "version": app.state.knowledge.manifest["version"]}
+
+    @app.get("/v1/concepts/{concept_id}")
+    def concept_detail(concept_id: str):
+        if not app.state.knowledge:
+            raise HTTPException(503, "knowledge_unavailable")
+        if len(concept_id) > 128:
+            raise HTTPException(400, "invalid_concept_id")
+        item = app.state.knowledge.get(concept_id)
+        if not item:
+            raise HTTPException(404, "concept_not_found")
+        return item
 
     @app.get("/v1/icons/{icon_id}")
     def detail(icon_id: str):

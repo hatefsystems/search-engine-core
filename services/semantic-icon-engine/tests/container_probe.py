@@ -33,6 +33,7 @@ for attempt in range(90):
 else:
     raise AssertionError("full-model container did not become ready")
 assert ready["mode"] == "hybrid" and ready["icons"] > 0
+assert ready["knowledge"] == "hybrid", ready
 # Regression checks run against the real bundled catalog, not fixture metadata.
 category_rows = request("/v1/icons/categories")["categories"]
 assert category_rows and all(
@@ -65,6 +66,22 @@ for path, color in [
 release_root = Path("/opt/icon-artifacts")
 release = json.loads((release_root / "release.json").read_text())
 assert release["approvedIcons"] == release["indexedIcons"] == ready["icons"]
+assert release["concepts"] == release["indexedConcepts"] > 18000
+concept_result = request(
+    "/v1/concepts/search?" + urllib.parse.urlencode({"q": "رایانش ابری", "limit": 3})
+)
+assert concept_result["items"] and any(
+    item["labelFa"] for item in concept_result["items"]
+)
+for query, expected in [
+    ("وکالت در دادگاه", "lucide:scale"),
+    ("تدریس خصوصی ریاضی", "lucide:calculator"),
+    ("نقاشی ساختمان", "lucide:paintbrush"),
+]:
+    result = request(
+        "/v1/icons/search?" + urllib.parse.urlencode({"q": query, "limit": 3})
+    )
+    assert result["items"][0]["id"] == expected, (query, result)
 for name, expected in release["files"].items():
     with (release_root / name).open("rb") as stream:
         assert hashlib.file_digest(stream, "sha256").hexdigest() == expected, name

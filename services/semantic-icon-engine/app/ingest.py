@@ -11,7 +11,7 @@ import unicodedata
 from pathlib import Path
 from .catalog import connect, initialize
 from .svg import sanitize, valid_id, iconify_svg
-from .text import CONFIG, VERSION, enrich, expand
+from .text import CONFIG, VERSION, enrich, expand, document_text
 
 
 def digest(path):
@@ -259,16 +259,7 @@ def _ingest(root, upstream, policy_path, stop_after):
                 is not None
             )
             db.execute("INSERT OR IGNORE INTO assets VALUES(?,?)", (hash_, safe))
-            text = expand(
-                " ".join(
-                    [
-                        icon_id.split(":")[-1].replace("-", " "),
-                        metadata["labelEn"],
-                        fa,
-                        *tags,
-                    ]
-                )
-            )
+            text = document_text(icon_id.split(":")[-1], metadata["labelEn"], fa, tags)
             db.execute(
                 "INSERT INTO icons VALUES(?,?,?,?,?,?,?,?,?)",
                 (
@@ -389,6 +380,14 @@ def _ingest(root, upstream, policy_path, stop_after):
                     set(pack.get("icons", {})) | set(pack.get("aliases", {}))
                 ):
                     icon_id = f"iconify:{prefix}:{name}"
+                    if (
+                        review.get("includeIcons")
+                        and name not in review["includeIcons"]
+                    ):
+                        decision(
+                            icon_id, "excluded", "outside reviewed icon subset", source
+                        )
+                        continue
                     if reason:
                         decision(icon_id, "excluded", reason, source)
                         continue

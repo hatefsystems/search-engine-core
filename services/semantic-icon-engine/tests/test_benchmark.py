@@ -52,6 +52,7 @@ def test_missing_artwork_and_empty_results_stay_in_denominator(catalog, tmp_path
     assert result["emptyResults"] == 1
     assert result["catalogCovered"] == 1
     assert result["targetMet"] is False
+    assert result["acceptanceEvaluated"] is False and result["acceptancePassed"] is None
     assert result["results"][1]["missingRelevant"] == ["lucide:not-present"]
     assert result["domains"]["unknown"]["hitAt3"] == 0
     assert result["engineCounts"] == {"lexical": 2}
@@ -66,3 +67,37 @@ def test_benchmark_rejects_ambiguous_labels_and_partial_model_arguments(
         load_cases(path)
     with pytest.raises(ValueError, match="supplied together"):
         benchmark(catalog.root, path, models="missing")
+
+
+def test_acceptance_rejects_unreviewed_labels(catalog, tmp_path):
+    path = tmp_path / "holdout.json"
+    row = {
+        "id": "one",
+        "domain": "ابر",
+        "text": "زیرساخت ابری",
+        "relevant": ["lucide:cloud"],
+        "reviewStatus": "pending",
+        "reviewer": "",
+    }
+    path.write_text(json.dumps([row]))
+    with pytest.raises(ValueError, match="reviewer-attributed"):
+        benchmark(catalog.root, path, require_reviewed=True)
+    row.update(reviewStatus="reviewed", reviewer="fixture-reviewer")
+    path.write_text(json.dumps([row]))
+    result = benchmark(catalog.root, path, require_reviewed=True)
+    assert result["acceptanceEvaluated"] and result["acceptancePassed"]
+
+
+def test_fresh_review_candidates_are_pending_and_not_acceptance_labels():
+    path = Path(__file__).with_name("evaluation-fa-holdout-review.json")
+    rows = json.loads(path.read_text())
+    original = load_cases(Path(__file__).with_name("evaluation-fa-500.json"))
+    texts = {normalize(row["text"]) for row in rows}
+    assert len(rows) == len(texts) == 500
+    assert not texts.intersection(normalize(row["text"]) for row in original)
+    assert all(
+        row["reviewStatus"] == "pending" and not row["reviewer"] and not row["relevant"]
+        for row in rows
+    )
+    with pytest.raises(ValueError, match="reviewer-attributed"):
+        load_cases(path, require_reviewed=True)

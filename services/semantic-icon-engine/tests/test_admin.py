@@ -208,16 +208,17 @@ def test_incremental_source_reuse(tmp_path, sources, monkeypatch):
         assert db.execute("SELECT count(*) FROM search").fetchone()[0] == 4
 
 
-def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch):
+def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch, knowledge_fixture):
     upstream, _ = sources
     monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
     result = bootstrap.bootstrap(tmp_path / "artifacts", upstream, skip_index=True)
     assert result["approvedIcons"] == 5 and result["indexSkipped"]
     assert result["indexedIcons"] is None
     assert not (tmp_path / "artifacts/vectors").exists()
 
 
-def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch):
+def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch, knowledge_fixture):
     import numpy as np
     from app import embeddings
 
@@ -235,13 +236,15 @@ def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch):
 
     upstream, _ = sources
     monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
     monkeypatch.setattr(embeddings, "E5", Model)
     root = tmp_path / "artifacts"
     first = bootstrap.bootstrap(root, upstream)
     assert first["indexedIcons"] == first["approvedIcons"] == 5
-    assert len(calls) == 5
+    assert first["knowledgeConcepts"] == 5
+    assert len(calls) == 10
     second = bootstrap.bootstrap(root, upstream)
-    assert second == first and len(calls) == 5
+    assert second == first and len(calls) == 10
     assert (root / "data/current.json").stat().st_mode & 0o004
     assert (root / "vectors/shard-000000.npy").stat().st_mode & 0o004
 

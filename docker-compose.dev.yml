@@ -22,6 +22,8 @@ services:
       ICON_DATA_DIR: /artifacts/data
       ICON_MODEL_DIR: /artifacts/models
       ICON_VECTOR_DIR: /artifacts/vectors
+      ICON_KNOWLEDGE_DIR: /artifacts/knowledge
+      ICON_KNOWLEDGE_VECTOR_DIR: /artifacts/knowledge-vectors
   js-minifier:
     image: hatef/js-minifier:dev
     pull_policy: build
