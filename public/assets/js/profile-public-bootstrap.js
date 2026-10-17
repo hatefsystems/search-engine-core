@@ -5,8 +5,7 @@
  const fallback=()=>{
   const root=document.getElementById('public-profile-root'),source=document.getElementById('public-profile-fallback');
   if(!root||!source||root.dataset.profileRender==='interactive')return;
-  const parsed=new DOMParser().parseFromString(source.textContent,'text/html');
-  root.replaceChildren(...Array.from(parsed.body.childNodes,n=>document.importNode(n,true)));
+  root.replaceChildren(...Array.from(source.childNodes,n=>document.importNode(n,true)));
   root.dataset.profileRender='fallback';
  };
  const recover=()=>{failed=true;if(document.readyState!=='loading')fallback();};
