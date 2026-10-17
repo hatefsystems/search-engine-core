@@ -239,4 +239,4 @@ export function renderPublicProfile(root,input,{preview=false}={}){
 }
 
 const payload=document.getElementById('public-profile-data');
-if(payload){try{const data=JSON.parse(payload.content.textContent);const host=document.createElement('div');renderPublicProfile(host,data);document.querySelector('.profile-page').replaceWith(host);document.body.classList.add('public-profile-page');document.querySelectorAll('link[href="/assets/css/profile-header.css"],link[href="/assets/css/profile-content.css"]').forEach(n=>n.remove());}catch(error){console.error('Profile presentation failed',error);}}
+if(payload){try{const data=JSON.parse(payload.content.textContent);const host=document.getElementById('public-profile-root');renderPublicProfile(host,data);host.dataset.profileRender='interactive';}catch(error){console.error('Profile presentation failed',error);document.dispatchEvent(new Event('public-profile-render-failed'));}}

@@ -55,19 +55,19 @@ const server = http.createServer((req, res) => {
                 const geometry = await page.evaluate(() => ({
                     viewport: document.documentElement.clientWidth,
                     content: document.documentElement.scrollWidth,
-                    card: document.querySelector('.profile-page').getBoundingClientRect().width,
+                    card: document.querySelector('.public-profile').getBoundingClientRect().width,
                     direction: getComputedStyle(document.documentElement).direction,
                     font: document.fonts.check('16px "Vazirmatn FD"'),
                 }));
                 assert(geometry.content <= geometry.viewport, `${fixture} overflows at ${width}px`);
-                assert(geometry.card <= 800, 'Card exceeds 800px');
+                assert(geometry.card <= width, 'Profile exceeds the viewport');
                 assert.equal(geometry.direction, 'rtl');
                 assert(geometry.font, 'Persian font did not load');
                 if (fixture === 'broken') {
-                    assert(await page.locator('[data-profile-image]').evaluateAll(images => images.every(image => image.hidden)));
+                    assert(await page.locator('.pp-avatar .avatar-placeholder').isVisible());
                 }
                 if (fixture === 'full') {
-                    assert(await page.locator('[data-profile-image]').evaluateAll(images => images.every(image => image.naturalWidth > 0)));
+                    assert(await page.locator('.pp-avatar img,.pp-backdrop img').evaluateAll(images => images.length===2&&images.every(image => image.naturalWidth > 0)));
                     await page.keyboard.press('Tab');
                     assert.ok(await page.evaluate(() => ['A','BUTTON'].includes(document.activeElement.tagName) && document.activeElement.matches(':focus-visible')));
                     const link = page.locator('a[href]').first();

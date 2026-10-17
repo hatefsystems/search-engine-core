@@ -1,4 +1,16 @@
-# Public profile header verification
+# Public profile rendering verification
+
+Personal pages use `profile-public.css` from the first paint. With JavaScript,
+only a neutral loading shell precedes the complete interactive presentation;
+there is no intermediate profile layout or stylesheet swap. Server-rendered
+public content uses the same stylesheet inside a `noscript` fallback. A small
+bootstrap recovers that escaped HTML if the presentation module fails to load or
+render. Only the initial public cards are rendered on the server; further card
+pagination needs JavaScript. The integration demo holds the module with 6x CPU
+throttling, checks desktop/mobile loading views, then releases it and checks the
+interactive page. It also checks JavaScript-disabled and failed-module fallbacks.
+The page versions its presentation CSS/scripts because static assets have long
+cache lifetimes; an existing browser must not reuse the retired boot path.
 
 The focused C++ suite runs without MongoDB or uWebSockets. It requires a C++20
 compiler, CMake, nlohmann/json, and GoogleTest. It tests the production slug,

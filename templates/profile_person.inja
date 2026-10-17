@@ -26,91 +26,24 @@
     <meta name="robots" content="index, follow">
     
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
-    <link rel="stylesheet" href="/assets/css/profile-header.css">
-    <script src="/assets/js/profile-header.js" defer></script>
-    <link rel="stylesheet" href="/assets/css/profile-content.css">
-    <link rel="stylesheet" href="/assets/css/profile-public.css">
-    <script type="module" src="/assets/js/profile-public.js"></script>
+    <link rel="stylesheet" href="/assets/css/profile-public.css?v=20261017-first-paint">
+    <script src="/assets/js/profile-public-bootstrap.js?v=20261017-first-paint"></script>
+    <script type="module" src="/assets/js/profile-public.js?v=20261017-first-paint" data-public-profile-module></script>
 </head>
-<body>
+<body class="public-profile-page">
     {% if exists("publicPresentation") %}<template id="public-profile-data">{{ publicPresentation }}</template>{% endif %}
-    <main class="profile-page">
-        {% include "components/profile_header.inja" %}
-        <div class="content">
-            <div class="profile-actions"><button type="button" id="share-profile" class="button">اشتراک‌گذاری صفحه</button>{% if existsIn(profile, "sections") and existsIn(profile.sections, "contacts") and length(profile.sections.contacts) > 0 %}<a href="#section-contacts">راه‌های ارتباطی</a>{% endif %}</div>
-            {% if exists("advancedSections") %}{% include "components/profile_sections.inja" %}{% endif %}
-            {% if (existsIn(profile, "bio") and profile.bio != "") %}
-            <div class="profile-section">
-                <h2>درباره من</h2>
-                <p class="bio" dir="auto">{{ profile.bio }}</p>
-            </div>
-            {% endif %}
-            
-            {% if (existsIn(profile, "title") and profile.title != "") or (existsIn(profile, "company") and profile.company != "") or (existsIn(profile, "experienceLevel") and profile.experienceLevel != "") %}
-            <div class="profile-section">
-                <h2>اطلاعات حرفه‌ای</h2>
-                <div class="info-grid">
-                    {% if (existsIn(profile, "title") and profile.title != "") %}
-                    <div class="info-item">
-                        <div class="info-label">عنوان شغلی</div>
-                        <div class="info-value" dir="auto">{{ profile.title }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if (existsIn(profile, "company") and profile.company != "") %}
-                    <div class="info-item">
-                        <div class="info-label">شرکت</div>
-                        <div class="info-value" dir="auto">{{ profile.company }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if (existsIn(profile, "experienceLevel") and profile.experienceLevel != "") %}
-                    <div class="info-item">
-                        <div class="info-label">سطح تجربه</div>
-                        <div class="info-value" dir="auto">{{ profile.experienceLevel }}</div>
-                    </div>
-                    {% endif %}
+    <div id="public-profile-root" data-profile-render="loading">
+        <div class="public-profile profile-loading" aria-busy="true" aria-label="بارگذاری پروفایل">
+            <div class="pp-nav"><a class="pp-brand" href="/">هاتف</a></div>
+            <main class="pp-main">
+                <div class="pp-hero">
+                    <div class="pp-avatar pp-skeleton" aria-hidden="true"></div>
+                    <div class="pp-intro"><p role="status">در حال بارگذاری پروفایل…</p><div class="pp-skeleton pp-skeleton-title" aria-hidden="true"></div><div class="pp-skeleton pp-skeleton-line" aria-hidden="true"></div></div>
                 </div>
-            </div>
-            {% endif %}
-            
-            {% if (existsIn(profile, "education") and profile.education != "") or (existsIn(profile, "school") and profile.school != "") %}
-            <div class="profile-section">
-                <h2>تحصیلات</h2>
-                <div class="info-grid">
-                    {% if (existsIn(profile, "education") and profile.education != "") %}
-                    <div class="info-item">
-                        <div class="info-label">مدرک تحصیلی</div>
-                        <div class="info-value" dir="auto">{{ profile.education }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if (existsIn(profile, "school") and profile.school != "") %}
-                    <div class="info-item">
-                        <div class="info-label">دانشگاه یا مؤسسه</div>
-                        <div class="info-value" dir="auto">{{ profile.school }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-            
-            {% if length(links) > 0 %}
-            <div class="profile-section">
-                <h2>پیوندها</h2>
-                <div class="links-section">
-                    {% for link in links %}
-                    <a href="/l/{{ link.id }}" class="link-block" target="_blank" rel="noopener noreferrer">
-                        <div class="link-block-title" dir="auto">{{ link.title }}</div>
-                        <div class="link-block-url" dir="ltr">{{ link.url }}</div>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
+                <div class="pp-section pp-skeleton-section" aria-hidden="true"><div class="pp-skeleton pp-skeleton-title"></div><div class="pp-skeleton pp-skeleton-line"></div></div>
+            </main>
         </div>
-        
-        <footer class="profile-footer">ساخته‌شده با <a href="/" lang="en" dir="ltr">Hatef.ir</a></footer>
-    </main>
+    </div>
+    <noscript id="public-profile-fallback"><style>.profile-loading{display:none}</style>{% include "components/profile_public_readonly.inja" %}</noscript>
 </body>
 </html>
