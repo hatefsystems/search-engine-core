@@ -27,7 +27,7 @@
     
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
     <link rel="stylesheet" href="/assets/css/profile-public.css?v=20261017-first-paint">
-    <script src="/assets/js/profile-public-bootstrap.js?v=20261017-first-paint"></script>
+    <script src="/assets/js/profile-public-bootstrap.js?v=20261018-fallback-dom"></script>
     <script type="module" src="/assets/js/profile-public.js?v=20261017-first-paint" data-public-profile-module></script>
 </head>
 <body class="public-profile-page">
@@ -44,6 +44,7 @@
             </main>
         </div>
     </div>
-    <noscript id="public-profile-fallback"><style>.profile-loading{display:none}</style>{% include "components/profile_public_readonly.inja" %}</noscript>
+    <template id="public-profile-fallback">{% include "components/profile_public_readonly.inja" %}</template>
+    <noscript><style>.profile-loading{display:none}</style>{% include "components/profile_public_readonly.inja" %}</noscript>
 </body>
 </html>

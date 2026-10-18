@@ -30,6 +30,7 @@ jobs:
         env:
           NODE_PATH: /tmp/profile-ui-tests/node_modules
         run: |
+          node tests/profile/fallback-browser-check.cjs
           node tests/profile/workspace-browser-check.cjs
           node tests/profile/media-autosave-browser-check.cjs
           node tests/profile/public-browser-check.cjs

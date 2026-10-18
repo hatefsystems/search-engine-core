@@ -178,7 +178,11 @@ TEST(ProfileTemplate, FullProfileUsesPreferredNameAndLeveledSkillsOnce) {
     EXPECT_NE(html.find("پیشرفته"), std::string::npos);
     EXPECT_NE(html.find("/l/test-link"), std::string::npos);
     EXPECT_EQ(html.find("legacy-only"), std::string::npos);
-    EXPECT_EQ(html.find("C++", html.find("C++") + 1), std::string::npos);
+    // One safe copy per alternative: inert template and JavaScript-disabled HTML.
+    const auto firstSkill = html.find("C++");
+    const auto secondSkill = html.find("C++", firstSkill + 1);
+    EXPECT_NE(secondSkill, std::string::npos);
+    EXPECT_EQ(html.find("C++", secondSkill + 1), std::string::npos);
     exportFixture("full.html", html);
     data["profile"]["avatarUrl"] = "/missing-avatar.png";
     data["profile"]["coverImageUrl"] = "/missing-cover.png";
@@ -255,8 +259,9 @@ TEST(ProfileTemplate, InitialPublicDocumentUsesCurrentLayoutBeforeScriptsRun) {
     const auto html = render(data);
     EXPECT_NE(html.find("<body class=\"public-profile-page\">"), std::string::npos);
     EXPECT_NE(html.find("id=\"public-profile-root\" data-profile-render=\"loading\""), std::string::npos);
-    EXPECT_NE(html.find("<noscript id=\"public-profile-fallback\">"), std::string::npos);
-    const auto fallbackStart = html.find("<noscript id=\"public-profile-fallback\">");
+    EXPECT_NE(html.find("<template id=\"public-profile-fallback\">"), std::string::npos);
+    EXPECT_NE(html.find("profile-public-bootstrap.js?v=20261018-fallback-dom"), std::string::npos);
+    const auto fallbackStart = html.find("<template id=\"public-profile-fallback\">");
     EXPECT_EQ(html.substr(0, fallbackStart).find("<h1"), std::string::npos);
     EXPECT_EQ(html.find("</noscript>"), html.rfind("</noscript>"));
     EXPECT_NE(html.find("class=\"pp-hero\""), std::string::npos);
