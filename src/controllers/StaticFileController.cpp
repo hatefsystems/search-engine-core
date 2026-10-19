@@ -1,4 +1,5 @@
 #include "StaticFileController.h"
+#include "IconEngineController.h"
 #include "../../include/Logger.h"
 #include <filesystem>
 #include <fstream>
@@ -126,10 +127,13 @@ private:
 // Global cache instance
 static JsMinificationCache jsCache;
 
-void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content) {
+void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content, bool allowSameOriginFrame) {
     // Set basic security headers for all responses
     res->writeHeader("X-Content-Type-Options", "nosniff");
-    res->writeHeader("X-Frame-Options", "DENY");
+    res->writeHeader("X-Frame-Options", allowSameOriginFrame ? "SAMEORIGIN" : "DENY");
+    if (allowSameOriginFrame) {
+        res->writeHeader("Content-Security-Policy", "frame-ancestors 'self'");
+    }
     res->writeHeader("X-XSS-Protection", "1; mode=block");
     res->writeHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res->writeHeader("Cross-Origin-Opener-Policy", "same-origin");
@@ -137,6 +141,7 @@ void StaticFileController::setCSPHeaders(uWS::HttpResponse<false>* res, const st
 }
 
 void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    if (req->getUrl().starts_with("/assets/icons/")) { IconEngineController::asset(res, req); return; }
     std::string path = std::string(req->getUrl());
     
     // Remove query parameters if any
@@ -160,6 +165,11 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
         notFound(res, "Invalid path");
         return;
     }
+
+    // Support bundled assets under public/assets as well as legacy public/* URLs.
+    if (!std::filesystem::exists(filePath)) {
+        filePath = "public/assets" + path;
+    }
     
     // Check if file exists
     if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath)) {
@@ -179,7 +189,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     std::string mimeType = getMimeType(filePath);
     
     // Minify JS if enabled and file is JS
-    if (mimeType == "application/javascript") {
+    const char* minifySetting = std::getenv("MINIFY_JS");
+    const bool minifyEnabled = !minifySetting ||
+        (std::string(minifySetting) != "false" && std::string(minifySetting) != "0");
+    if (mimeType == "application/javascript" && minifyEnabled) {
         auto start = std::chrono::high_resolution_clock::now();
         
         // Check cache first
@@ -193,7 +206,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
             LOG_DEBUG("Using cached minified JS: " + path);
         } else {
             // Minify and cache
-            static JsMinifierClient client("http://js-minifier:3002");
+            static JsMinifierClient client([] {
+                const char* url = std::getenv("JS_MINIFIER_SERVICE_URL");
+                return url ? std::string(url) : std::string("http://js-minifier:3002");
+            }());
             if (client.isServiceAvailable()) {
                 try {
                     auto minifyStart = std::chrono::high_resolution_clock::now();
@@ -216,8 +232,10 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     res->writeStatus("200 OK")
        ->writeHeader("Content-Type", mimeType);
     
-    // Set basic security headers (no CSP for static files)
-    setCSPHeaders(res, mimeType, content);
+    // Only the dedicated preview shell may be embedded by this site's editor.
+    const bool isProfilePreview = req->getUrl() == "/assets/profile-preview.html" &&
+        filePath == "public/assets/profile-preview.html";
+    setCSPHeaders(res, mimeType, content, isProfilePreview);
     
     // Add cache headers for static assets
     if (mimeType == "application/javascript") {
@@ -238,7 +256,7 @@ void StaticFileController::serveStatic(uWS::HttpResponse<false>* res, uWS::HttpR
     }
     
     // Send content
-    res->end(content);
+    res->writeHeader("Server", "HatefEngine 1.0")->end(content);
     
     LOG_INFO("Served static file: " + path + " (" + std::to_string(content.length()) + " bytes)");
 }
@@ -332,4 +350,60 @@ std::string StaticFileController::getLastModifiedHeader(const std::string& fileP
         LOG_WARNING("Failed to get last modified time for " + filePath + ": " + std::string(e.what()));
         return "";
     }
-} 
+}
+
+// ==================== Upload Serving ====================
+
+void StaticFileController::serveUpload(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    std::string path = std::string(req->getUrl());
+    
+    LOG_DEBUG("Serving uploaded file: " + path);
+    
+    // Remove "/uploads" prefix to get the actual path
+    if (path.find("/uploads") == 0) {
+        path = path.substr(8); // Remove "/uploads" (8 characters)
+    }
+    
+    // Construct full file path
+    std::string filePath = "uploads" + path;
+    
+    // Security: prevent directory traversal
+    if (path.find("..") != std::string::npos) {
+        notFound(res, "Invalid path");
+        return;
+    }
+    
+    // Check if file exists
+    if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath)) {
+        LOG_WARNING("Upload file not found: " + path);
+        notFound(res, "File not found");
+        return;
+    }
+    
+    // Read file content
+    std::string content = readFile(filePath);
+    if (content.empty() && std::filesystem::file_size(filePath) > 0) {
+        serverError(res, "Failed to read file");
+        return;
+    }
+    
+    // Determine MIME type
+    std::string mimeType = getMimeType(filePath);
+    
+    // Set response headers
+    res->writeStatus("200 OK")
+       ->writeHeader("Content-Type", mimeType);
+    
+    // Set cache headers for uploads (long cache time since filenames are unique)
+    res->writeHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res->writeHeader("ETag", generateETag(content));
+    res->writeHeader("Last-Modified", getLastModifiedHeader(filePath));
+    
+    // Add security headers
+    res->writeHeader("X-Content-Type-Options", "nosniff");
+    
+    // Send content
+    res->writeHeader("Server", "HatefEngine 1.0")->end(content);
+    
+    LOG_INFO("Served uploaded file: " + path + " (" + std::to_string(content.length()) + " bytes)");
+}

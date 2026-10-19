@@ -1,0 +1,8 @@
+{
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "cpuCount": 9,
+  "modelBytes": 470268510,
+  "int8ModelBytes": 406734568,
+  "execution": "Native isolated executor, no Docker/cgroup CPU or RAM ceiling applied; concurrent build jobs may affect timings."
+}

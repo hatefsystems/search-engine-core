@@ -360,4 +360,4 @@ class EmbeddingService:
 - **Performance Issues:** Profile and optimize
 - **Integration Issues:** Check API contracts
 
-*Follow these guidelines to build a world-class, universal multilingual search engine that scales globally.*
+*Follow these guidelines to build a production-grade, universal multilingual search engine that scales globally.*

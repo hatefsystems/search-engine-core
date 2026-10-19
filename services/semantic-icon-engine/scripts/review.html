@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بازبینی فارسی و ارزیابی آیکن‌های هاتف</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#262037;background:#f6f4fb;line-height:1.8;accent-color:#7046b5}*{box-sizing:border-box}body{margin:0}header,main{max-width:1320px;margin:auto;padding:22px}header{background:#fff;border-bottom:1px solid #ddd4ee}h1{font-size:22px;margin:0 0 8px}p{margin:8px 0}.muted{color:#685e77;font-size:13px}.bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.panel{background:#fff;border:1px solid #e1dbea;border-radius:14px;padding:20px;margin:14px 0}.layout{display:grid;grid-template-columns:minmax(300px,1fr) minmax(360px,1.2fr);gap:18px}.ltr,[data-en]{direction:ltr;text-align:left;unicode-bidi:plaintext;overflow-wrap:anywhere}input,textarea,button,select{font:inherit}input[type=text],input[type=search],textarea{width:100%;padding:9px 12px;border:1px solid #b9afc8;border-radius:8px;color:inherit;background:white}textarea{min-height:90px;resize:vertical}label{display:block;margin-top:10px}button{border:1px solid #70548d;border-radius:8px;padding:8px 16px;background:white;color:#54307d;cursor:pointer}button:disabled{opacity:.4;cursor:default}.primary{background:#7046b5;color:#fff}.small{font-size:12px}.notice{padding:12px;background:#fff3d6;border-radius:8px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}.icon{min-height:110px;padding:9px 5px;border:1px solid #ddd4e7;border-radius:10px;font-size:11px;overflow-wrap:anywhere;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.icon img{width:32px;height:32px}.icon[aria-pressed=true]{background:#eee4ff;border:2px solid #7046b5}.icon[aria-pressed=true]::before{content:'✓ انتخاب‌شده';color:#59338c}#message{white-space:pre-wrap}#sourceDescription{max-height:280px;overflow:auto}#flags{color:#8d4d12}.hidden{display:none!important}details{margin:8px 0}summary{cursor:pointer}#selected{overflow-wrap:anywhere}.status{font-size:13px;color:#5e338e}input[type=checkbox]{margin-left:8px}#attestLabel{font-size:14px}.empty{text-align:center;padding:50px;color:#766889}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #b995f5;outline-offset:2px}@media(max-width:850px){.layout{grid-template-columns:1fr}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}header,main{padding:14px}}
+</style>
+<header>
+<h1>بازبینی فارسی و ارزیابی آیکن‌های هاتف</h1>
+<p class="muted">فایل‌ها در همین مرورگر پردازش می‌شوند. برای حفظ کار، فایل خروجی را دانلود کنید. این صفحه هیچ داده‌ای به سرور نمی‌فرستد.</p>
+<div class="bar"><label>بستهٔ بازبینی <input id="packetFile" type="file" accept=".json,application/json"></label><label>فهرست کامل آیکن‌ها، در صورت نیاز <input id="catalogFile" type="file" accept=".json,application/json"></label></div>
+</header>
+<main>
+<div id="message" role="status" aria-live="polite" class="notice">بستهٔ ترجمه، جمع‌آوری عبارت یا داوری را باز کنید.</div>
+<div id="workspace" class="hidden">
+<section class="panel">
+<div class="bar"><label>نام یا شناسهٔ بازبین <input id="reviewer" type="text" autocomplete="off"></label><span id="progress" class="status"></span><button id="download" class="primary">دانلود کار ذخیره‌شده</button></div>
+<label id="attestLabel"><input id="human" type="checkbox">من شخصاً این مورد را بررسی کرده‌ام و مسئولیت متن و انتخاب‌های ثبت‌شده را می‌پذیرم.</label>
+<div id="independence" class="hidden"><label><input id="independent" type="checkbox">در توسعه و تنظیم رتبه‌بندی این موتور مشارکت نداشته‌ام.</label><label id="blindLabel"><input id="blind" type="checkbox">نتایج موتور و انتخاب داور دیگر را هنگام داوری ندیده‌ام.</label></div>
+<p class="muted">این ابزار هویت یا استقلال افراد را احراز نمی‌کند. ترجمهٔ ماشینی و تیک‌زدن خودکار جای بازبینی انسانی را نمی‌گیرند.</p>
+</section>
+<div class="bar"><button id="previous">قبلی</button><span id="position"></span><button id="next">بعدی</button><button id="nextPending">مورد بررسی‌نشدهٔ بعدی</button></div>
+<div class="layout">
+<section class="panel">
+<div id="identity" class="small ltr"></div><p id="domain" class="status"></p><p id="caseState" class="status"></p><p id="raterChoices" class="small ltr hidden"></p>
+<div id="source" class="hidden"><h2 class="small">متن اصلی انگلیسی</h2><p id="sourceLabel" data-en></p><details><summary>توضیح و نام‌های جایگزین اصلی</summary><div id="sourceDescription" data-en></div><p id="sourceAliases" data-en></p></details><p id="flags" class="small"></p></div>
+<label id="textLabel">عبارت فارسی <textarea id="text"></textarea></label>
+<label id="aliasesLabel" class="hidden">نام‌های جایگزین فارسی، هر کدام در یک خط <textarea id="aliases"></textarea></label>
+<label id="descriptionLabel" class="hidden">توضیح فارسی <textarea id="description"></textarea></label>
+<label id="notesLabel">یادداشت بازبین <textarea id="notes"></textarea></label>
+<label id="noneLabel" class="hidden"><input id="none" type="checkbox">در فهرست کامل، آیکن مناسبی برای این عبارت وجود ندارد. این مورد در آزمون باقی می‌ماند.</label>
+<p id="selected" class="small ltr"></p>
+<button id="approve" class="primary">ثبت بررسی این مورد</button><p class="muted">پس از تغییر یا ثبت، فایل را دانلود کنید تا کار شما ماندگار شود.</p>
+</section>
+<section id="artwork" class="panel">
+<h2 class="small">مرور آیکن‌ها برای برچسب‌گذاری</h2><p class="muted">همهٔ آیکن‌ها بر اساس شناسه مرتب‌اند. هیچ پیشنهاد یا رتبه‌ای از موتور جستجو نمایش داده نمی‌شود. کادر زیر فقط نام آیکن‌ها را با متن تایپ‌شدهٔ خود شما فیلتر می‌کند.</p>
+<label>فیلتر دستی نام یا شناسه <input id="filter" type="search" placeholder="مثلاً heart یا cloud" autocomplete="off"></label>
+<div class="bar"><button id="iconsPrevious">صفحهٔ قبل</button><span id="iconPosition" class="small"></span><button id="iconsNext">صفحهٔ بعد</button></div>
+<div id="icons" class="grid"><p class="empty">فایل فهرست آیکن‌ها را باز کنید.</p></div>
+</section>
+</div>
+</div>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const flagLabels={'adaptive-segmentation':'بخش طولانی با تقسیم تطبیقی ترجمه شده است','untranslated-fragment':'بخشی از متن اصلی برای ترجمهٔ انسانی باقی مانده است','title-needs-persian':'عنوان فارسی یا نام فنی نیاز به بررسی دارد','unchanged-title':'عنوان با متن انگلیسی یکسان است','description-needs-persian':'توضیح فارسی نیاز به بررسی دارد','title-length-outlier':'عنوان فارسی طول غیرمعمول دارد','alias-needs-review':'بعضی نام‌های جایگزین فارسی نشده‌اند','unknown-token':'نشانهٔ واژهٔ ناشناخته در ترجمه وجود دارد','shared-persian-title':'چند مفهوم انگلیسی عنوان فارسی یکسان دارند'};
+let packet=null,catalog=null,filename='review.json',position=0,iconPage=0,chosen=new Set(),dirty=false;
+const rows=()=>packet?.concepts||packet?.cases||[];
+const mode=()=>packet?.mode;
+const annotation=()=>['annotation','adjudication'].includes(mode());
+const complete=row=>mode()==='translation'?row.translationStatus==='reviewed':mode()==='authoring'?row.humanAuthored===true:row.reviewStatus==='reviewed';
+function message(text){$('message').textContent=text;}
+function visibility(id,show){$(id).classList.toggle('hidden',!show);}
+function markDirty(){dirty=true;if(packet){$('caseState').textContent=complete(rows()[position])?'بررسی ثبت شده است':'در انتظار بررسی انسانی';$('progress').textContent=`${rows().filter(complete).length} مورد ثبت‌شده از ${rows().length}`;}message('تغییرات در حافظهٔ مرورگر هستند. برای ذخیره، «دانلود کار ذخیره‌شده» را بزنید.');}
+function saveCurrent(){
+ if(!packet)return;
+ const row=rows()[position];
+ if(mode()==='translation'){row.labelFa=$('text').value;row.aliasesFa=$('aliases').value.split('\n').map(v=>v.trim()).filter(Boolean);row.descriptionFa=$('description').value;row.icons=[...chosen].sort();}
+ else if(mode()==='authoring'){row.text=$('text').value;}
+ else {row.relevant=[...chosen].sort();row.noSuitableIcon=$('none').checked;row.notes=$('notes').value;}
+}
+function draw(){
+ const row=rows()[position];
+ $('identity').textContent=row.id;
+ $('domain').textContent=row.domain||'';visibility('raterChoices',mode()==='adjudication');$('raterChoices').textContent=row.raterChoices?Object.entries(row.raterChoices).map(([name,ids])=>name+': '+(ids.length?ids.join(', '):'no suitable icon')).join(' | '):'';
+ $('caseState').textContent=complete(row)?'بررسی ثبت شده است':'در انتظار بررسی انسانی';
+ $('text').value=mode()==='translation'?row.labelFa:row.text;
+ $('text').readOnly=annotation();
+ visibility('source',mode()==='translation');visibility('aliasesLabel',mode()==='translation');visibility('descriptionLabel',mode()==='translation');visibility('notesLabel',annotation());visibility('noneLabel',annotation());visibility('artwork',mode()!=='authoring');
+ $('textLabel').firstChild.textContent=mode()==='translation'?'عنوان فارسی ':'عبارت فارسی ';
+ $('sourceLabel').textContent=row.labelEn||'';
+ $('sourceDescription').textContent=(row.descriptionEn||'').replace(/<[^>]*>/g,' ');
+ $('sourceAliases').textContent=(row.aliasesEn||[]).join(' | ');
+ $('flags').textContent=(row.qualityFlags||[]).length?'هشدارهای بررسی خودکار: '+row.qualityFlags.map(flag=>flagLabels[flag]||flag).join('، '):'این پیش‌نویس هنوز نیاز به بازبینی تخصصی دارد.';
+ $('aliases').value=(row.aliasesFa||[]).join('\n');$('description').value=row.descriptionFa||'';$('notes').value=row.notes||'';$('none').checked=!!row.noSuitableIcon;
+ chosen=new Set(mode()==='translation'?(row.icons||[]):(row.relevant||[]));
+ $('human').checked=false;
+ $('position').textContent=`${position+1} از ${rows().length}`;
+ $('progress').textContent=`${rows().filter(complete).length} مورد ثبت‌شده از ${rows().length}`;
+ $('previous').disabled=position===0;$('next').disabled=position+1===rows().length;
+ $('filter').value='';iconPage=0;drawIcons();
+}
+function drawIcons(){
+ $('selected').textContent='انتخاب‌ها: '+[...chosen].sort().join('، ');
+ const root=$('icons');root.replaceChildren();
+ if(!catalog){root.textContent='فایل فهرست کامل آیکن‌ها را باز کنید.';return;}
+ const filter=$('filter').value.trim().toLocaleLowerCase();
+ const items=catalog.icons.filter(row=>!filter||[row.id,row.labelFa,row.labelEn].some(v=>(v||'').toLocaleLowerCase().includes(filter)));
+ const pages=Math.max(1,Math.ceil(items.length/60));iconPage=Math.min(iconPage,pages-1);
+ $('iconPosition').textContent=`صفحهٔ ${iconPage+1} از ${pages}، ${items.length} آیکن`;
+ $('iconsPrevious').disabled=iconPage===0;$('iconsNext').disabled=iconPage+1>=pages;
+ for(const icon of items.slice(iconPage*60,(iconPage+1)*60)){
+  const button=document.createElement('button');button.className='icon';button.type='button';button.setAttribute('aria-pressed',String(chosen.has(icon.id)));
+  const img=document.createElement('img');img.alt='';img.loading='lazy';img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(icon.svg);
+  const title=document.createElement('span');title.textContent=icon.labelFa||icon.labelEn;
+  const id=document.createElement('span');id.className='ltr';id.textContent=icon.id;button.append(img,title,id);
+  button.onclick=()=>{chosen.has(icon.id)?chosen.delete(icon.id):chosen.add(icon.id);if(chosen.size)$('none').checked=false;invalidate();drawIcons();};root.append(button);
+ }
+}
+function invalidate(){const row=rows()[position];if(mode()==='translation'){row.translationStatus='pending';row.humanReviewed=false;row.reviewer='';}else if(mode()==='authoring'){row.humanAuthored=false;row.queryAuthorIndependentFromDevelopment=false;}else row.reviewStatus='pending';$('human').checked=false;markDirty();}
+function move(next){saveCurrent();position=next;draw();}
+$('packetFile').onchange=async event=>{
+ try{
+  if(dirty&&!confirm('تغییرات دانلودنشده دارید. فایل جدید باز شود؟'))return;
+  const file=event.target.files[0];const value=JSON.parse(await file.text());
+  if(!['translation','authoring','annotation','adjudication'].includes(value.mode)||!(value.concepts||value.cases)?.length)throw Error('نوع بسته پشتیبانی نمی‌شود.');
+  if(catalog&&value.catalogVersion&&catalog.catalogVersion!==value.catalogVersion)throw Error('نسخهٔ فهرست با بستهٔ داوری متفاوت است.');packet=value;filename=file.name;position=0;dirty=false;
+  $('reviewer').value=packet.reviewer||'';$('reviewer').readOnly=annotation();
+  $('independent').checked=packet.independentFromDevelopment===true;$('blind').checked=packet.blindToEngineResults===true;
+  visibility('independence',annotation()||mode()==='authoring');visibility('blindLabel',annotation());visibility('workspace',true);message(packet.notice||'بسته باز شد.');draw();
+ }catch(error){message(error.message);}
+};
+$('catalogFile').onchange=async event=>{try{const value=JSON.parse(await event.target.files[0].text());if(value.mode!=='catalog'||!Array.isArray(value.icons))throw Error('فایل فهرست معتبر نیست.');if(packet?.catalogVersion&&packet.catalogVersion!==value.catalogVersion)throw Error('نسخهٔ فهرست با بستهٔ داوری متفاوت است.');catalog=value;catalog.icons.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);drawIcons();}catch(error){message(error.message);}};
+for(const id of ['text','aliases','description','notes','none'])$(id).addEventListener('input',()=>{if(id==='none'&&$('none').checked)chosen.clear();invalidate();drawIcons();});
+$('approve').onclick=()=>{
+ try{
+  const name=$('reviewer').value.trim();if(!name||!$('human').checked)throw Error('نام بازبین و تأیید بررسی شخصی لازم است.');
+  saveCurrent();const row=rows()[position];if(!$('text').value.trim())throw Error('عنوان یا عبارت فارسی خالی است.');
+  if(mode()==='translation'){row.translationStatus='reviewed';row.reviewer=name;row.humanReviewed=true;}
+  else if(mode()==='authoring'){if(!$('independent').checked)throw Error('نویسندهٔ عبارت باید مستقل از توسعهٔ موتور باشد.');row.queryAuthor=name;row.querySource=row.querySource||'human-authored';row.humanAuthored=true;row.queryAuthorIndependentFromDevelopment=true;}
+  else{
+   if(!$('independent').checked||!$('blind').checked)throw Error('استقلال از توسعه و ندیدن نتایج موتور باید تأیید شوند.');
+   if((chosen.size>0)===$('none').checked)throw Error('آیکن مناسب را انتخاب کنید یا نبود آیکن مناسب را صریحاً ثبت کنید.');
+   if(!catalog||catalog.catalogVersion!==packet.catalogVersion)throw Error('فهرست کامل با نسخهٔ صحیح را باز کنید.');
+   packet.isHuman=true;packet.independentFromDevelopment=true;packet.blindToEngineResults=true;row.reviewStatus='reviewed';
+  }
+  markDirty();draw();message('بررسی این مورد ثبت شد. برای نگهداری کار فایل خروجی را دانلود کنید.');
+ }catch(error){message(error.message);}
+};
+for(const [id,key] of [['independent','independentFromDevelopment'],['blind','blindToEngineResults']])$(id).onchange=()=>{if(packet){packet[key]=$(id).checked;if(mode()==='authoring')invalidate();else markDirty();}};
+$('previous').onclick=()=>move(position-1);$('next').onclick=()=>move(position+1);
+$('nextPending').onclick=()=>{saveCurrent();for(let n=1;n<=rows().length;n++){const idx=(position+n)%rows().length;if(!complete(rows()[idx])){move(idx);return;}}message('تمام موارد این بسته ثبت شده‌اند. فایل خروجی را دانلود کنید.');};
+$('filter').oninput=()=>{iconPage=0;drawIcons();};$('iconsPrevious').onclick=()=>{iconPage--;drawIcons();};$('iconsNext').onclick=()=>{iconPage++;drawIcons();};
+$('download').onclick=()=>{saveCurrent();const url=URL.createObjectURL(new Blob([JSON.stringify(packet,null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=filename.replace(/\.json$/,'')+'-saved.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);dirty=false;message('فایل خروجی دانلود شد. تأیید نهایی فقط برای مواردی ثبت شده که شخصاً بررسی کرده‌اید.');};
+window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+</script>
+</html>

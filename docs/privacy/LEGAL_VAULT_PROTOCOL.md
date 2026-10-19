@@ -125,7 +125,7 @@ Witness: _____________ Date: _______
            "timestamp": "2024-06-15T14:23:11Z",
            "ipAddress": "203.0.113.42",
            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
-           "referrer": "https://google.com/search?q=example"
+           "referrer": "https://search.example.com/results?q=example"
          }
        ]
      }

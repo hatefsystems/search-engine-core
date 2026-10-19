@@ -7,9 +7,12 @@ class StaticFileController : public routing::Controller {
 public:
     // Handles all static file requests
     void serveStatic(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    
+    // Handles uploaded image requests
+    void serveUpload(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
 private:
-    void setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content);
+    void setCSPHeaders(uWS::HttpResponse<false>* res, const std::string& mimeType, std::string& content, bool allowSameOriginFrame = false);
     std::string getMimeType(const std::string& path);
     bool shouldCache(const std::string& path);
     std::string readFile(const std::string& path);
@@ -21,4 +24,5 @@ private:
 ROUTE_CONTROLLER(StaticFileController) {
     using namespace routing;
     REGISTER_ROUTE(HttpMethod::GET, "/assets/*", serveStatic, StaticFileController);
-} 
+    REGISTER_ROUTE(HttpMethod::GET, "/uploads/*", serveUpload, StaticFileController);
+}

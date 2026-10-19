@@ -4,6 +4,7 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
+#include <nlohmann/json.hpp>
 #include <bsoncxx/oid.hpp>
 #include <mongocxx/exception/bulk_write_exception.hpp>
 #include <cstdlib>
@@ -111,6 +112,8 @@ bsoncxx::document::value LinkBlockStorage::linkBlockToBson(const LinkBlock& link
     }
     
     // Behavior and privacy
+    builder.append(kvp("version", link.version));
+    builder.append(kvp("visibility", link.visibility));
     builder.append(kvp("isActive", link.isActive));
     builder.append(kvp("privacy", linkPrivacyToString(link.privacy)));
     
@@ -154,6 +157,8 @@ LinkBlock LinkBlockStorage::bsonToLinkBlock(const bsoncxx::document::view& doc) 
         link.iconUrl = std::string(doc["iconUrl"].get_string().value);
     }
     
+    if (doc["version"]) link.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["visibility"]) link.visibility = std::string(doc["visibility"].get_string().value);
     // Behavior and privacy
     if (doc["isActive"]) {
         link.isActive = doc["isActive"].get_bool().value;
@@ -195,7 +200,7 @@ Result<std::string> LinkBlockStorage::store(const LinkBlock& link) {
         
         // Create BSON document (without _id, MongoDB will auto-generate)
         LinkBlock linkCopy = link;
-        linkCopy.id = std::nullopt; // Ensure no ID for new document
+        // Stable client IDs allow creation retries without duplicate records.
         linkCopy.createdAt = std::chrono::system_clock::now();
         
         auto doc = linkBlockToBson(linkCopy);
@@ -301,6 +306,8 @@ Result<bool> LinkBlockStorage::update(const LinkBlock& link) {
         // Build filter
         auto filter = bsoncxx::builder::basic::document{};
         filter.append(kvp("_id", bsoncxx::oid{link.id.value()}));
+        auto versionFilter=bsoncxx::from_json(link.version == 0 ? R"({"$or":[{"version":0},{"version":{"$exists":false}}]})" : nlohmann::json{{"version",link.version}}.dump());
+        for (const auto& field:versionFilter.view()) filter.append(kvp(std::string(field.key()),field.get_value()));
         
         // Build update document using basic builder
         LinkBlock linkCopy = link;
@@ -319,6 +326,8 @@ Result<bool> LinkBlockStorage::update(const LinkBlock& link) {
             setFields.append(kvp("iconUrl", linkCopy.iconUrl.value()));
         }
         
+        setFields.append(kvp("version", linkCopy.version + 1));
+        setFields.append(kvp("visibility", linkCopy.visibility));
         setFields.append(kvp("isActive", linkCopy.isActive));
         setFields.append(kvp("privacy", linkPrivacyToString(linkCopy.privacy)));
         
@@ -347,7 +356,7 @@ Result<bool> LinkBlockStorage::update(const LinkBlock& link) {
             return Result<bool>::Success(true, "Link block unchanged");
         } else {
             LOG_WARNING("Link block not found for update: " + link.id.value());
-            return Result<bool>::Failure("Link block not found");
+            return Result<bool>::Failure("VERSION_CONFLICT");
         }
         
     } catch (const mongocxx::exception& e) {
@@ -356,7 +365,7 @@ Result<bool> LinkBlockStorage::update(const LinkBlock& link) {
     }
 }
 
-Result<bool> LinkBlockStorage::deleteLink(const std::string& id) {
+Result<bool> LinkBlockStorage::deleteLink(const std::string& id, std::optional<int64_t> version) {
     try {
         // Validate ObjectId format
         if (id.empty() || id.length() != 24) {
@@ -367,6 +376,10 @@ Result<bool> LinkBlockStorage::deleteLink(const std::string& id) {
         auto filter = bsoncxx::builder::basic::document{};
         filter.append(kvp("_id", bsoncxx::oid{id}));
         
+        if (version) {
+            auto v=bsoncxx::from_json(*version == 0 ? R"({"$or":[{"version":0},{"version":{"$exists":false}}]})" : nlohmann::json{{"version",*version}}.dump());
+            for(const auto& field:v.view())filter.append(kvp(std::string(field.key()),field.get_value()));
+        }
         // Delete document
         auto result = linkBlockCollection_.delete_one(filter.view());
         
@@ -375,7 +388,7 @@ Result<bool> LinkBlockStorage::deleteLink(const std::string& id) {
             return Result<bool>::Success(true, "Link block deleted");
         } else {
             LOG_WARNING("Link block not found for deletion: " + id);
-            return Result<bool>::Failure("Link block not found");
+            return Result<bool>::Failure("VERSION_CONFLICT");
         }
         
     } catch (const mongocxx::exception& e) {

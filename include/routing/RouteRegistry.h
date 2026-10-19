@@ -46,7 +46,7 @@ std::function<void(uWS::HttpResponse<SSL>*, uWS::HttpRequest*)> wrapHandler(
     bool trace) {
     
     return [handler, method, path, trace](uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req) {
-            res->writeHeader("Server", "HatefEngine 1.0");
+            // Server is added when sending the response, after its status is chosen.
             // res->writeHeader("X-Frame-Options", "DENY");
             // res->writeHeader("X-Content-Type-Options", "nosniff");
             // res->writeHeader("X-XSS-Protection", "1; mode=block");
@@ -60,7 +60,7 @@ std::function<void(uWS::HttpResponse<SSL>*, uWS::HttpRequest*)> wrapHandler(
         if (trace) {
             std::string_view queryString = req->getQuery();
             std::string logMessage = "[" + method + "] " + path;
-            if (!queryString.empty()) {
+            if (!queryString.empty() && !path.starts_with("/api/icons")) {
                 logMessage += "?" + std::string(queryString);
             }
             // Simple logging - in production you'd use proper logger

@@ -5,7 +5,6 @@ add_executable(crawler_tests
     robots_txt_parser_tests.cpp
     url_frontier_tests.cpp
     page_fetcher_tests.cpp
-    session_priority_queue_tests.cpp
     ../../src/storage/ContentStorage.cpp
     ../../src/storage/MongoDBStorage.cpp
 )
@@ -27,4 +26,6 @@ include(CTest)
 include(Catch)
 
 # Add test
-catch_discover_tests(crawler_tests) 
+catch_discover_tests(crawler_tests)
+# The isolated suite also runs in the required Docker short-test stage.
+add_subdirectory(session_scheduler)

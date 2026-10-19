@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace search_engine {
 namespace common {
@@ -32,7 +33,7 @@ public:
      * Resolve slug conflicts by adding numbers
      * @param baseSlug Base slug to resolve
      * @param exists Function that checks if a slug exists
-     * @return Available slug (baseSlug, baseSlug-2, baseSlug-3, etc.)
+     * @return Available slug (baseSlug, baseSlug.2, baseSlug.3, etc.)
      */
     static std::string resolveSlugConflict(const std::string& baseSlug,
                                           const std::function<bool(const std::string&)>& exists);
@@ -81,11 +82,11 @@ private:
     static std::string removeCombiningMarks(const std::string& input);
 
     /**
-     * Collapse multiple hyphens and clean up
+     * Collapse multiple dots and clean up
      * @param input Input text
      * @return Cleaned text
      */
-    static std::string collapseHyphens(const std::string& input);
+    static std::string collapseDots(const std::string& input);
 
     /**
      * Get reserved slug words

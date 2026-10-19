@@ -1,5 +1,7 @@
 #include "../../include/search_engine/storage/RedisSearchStorage.h"
 #include "../../include/Logger.h"
+#include "../../include/search_engine/pulse/PulseQueryNormalizer.h"
+#include <openssl/sha.h>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -31,10 +33,15 @@ namespace {
         return escaped;
     }
     
-    // Helper function to generate a hash from URL for key
+    // Helper function to generate a deterministic hash from URL for key (SHA-256 first 16 hex chars)
     std::string urlToKey(const std::string& url) {
-        std::hash<std::string> hasher;
-        return std::to_string(hasher(url));
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+        SHA256(reinterpret_cast<const unsigned char*>(url.data()), url.size(), hash);
+        std::ostringstream oss;
+        for (int i = 0; i < 8; ++i) {
+            oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+        }
+        return oss.str();
     }
     
     // Helper function to convert time_point to Unix timestamp
@@ -217,18 +224,22 @@ Result<bool> RedisSearchStorage::indexDocument(const SearchDocument& document) {
     try {
         std::string key = generateDocumentKey(document.url);
         LOG_TRACE("Generated Redis key: " + key + " for URL: " + document.url);
+
+        std::string normalizedTitle = pulse::PulseQueryNormalizer::normalize(document.title);
+        std::string normalizedContent = pulse::PulseQueryNormalizer::normalize(document.content);
         
         std::unordered_map<std::string, std::string> fields;
         fields["url"] = escapeRedisString(document.url);
-        fields["title"] = escapeRedisString(document.title);
-        fields["content"] = escapeRedisString(document.content);
+        fields["title"] = escapeRedisString(normalizedTitle.empty() ? document.title : normalizedTitle);
+        fields["content"] = escapeRedisString(normalizedContent.empty() ? document.content : normalizedContent);
         fields["domain"] = escapeRedisString(document.domain);
         fields["score"] = std::to_string(document.score);
         fields["indexed_at"] = std::to_string(timePointToUnixTimestamp(document.indexedAt));
         
         // Handle optional fields
         if (document.description) {
-            fields["description"] = escapeRedisString(*document.description);
+            std::string normalizedDesc = pulse::PulseQueryNormalizer::normalize(*document.description);
+            fields["description"] = escapeRedisString(normalizedDesc.empty() ? *document.description : normalizedDesc);
         }
         if (document.language) {
             fields["language"] = escapeRedisString(*document.language);
@@ -242,14 +253,15 @@ Result<bool> RedisSearchStorage::indexDocument(const SearchDocument& document) {
             std::ostringstream keywordStream;
             for (size_t i = 0; i < document.keywords.size(); ++i) {
                 if (i > 0) keywordStream << "|";
-                keywordStream << escapeRedisString(document.keywords[i]);
+                std::string normalizedKw = pulse::PulseQueryNormalizer::normalize(document.keywords[i]);
+                keywordStream << escapeRedisString(normalizedKw.empty() ? document.keywords[i] : normalizedKw);
             }
             fields["keywords"] = keywordStream.str();
         }
         
         // Store the document as a Redis hash
         redis_->hmset(key, fields.begin(), fields.end());
-        LOG_INFO("Document indexed successfully: " + document.url + " (title: " + document.title + ")");
+        LOG_INFO("Document indexed successfully: " + document.url + " (title: " + fields["title"] + ")");
         
         return Result<bool>::Success(true, "Document indexed successfully");
         
@@ -370,10 +382,18 @@ SearchResult RedisSearchStorage::parseSearchResult(const std::vector<std::string
             searchResult.url = value;
         } else if (field == "title") {
             searchResult.title = value;
+        } else if (field == "description") {
+            // Prefer description (meta description) as snippet
+            if (!value.empty()) {
+                searchResult.snippet = value.length() > 300 ?
+                    value.substr(0, 300) + "..." : value;
+            }
         } else if (field == "content") {
-            // Use first 200 characters as snippet
-            searchResult.snippet = value.length() > 200 ? 
-                value.substr(0, 200) + "..." : value;
+            // Use content as fallback if description not yet set
+            if (searchResult.snippet.empty() && !value.empty()) {
+                searchResult.snippet = value.length() > 200 ?
+                    value.substr(0, 200) + "..." : value;
+            }
         } else if (field == "domain") {
             searchResult.domain = value;
         } else if (field == "score") {
@@ -479,14 +499,21 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
     try {
         auto startTime = std::chrono::high_resolution_clock::now();
         
+        // Normalize query characters (Persian/Arabic folding, digits, punctuation, whitespace)
+        std::string normalizedQuery = pulse::PulseQueryNormalizer::normalize(query.query);
+        if (normalizedQuery.empty()) {
+            normalizedQuery = query.query;
+        }
+
         // Tokenize and filter stopwords
-        auto tokens = tokenizeQuery(query.query);
+        auto tokens = tokenizeQuery(normalizedQuery);
         auto filteredTokens = filterStopwords(tokens);
         
-        LOG_DEBUG("Original query: '" + query.query + "' -> " + std::to_string(tokens.size()) + " tokens -> " + 
+        LOG_DEBUG("Original query: '" + query.query + "' -> normalized: '" + normalizedQuery + 
+                  "' -> " + std::to_string(tokens.size()) + " tokens -> " + 
                   std::to_string(filteredTokens.size()) + " after stopword filtering");
         
-        // If no meaningful tokens after filtering, use original query
+        // If no meaningful tokens after filtering, use normalized query tokens
         if (filteredTokens.empty()) {
             filteredTokens = tokens;
         }
@@ -497,7 +524,7 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
         
         // Get total count from simple search (without field restrictions) first
         int totalResultsFromRedis = 0;
-        auto countQuery = executeSingleSearch(query.query, query, 0); // LIMIT 0 to get only count
+        auto countQuery = executeSingleSearch(normalizedQuery, query, 0); // LIMIT 0 to get only count
         if (countQuery.success) {
             totalResultsFromRedis = countQuery.value.totalResults;
             LOG_DEBUG("Total results in Redis for full search: " + std::to_string(totalResultsFromRedis));
@@ -555,7 +582,7 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
         // Fill remaining slots up to 1000 total
         if (response.results.size() < 1000) {
             int tier3Limit = std::min(500, static_cast<int>(1000 - response.results.size()));
-            auto tier3Results = executeSingleSearch(query.query, query, tier3Limit);
+            auto tier3Results = executeSingleSearch(normalizedQuery, query, tier3Limit);
             if (tier3Results.success) {
                 for (const auto& result : tier3Results.value.results) {
                     if (seenUrls.find(result.url) == seenUrls.end()) {
@@ -577,15 +604,30 @@ Result<SearchResponse> RedisSearchStorage::search(const SearchQuery& query) {
         
         // Store number of unique results fetched BEFORE limiting
         int uniqueResultsFetched = response.results.size();
-        
+
+        // Apply offset for pagination
+        if (query.offset > 0) {
+            if (static_cast<size_t>(query.offset) >= response.results.size()) {
+                response.results.clear();
+            } else {
+                response.results.erase(response.results.begin(),
+                                       response.results.begin() + query.offset);
+            }
+        }
+
         // Limit to requested number
         if (response.results.size() > static_cast<size_t>(query.limit)) {
             response.results.resize(query.limit);
         }
         
-        // Use total count from Redis, not fetched count
-        // Note: This might include duplicates across tiers, but gives accurate total matches
-        response.totalResults = totalResultsFromRedis;
+        // If all matching results from Redis were within our fetch bounds (up to 1000 across tiers),
+        // all candidate documents were fetched and deduplicated by URL.
+        // Therefore, uniqueResultsFetched is the true total count of distinct results.
+        if (totalResultsFromRedis <= 1000) {
+            response.totalResults = uniqueResultsFetched;
+        } else {
+            response.totalResults = std::max(static_cast<int64_t>(totalResultsFromRedis), static_cast<int64_t>(uniqueResultsFetched));
+        }
         
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -616,9 +658,13 @@ Result<SearchResponse> RedisSearchStorage::searchSimple(const std::string& query
 
 Result<std::vector<std::string>> RedisSearchStorage::suggest(const std::string& prefix, int limit) {
     try {
+        std::string normalizedPrefix = pulse::PulseQueryNormalizer::normalize(prefix);
+        if (normalizedPrefix.empty()) {
+            normalizedPrefix = prefix;
+        }
         // Use FT.SUGGET for autocomplete suggestions
         std::vector<std::string> cmd = {
-            "FT.SUGGET", indexName_ + ":suggestions", prefix, "MAX", std::to_string(limit)
+            "FT.SUGGET", indexName_ + ":suggestions", normalizedPrefix, "MAX", std::to_string(limit)
         };
         
         auto reply = redis_->command(cmd.begin(), cmd.end());

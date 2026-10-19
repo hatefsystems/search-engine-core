@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>صفحهٔ شما | هاتف</title>
+<link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
+<link rel="stylesheet" href="/assets/css/profile-editor.css">
+</head>
+<body class="entry-body">
+<a class="brand" href="/">هاتف<span>فضایی برای معرفی شما</span></a>
+<main class="entry-card">
+<div class="entry-symbol" aria-hidden="true">✦</div>
+<p class="eyebrow">یک آدرس، یک معرفی ماندگار</p>
+{% if state == "missing" %}
+<h1>این صفحه هنوز ساخته نشده است.</h1>
+<p class="entry-description">مایلید صفحهٔ خود را اینجا ایجاد کنید؟</p>
+<div class="address" dir="auto">/{{ slug }}</div>
+<a class="button primary" href="{{ createUrl }}">ساخت این صفحه <span aria-hidden="true">←</span></a>
+<p class="hint">اطلاعات را به‌آرامی تکمیل کنید؛ تا وقتی منتشر نکنید، فقط خودتان آن را می‌بینید.</p>
+{% else %}
+<h1>این آدرس قبلاً گرفته شده است.</h1>
+<p class="entry-description">اگر این صفحه متعلق به شماست، با کلید اختصاصی خود وارد شوید و ویرایش را ادامه دهید.</p>
+<div class="address" dir="auto">/{{ slug }}</div>
+<a class="button primary" href="{{ editUrl }}">ورود برای ویرایش</a>
+{% endif %}
+<a class="quiet-link" href="/">بازگشت به خانه</a>
+</main>
+<footer class="entry-footer">صفحه‌ای ساده برای معرفی کارها، مهارت‌ها و خودِ شما.</footer>
+</body></html>

@@ -30,6 +30,8 @@ public:
     // Start the crawling process
     void start();
     
+    bool isCrawling() const noexcept { return isRunning.load(); }
+
     // Stop the crawling process
     void stop();
     

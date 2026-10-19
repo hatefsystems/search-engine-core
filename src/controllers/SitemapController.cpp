@@ -49,7 +49,7 @@ void SitemapController::getSitemapIndex(uWS::HttpResponse<false>* res, uWS::Http
             LOG_DEBUG("Serving cached sitemap index");
             res->writeHeader("Content-Type", "application/xml; charset=utf-8");
             res->writeHeader("Cache-Control", "public, max-age=" + std::to_string(cacheTtlSeconds_));
-            res->end(cachedSitemapIndex_);
+            res->writeHeader("Server", "HatefEngine 1.0")->end(cachedSitemapIndex_);
             return;
         }
 
@@ -97,7 +97,7 @@ void SitemapController::getSitemapIndex(uWS::HttpResponse<false>* res, uWS::Http
         // Send response
         res->writeHeader("Content-Type", "application/xml; charset=utf-8");
         res->writeHeader("Cache-Control", "public, max-age=" + std::to_string(cacheTtlSeconds_));
-        res->end(sitemapXml);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(sitemapXml);
 
         LOG_INFO("Sitemap index served successfully");
 
@@ -148,7 +148,7 @@ void SitemapController::getProfilesSitemap(uWS::HttpResponse<false>* res, uWS::H
         // Send response
         res->writeHeader("Content-Type", "application/xml; charset=utf-8");
         res->writeHeader("Cache-Control", "public, max-age=" + std::to_string(cacheTtlSeconds_));
-        res->end(sitemapXml);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(sitemapXml);
 
         LOG_INFO("Profiles sitemap page " + std::to_string(page) + " served successfully");
 
@@ -167,7 +167,7 @@ void SitemapController::getStaticSitemap(uWS::HttpResponse<false>* res, uWS::Htt
             LOG_DEBUG("Serving cached static sitemap");
             res->writeHeader("Content-Type", "application/xml; charset=utf-8");
             res->writeHeader("Cache-Control", "public, max-age=" + std::to_string(cacheTtlSeconds_));
-            res->end(cachedStaticSitemap_);
+            res->writeHeader("Server", "HatefEngine 1.0")->end(cachedStaticSitemap_);
             return;
         }
 
@@ -188,7 +188,7 @@ void SitemapController::getStaticSitemap(uWS::HttpResponse<false>* res, uWS::Htt
         // Send response
         res->writeHeader("Content-Type", "application/xml; charset=utf-8");
         res->writeHeader("Cache-Control", "public, max-age=" + std::to_string(cacheTtlSeconds_));
-        res->end(sitemapXml);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(sitemapXml);
 
         LOG_INFO("Static sitemap served successfully");
 

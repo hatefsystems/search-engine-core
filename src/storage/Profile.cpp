@@ -1,5 +1,6 @@
 #include "../../include/search_engine/storage/Profile.h"
 #include "../../include/search_engine/storage/ProfileStorage.h"
+#include "../../include/search_engine/profile/ProfileEditor.h"
 
 namespace search_engine {
 namespace storage {
@@ -23,7 +24,7 @@ ProfileType stringToProfileType(const std::string& str) {
 // Profile validation
 bool Profile::isValid() const {
     // slug and name are required and must be non-empty
-    if (slug.empty() || name.empty()) {
+    if (slug.empty() || (name.empty() && (isPublic || type != ProfileType::PERSON))) {
         return false;
     }
 
@@ -33,7 +34,7 @@ bool Profile::isValid() const {
     }
 
     // If bio is present, check length constraint (max 500 characters)
-    if (bio.has_value() && bio.value().length() > 500) {
+    if (bio.has_value() && search_engine::profile::textLength(bio.value()) > 500) {
         return false;
     }
 

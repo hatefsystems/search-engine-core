@@ -1,6 +1,7 @@
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include <regex>
+#include "../../include/search_engine/profile/ProfileEditor.h"
 #include <chrono>
 #include <algorithm>
 
@@ -24,34 +25,35 @@ const std::vector<std::string> ProfileValidator::VALID_COMPANY_SIZES = {
     "1-10", "11-50", "51-200", "201-1000", "1000+"
 };
 
+const std::vector<std::string> ProfileValidator::VALID_AVAILABILITY_STATUSES = {
+    "AVAILABLE", "BUSY", "NOT_AVAILABLE"
+};
+
+const std::vector<std::string> ProfileValidator::VALID_SKILL_LEVELS = {
+    "BEGINNER", "INTERMEDIATE", "EXPERT"
+};
+
+const std::vector<std::string> ProfileValidator::VALID_SKILL_CATEGORIES = {
+    "TECHNICAL", "BUSINESS", "CREATIVE", "OTHER"
+};
+
 ValidationResult ProfileValidator::validate(const Profile& profile) {
     std::vector<std::string> errors;
     std::vector<std::string> warnings;
     
     // Required field: slug
     if (profile.slug.empty()) {
-        errors.push_back("Slug is required");
+        errors.push_back(search_engine::common::profileSlugValidationError(profile.slug));
     } else {
         // Validate slug format
-        if (!isValidSlug(profile.slug)) {
-            errors.push_back("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
-        }
-        
-        // Check slug length
-        if (profile.slug.length() > 50) {
-            errors.push_back("Slug exceeds maximum length of 50 characters");
-        }
-        
-        // Check for double hyphens (warning, not error)
-        if (profile.slug.find("--") != std::string::npos) {
-            warnings.push_back("Slug contains consecutive hyphens (--) which may affect readability");
-        }
+        const auto slugError = search_engine::common::profileSlugValidationError(profile.slug);
+        if (!slugError.empty()) errors.push_back(slugError);
     }
     
     // Required field: name
-    if (profile.name.empty()) {
+    if (profile.name.empty() && (profile.isPublic || profile.type != ProfileType::PERSON)) {
         errors.push_back("Name is required");
-    } else if (profile.name.length() > 200) {
+    } else if (search_engine::profile::textLength(profile.name) > 200) {
         errors.push_back("Name exceeds maximum length of 200 characters");
     }
     
@@ -59,7 +61,7 @@ ValidationResult ProfileValidator::validate(const Profile& profile) {
     if (profile.bio.has_value()) {
         if (profile.bio.value().empty()) {
             warnings.push_back("Bio is empty; consider removing or adding content");
-        } else if (profile.bio.value().length() > 500) {
+        } else if (search_engine::profile::textLength(profile.bio.value()) > 500) {
             errors.push_back("Bio exceeds maximum length of 500 characters");
         }
     }
@@ -77,6 +79,54 @@ ValidationResult ProfileValidator::validatePersonFields(const PersonProfile& pro
     // Check profile type
     if (profile.type != ProfileType::PERSON) {
         errors.push_back("Profile type must be PERSON for PersonProfile");
+    }
+    
+    // Validate header fields
+    if (profile.tagline.has_value()) {
+        if (search_engine::profile::textLength(profile.tagline.value()) > 120) {
+            errors.push_back("Tagline exceeds maximum length of 120 characters");
+        }
+    }
+    
+    if (profile.professionalSummary.has_value()) {
+        if (search_engine::profile::textLength(profile.professionalSummary.value()) > 2000) {
+            errors.push_back("Professional summary exceeds maximum length of 2000 characters");
+        }
+    }
+    
+    if (profile.avatarUrl.has_value() && !profile.avatarUrl.value().empty()) {
+        if (profile.avatarUrl->rfind("/uploads/", 0) != 0 && !isValidUrl(profile.avatarUrl.value())) {
+            errors.push_back("Invalid avatar URL format");
+        }
+    }
+    
+    if (profile.coverImageUrl.has_value() && !profile.coverImageUrl.value().empty()) {
+        if (profile.coverImageUrl->rfind("/uploads/", 0) != 0 && !isValidUrl(profile.coverImageUrl.value())) {
+            errors.push_back("Invalid cover image URL format");
+        }
+    }
+    
+    if (profile.availabilityStatus.has_value() && !profile.availabilityStatus->empty()) {
+        const std::string& status = profile.availabilityStatus.value();
+        if (std::find(VALID_AVAILABILITY_STATUSES.begin(), VALID_AVAILABILITY_STATUSES.end(), status) 
+            == VALID_AVAILABILITY_STATUSES.end()) {
+            errors.push_back("Invalid availability status. Must be one of: AVAILABLE, BUSY, NOT_AVAILABLE");
+        }
+    }
+    
+    // Validate skills with level
+    for (const auto& skill : profile.skillsWithLevel) {
+        if (skill.name.empty()) {
+            errors.push_back("Skill name cannot be empty");
+        }
+        if (std::find(VALID_SKILL_LEVELS.begin(), VALID_SKILL_LEVELS.end(), skill.level) 
+            == VALID_SKILL_LEVELS.end()) {
+            errors.push_back("Invalid skill level for '" + skill.name + "'. Must be one of: BEGINNER, INTERMEDIATE, EXPERT");
+        }
+        if (std::find(VALID_SKILL_CATEGORIES.begin(), VALID_SKILL_CATEGORIES.end(), skill.category) 
+            == VALID_SKILL_CATEGORIES.end()) {
+            errors.push_back("Invalid skill category for '" + skill.name + "'. Must be one of: TECHNICAL, BUSINESS, CREATIVE, OTHER");
+        }
     }
     
     // Validate experienceLevel if present

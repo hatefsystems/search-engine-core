@@ -1,0 +1,17 @@
+{
+  "platform": "linux/amd64",
+  "ubuntu_image": "ubuntu:22.04@sha256:829f6df217bcbae2b371026e81711d1a787c61b2967ad09d015063663ebafbf7",
+  "mongodb": {
+    "MONGO_C_VERSION": "2.1.1",
+    "MONGO_CXX_VERSION": "4.1.2"
+  },
+  "build": {
+    "CMAKE_VERSION": "3.31.8",
+    "CATCH2_COMMIT": "6e79e682b726f524310d55dec8ddac4e9c52fb5f",
+    "UWEBSOCKETS_COMMIT": "3ffd6f44c9c3c92c96345d9f96bd01ba9c025ab5",
+    "USOCKETS_COMMIT": "86097c490263ab662d62e8e7b541390bdec7d149",
+    "GUMBO_COMMIT": "6fd66040a8eecdb1359a6de221f3f9325cf52ba6",
+    "HIREDIS_COMMIT": "33a12fb23531f33e3455c7ed46008c20c7ad9c78",
+    "REDIS_PLUS_PLUS_COMMIT": "397f9c7be0eb82ce92545f259a7f66ab992bd7ee"
+  }
+}

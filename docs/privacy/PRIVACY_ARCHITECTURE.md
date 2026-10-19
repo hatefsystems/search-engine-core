@@ -63,7 +63,7 @@ Privacy dashboard shows:
 
 - **45 views from Tehran this month**
 - **78% from mobile devices**
-- **Top referrer: Google Search**
+- **Top referrer: Organic Search**
 - **Peak viewing hours: 2-4 PM**
 
 **Zero personal identification data visible.**

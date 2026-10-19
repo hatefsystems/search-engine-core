@@ -7,25 +7,25 @@ using namespace search_engine::storage;
 
 TEST_CASE("ProfileValidator - Slug Validation", "[validator][slug]") {
     SECTION("Valid slugs - English") {
-        REQUIRE(ProfileValidator::isValidSlug("john-doe"));
+        REQUIRE(ProfileValidator::isValidSlug("john.doe"));
         REQUIRE(ProfileValidator::isValidSlug("test123"));
-        REQUIRE(ProfileValidator::isValidSlug("user-name"));
+        REQUIRE(ProfileValidator::isValidSlug("user.name"));
         REQUIRE(ProfileValidator::isValidSlug("a"));
         REQUIRE(ProfileValidator::isValidSlug("testuserprofile"));
     }
 
     SECTION("Valid slugs - Persian") {
         REQUIRE(ProfileValidator::isValidSlug("علی"));
-        REQUIRE(ProfileValidator::isValidSlug("محمد-رضایی"));
+        REQUIRE(ProfileValidator::isValidSlug("محمد.رضایی"));
         REQUIRE(ProfileValidator::isValidSlug("۱۲۳"));
         REQUIRE(ProfileValidator::isValidSlug("علیرضا"));
     }
 
     SECTION("Valid slugs - Mixed Persian-English") {
-        REQUIRE(ProfileValidator::isValidSlug("ali-علی"));
-        REQUIRE(ProfileValidator::isValidSlug("علی-ali"));
-        REQUIRE(ProfileValidator::isValidSlug("ali-علی-123"));
-        REQUIRE(ProfileValidator::isValidSlug("test-تست-۱۲۳"));
+        REQUIRE(ProfileValidator::isValidSlug("ali.علی"));
+        REQUIRE(ProfileValidator::isValidSlug("علی.ali"));
+        REQUIRE(ProfileValidator::isValidSlug("ali.علی.123"));
+        REQUIRE(ProfileValidator::isValidSlug("test.تست.۱۲۳"));
     }
 
     SECTION("Invalid slugs - Empty or spaces") {
@@ -37,12 +37,13 @@ TEST_CASE("ProfileValidator - Slug Validation", "[validator][slug]") {
 
     SECTION("Invalid slugs - Special characters") {
         REQUIRE_FALSE(ProfileValidator::isValidSlug("ali@doe"));
-        REQUIRE_FALSE(ProfileValidator::isValidSlug("ali.doe"));
+        REQUIRE(ProfileValidator::isValidSlug("ali.doe"));
         REQUIRE_FALSE(ProfileValidator::isValidSlug("ali$doe"));
         REQUIRE_FALSE(ProfileValidator::isValidSlug("ali#doe"));
     }
 
-    SECTION("Invalid slugs - Underscores") {
+    SECTION("Legacy separators are not canonical slugs") {
+        REQUIRE_FALSE(ProfileValidator::isValidSlug("هاتف_رستمخانی"));
         REQUIRE_FALSE(ProfileValidator::isValidSlug("ali_doe"));
         REQUIRE_FALSE(ProfileValidator::isValidSlug("test_user"));
     }
@@ -104,7 +105,7 @@ TEST_CASE("ProfileValidator - URL Validation", "[validator][url]") {
 TEST_CASE("ProfileValidator - Profile Validation", "[validator][profile]") {
     SECTION("Valid base profile") {
         Profile profile;
-        profile.slug = "john-doe";
+        profile.slug = "john.doe";
         profile.name = "John Doe";
         profile.type = ProfileType::PERSON;
         profile.isPublic = true;
@@ -125,7 +126,7 @@ TEST_CASE("ProfileValidator - Profile Validation", "[validator][profile]") {
         auto result = ProfileValidator::validate(profile);
         REQUIRE_FALSE(result.isValid);
         REQUIRE(result.errors.size() == 1);
-        REQUIRE(result.errors[0] == "Slug is required");
+        REQUIRE(result.errors[0].find("1 to 100") != std::string::npos);
     }
 
     SECTION("Invalid profile - invalid slug") {
@@ -138,12 +139,13 @@ TEST_CASE("ProfileValidator - Profile Validation", "[validator][profile]") {
 
         auto result = ProfileValidator::validate(profile);
         REQUIRE_FALSE(result.isValid);
-        REQUIRE(result.errors[0] == "Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+        REQUIRE(result.errors[0].find("dots only") != std::string::npos);
+        REQUIRE(result.errors[0].find("نقطه") != std::string::npos);
     }
 
     SECTION("Profile with warnings") {
         Profile profile;
-        profile.slug = "john-doe";
+        profile.slug = "john.doe";
         profile.name = "John Doe";
         profile.type = ProfileType::PERSON;
         profile.bio = "";  // Empty bio - should warn
@@ -160,7 +162,7 @@ TEST_CASE("ProfileValidator - Profile Validation", "[validator][profile]") {
 TEST_CASE("ProfileValidator - PersonProfile Validation", "[validator][person]") {
     SECTION("Valid person profile") {
         PersonProfile profile;
-        profile.slug = "john-doe";
+        profile.slug = "john.doe";
         profile.name = "John Doe";
         profile.type = ProfileType::PERSON;
         profile.isPublic = true;
@@ -177,7 +179,7 @@ TEST_CASE("ProfileValidator - PersonProfile Validation", "[validator][person]") 
 
     SECTION("Invalid email in person profile") {
         PersonProfile profile;
-        profile.slug = "john-doe";
+        profile.slug = "john.doe";
         profile.name = "John Doe";
         profile.type = ProfileType::PERSON;
         profile.isPublic = true;
@@ -191,7 +193,7 @@ TEST_CASE("ProfileValidator - PersonProfile Validation", "[validator][person]") 
 
     SECTION("Invalid phone in person profile") {
         PersonProfile profile;
-        profile.slug = "john-doe";
+        profile.slug = "john.doe";
         profile.name = "John Doe";
         profile.type = ProfileType::PERSON;
         profile.isPublic = true;
@@ -208,7 +210,7 @@ TEST_CASE("ProfileValidator - PersonProfile Validation", "[validator][person]") 
 TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business]") {
     SECTION("Valid business profile") {
         BusinessProfile profile;
-        profile.slug = "acme-corp";
+        profile.slug = "acme.corp";
         profile.name = "Acme Corporation";
         profile.type = ProfileType::BUSINESS;
         profile.companyName = "Acme Corporation";  // Required for business
@@ -226,7 +228,7 @@ TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business
 
     SECTION("Business profile missing company name") {
         BusinessProfile profile;
-        profile.slug = "acme-corp";
+        profile.slug = "acme.corp";
         profile.name = "Acme Corporation";
         profile.type = ProfileType::BUSINESS;
         // companyName is missing - required for business
@@ -241,7 +243,7 @@ TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business
 
     SECTION("Invalid industry") {
         BusinessProfile profile;
-        profile.slug = "acme-corp";
+        profile.slug = "acme.corp";
         profile.name = "Acme Corporation";
         profile.type = ProfileType::BUSINESS;
         profile.companyName = "Acme Corporation";
@@ -256,7 +258,7 @@ TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business
 
     SECTION("Invalid founded year - too old") {
         BusinessProfile profile;
-        profile.slug = "acme-corp";
+        profile.slug = "acme.corp";
         profile.name = "Acme Corporation";
         profile.type = ProfileType::BUSINESS;
         profile.companyName = "Acme Corporation";
@@ -272,7 +274,7 @@ TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business
 
     SECTION("Invalid founded year - future") {
         BusinessProfile profile;
-        profile.slug = "acme-corp";
+        profile.slug = "acme.corp";
         profile.name = "Acme Corporation";
         profile.type = ProfileType::BUSINESS;
         profile.companyName = "Acme Corporation";
@@ -285,5 +287,18 @@ TEST_CASE("ProfileValidator - BusinessProfile Validation", "[validator][business
         auto result = ProfileValidator::validateBusinessFields(profile);
         REQUIRE_FALSE(result.isValid);
         REQUIRE(result.errors[0].find("Founded year cannot be more than 1 year in the future") != std::string::npos);
+    }
+}
+TEST_CASE("ProfileValidator - Canonical dot rules", "[validator][slug]") {
+    for (const auto* slug : {"هاتف.رستمخانی", "دکتر.هاتف.رستمخانی", "دانشگاه.تهران", "john.doe", "علی.۱۲۳"}) {
+        REQUIRE(ProfileValidator::isValidSlug(slug));
+    }
+    for (const auto* slug : {".هاتف", "هاتف.", "هاتف..رستمخانی", "هاتف.-رستمخانی", "هاتف-.رستمخانی", "هاتف_.رستمخانی", "هاتف._رستمخانی", "a..b", "..", "."}) {
+        REQUIRE_FALSE(ProfileValidator::isValidSlug(slug));
+        Profile p; p.slug = slug; p.name = "هاتف";
+        auto result = ProfileValidator::validate(p);
+        REQUIRE_FALSE(result.isValid);
+        REQUIRE(result.errors.front().find("dot") != std::string::npos);
+        REQUIRE(result.errors.front().find("نقطه") != std::string::npos);
     }
 }

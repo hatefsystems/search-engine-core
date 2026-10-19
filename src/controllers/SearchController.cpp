@@ -9,6 +9,8 @@
 #include "../../include/search_engine/storage/ApiRequestLog.h"
 #include "../../include/search_engine/storage/EmailService.h"
 #include "../../include/search_engine/storage/EmailLogsStorage.h"
+#include "../../include/search_engine/pulse/PulseAnalyticsService.h"
+#include "../../include/search_engine/pulse/PulseQueryNormalizer.h"
 #include "../../include/inja/inja.hpp"
 #include <filesystem>
 #include <fstream>
@@ -243,21 +245,6 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 int requestTimeoutMs = jsonBody.value("requestTimeout", defaultTimeoutMs); // allow overriding request timeout
                 bool stopPreviousSessions = jsonBody.value("stopPreviousSessions", false);  // Default to false for concurrent crawling
                 std::string browserlessUrl = jsonBody.value("browserlessUrl", "http://browserless:3000");
-
-                // Parse session priority (#14). Accept "low" | "normal" | "high".
-                // Default: normal. Invalid values fall back to normal with a warning.
-                CrawlPriority priority = CrawlPriority::NORMAL;
-                std::string priorityStr = jsonBody.value("priority", std::string("normal"));
-                if (priorityStr == "low") priority = CrawlPriority::LOW;
-                else if (priorityStr == "normal") priority = CrawlPriority::NORMAL;
-                else if (priorityStr == "high") priority = CrawlPriority::HIGH;
-                else {
-                    LOG_WARNING("Unknown priority '" + priorityStr + "', defaulting to normal");
-                }
-
-                // Optional session-level retry policy (#14, step 4).
-                int maxSessionRetries = jsonBody.value("maxSessionRetries", 0);
-                int sessionRetryBaseDelayMs = jsonBody.value("sessionRetryBaseDelayMs", 30000);
                 
                 // Validate parameters
                 if (maxPages < 1 || maxPages > 10000) {
@@ -320,11 +307,6 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     config.spaRenderingEnabled = spaRenderingEnabled;
                     config.includeFullContent = includeFullContent;
                     config.browserlessUrl = browserlessUrl;
-                    // Session-level retry policy (#14).
-                    if (maxSessionRetries > 0) {
-                        config.maxSessionRetries = maxSessionRetries;
-                        config.sessionRetryBaseDelay = std::chrono::milliseconds(sessionRetryBaseDelayMs);
-                    }
                     
                     // Create completion callback for email notification if email is provided
                     CrawlCompletionCallback emailCallback = nullptr;
@@ -337,8 +319,8 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                         };
                     }
                     
-                    // Start new crawl session with completion callback (#14: priority-aware)
-                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback, priority);
+                    // Start new crawl session with completion callback
+                    std::string sessionId = g_crawlerManager->startCrawl(url, config, force, emailCallback);
                     
                     LOG_INFO("Started new crawl session: " + sessionId + " for URL: " + url + 
                              " (maxPages: " + std::to_string(maxPages) + 
@@ -355,7 +337,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     // Return success response with session ID
                     nlohmann::json response = {
                         {"success", true},
-                        {"message", "Crawl session started successfully"},
+                        {"message", "Crawl request accepted"},
                         {"data", {
                             {"sessionId", sessionId},
                             {"url", url},
@@ -370,7 +352,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                             {"includeFullContent", includeFullContent},
                             {"stopPreviousSessions", stopPreviousSessions},
                             {"browserlessUrl", browserlessUrl},
-                            {"status", "starting"}
+                            {"status", g_crawlerManager->getCrawlStatus(sessionId)}
                         }}
                     };
                     
@@ -424,6 +406,19 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     serverError(res, "CrawlerManager not initialized");
                 }
                 
+            } catch (const CrawlQueueFull& e) {
+                logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent,
+                                   requestStartTime, buffer, "TOO_MANY_REQUESTS", e.what());
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"error", {{"code", "TOO_MANY_REQUESTS"},
+                               {"message", e.what()},
+                               {"details", "Maximum pending crawl sessions limit reached."}}}
+                };
+                res->writeStatus("429 Too Many Requests");
+                res->writeHeader("Content-Type", "application/json");
+                res->writeHeader("Retry-After", "30");
+                res->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
             } catch (const nlohmann::json::parse_error& e) {
                 LOG_ERROR("Failed to parse JSON: " + std::string(e.what()));
                 
@@ -436,32 +431,9 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 std::string errorMessage = std::string(e.what());
                 LOG_ERROR("Runtime error in addSiteToCrawl: " + errorMessage);
                 
-                // Check if this is a session limit error
-                if (errorMessage.find("Maximum concurrent sessions limit reached") != std::string::npos) {
-                    // Return a specific error for session limit
-                    nlohmann::json errorResponse = {
-                        {"error", {
-                            {"code", "TOO_MANY_REQUESTS"},
-                            {"message", "Server is currently busy processing other crawl requests. Please try again in a few moments."},
-                            {"details", "Maximum concurrent crawl sessions limit reached. Please wait for current crawls to complete."}
-                        }},
-                        {"success", false}
-                    };
-                    
-                    // Log API request error to database
-                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
-                                     buffer, "TOO_MANY_REQUESTS", errorMessage);
-                    
-                    res->writeStatus("429 Too Many Requests");
-                    res->writeHeader("Content-Type", "application/json");
-                    res->writeHeader("Retry-After", "30"); // Suggest retry after 30 seconds
-                    res->end(errorResponse.dump());
-                } else {
-                    // Other runtime errors
-                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
-                                     buffer, "Runtime error", errorMessage);
-                    serverError(res, "A runtime error occurred: " + errorMessage);
-                }
+                logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent,
+                                   requestStartTime, buffer, "Runtime error", errorMessage);
+                serverError(res, "A runtime error occurred: " + errorMessage);
             } catch (const std::exception& e) {
                 LOG_ERROR("Unexpected error in addSiteToCrawl: " + std::string(e.what()));
                 
@@ -536,6 +508,37 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
             return;
         }
     }
+
+    std::string decodedQuery = urlDecode(qIt->second);
+    std::string userAgent = std::string(req->getHeader("user-agent"));
+    std::string requestAddress = std::string(req->getHeader("x-forwarded-for"));
+    if (requestAddress.empty()) {
+        requestAddress = std::string(req->getHeader("x-real-ip"));
+    }
+    if (requestAddress.empty()) {
+        requestAddress = "unknown";
+    }
+
+    auto elapsedMs = [&requestStartTime]() -> double {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - requestStartTime);
+        return duration.count() / 1000.0;
+    };
+
+    auto recordPulse = [&](search_engine::pulse::PulseSearchStatus status, int64_t resultCount, double latencyMs) noexcept {
+        try {
+            search_engine::pulse::PulseAnalyticsService::instance().recordSearchEvent(
+                decodedQuery,
+                resultCount,
+                latencyMs,
+                status,
+                userAgent,
+                requestAddress
+            );
+        } catch (...) {
+            LOG_WARNING("Pulse analytics hook skipped after unexpected error");
+        }
+    };
     
     try {
         // Get index name from environment or use default
@@ -559,9 +562,13 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         searchArgs.push_back("content");
         searchArgs.push_back("score");
         
-        // Execute search (URL decode the query first)
-        std::string decodedQuery = urlDecode(qIt->second);
-        std::string rawResult = g_searchClient->search(searchIndex, decodedQuery, searchArgs);
+        std::string normalizedQuery = search_engine::pulse::PulseQueryNormalizer::normalize(decodedQuery);
+        if (normalizedQuery.empty()) {
+            normalizedQuery = decodedQuery;
+        }
+
+        // Execute search
+        std::string rawResult = g_searchClient->search(searchIndex, normalizedQuery, searchArgs);
         
         // Parse and format response
         nlohmann::json response = parseRedisSearchResponse(rawResult, page, limit);
@@ -581,6 +588,10 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
                  ", totalTime=" + std::to_string(totalSeconds) + "s");
         
         json(res, response);
+        int64_t resultCount = response["meta"].value("total", 0);
+        recordPulse(resultCount > 0 ? search_engine::pulse::PulseSearchStatus::Ok : search_engine::pulse::PulseSearchStatus::Empty,
+                    resultCount,
+                    totalDuration.count() / 1000.0);
         
     } catch (const SearchError& e) {
         LOG_ERROR("Search error: " + std::string(e.what()));
@@ -596,11 +607,14 @@ void SearchController::search(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
             response["results"] = nlohmann::json::array();
             
             json(res, response);
+            recordPulse(search_engine::pulse::PulseSearchStatus::Empty, 0, elapsedMs());
         } else {
+            recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
             serverError(res, "Search operation failed");
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Unexpected error: " + std::string(e.what()));
+        recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
         serverError(res, "An unexpected error occurred");
     }
 }
@@ -715,53 +729,6 @@ void SearchController::getCrawlStatus(uWS::HttpResponse<false>* res, uWS::HttpRe
     } catch (const std::exception& e) {
         LOG_ERROR("Error in getCrawlStatus: " + std::string(e.what()));
         serverError(res, "Failed to get crawl status");
-    }
-}
-
-// GET /api/crawl/queue
-// Returns the snapshot of pending (queued but not yet running) crawl sessions
-// in priority order, plus current concurrency stats. Part of issue #14.
-void SearchController::getCrawlQueue(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    LOG_INFO("SearchController::getCrawlQueue called");
-    try {
-        if (!g_crawlerManager) {
-            serverError(res, "CrawlerManager not initialized");
-            return;
-        }
-
-        auto pending = g_crawlerManager->getPendingSessions();
-        nlohmann::json pendingArr = nlohmann::json::array();
-        auto nowTime = std::chrono::system_clock::now();
-        for (const auto& entry : pending) {
-            nlohmann::json e;
-            e["sessionId"] = entry.sessionId;
-            e["url"] = entry.url;
-            const char* p = "normal";
-            switch (entry.priority) {
-                case CrawlPriority::LOW: p = "low"; break;
-                case CrawlPriority::NORMAL: p = "normal"; break;
-                case CrawlPriority::HIGH: p = "high"; break;
-                case CrawlPriority::RETRY: p = "retry"; break;
-            }
-            e["priority"] = p;
-            e["retryCount"] = entry.retryCount;
-            e["queuedAt"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-                entry.queuedAt.time_since_epoch()).count();
-            e["readyAt"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-                entry.readyAt.time_since_epoch()).count();
-            e["ready"] = (entry.readyAt <= nowTime);
-            pendingArr.push_back(e);
-        }
-
-        nlohmann::json response;
-        response["active"] = static_cast<int>(g_crawlerManager->getActiveSessionCount());
-        response["maxConcurrent"] = static_cast<int>(g_crawlerManager->getMaxConcurrentSessions());
-        response["pendingCount"] = static_cast<int>(pending.size());
-        response["pending"] = pendingArr;
-        json(res, response);
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error in getCrawlQueue: " + std::string(e.what()));
-        serverError(res, "Failed to get crawl queue");
     }
 }
 
@@ -1118,7 +1085,7 @@ void SearchController::renderPage(uWS::HttpResponse<false>* res, uWS::HttpReques
             if (!requestJson.contains("url") || !requestJson["url"].is_string()) {
                 res->writeStatus("400 Bad Request");
                 res->writeHeader("Content-Type", "application/json");
-                res->end(R"({"error": "URL is required and must be a string", "success": false})");
+                res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "URL is required and must be a string", "success": false})");
                 return;
             }
             std::string url = requestJson["url"];
@@ -1155,16 +1122,16 @@ void SearchController::renderPage(uWS::HttpResponse<false>* res, uWS::HttpReques
             }
             res->writeStatus("200 OK");
             res->writeHeader("Content-Type", "application/json");
-            res->end(response.dump());
+            res->writeHeader("Server", "HatefEngine 1.0")->end(response.dump());
         } catch (const nlohmann::json::exception& e) {
             res->writeStatus("400 Bad Request");
             res->writeHeader("Content-Type", "application/json");
-            res->end(R"({"error": "Invalid JSON format", "success": false})");
+            res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "Invalid JSON format", "success": false})");
         } catch (const std::exception& e) {
             LOG_ERROR("Exception in renderPage: " + std::string(e.what()));
             res->writeStatus("500 Internal Server Error");
             res->writeHeader("Content-Type", "application/json");
-            res->end(R"({"error": "Internal server error", "success": false})");
+            res->writeHeader("Server", "HatefEngine 1.0")->end(R"({"error": "Internal server error", "success": false})");
         }
     });
     res->onAborted([]() {
@@ -1199,6 +1166,7 @@ nlohmann::json SearchController::parseRedisSearchResponse(const std::string& raw
         response["meta"]["pageSize"] = limit;
         
         // Parse each result (skip the count, then pairs of docId and fields)
+        std::unordered_set<std::string> seenUrls;
         for (size_t i = 1; i < redisResponse.size(); i += 2) {
             if (i + 1 >= redisResponse.size()) break;
             
@@ -1239,8 +1207,20 @@ nlohmann::json SearchController::parseRedisSearchResponse(const std::string& raw
                     }
                 }
                 
+                std::string resUrl = result["url"].get<std::string>();
+                if (!resUrl.empty()) {
+                    if (seenUrls.find(resUrl) != seenUrls.end()) {
+                        continue;
+                    }
+                    seenUrls.insert(resUrl);
+                }
                 response["results"].push_back(result);
             }
+        }
+        
+        // Safeguard total count if first page has fewer than limit results
+        if (page == 1 && response["results"].size() < static_cast<size_t>(limit) && totalResults > static_cast<int>(response["results"].size())) {
+            response["meta"]["total"] = response["results"].size();
         }
         
     } catch (const std::exception& e) {
@@ -1632,7 +1612,7 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
             // Redirect to home page if no query provided
             res->writeStatus("302 Found");
             res->writeHeader("Location", "/");
-            res->end();
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
             return;
         }
         
@@ -1697,10 +1677,45 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 	if (pageIt != params.end()) {
 		try {
 			page = std::stoi(pageIt->second);
-			if (page < 1 || page > 1000) page = 1;
+			if (page < 1) page = 1;
+			if (page > 50) page = 50;
 		} catch (...) { page = 1; }
 	}
 	int skip = (page - 1) * limit;
+
+    std::string userAgent = std::string(req->getHeader("user-agent"));
+    std::string requestAddress = std::string(req->getHeader("x-forwarded-for"));
+    if (requestAddress.empty()) {
+        requestAddress = std::string(req->getHeader("x-real-ip"));
+    }
+    if (requestAddress.empty()) {
+        requestAddress = "unknown";
+    }
+
+    auto elapsedMs = [&startTime]() -> double {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+        return duration.count() / 1000.0;
+    };
+
+    bool shouldRecordPulse = page == 1;
+    auto recordPulse = [&](search_engine::pulse::PulseSearchStatus status, int64_t resultCount, double latencyMs) noexcept {
+        if (!shouldRecordPulse) {
+            return;
+        }
+        try {
+            search_engine::pulse::PulseAnalyticsService::instance().recordSearchEvent(
+                searchQuery,
+                resultCount,
+                latencyMs,
+                status,
+                userAgent,
+                requestAddress
+            );
+        } catch (...) {
+            LOG_WARNING("Pulse analytics hook skipped after unexpected search page error");
+        }
+    };
 	
 	try {
 		// Try Redis first if enabled
@@ -1739,21 +1754,25 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
 						LOG_INFO("Redis search for page successful: found " + std::to_string(totalResults) + " results");
 					} else {
 						LOG_ERROR("Redis search failed for page: " + redisResult.message);
+                        recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 						serverError(res, "Search service temporarily unavailable");
 						return;
 					}
 				} else {
 					LOG_ERROR("Redis storage not initialized for page");
+                    recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 					serverError(res, "Search service not available");
 					return;
 				}
 			} catch (const std::exception& e) {
 				LOG_ERROR("Exception during Redis search for page: " + std::string(e.what()));
+                recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 				serverError(res, "Search error occurred");
 				return;
 			}
 		} else {
 			LOG_ERROR("REDIS_SEARCH_ENABLED is not set - page requires Redis");
+            recordPulse(search_engine::pulse::PulseSearchStatus::Error, 0, elapsedMs());
 			serverError(res, "Search service not enabled");
 			return;
 		}
@@ -1860,20 +1879,8 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         
         std::string baseUrl = protocol + host;
         
-        // URL encode the search query for use in URLs
-        std::string encodedSearchQuery = searchQuery;
-        // Simple URL encoding for the search query
-        std::string encoded;
-        for (char c : searchQuery) {
-            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-                encoded += c;
-            } else {
-                std::ostringstream oss;
-                oss << '%' << std::hex << std::uppercase << (unsigned char)c;
-                encoded += oss.str();
-            }
-        }
-        encodedSearchQuery = encoded;
+        // Use the raw percent-encoded query string for URL construction (already correctly encoded)
+        std::string encodedSearchQuery = qIt->second;
 
         // Calculate elapsed time
         auto endTime = std::chrono::high_resolution_clock::now();
@@ -1893,6 +1900,30 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         }
         std::string elapsedTimeStr = timeStream.str();
 
+        // Safeguard: on first page, if fewer than limit results are returned,
+        // totalResults cannot exceed the number of actual results.
+        if (page == 1 && searchResults.size() < static_cast<size_t>(limit) && totalResults > static_cast<int64_t>(searchResults.size())) {
+            totalResults = searchResults.size();
+        }
+
+        // Calculate pagination metadata
+        int totalPages = std::min(50, (int)((totalResults + limit - 1) / limit));
+        bool hasMore = page < totalPages;
+        bool hasPrev = page > 1;
+
+        // Build page_numbers array: positive = page link, 0 = ellipsis sentinel
+        nlohmann::json pageNumbers = nlohmann::json::array();
+        if (totalPages <= 7) {
+            for (int i = 1; i <= totalPages; i++) pageNumbers.push_back(i);
+        } else {
+            pageNumbers.push_back(1);
+            if (page > 4) pageNumbers.push_back(0);
+            for (int i = std::max(2, page - 2); i <= std::min(totalPages - 1, page + 2); i++)
+                pageNumbers.push_back(i);
+            if (page < totalPages - 3) pageNumbers.push_back(0);
+            pageNumbers.push_back(totalPages);
+        }
+
         // Prepare template data
         nlohmann::json templateData = {
             {"t", commonJson},
@@ -1902,7 +1933,14 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
             {"current_lang", langCode},
             {"total_results", std::to_string(totalResults)},
             {"elapsed_time", elapsedTimeStr},
-            {"results", searchResults}
+            {"results", searchResults},
+            {"current_page", page},
+            {"total_pages", totalPages},
+            {"has_more", hasMore},
+            {"has_prev", hasPrev},
+            {"next_page", page + 1},
+            {"prev_page", page - 1},
+            {"page_numbers", pageNumbers}
         };
 
         LOG_DEBUG("Rendering search results template with " + std::to_string(searchResults.size()) + " results");
@@ -1917,6 +1955,9 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
         }
         
         html(res, renderedHtml);
+        recordPulse(totalResults > 0 ? search_engine::pulse::PulseSearchStatus::Ok : search_engine::pulse::PulseSearchStatus::Empty,
+                    totalResults,
+                    duration.count() / 1000.0);
         LOG_INFO("Successfully served search results page for query: " + searchQuery + 
                  " (results: " + std::to_string(searchResults.size()) + ", lang: " + langCode + ")");
         
@@ -1926,6 +1967,173 @@ void SearchController::searchResultsPage(uWS::HttpResponse<false>* res, uWS::Htt
     } catch (const std::exception& e) {
         LOG_ERROR("Error serving search results page: " + std::string(e.what()));
         serverError(res, "Failed to load search results page");
+    }
+}
+
+void SearchController::searchResultsPartial(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    LOG_INFO("SearchController::searchResultsPartial - Serving partial search results");
+
+    try {
+        auto params = parseQuery(req);
+
+        auto qIt = params.find("q");
+        if (qIt == params.end() || qIt->second.empty()) {
+            res->writeStatus("400 Bad Request");
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
+            return;
+        }
+
+        std::string searchQuery = urlDecode(qIt->second);
+
+        // Language
+        std::string langCode = getDefaultLocale();
+        auto langIt = params.find("lang");
+        if (langIt != params.end() && !langIt->second.empty()) {
+            std::string metaFile = "locales/" + langIt->second + "/search.json";
+            if (std::filesystem::exists(metaFile)) {
+                langCode = langIt->second;
+            }
+        }
+
+        // Pagination — max 50 pages
+        int page = 2;
+        int limit = 10;
+        auto pageIt = params.find("page");
+        if (pageIt != params.end()) {
+            try {
+                page = std::stoi(pageIt->second);
+                if (page < 2) page = 2;
+                if (page > 50) page = 50;
+            } catch (...) { page = 2; }
+        }
+        int skip = (page - 1) * limit;
+
+        // Load locales for template
+        std::string commonPath = "locales/" + langCode + "/common.json";
+        std::string searchPath = "locales/" + langCode + "/search.json";
+        std::string commonContent = loadFile(commonPath);
+        std::string searchContent = loadFile(searchPath);
+        if (commonContent.empty() || searchContent.empty()) {
+            langCode = getDefaultLocale();
+            commonPath = "locales/" + langCode + "/common.json";
+            searchPath = "locales/" + langCode + "/search.json";
+            commonContent = loadFile(commonPath);
+            searchContent = loadFile(searchPath);
+        }
+        nlohmann::json commonJson = nlohmann::json::parse(commonContent);
+        nlohmann::json searchJson = nlohmann::json::parse(searchContent);
+        jsonDeepMergeMissing(commonJson, searchJson);
+
+        // Redis search
+        std::vector<nlohmann::json> searchResults;
+        int64_t totalResults = 0;
+
+        try {
+            const char* redisEnabled = std::getenv("REDIS_SEARCH_ENABLED");
+            bool useRedis = redisEnabled && (std::string(redisEnabled) == "true" || std::string(redisEnabled) == "1");
+            if (!useRedis) {
+                res->writeStatus("503 Service Unavailable");
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
+                return;
+            }
+
+            auto redisStorage = getRedisStorage();
+            if (!redisStorage) {
+                res->writeStatus("503 Service Unavailable");
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
+                return;
+            }
+
+            search_engine::storage::SearchQuery searchQuery_obj;
+            searchQuery_obj.query = searchQuery;
+            searchQuery_obj.limit = limit;
+            searchQuery_obj.offset = skip;
+            searchQuery_obj.highlight = false;
+
+            auto redisResult = redisStorage->search(searchQuery_obj);
+            if (!redisResult.success) {
+                res->writeStatus("503 Service Unavailable");
+                res->writeHeader("Server", "HatefEngine 1.0")->end();
+                return;
+            }
+
+            totalResults = redisResult.value.totalResults;
+
+            auto sanitizeUtf8 = [](const std::string& input) -> std::string {
+                std::string output;
+                output.reserve(input.size());
+                size_t i = 0;
+                while (i < input.size()) {
+                    unsigned char c = input[i];
+                    if (c < 0x80) { output += c; i++; }
+                    else if ((c & 0xE0) == 0xC0 && i + 1 < input.size() && (input[i+1] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; i += 2; }
+                    else if ((c & 0xF0) == 0xE0 && i + 2 < input.size() && (input[i+1] & 0xC0) == 0x80 && (input[i+2] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; output += input[i+2]; i += 3; }
+                    else if ((c & 0xF8) == 0xF0 && i + 3 < input.size() && (input[i+1] & 0xC0) == 0x80 && (input[i+2] & 0xC0) == 0x80 && (input[i+3] & 0xC0) == 0x80)
+                        { output += input[i]; output += input[i+1]; output += input[i+2]; output += input[i+3]; i += 4; }
+                    else { i++; }
+                }
+                return output;
+            };
+
+            for (const auto& r : redisResult.value.results) {
+                std::string displayUrl = sanitizeUtf8(r.url);
+                if (displayUrl.rfind("https://", 0) == 0) displayUrl = displayUrl.substr(8);
+                else if (displayUrl.rfind("http://", 0) == 0) displayUrl = displayUrl.substr(7);
+                if (displayUrl.rfind("www.", 0) == 0) displayUrl = displayUrl.substr(4);
+
+                nlohmann::json item;
+                item["url"] = sanitizeUtf8(r.url);
+                item["title"] = sanitizeUtf8(r.title);
+                item["displayurl"] = displayUrl;
+                item["desc"] = r.snippet.empty() ? std::string("") : truncateDescription(sanitizeUtf8(r.snippet), 300);
+                searchResults.push_back(item);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Redis search error in searchResultsPartial: " + std::string(e.what()));
+            res->writeStatus("503 Service Unavailable");
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
+            return;
+        }
+
+        // Base URL
+        std::string host = std::string(req->getHeader("host"));
+        std::string protocol = "http://";
+        std::string forwardedProto = std::string(req->getHeader("x-forwarded-proto"));
+        if (!forwardedProto.empty()) protocol = forwardedProto + "://";
+        std::string baseUrl = protocol + host;
+
+        // Use the raw percent-encoded query string for URL construction (already correctly encoded)
+        std::string encodedSearchQuery = qIt->second;
+
+        int totalPages = std::min(50, (int)((totalResults + limit - 1) / limit));
+        bool hasMore = page < totalPages;
+
+        nlohmann::json templateData = {
+            {"t", commonJson},
+            {"base_url", baseUrl},
+            {"search_query_encoded", encodedSearchQuery},
+            {"current_lang", langCode},
+            {"results", searchResults},
+            {"has_more", hasMore},
+            {"next_page", page + 1}
+        };
+
+        std::string renderedHtml = renderTemplate("search_partial.inja", templateData);
+        if (renderedHtml.empty()) {
+            res->writeStatus("500 Internal Server Error");
+            res->writeHeader("Server", "HatefEngine 1.0")->end();
+            return;
+        }
+
+        html(res, renderedHtml);
+        LOG_INFO("Served partial results for query: " + searchQuery + " page=" + std::to_string(page));
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error in searchResultsPartial: " + std::string(e.what()));
+        res->writeStatus("500 Internal Server Error");
+        res->writeHeader("Server", "HatefEngine 1.0")->end();
     }
 }
 
@@ -2204,4 +2412,4 @@ std::string SearchController::loadLocalizedSubject(const std::string& language, 
         LOG_ERROR("SearchController: Exception loading localized subject for language " + language + ": " + e.what());
         return "Crawling Complete - " + std::to_string(pageCount) + " pages indexed"; // Default fallback
     }
-} 
+}

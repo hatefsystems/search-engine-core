@@ -296,4 +296,4 @@ Your search engine now has **production-grade caching headers** that will:
 4. **Maintain security** (all security headers preserved)
 5. **Enable conditional requests** (ETag validation)
 
-This implementation follows **industry best practices** used by major search engines like Google, Bing, and DuckDuckGo for optimal performance and user experience.
+This implementation follows **industry best practices** used by large-scale search platforms for optimal performance and user experience.

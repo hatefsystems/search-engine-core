@@ -48,6 +48,10 @@ private:
     static std::chrono::system_clock::time_point dateToTimePoint(const bsoncxx::types::b_date& date);
 
 public:
+    Result<nlohmann::json> searchPeople(const std::string& query, const std::string& skill,
+        const std::string& location, const std::string& availability, int page = 1, int limit = 20);
+    Result<int64_t> rebuildPeopleSearch(bool apply);
+
     // Constructor with connection string
     explicit ProfileStorage(const std::string& connectionString = "mongodb://localhost:27017",
                            const std::string& databaseName = "search-engine");
@@ -74,6 +78,7 @@ public:
     Result<std::optional<PersonProfile>> findPersonById(const std::string& id);
     Result<std::optional<PersonProfile>> findPersonBySlug(const std::string& slug);
     Result<bool> update(const PersonProfile& profile);
+    Result<bool> updatePersonFields(const PersonProfile& profile, const std::vector<std::string>& fields, int64_t expectedVersion);
 
     // BusinessProfile storage operations
     Result<std::string> store(const BusinessProfile& profile);

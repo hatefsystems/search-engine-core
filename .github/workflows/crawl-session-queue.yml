@@ -1,0 +1,40 @@
+name: Crawl session queue
+
+on:
+  pull_request:
+    paths:
+      - "include/search_engine/crawler/**"
+      - "src/crawler/**"
+      - "src/controllers/SearchController.*"
+      - "tests/crawler/**"
+      - ".github/workflows/crawl-session-queue.yml"
+  push:
+    branches: ["review/pr-37-session-queue"]
+
+permissions:
+  contents: read
+
+jobs:
+  session-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [none, address]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install compiler and test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build g++ libcurl4-openssl-dev
+      - name: Build actual session manager tests
+        run: |
+          cmake -S tests/crawler/session_scheduler -B build-sessions -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug -DSESSION_SANITIZER=${{ matrix.sanitizer }}
+          cmake --build build-sessions --parallel 2
+      - name: Run lifecycle and concurrent-admission regressions repeatedly
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --test-dir build-sessions --output-on-failure --repeat until-fail:20

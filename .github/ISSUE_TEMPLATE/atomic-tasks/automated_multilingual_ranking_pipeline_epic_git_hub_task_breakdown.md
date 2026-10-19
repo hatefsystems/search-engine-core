@@ -1,11 +1,11 @@
-# Epic: Universal Automated Multilingual Ranking & Retrieval (Zero Manual Labels)
+# Epic: Universal Automated Multilingual Ranking & Retrieval
 
 ---
 **📋 EPIC OVERVIEW DOCUMENT**
 
 This document provides the **strategic overview** of the entire project.
 
-**📁 For detailed implementation tasks:** See [atomic-tasks/](./atomic-tasks/) directory (68 atomic tasks across 9 milestones)
+**📁 For detailed implementation tasks:** See this [atomic-tasks](./) directory (85 milestone task documents across the full roadmap)
 
 **Use this document for:**
 - ✅ Strategic planning and milestone sequencing
@@ -20,11 +20,11 @@ This document provides the **strategic overview** of the entire project.
 - ✅ Detailed implementation guidance (3-5 day chunks)
 - ✅ Code examples and technical specifications
 
-**Current Status:** 16/16 main tasks broken down into 68 atomic tasks ✅
+**Current Status:** 17 roadmap areas broken down into 85 milestone task documents ✅
 
 ---
 
-**Goal:** Build an end‑to‑end, self‑hosted ranking system that automatically works for any language/script worldwide without manual labeling or language-specific configuration. Universal retrieval (BM25 + n‑gram) + authority/structure signals + embedding‑based re‑rank + weak‑supervision intent + spam/quality scoring + online learning from clicks. Target P95 latency ≤ 300ms for any language.
+**Goal:** Build an end‑to‑end, self‑hosted ranking system that automatically works for any language/script worldwide without manual production curation or language-specific ranking rules. Universal retrieval (BM25 + n‑gram) + authority/structure signals + embedding‑based re‑rank + weak‑supervision intent + spam/quality scoring + online learning from clicks. Offline relevance judgments are expected for evaluation gates and regression control. Target P95 latency ≤ 300ms for any language.
 
 **Outcomes / Success Criteria**
 - NDCG@10 (proxy, then click‑based) ↑ over baseline by ≥ 20%.
@@ -34,7 +34,8 @@ This document provides the **strategic overview** of the entire project.
 - 100% self‑hosted; no third‑party services.
 
 **Non‑Goals**
-- No manual labeling/curation.
+- No manual production curation or hand-tuned per-language ranking rules.
+- Offline evaluation judgments are allowed and required for quality gates; they must not become hard-coded ranking overrides.
 - No external cloud APIs for ranking or embeddings.
 
 **Tech Notes / Assumptions**
@@ -48,6 +49,7 @@ This document provides the **strategic overview** of the entire project.
 ## Milestones (suggested)
 - **M0 – Bootstrap** (6 atomic tasks): Normalization + language detection + minimal index.
 - **M1 – Retrieval Baseline** (6 atomic tasks): Weighted BM25 + char n‑gram fallback + dedup/quality gate.
+- **M1.5 – Search Quality Evaluation Baseline** (5 atomic tasks): Query sets, judgments, Persian/Iran relevance suite, crawl/freshness baseline, regression gates.
 - **M2 – Authority & Structure** (9 atomic tasks): Link graph (HostRank) + schema/ISBN/price extractors.
 - **M3 – Synonyms & Embeddings** (7 atomic tasks): Co‑occurrence → PPMI/SVD; train subword embeddings; nightly lexicon.
 - **M4 – Intent & Verticals** (5 atomic tasks): Weakly‑supervised classifier for Info/Trans/Nav + vertical detectors (Book/Product/Article…).
@@ -55,34 +57,35 @@ This document provides the **strategic overview** of the entire project.
 - **M6 – Rank Fusion & Diversification** (12 atomic tasks): Feature fusion, MMR diversification, parameter tuning (proxy objective).
 - **M7 – Metrics & Dashboards** (5 atomic tasks): Proxy metrics, then click‑based; interleaving.
 - **M8 – Click Model & Online Learning** (5 atomic tasks): DCTR/UBM/DBN + pairwise LTR; nightly updates.
-- **M9 – Performance & SRE** (15 atomic tasks): P95≤300ms, caching, feature store, load tests; SLOs/runbooks; documentation.
+- **M9 – Performance, SRE & Documentation** (20 atomic tasks): P95≤300ms, caching, feature store, load tests; SLOs/runbooks; security; documentation.
 
 ---
 
 ## Implementation Status
 
-This epic has been broken down into **68 atomic tasks** organized across **9 milestones + Security**:
+This epic has been broken down into **85 milestone task documents** organized across the execution roadmap:
 
 | Milestone | Atomic Tasks | Focus Area | Status |
 |-----------|--------------|------------|--------|
-| [M0-foundation](./atomic-tasks/M0-foundation/) | 6 tasks | Text processing, language detection, stopwords | 🔵 Ready |
-| [M1-retrieval](./atomic-tasks/M1-retrieval/) | 6 tasks | BM25, n-gram, indexing, deduplication | 🔵 Ready |
-| [M2-content-understanding](./atomic-tasks/M2-content-understanding/) | 9 tasks | Link graph, HostRank, Schema.org extraction | 🔵 Ready |
-| [M3-semantic](./atomic-tasks/M3-semantic/) | 7 tasks | Embeddings, PPMI/SVD, spell correction | 🔵 Ready |
-| [M4-intent](./atomic-tasks/M4-intent/) | 5 tasks | Intent classification, vertical detectors | 🔵 Ready |
-| [M5-quality](./atomic-tasks/M5-quality/) | 5 tasks | Spam detection, quality scoring | 🔵 Ready |
-| [M6-ranking](./atomic-tasks/M6-ranking/) | 12 tasks | Ranking fusion, MMR, query pipeline | 🔵 Ready |
-| [M7-M8-learning](./atomic-tasks/M7-M8-learning/) | 10 tasks | Metrics, click modeling, online learning | 🔵 Ready |
-| [M9-production](./atomic-tasks/M9-production/) | 15 tasks | Performance, DevOps, Security, Documentation | 🔵 Ready |
+| [M0-foundation](./M0-foundation/) | 6 tasks | Text processing, language detection, stopwords | 🔵 Ready |
+| [M1-retrieval](./M1-retrieval/) | 6 tasks | BM25, n-gram, indexing, deduplication | 🔵 Ready |
+| [M1.5-evaluation](./M1.5-evaluation/) | 5 tasks | Query sets, judgments, metrics, Persian/Iran relevance, crawl/freshness gates | 🔵 Ready |
+| [M2-content-understanding](./M2-content-understanding/) | 9 tasks | Link graph, HostRank, Schema.org extraction | 🔵 Ready |
+| [M3-semantic](./M3-semantic/) | 7 tasks | Embeddings, PPMI/SVD, spell correction | 🔵 Ready |
+| [M4-intent](./M4-intent/) | 5 tasks | Intent classification, vertical detectors | 🔵 Ready |
+| [M5-quality](./M5-quality/) | 5 tasks | Spam detection, quality scoring | 🔵 Ready |
+| [M6-ranking](./M6-ranking/) | 12 tasks | Ranking fusion, MMR, query pipeline | 🔵 Ready |
+| [M7-M8-learning](./M7-M8-learning/) | 10 tasks | Metrics, click modeling, online learning | 🔵 Ready |
+| [M9-production](./M9-production/) | 20 tasks | Performance, DevOps, Security, Documentation | 🔵 Ready |
 
-**Total:** 68 atomic tasks × 3-5 days each = 240-340 working days (estimated)
+**Total:** 85 milestone task documents × 3-5 days each = roughly 330-400 working days (estimated, before parallelization)
 
-**📊 Progress Tracking:** See [atomic-tasks/README-atomic-tasks.md](./atomic-tasks/README-atomic-tasks.md) for detailed progress tracker.
+**📊 Progress Tracking:** See [atomic-tasks/README-atomic-tasks.md](./README-atomic-tasks.md) for detailed progress tracker.
 
 **🎯 Quick Links:**
-- [Task Template](./atomic-tasks/TASK_TEMPLATE.md) - Format for creating new tasks
-- [Quick Setup Guide](./atomic-tasks/QUICK_SETUP_GUIDE.md) - How to get started
-- [Completion Summary](./atomic-tasks/COMPLETION_SUMMARY.md) - Celebration criteria
+- [Task Template](./TASK_TEMPLATE.md) - Format for creating new tasks
+- [Quick Setup Guide](./QUICK_SETUP_GUIDE.md) - How to get started
+- [Completion Summary](./COMPLETION_SUMMARY.md) - Celebration criteria
 
 ---
 
@@ -96,9 +99,9 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 
 ## High‑Level Tasks & Sub‑Tasks (GitHub‑ready)
 
-> **📝 Note:** These 16 high-level tasks have been broken down into **68 detailed atomic tasks** (3-5 days each).
+> **📝 Note:** These roadmap areas have been broken down into **85 detailed milestone task documents** (3-5 days each).
 > 
-> For implementation, use the [atomic-tasks/](./atomic-tasks/) directory which provides:
+> For implementation, use this [atomic-tasks](./) directory which provides:
 > - Detailed step-by-step implementation guides
 > - Code examples and technical specifications
 > - Acceptance criteria and testing procedures
@@ -107,7 +110,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 > This section serves as a strategic overview and task summary.
 
 ### 1) Universal Language & Text Normalization (M0)
-**🔗 Atomic Tasks:** [M0-foundation/01-text-processing/](./atomic-tasks/M0-foundation/01-text-processing/) (6 tasks)
+**🔗 Atomic Tasks:** [M0-foundation/01-text-processing/](./M0-foundation/01-text-processing/) (6 tasks)
 **Issue Title:** `[M0][core] Universal text normalization & automatic language detection`
 
 **Description:** Implement comprehensive Unicode normalization (NFKC) supporting all scripts worldwide, automatic character unification across languages, script-specific handling (ZWNJ for Arabic scripts, word segmentation for CJK), and universal language detection supporting 100+ languages without manual configuration.
@@ -138,7 +141,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 2) Universal Retrieval Index (BM25 + n‑gram) (M1)
-**🔗 Atomic Tasks:** [M1-retrieval/02-core-retrieval/](./atomic-tasks/M1-retrieval/02-core-retrieval/) (6 tasks)
+**🔗 Atomic Tasks:** [M1-retrieval/02-core-retrieval/](./M1-retrieval/02-core-retrieval/) (6 tasks)
 
 **Issue Title:** `[M1][core] Universal BM25 weighted index + character n-gram fallback`
 
@@ -165,8 +168,30 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 
 ---
 
+### 2.5) Search Quality Evaluation Baseline (M1.5)
+**🔗 Atomic Tasks:** [M1.5-evaluation/02-search-quality-baseline/](./M1.5-evaluation/02-search-quality-baseline/) (5 tasks)
+
+**Issue Title:** `[M1.5][eval] Search quality baseline, Persian/Iran relevance suite, and regression gates`
+
+**Description:** Build the quality measurement loop immediately after the lexical retrieval baseline. This milestone prevents advanced ranking, semantic expansion, spam, and freshness changes from being accepted without evidence.
+
+**Tasks**
+- [ ] Build a versioned query set with relevance judgments.
+- [ ] Implement offline metrics and bucketed reporting.
+- [ ] Add Persian/Iran-local relevance suite.
+- [ ] Define crawl/freshness baseline metrics.
+- [ ] Add regression gates and quality report templates.
+
+**Acceptance Criteria**
+- Every quality-impacting task has a baseline comparison artifact.
+- Persian/Iran-local quality has separate metrics and failure reports.
+- Crawl/freshness problems can be separated from ranking problems.
+- Relevance, latency, spam exposure, duplicates, stale results, and zero-result regressions are visible before M2/M3/M6 work is accepted.
+
+---
+
 ### 3) Universal Link Graph & HostRank (M2)
-**🔗 Atomic Tasks:** [M2-content-understanding/03-link-graph/](./atomic-tasks/M2-content-understanding/03-link-graph/) (5 tasks)
+**🔗 Atomic Tasks:** [M2-content-understanding/03-link-graph/](./M2-content-understanding/03-link-graph/) (5 tasks)
 
 **Issue Title:** `[M2][graph] Universal link graph construction + host-level PageRank (HostRank)`
 
@@ -187,7 +212,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 4) Universal Structured Signals Extraction (M2)
-**🔗 Atomic Tasks:** [M2-content-understanding/04-structured-data/](./atomic-tasks/M2-content-understanding/04-structured-data/) (4 tasks)
+**🔗 Atomic Tasks:** [M2-content-understanding/04-structured-data/](./M2-content-understanding/04-structured-data/) (4 tasks)
 
 **Issue Title:** `[M2][extraction] Universal structured data extraction (schema.org + regex hints)`
 
@@ -207,7 +232,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 5) Universal Synonym & Related-Terms Mining (M3)
-**🔗 Atomic Tasks:** [M3-semantic/05-embeddings/](./atomic-tasks/M3-semantic/05-embeddings/) (7 tasks)
+**🔗 Atomic Tasks:** [M3-semantic/05-embeddings/](./M3-semantic/05-embeddings/) (7 tasks)
 
 **Issue Title:** `[M3][embeddings] Universal co-occurrence → PPMI/SVD + subword embeddings + nightly lexicon`
 
@@ -237,7 +262,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 6) Universal Intent & Vertical Detection (M4)
-**🔗 Atomic Tasks:** [M4-intent/06-classification/](./atomic-tasks/M4-intent/06-classification/) (5 tasks)
+**🔗 Atomic Tasks:** [M4-intent/06-classification/](./M4-intent/06-classification/) (5 tasks)
 
 **Issue Title:** `[M4][classification] Universal weakly-supervised intent (Info/Trans/Nav) + vertical classifiers`
 
@@ -258,7 +283,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 7) Universal Spam & Quality Scoring (M5)
-**🔗 Atomic Tasks:** [M5-quality/07-spam-detection/](./atomic-tasks/M5-quality/07-spam-detection/) (5 tasks)
+**🔗 Atomic Tasks:** [M5-quality/07-spam-detection/](./M5-quality/07-spam-detection/) (5 tasks)
 
 **Issue Title:** `[M5][quality] Universal one-class spam/quality scoring + site-level roll-ups`
 
@@ -278,7 +303,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 8) Universal Ranking Fusion & Diversification (M6)
-**🔗 Atomic Tasks:** [M6-ranking/08-ranking-fusion/](./atomic-tasks/M6-ranking/08-ranking-fusion/) (4 tasks)
+**🔗 Atomic Tasks:** [M6-ranking/08-ranking-fusion/](./M6-ranking/08-ranking-fusion/) (4 tasks)
 
 **Issue Title:** `[M6][ranking] Universal feature fusion + MMR diversification + auto parameter tuning`
 
@@ -299,7 +324,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 9) Universal Embeddings Service & Feature Store (M3/M6)
-**🔗 Atomic Tasks:** [M3-semantic/05-embeddings/](./atomic-tasks/M3-semantic/05-embeddings/) (integrated with Task #5)
+**🔗 Atomic Tasks:** [M3-semantic/05-embeddings/](./M3-semantic/05-embeddings/) (integrated with Task #5)
 
 **Issue Title:** `[M3/M6][embeddings] Universal embedding training + inference service + doc precompute`
 
@@ -319,7 +344,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 10) Universal Query Pipeline (M1–M6)
-**🔗 Atomic Tasks:** [M6-ranking/09-query-pipeline/](./atomic-tasks/M6-ranking/09-query-pipeline/) (8 tasks)
+**🔗 Atomic Tasks:** [M6-ranking/09-query-pipeline/](./M6-ranking/09-query-pipeline/) (8 tasks)
 
 **Issue Title:** `[M1–M6][pipeline] Universal query pipeline: auto-detect → expand → retrieve → re-rank → diversify`
 
@@ -361,7 +386,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 11) Universal Metrics & Evaluation Framework (M7)
-**🔗 Atomic Tasks:** [M7-M8-learning/10-metrics/](./atomic-tasks/M7-M8-learning/10-metrics/) (5 tasks)
+**🔗 Atomic Tasks:** [M7-M8-learning/10-metrics/](./M7-M8-learning/10-metrics/) (5 tasks)
 
 **Issue Title:** `[M7][metrics] Universal proxy metrics + dashboards + interleaving harness`
 
@@ -380,7 +405,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 12) Universal Click Logging & Online Learning (M8)
-**🔗 Atomic Tasks:** [M7-M8-learning/11-click-modeling/](./atomic-tasks/M7-M8-learning/11-click-modeling/) (5 tasks)
+**🔗 Atomic Tasks:** [M7-M8-learning/11-click-modeling/](./M7-M8-learning/11-click-modeling/) (5 tasks)
 
 **Issue Title:** `[M8][learning] Universal click model + pairwise LTR + nightly updates`
 
@@ -400,7 +425,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 13) Universal Performance & Caching (M9)
-**🔗 Atomic Tasks:** [M9-production/12-performance/](./atomic-tasks/M9-production/12-performance/) (5 tasks)
+**🔗 Atomic Tasks:** [M9-production/12-performance/](./M9-production/12-performance/) (5 tasks)
 
 **Issue Title:** `[M9][performance] Universal caching, precomputation & feature store for P95≤300ms`
 
@@ -420,7 +445,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 14) Universal DevOps & Reliability (M9)
-**🔗 Atomic Tasks:** [M9-production/13-devops/](./atomic-tasks/M9-production/13-devops/) (5 tasks)
+**🔗 Atomic Tasks:** [M9-production/13-devops/](./M9-production/13-devops/) (5 tasks)
 
 **Issue Title:** `[M9][devops] Universal SLOs, alerts, canaries, rollbacks & runbooks`
 
@@ -440,7 +465,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 15) Universal Security & Compliance (continuous)
-**🔗 Atomic Tasks:** [M9-production/14-security/](./atomic-tasks/M9-production/14-security/) (5 tasks)
+**🔗 Atomic Tasks:** [M9-production/14-security/](./M9-production/14-security/) (5 tasks)
 
 **Issue Title:** `[SEC] Universal robots compliance, PII safeguards, self-hosted isolation`
 
@@ -460,7 +485,7 @@ This epic has been broken down into **68 atomic tasks** organized across **9 mil
 ---
 
 ### 16) Universal Documentation & Runbooks (continuous)
-**🔗 Atomic Tasks:** [M9-production/15-documentation/](./atomic-tasks/M9-production/15-documentation/) (5 tasks)
+**🔗 Atomic Tasks:** [M9-production/15-documentation/](./M9-production/15-documentation/) (5 tasks)
 
 **Issue Title:** `[DOC] Universal architecture, API, feature glossary & troubleshooting`
 
@@ -567,4 +592,3 @@ Labels: kind/research, area/eval, priority/P2, status/backlog
 - Dashboards show SLO compliance for 14 consecutive days across all supported languages.
 - Interleaving confirms ≥ 10% CTR@Top‑3 lift vs. BM25-only baseline for multilingual queries.
 - Runbooks exercised; one full rollback drill passed for universal multilingual system.
-

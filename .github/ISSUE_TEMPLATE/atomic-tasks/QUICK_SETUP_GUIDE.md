@@ -1,20 +1,16 @@
 # 🚀 Quick Setup Guide for Remaining Atomic Tasks
 
-## 📊 Status: 22/82 Tasks Created (27%)
+## 📊 Status: Current Task Tree Available
 
-### ✅ Completed (22 tasks):
-- **M0 Foundation:** 6/6 tasks ✅
-- **M1 Retrieval:** 6/6 tasks ✅
-- **M2 Content Understanding:** 9/9 tasks ✅
-- **Template:** 1 task template ✅
+The milestone task documents have now been generated. Treat this guide as a scaffolding and quality-check reference, not the source of truth for current task counts.
 
-### ⏳ Remaining (60 tasks):
-- **M3 Semantic:** 0/7 tasks (samples provided below)
-- **M4 Intent:** 0/5 tasks
-- **M5 Quality:** 0/5 tasks
-- **M6 Ranking:** 0/14 tasks (08: 6 tasks, 09: 8 tasks)
-- **M7-M8 Learning:** 0/11 tasks (10: 5 tasks, 11: 6 tasks)
-- **M9 Production:** 0/17 tasks (12: 5, 13: 7, 14: 5)
+### Current Source of Truth
+- **Task tracker:** `README-atomic-tasks.md`
+- **Roadmap assessment:** `ROADMAP_ASSESSMENT.md`
+- **Recursive documentation audit:** `DOCUMENTATION_AUDIT.md`
+- **Current milestone task docs:** 85
+- **Top-level Markdown docs:** 10
+- **Future vertical idea docs:** 1
 
 ---
 
@@ -24,10 +20,11 @@
 Copy `atomic-tasks/TASK_TEMPLATE.md` for each new task.
 
 ### Step 2: Fill in the Blanks
-Replace all `[placeholders]` with specific details from the parent task files:
-- `01_language_text_processing.md` → atomic tasks
-- `05_embeddings_semantics.md` → atomic tasks
-- etc.
+Replace all `[placeholders]` with specific details from the current milestone folders:
+- `M0-foundation/01-text-processing/`
+- `M1-retrieval/02-core-retrieval/`
+- `M1.5-evaluation/02-search-quality-baseline/`
+- Continue from the relevant milestone folder instead of obsolete parent summary filenames.
 
 ### Step 3: Follow the Pattern
 Look at completed tasks (M0-M2) for examples of:
@@ -44,110 +41,119 @@ Look at completed tasks (M0-M2) for examples of:
 
 ## 📋 Task Breakdown Reference
 
+### M1.5: Search Quality Evaluation Baseline (5 tasks, 20 days)
+Based on the revised roadmap assessment:
+
+1. **02.7** Query Set and Judgments (4d) - Versioned query set and graded relevance labels
+2. **02.8** Offline Metrics Harness (4d) - NDCG, MRR, recall, duplicate, spam, stale-result, and zero-result reporting
+3. **02.9** Persian and Iran Relevance Suite (4d) - Local query buckets and Persian-specific failure tracking
+4. **02.10** Crawl and Freshness Baseline (4d) - Crawl quality, canonicalization, and freshness feature contracts
+5. **02.11** Regression Gates and Reporting (4d) - Required quality report for every quality-impacting task
+
 ### M3: Embeddings & Semantics (7 tasks, 30 days)
-Based on `05_embeddings_semantics.md`:
+Based on `M3-semantic/05-embeddings/`:
 
 1. **05.1** Co-occurrence Matrix (5d) - Build PPMI/SVD from corpus
-2. **05.2** Subword Embeddings Training (5d) - FastText-style multilingual
-3. **05.3** Spell Correction Vocabulary (4d) - Corpus frequency dictionary
-4. **05.4** Character N-gram Models (4d) - Edit distance candidates
-5. **05.5** Semantic Validation (4d) - Embedding-based correction
-6. **05.6** Embedding Service (4d) - HTTP/gRPC API
+2. **05.2** PPMI/SVD Training (5d) - Sparse matrix factorization and embedding export
+3. **05.3** Subword Embeddings (4d) - FastText-style multilingual handling
+4. **05.4** Embedding Inference Service (4d) - HTTP/gRPC API
+5. **05.5** Document Embedding Precomputation (4d) - Batch document vectors
+6. **05.6** Spell Correction Models (4d) - Hybrid typo and correction models
 7. **05.7** Nightly Lexicon Export (4d) - Synonyms + corrections
 
 ### M4: Intent Classification (5 tasks, 21 days)
-Based on `06_intent_classification.md`:
+Based on `M4-intent/06-classification/`:
 
 1. **06.1** Weak Supervision Seeds (4d) - Generate training data
 2. **06.2** Intent Classifier Training (5d) - Info/Trans/Nav model
 3. **06.3** Vertical Detectors (5d) - Book/Product/Article
-4. **06.4** Real-time Inference (4d) - Low-latency serving
-5. **06.5** Evaluation & Tuning (3d) - Proxy metrics validation
+4. **06.4** Model Integration and Deployment (4d) - Low-latency serving
+5. **06.5** Evaluation and Monitoring (3d) - Proxy metrics validation
 
 ### M5: Spam & Quality (5 tasks, 21 days)
-Based on `07_quality_spam_detection.md`:
+Based on `M5-quality/07-spam-detection/`:
 
-1. **07.1** Feature Engineering (4d) - Text/HTML ratio, ad density, etc.
+1. **07.1** Spam Feature Extraction (4d) - Text/HTML ratio, ad density, link patterns
 2. **07.2** One-Class SVM Training (5d) - Unsupervised spam model
-3. **07.3** Site-Level Aggregation (4d) - Domain-level scoring
-4. **07.4** Safe-list Management (4d) - Whitelist known good sites
-5. **07.5** Validation & Deploy (4d) - Impact testing
+3. **07.3** Isolation Forest Training (4d) - Complementary anomaly model
+4. **07.4** Site-Level Reputation (4d) - Domain-level scoring
+5. **07.5** Quality Scoring Pipeline (4d) - Integrated quality and spam controls
 
-### M6: Ranking & Query Pipeline (14 tasks, 60 days)
+### M6: Ranking & Query Pipeline (12 tasks, 50 days)
 
-#### 08: Ranking Fusion (6 tasks, 26 days)
-Based on `08_ranking_fusion.md`:
+#### 08: Ranking Fusion (4 tasks, 18 days)
+Based on `M6-ranking/08-ranking-fusion/`:
 
-1. **08.1** Feature Gathering (4d) - Collect all signals
-2. **08.2** Score Fusion Algorithm (5d) - Weighted combination
-3. **08.3** MMR Diversification (4d) - Reduce domain repetition
-4. **08.4** Parameter Tuning (5d) - Optimize weights
-5. **08.5** Feature Store (4d) - Centralized feature access
-6. **08.6** A/B Testing Framework (4d) - Safe experimentation
-
-#### 09: Query Pipeline (8 tasks, 34 days)
-Based on `09_query_pipeline.md`:
+1. **08.1** Feature Fusion Implementation (4d) - Combine lexical, semantic, authority, freshness, and quality signals
+2. **08.2** MMR Diversification (5d) - Reduce repetition and improve result diversity
+3. **08.3** Parameter Optimization (4d) - Tune scoring weights against evaluation gates
+4. **08.4** Integration Testing (5d) - End-to-end ranking validation
+#### 09: Query Pipeline (8 tasks, 32 days)
+Based on `M6-ranking/09-query-pipeline/`:
 
 1. **09.1** Language Detection & Routing (3d)
 2. **09.2** Context-Aware Stopword Filter (4d)
-3. **09.3** Spell Correction Stage 1 (3d) - Edit distance
-4. **09.4** Spell Correction Stage 2 (3d) - Frequency
-5. **09.5** Spell Correction Stage 3 (4d) - Embeddings
-6. **09.6** Multi-Stage Retrieval (5d) - BM25 + n-gram
-7. **09.7** Re-ranking & Diversification (5d) - FinalScore
-8. **09.8** Caching & Optimization (4d) - <300ms P95
+3. **09.3** Query Expansion (3d) - Synonyms and related terms
+4. **09.4** Multi-Stage Retrieval (5d) - BM25 + n-gram + semantic candidates
+5. **09.5** Hybrid Spell Correction (4d) - Typo correction with lexical and semantic signals
+6. **09.6** Query Rewriting (4d) - Safe normalization and rewrite rules
+7. **09.7** Feature Gathering (5d) - Runtime feature collection for ranking
+8. **09.8** End-to-End Integration (4d) - Full query pipeline validation
 
-### M7-M8: Evaluation & Learning (11 tasks, 46 days)
+### M7-M8: Evaluation & Learning (10 tasks, 43 days)
 
 #### 10: Metrics (5 tasks, 21 days)
-Based on `10_metrics_evaluation.md`:
+Based on `M7-M8-learning/10-metrics/`:
 
 1. **10.1** Proxy Metrics (4d) - NDCG, nav success
-2. **10.2** Dashboards (4d) - Grafana setup
+2. **10.2** Evaluation Framework (4d) - Offline evaluation harness
 3. **10.3** Interleaving Framework (5d) - A/B testing
-4. **10.4** Daily Reports (4d) - Automated analytics
-5. **10.5** SLI/SLO Definition (4d) - Performance targets
+4. **10.4** Dashboards and Monitoring (4d) - Grafana setup
+5. **10.5** Automated Reports (4d) - Daily quality reports
 
-#### 11: Click Modeling (6 tasks, 25 days)
-Based on `11_click_modeling_online_learning.md`:
+#### 11: Click Modeling (5 tasks, 22 days)
+Based on `M7-M8-learning/11-click-modeling/`:
 
 1. **11.1** Click Logging (4d) - Impression/click collection
-2. **11.2** Position Bias Model (4d) - DCTR/UBM basics
-3. **11.3** Click Model Training (5d) - Full UBM/DBN
-4. **11.4** Pairwise LTR (5d) - LambdaMART/GBDT
+2. **11.2** Click Model Training (4d) - DCTR/UBM/DBN basics
+3. **11.3** Pairwise LTR Training (5d) - LambdaMART/GBDT
+4. **11.4** Model Deployment and Versioning (5d) - Controlled model rollout
 5. **11.5** Nightly Model Updates (4d) - Automated retraining
-6. **11.6** Interleaving Validation (3d) - Impact measurement
-
-### M9: Production Operations (17 tasks, 70 days)
+### M9: Production Operations (20 tasks, 82 days)
 
 #### 12: Performance & Caching (5 tasks, 21 days)
-Based on `12_performance_caching.md`:
+Based on `M9-production/12-performance/`:
 
 1. **12.1** Query Result Cache (4d) - Redis-based caching
-2. **12.2** Doc Feature Precompute (4d) - Batch precomputation
-3. **12.3** Feature Store API (5d) - Unified feature access
-4. **12.4** Load Testing (4d) - Capacity validation
-5. **12.5** Capacity Planning (4d) - Growth projections
+2. **12.2** Feature Store Optimization (4d) - Low-latency feature access
+3. **12.3** Embedding Batch Optimization (5d) - Efficient batch processing
+4. **12.4** Memory and CPU Optimization (4d) - Runtime efficiency
+5. **12.5** Load Testing and Capacity Planning (4d) - Capacity validation
 
-#### 13: DevOps & Deployment (7 tasks, 29 days)
-Based on `13_devops_deployment.md`:
+#### 13: DevOps & Deployment (5 tasks, 21 days)
+Based on `M9-production/13-devops/`:
 
 1. **13.1** SLI/SLO Definition (4d) - Service metrics
-2. **13.2** Alerting & Monitoring (4d) - Prometheus/Grafana
-3. **13.3** Runbooks (4d) - Incident response docs
-4. **13.4** Blue-Green Deployment (5d) - Zero-downtime deploys
-5. **13.5** Feature Flags (4d) - Gradual rollouts
-6. **13.6** Backup & Recovery (4d) - Data protection
-7. **13.7** Disaster Recovery Drills (4d) - Chaos engineering
+2. **13.2** Health Checks and Metrics (4d) - Prometheus/Grafana signals
+3. **13.3** Canary Deployment (5d) - Controlled rollout path
+4. **13.4** Backup and Disaster Recovery (4d) - Data protection
+5. **13.5** Runbooks and On-call (4d) - Incident response readiness
 
 #### 14: Security & Compliance (5 tasks, 20 days)
-Based on `14_security_compliance.md`:
+Based on `M9-production/14-security/`:
 
-1. **14.1** Robots Compliance (4d) - Respect robots.txt
+1. **14.1** Robots.txt Compliance (4d) - Respect robots.txt
 2. **14.2** PII Anonymization (4d) - Privacy protection
-3. **14.3** Network Policy (4d) - Firewall rules
-4. **14.4** Secrets Management (4d) - Vault integration
-5. **14.5** Security Review (4d) - Penetration testing
+3. **14.3** Network Isolation (4d) - Firewall rules and segmentation
+4. **14.4** Audit Logging (4d) - Security and compliance audit trails
+5. **14.5** Security Hardening (4d) - Penetration testing and hardening
+
+#### 15: Documentation (5 tasks, 20 days)
+1. **15.1** Architecture Diagrams (4d) - Architecture and dataflow diagrams
+2. **15.2** API Specification (4d) - OpenAPI and API examples
+3. **15.3** Feature Glossary (4d) - Ranking signal documentation
+4. **15.4** Troubleshooting Runbooks (4d) - Operational runbooks
+5. **15.5** Onboarding Documentation (4d) - New engineer onboarding
 
 ---
 
@@ -161,7 +167,7 @@ Based on `14_security_compliance.md`:
 5. **Copy file structure** from similar completed task (01.1, 01.2, or 01.3)
 
 ### Option 2: Batch Creation (Faster)
-Use the provided breakdown above to create multiple tasks at once:
+Use the provided breakdown above to add future or variant tasks when the roadmap changes:
 
 ```bash
 # Example for M3
@@ -261,18 +267,19 @@ cp interactive_test.py [new-task]/  # Then customize
 ## 🎯 Priority Order for Creation
 
 ### Phase 1: Critical Path (Create First)
-1. M3 tasks (needed for spell correction)
-2. M6.09 tasks (query pipeline)
-3. M9.12-13 tasks (production readiness)
+1. M1.5 tasks (needed for measurable quality gates)
+2. M3 tasks (needed for spell correction)
+3. M6.09 tasks (query pipeline)
+4. M9.12-13 tasks (production readiness)
 
 ### Phase 2: ML & Features
-4. M4 tasks (intent)
-5. M5 tasks (quality)
-6. M6.08 tasks (ranking fusion)
+5. M5 tasks (quality and spam)
+6. M4 tasks (intent)
+7. M6.08 tasks (ranking fusion)
 
 ### Phase 3: Learning & Operations
-7. M7-M8 tasks (metrics & learning)
-8. M9.14 tasks (security)
+8. M7-M8 tasks (metrics & learning)
+9. M9.14-15 tasks (security and documentation)
 
 ---
 
@@ -388,4 +395,3 @@ def test_throughput():
 ---
 
 **Remember: Quality over speed! Each task should be actionable and celebration-worthy! 🎉**
-

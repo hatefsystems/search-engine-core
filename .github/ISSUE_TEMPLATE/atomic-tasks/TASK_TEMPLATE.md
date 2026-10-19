@@ -33,6 +33,13 @@
 - [ ] [Performance target]
 - [ ] [Coverage/quality target]
 
+## 📊 Quality Evidence
+- [ ] Baseline comparison attached if this task affects retrieval, ranking, crawling, freshness, spam, semantic expansion, query processing, or click learning
+- [ ] Per-bucket results checked for language, script, intent, freshness, and Persian/Iran-local queries where relevant
+- [ ] Failure examples documented, not only aggregate metrics
+- [ ] Latency/resource impact measured
+- [ ] Rollback notes included for deployable ranking, model, indexing, crawling, or cache changes
+
 ## 🧪 Testing Checklist
 - [ ] Unit tests (≥85% coverage target)
 - [ ] Integration tests with dependent tasks
@@ -40,6 +47,7 @@
 - [ ] Interactive testing tool (`interactive_test.py`)
 - [ ] Edge case tests (empty strings, malformed input, special characters)
 - [ ] Multi-language validation (if applicable)
+- [ ] Persian/Iran-local validation (if applicable)
 - [ ] Error handling tests (missing dependencies, invalid input)
 
 ## 🎉 Celebration Criteria (Definition of Done)
@@ -240,4 +248,3 @@ After completing this task, you will:
 ---
 
 **[Motivational tagline!] 🚀**
-

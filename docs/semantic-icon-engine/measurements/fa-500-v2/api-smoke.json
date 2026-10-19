@@ -1,0 +1,54 @@
+{
+  "scope": "In-process ASGI smoke test with real release artifacts; not container/network isolation proof.",
+  "results": [
+    {
+      "text": "قلب",
+      "top3": [
+        "lucide:heart",
+        "lucide:heart-pulse",
+        "iconify:lucide:heart-minus"
+      ],
+      "engine": "hybrid"
+    },
+    {
+      "text": "وکالت در دادگاه",
+      "top3": [
+        "lucide:scale",
+        "lucide:gavel",
+        "iconify:lucide:file-signature"
+      ],
+      "engine": "hybrid"
+    },
+    {
+      "text": "تدریس خصوصی ریاضی",
+      "top3": [
+        "lucide:calculator",
+        "lucide:sigma",
+        "lucide:radical"
+      ],
+      "engine": "hybrid"
+    },
+    {
+      "text": "نقاشی ساختمان",
+      "top3": [
+        "lucide:paintbrush",
+        "lucide:paint-roller",
+        "lucide:building"
+      ],
+      "engine": "hybrid"
+    }
+  ],
+  "ready": {
+    "status": "ready",
+    "catalogVersion": "d5d5d387eb4c71f3c9ed15e8",
+    "icons": 7770,
+    "model": "ready",
+    "mode": "hybrid",
+    "knowledge": "hybrid"
+  },
+  "conceptResults": [
+    "hatef:concept:cloud",
+    "hatef:concept:automation",
+    "hatef:concept:55af932e-4b96-5178-9ad9-6901c3a96391"
+  ]
+}

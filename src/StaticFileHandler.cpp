@@ -19,7 +19,7 @@ void StaticFileHandler::handleRequest(auto* res, auto* req) {
     // Serve index.html for root path
     if (path == "/" || path == "/index.html") {
         res->writeHeader("Content-Type", "text/html; charset=utf-8");
-        res->end(indexHtml);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(indexHtml);
         return;
     }
     
@@ -29,10 +29,10 @@ void StaticFileHandler::handleRequest(auto* res, auto* req) {
     
     if (utils::loadStaticFile(basePath, path, content, mimeType)) {
         res->writeHeader("Content-Type", mimeType);
-        res->end(content);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(content);
     } else {
         res->writeStatus("404 Not Found");
         res->writeHeader("Content-Type", "text/plain");
-        res->end("File not found");
+        res->writeHeader("Server", "HatefEngine 1.0")->end("File not found");
     }
 } 

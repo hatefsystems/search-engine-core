@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "CrawlMetrics.h"
 #include "../../include/Logger.h"
 #include "../../include/crawler/CrawlLogger.h"

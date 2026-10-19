@@ -43,6 +43,8 @@ struct LinkBlock {
     std::optional<std::string> iconUrl;         // Optional icon/favicon URL
     
     // Behavior and privacy
+    int64_t version = 0;
+    std::string visibility = "PUBLIC"; // New HIDDEN disables public access, unlike legacy privacy=HIDDEN.
     bool isActive = true;                       // Active links can be clicked
     LinkPrivacy privacy = LinkPrivacy::PUBLIC;  // Visibility and analytics
     

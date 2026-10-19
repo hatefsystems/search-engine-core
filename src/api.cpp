@@ -43,7 +43,7 @@ namespace api {
                         LOG_WARNING("Invalid email address: " + email);
                         res->writeStatus("400 Bad Request");
                         res->writeHeader("Content-Type", "application/json");
-                        res->end("{\"error\": \"Invalid email address\"}");
+                        res->writeHeader("Server", "HatefEngine 1.0")->end("{\"error\": \"Invalid email address\"}");
                         return;
                     }
 
@@ -53,20 +53,20 @@ namespace api {
                         LOG_INFO("Email subscription success: " + email);
                         res->writeStatus("200 OK");
                         res->writeHeader("Content-Type", "application/json");
-                        res->end("{\"message\": \"" + result.message + "\"}");
+                        res->writeHeader("Server", "HatefEngine 1.0")->end("{\"message\": \"" + result.message + "\"}");
                     }
                     else {
                         LOG_WARNING("Email subscription failed: " + email + " - " + result.message);
                         res->writeStatus("400 Bad Request");
                         res->writeHeader("Content-Type", "application/json");
-                        res->end("{\"error\": \"" + result.message + "\"}");
+                        res->writeHeader("Server", "HatefEngine 1.0")->end("{\"error\": \"" + result.message + "\"}");
                     }
                 }
                 catch (const std::exception& e) {
                     LOG_ERROR("Invalid JSON data: " + std::string(e.what()));
                     res->writeStatus("400 Bad Request");
                     res->writeHeader("Content-Type", "application/json");
-                    res->end("{\"error\": \"Invalid JSON data: " + std::string(e.what()) + "\"}");
+                    res->writeHeader("Server", "HatefEngine 1.0")->end("{\"error\": \"Invalid JSON data: " + std::string(e.what()) + "\"}");
                 }
             }
         });
@@ -83,19 +83,19 @@ namespace api {
         if (utils::loadStaticFile("public", path, content, mimeType)) {
             LOG_DEBUG("Serving static file: " + path + " (" + mimeType + ")");
             res->writeHeader("Content-Type", mimeType);
-            res->end(content);
+            res->writeHeader("Server", "HatefEngine 1.0")->end(content);
         }
         else {
             LOG_WARNING("Static file not found: " + path);
             res->writeStatus("404 Not Found");
             res->writeHeader("Content-Type", "text/plain");
-            res->end("File not found");
+            res->writeHeader("Server", "HatefEngine 1.0")->end("File not found");
         }
     }
 
     void handleRoot(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& indexHtml) {
         LOG_DEBUG("Serving index.html");
         res->writeHeader("Content-Type", "text/html; charset=utf-8");
-        res->end(indexHtml);
+        res->writeHeader("Server", "HatefEngine 1.0")->end(indexHtml);
     }
 } 
