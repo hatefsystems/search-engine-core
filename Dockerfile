@@ -23,7 +23,7 @@ RUN cmake -S . -B build \
 FROM builder AS tested
 COPY templates/ ./templates/
 RUN ctest --test-dir build --output-on-failure --no-tests=error \
-    -R '^(slug_generator_test|slug_cache_test|public_profile_test|profile_editor_test|profile_content_test|profile_validator_test|seo_generator_test)$'
+    -R '^(slug_generator_test|slug_cache_test|public_profile_test|profile_editor_test|profile_content_test|profile_validator_test|seo_generator_test|session_scheduler_tests)$'
 
 FROM ${RUNTIME_BASE_IMAGE} AS runner
 # RUN if ! ldconfig -p | grep -q libvips.so; then apt-get update && apt-get install -y --no-install-recommends libvips42 && rm -rf /var/lib/apt/lists/*; fi

@@ -26,4 +26,6 @@ include(CTest)
 include(Catch)
 
 # Add test
-catch_discover_tests(crawler_tests) 
+catch_discover_tests(crawler_tests)
+# The isolated suite also runs in the required Docker short-test stage.
+add_subdirectory(session_scheduler)

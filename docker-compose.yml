@@ -74,6 +74,7 @@ services:
       # - KAFKA_FRONTIER_TOPIC=crawl.frontier
       # Crawler configuration
       - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-5}  # Maximum concurrent crawler sessions
+      - MAX_PENDING_SESSIONS=${MAX_PENDING_SESSIONS:-100}  # Bounded in-memory crawl backlog
       - SPA_RENDERING_ENABLED=${SPA_RENDERING_ENABLED:-true}
       - SPA_RENDERING_TIMEOUT=${SPA_RENDERING_TIMEOUT:-60000}
       - BROWSERLESS_URL=${BROWSERLESS_URL:-http://browserless:3000}

@@ -3,13 +3,13 @@ name: 📚 API Docs Validation
 on:
   push:
     paths:
-      - 'docs/api/**'
+      - 'docs/**'
       - 'package.json'
       - 'config/.prettierrc.json'
       - 'scripts/validate-schema.js'
   pull_request:
     paths:
-      - 'docs/api/**'
+      - 'docs/**'
       - 'package.json'
       - 'config/.prettierrc.json'
       - 'scripts/validate-schema.js'

@@ -1,7 +1,7 @@
 #include "SearchController.h"
 #include "../../include/Logger.h"
 #include "../../include/search_engine/crawler/Crawler.h"
-#include "../../include/search_engine/crawler/CrawlerManager.h"
+#include "search_engine/crawler/CrawlerManager.h"
 #include "../../include/search_engine/crawler/PageFetcher.h"
 #include "../../include/search_engine/crawler/models/CrawlConfig.h"
 #include "../../include/search_engine/storage/ContentStorage.h"
@@ -337,7 +337,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     // Return success response with session ID
                     nlohmann::json response = {
                         {"success", true},
-                        {"message", "Crawl session started successfully"},
+                        {"message", "Crawl request accepted"},
                         {"data", {
                             {"sessionId", sessionId},
                             {"url", url},
@@ -352,7 +352,7 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                             {"includeFullContent", includeFullContent},
                             {"stopPreviousSessions", stopPreviousSessions},
                             {"browserlessUrl", browserlessUrl},
-                            {"status", "starting"}
+                            {"status", g_crawlerManager->getCrawlStatus(sessionId)}
                         }}
                     };
                     
@@ -406,6 +406,19 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                     serverError(res, "CrawlerManager not initialized");
                 }
                 
+            } catch (const CrawlQueueFull& e) {
+                logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent,
+                                   requestStartTime, buffer, "TOO_MANY_REQUESTS", e.what());
+                nlohmann::json errorResponse = {
+                    {"success", false},
+                    {"error", {{"code", "TOO_MANY_REQUESTS"},
+                               {"message", e.what()},
+                               {"details", "Maximum pending crawl sessions limit reached."}}}
+                };
+                res->writeStatus("429 Too Many Requests");
+                res->writeHeader("Content-Type", "application/json");
+                res->writeHeader("Retry-After", "30");
+                res->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
             } catch (const nlohmann::json::parse_error& e) {
                 LOG_ERROR("Failed to parse JSON: " + std::string(e.what()));
                 
@@ -418,32 +431,9 @@ void SearchController::addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRe
                 std::string errorMessage = std::string(e.what());
                 LOG_ERROR("Runtime error in addSiteToCrawl: " + errorMessage);
                 
-                // Check if this is a session limit error
-                if (errorMessage.find("Maximum concurrent sessions limit reached") != std::string::npos) {
-                    // Return a specific error for session limit
-                    nlohmann::json errorResponse = {
-                        {"error", {
-                            {"code", "TOO_MANY_REQUESTS"},
-                            {"message", "Server is currently busy processing other crawl requests. Please try again in a few moments."},
-                            {"details", "Maximum concurrent crawl sessions limit reached. Please wait for current crawls to complete."}
-                        }},
-                        {"success", false}
-                    };
-                    
-                    // Log API request error to database
-                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
-                                     buffer, "TOO_MANY_REQUESTS", errorMessage);
-                    
-                    res->writeStatus("429 Too Many Requests");
-                    res->writeHeader("Content-Type", "application/json");
-                    res->writeHeader("Retry-After", "30"); // Suggest retry after 30 seconds
-                    res->writeHeader("Server", "HatefEngine 1.0")->end(errorResponse.dump());
-                } else {
-                    // Other runtime errors
-                    logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent, requestStartTime, 
-                                     buffer, "Runtime error", errorMessage);
-                    serverError(res, "A runtime error occurred: " + errorMessage);
-                }
+                logApiRequestError("/api/crawl/add-site", "POST", ipAddress, userAgent,
+                                   requestStartTime, buffer, "Runtime error", errorMessage);
+                serverError(res, "A runtime error occurred: " + errorMessage);
             } catch (const std::exception& e) {
                 LOG_ERROR("Unexpected error in addSiteToCrawl: " + std::string(e.what()));
                 

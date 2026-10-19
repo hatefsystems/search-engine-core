@@ -1,97 +1,121 @@
 #pragma once
 
-#include <string>
-#include <memory>
-#include <unordered_map>
-#include <mutex>
-#include <thread>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include "Crawler.h"
+#include "CrawlPriority.h"
+#include "SessionPriorityQueue.h"
 #include "models/CrawlConfig.h"
 #include "models/CrawlResult.h"
-#include "../storage/ContentStorage.h"
+#include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <stdexcept>
+#include <thread>
+#include <unordered_map>
 
-// Forward declaration for completion callback
+namespace search_engine {
+namespace storage {
+class ContentStorage;
+}
+} // namespace search_engine
 class CrawlerManager;
+using CrawlCompletionCallback =
+    std::function<void(const std::string &, const std::vector<CrawlResult> &, CrawlerManager *)>;
 
-/**
- * @brief Completion callback function type for crawl sessions
- * @param sessionId The session ID that completed
- * @param results The crawl results
- * @param manager Pointer to the CrawlerManager for additional operations
- */
-using CrawlCompletionCallback = std::function<void(const std::string& sessionId, 
-                                                   const std::vector<CrawlResult>& results, 
-                                                   CrawlerManager* manager)>;
+class CrawlQueueFull : public std::runtime_error {
+  public:
+    CrawlQueueFull()
+        : std::runtime_error("Crawl capacity and pending queue are full. Try again later.") {}
+};
 
-struct CrawlSession {
-    std::string id;
-    std::unique_ptr<Crawler> crawler;
-    std::chrono::system_clock::time_point createdAt;
-    std::atomic<bool> isCompleted{false};
-    std::thread crawlThread;
-    CrawlCompletionCallback completionCallback;
-    
-    CrawlSession(const std::string& sessionId, std::unique_ptr<Crawler> crawlerInstance, 
-                 CrawlCompletionCallback callback = nullptr)
-        : id(sessionId), crawler(std::move(crawlerInstance)), createdAt(std::chrono::system_clock::now()),
-          completionCallback(std::move(callback)) {}
-    
-    CrawlSession(CrawlSession&& other) noexcept
-        : id(std::move(other.id))
-        , crawler(std::move(other.crawler))
-        , createdAt(other.createdAt)
-        , isCompleted(other.isCompleted.load())
-        , crawlThread(std::move(other.crawlThread))
-        , completionCallback(std::move(other.completionCallback)) {}
-    
-    CrawlSession(const CrawlSession&) = delete;
-    CrawlSession& operator=(const CrawlSession&) = delete;
-    CrawlSession& operator=(CrawlSession&&) = delete;
+// Owns the crawler worker. stop() joins it. Only the session worker calls
+// start/stop; getResults() supports concurrent reads. This boundary lets tests
+// exercise the real manager without MongoDB, HTTP, or Browserless.
+class CrawlSessionRunner {
+  public:
+    virtual ~CrawlSessionRunner() = default;
+    virtual void start() = 0;
+    virtual bool isRunning() const = 0;
+    virtual void stop() = 0;
+    virtual std::vector<CrawlResult> getResults() = 0;
 };
 
 class CrawlerManager {
-public:
-    CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage);
-    ~CrawlerManager();
-    
-    /**
-     * @brief Start a new crawl session
-     * @param url The URL to crawl
-     * @param config Crawl configuration
-     * @param force Whether to force crawling (ignore robots.txt)
-     * @param completionCallback Optional callback to execute when crawl completes
-     * @return Session ID of the started crawl
-     */
-    std::string startCrawl(const std::string& url, const CrawlConfig& config, bool force = false, 
-                          CrawlCompletionCallback completionCallback = nullptr);
-    
-    std::vector<CrawlResult> getCrawlResults(const std::string& sessionId);
-    std::string getCrawlStatus(const std::string& sessionId);
-    bool stopCrawl(const std::string& sessionId);
-    std::vector<std::string> getActiveSessions();
-    void cleanupCompletedSessions();
-    size_t getActiveSessionCount();
-    
-    // Get access to storage for logging
-    std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
-    
-    
-    // Limit concurrent sessions to prevent MongoDB connection issues
+  public:
+    using RunnerFactory = std::function<std::shared_ptr<CrawlSessionRunner>(
+        const CrawlConfig &, const std::string &, const std::string &, bool)>;
     static constexpr size_t MAX_CONCURRENT_SESSIONS = 5;
+    static constexpr size_t MAX_PENDING_SESSIONS = 100;
 
-private:
+    explicit CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage);
+    CrawlerManager(std::shared_ptr<search_engine::storage::ContentStorage> storage,
+                   RunnerFactory factory, size_t maxConcurrent, size_t maxPending);
+    ~CrawlerManager();
+    CrawlerManager(const CrawlerManager &) = delete;
+    CrawlerManager &operator=(const CrawlerManager &) = delete;
+
+    // Priority is for trusted C++ callers. The public API uses NORMAL only.
+    std::string startCrawl(const std::string &url, const CrawlConfig &config, bool force = false,
+                           CrawlCompletionCallback callback = nullptr,
+                           CrawlPriority priority = CrawlPriority::NORMAL);
+    std::vector<CrawlResult> getCrawlResults(const std::string &sessionId);
+    std::string getCrawlStatus(const std::string &sessionId);
+    // Cooperative cancellation; running slots remain reserved until stop joins.
+    bool stopCrawl(const std::string &sessionId);
+    // All unfinished sessions, including queued ones, for stopPreviousSessions.
+    std::vector<std::string> getActiveSessions();
+    size_t getActiveSessionCount();
+    size_t getPendingSessionCount() const;
+    size_t getMaxConcurrentSessions() const { return maxConcurrent_; }
+    void cleanupCompletedSessions();
+    std::shared_ptr<search_engine::storage::ContentStorage> getStorage() const { return storage_; }
+
+  private:
+    using Clock = std::chrono::steady_clock;
+    enum class State {
+        Queued,
+        Starting,
+        Running,
+        Stopping,
+        Completed,
+        Failed,
+        Cancelled,
+        TimedOut
+    };
+    struct Session {
+        std::string id;
+        std::string url;
+        CrawlConfig config;
+        bool force = false;
+        State state = State::Queued;
+        bool cancelRequested = false;
+        bool workerFinished = false;
+        Clock::time_point finishedAt{};
+        std::shared_ptr<CrawlSessionRunner> runner;
+        std::vector<CrawlResult> results;
+        CrawlCompletionCallback callback;
+        std::thread thread;
+    };
+
     std::shared_ptr<search_engine::storage::ContentStorage> storage_;
-    std::unordered_map<std::string, std::unique_ptr<CrawlSession>> sessions_;
-    std::mutex sessionsMutex_;
-    std::atomic<uint64_t> sessionCounter_{0};
+    RunnerFactory runnerFactory_;
+    const size_t maxConcurrent_;
+    mutable std::mutex sessionsMutex_;
+    std::condition_variable wake_;
+    std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
+    SessionPriorityQueue pendingQueue_;
+    size_t running_ = 0; // Reserved before thread creation; released after stop/callback.
+    bool shouldStop_ = false;
+    bool dispatchRequested_ = false;
     std::thread cleanupThread_;
-    std::atomic<bool> shouldStop_{false};
+    std::atomic<uint64_t> sessionCounter_{0};
+
+    static bool terminal(State state);
+    static const char *stateName(State state);
+    static size_t environmentLimit(const char *name, size_t fallback, size_t minimum,
+                                   size_t maximum);
     std::string generateSessionId();
+    void launchLocked(const std::shared_ptr<Session> &session);
+    void runSession(const std::shared_ptr<Session> &session) noexcept;
     void cleanupWorker();
-    std::unique_ptr<Crawler> createCrawler(const CrawlConfig& config, const std::string& sessionId = "");
 };
-
-
