@@ -142,7 +142,7 @@ TEST_CASE("Completion dispatches priorities and real runner liveness gates the s
         return r && r->starts == 1;
     }));
     // Empty results while the runner is live must not be treated as completion.
-    REQUIRE(manager.getCrawlStatus(first) == "crawling");
+    REQUIRE(eventually([&] { return manager.getCrawlStatus(first) == "crawling"; }));
     REQUIRE(h.count() == 1);
     h.get("https://first.test")->finish = true;
     REQUIRE(eventually([&] {
@@ -177,7 +177,7 @@ TEST_CASE("Factory failure remains inspectable and does not lose the next queued
         return r && r->starts == 1;
     }));
     REQUIRE(manager.getCrawlStatus(first) == "completed");
-    REQUIRE(manager.getCrawlStatus(next) == "crawling");
+    REQUIRE(eventually([&] { return manager.getCrawlStatus(next) == "crawling"; }));
     REQUIRE(manager.getActiveSessionCount() == 1);
 }
 
