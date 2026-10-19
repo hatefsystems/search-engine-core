@@ -18,6 +18,9 @@ public:
     
     // Search results page (web interface)
     void searchResultsPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Partial HTML for mobile load-more (returns only article elements + optional next button)
+    void searchResultsPartial(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     
     // Crawl management
     void addSiteToCrawl(uWS::HttpResponse<false>* res, uWS::HttpRequest* req); // Supports 'force' parameter
@@ -74,6 +77,7 @@ ROUTE_CONTROLLER(SearchController) {
     REGISTER_ROUTE(HttpMethod::GET, "/api/search", search, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/search/sites", searchSiteProfiles, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/search", searchResultsPage, SearchController);
+    REGISTER_ROUTE(HttpMethod::GET, "/search/more", searchResultsPartial, SearchController);
     REGISTER_ROUTE(HttpMethod::POST, "/api/crawl/add-site", addSiteToCrawl, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/status", getCrawlStatus, SearchController);
     REGISTER_ROUTE(HttpMethod::GET, "/api/crawl/details", getCrawlDetails, SearchController); // New endpoint

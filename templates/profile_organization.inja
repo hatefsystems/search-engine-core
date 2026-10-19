@@ -220,35 +220,35 @@
             {% if existsIn(profile, "description") or existsIn(profile, "bio") %}
             <div class="profile-section">
                 <h2>About</h2>
-                <p class="description">{% if existsIn(profile, "description") %}{{ profile.description }}{% elif existsIn(profile, "bio") %}{{ profile.bio }}{% endif %}</p>
+                <p class="description">{% if existsIn(profile, "description") %}{{ profile.description }}{% else if existsIn(profile, "bio") %}{{ profile.bio }}{% endif %}</p>
             </div>
             {% endif %}
             
             <div class="profile-section">
                 <h2>Company Information</h2>
                 <div class="info-grid">
-                    {% if profile.foundedYear %}
+                    {% if existsIn(profile, "foundedYear") %}
                     <div class="info-item">
                         <div class="info-label">Founded</div>
                         <div class="info-value">{{ profile.foundedYear }}</div>
                     </div>
                     {% endif %}
                     
-                    {% if profile.industry %}
+                    {% if existsIn(profile, "industry") %}
                     <div class="info-item">
                         <div class="info-label">Industry</div>
                         <div class="info-value">{{ profile.industry }}</div>
                     </div>
                     {% endif %}
                     
-                    {% if profile.companySize %}
+                    {% if existsIn(profile, "companySize") %}
                     <div class="info-item">
                         <div class="info-label">Company Size</div>
                         <div class="info-value">{{ profile.companySize }} employees</div>
                     </div>
                     {% endif %}
                     
-                    {% if profile.website %}
+                    {% if existsIn(profile, "website") %}
                     <div class="info-item">
                         <div class="info-label">Website</div>
                         <div class="info-value">
@@ -259,31 +259,31 @@
                 </div>
             </div>
             
-            {% if profile.address or profile.city or profile.country %}
+            {% if existsIn(profile, "address") or existsIn(profile, "city") or existsIn(profile, "country") %}
             <div class="profile-section">
                 <h2>Location</h2>
                 <div class="address-box">
-                    {% if profile.address %}
+                    {% if existsIn(profile, "address") %}
                     <p><strong>Address:</strong> {{ profile.address }}</p>
                     {% endif %}
-                    {% if profile.city %}
+                    {% if existsIn(profile, "city") %}
                     <p><strong>City:</strong> {{ profile.city }}</p>
                     {% endif %}
-                    {% if profile.country %}
+                    {% if existsIn(profile, "country") %}
                     <p><strong>Country:</strong> {{ profile.country }}</p>
                     {% endif %}
                 </div>
             </div>
             {% endif %}
             
-            {% if profile.businessEmail or profile.businessPhone %}
+            {% if existsIn(profile, "businessEmail") or existsIn(profile, "businessPhone") %}
             <div class="profile-section">
                 <h2>Contact Information</h2>
                 <div class="contact-box">
-                    {% if profile.businessEmail %}
+                    {% if existsIn(profile, "businessEmail") %}
                     <p><strong>Email:</strong> <a href="mailto:{{ profile.businessEmail }}" style="color: #667eea;">{{ profile.businessEmail }}</a></p>
                     {% endif %}
-                    {% if profile.businessPhone %}
+                    {% if existsIn(profile, "businessPhone") %}
                     <p><strong>Phone:</strong> <a href="tel:{{ profile.businessPhone }}" style="color: #667eea;">{{ profile.businessPhone }}</a></p>
                     {% endif %}
                 </div>
@@ -301,7 +301,7 @@
             </div>
             {% endif %}
             
-            {% if existsIn(links, "length") and length(links) > 0 %}
+            {% if length(links) > 0 %}
             <div class="profile-section">
                 <h2>Links</h2>
                 <div class="links-section">

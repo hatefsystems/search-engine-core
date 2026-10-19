@@ -33,10 +33,13 @@ services:
   #   networks:
   #     - search-network
   search-engine:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    platform: linux/amd64
+    image: ${SEARCH_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core:latest}
+    pull_policy: missing
     container_name: core
+    volumes:
+      - profile_media:/app/profile-media
+      - profile_uploads:/app/uploads
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -51,9 +54,17 @@ services:
       - SEARCH_REDIS_POOL_SIZE=4
       - SEARCH_INDEX_NAME=search_index
       - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true}  # Enable Redis-based search (10-100x faster than MongoDB)
+      - PULSE_ANALYTICS_ENABLED=${PULSE_ANALYTICS_ENABLED:-true}
+      - PULSE_MONGODB_URI=${PULSE_MONGODB_URI:-mongodb://admin:password123@mongodb:27017/?authSource=admin}
+      - PULSE_MONGODB_DATABASE=${PULSE_MONGODB_DATABASE:-hatef_pulse}
+      - PULSE_RAW_RETENTION_DAYS=${PULSE_RAW_RETENTION_DAYS:-14}
+      - PULSE_FLUSH_INTERVAL_SECONDS=${PULSE_FLUSH_INTERVAL_SECONDS:-5}
+      - PULSE_MAX_QUEUE_SIZE=${PULSE_MAX_QUEUE_SIZE:-1000}
+      - PULSE_PUBLIC_MIN_EVENTS=${PULSE_PUBLIC_MIN_EVENTS:-3}
       - MINIFY_JS=true
       - MINIFY_JS_LEVEL=none  # Use microservice instead
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
+      - ICON_ENGINE_URL=http://semantic-icon-engine:8080
       # Cache configuration
       - JS_CACHE_ENABLED=true
       - JS_CACHE_TYPE=redis
@@ -99,10 +110,39 @@ services:
       - 1.1.1.1
       - 8.8.4.4
 
+  semantic-icon-engine:
+    profiles: [icons]
+    image: ${ICON_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core/semantic-icon-engine:latest}
+    pull_policy: missing
+    platform: linux/amd64
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${ICON_CPUS:-1.0}
+    mem_limit: ${ICON_MEMORY:-1536m}
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    environment:
+      ICON_DATA_DIR: /opt/icon-artifacts/data
+      ICON_MODEL_DIR: /opt/icon-artifacts/models
+      ICON_VECTOR_DIR: /opt/icon-artifacts/vectors
+      ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-true}
+      ICON_THREADS: "1"
+      ICON_TIMEOUT_SECONDS: "2"
+    networks: [search-network]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
   js-minifier:
-    build:
-      context: ./js-minifier-service
-      dockerfile: Dockerfile
+    image: ${JS_MINIFIER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/js-minifier:latest}
     container_name: js-minifier
     restart: unless-stopped
     pull_policy: if_not_present
@@ -132,18 +172,17 @@ services:
     # Development: Less aggressive save policy for stability
     command: [
       "redis-stack-server",
-      "--appendonly", "yes",
-      "--appendfsync", "everysec",
+      "--appendonly", "no",
       "--maxmemory", "3gb",
-      "--maxmemory-policy", "allkeys-lfu",
+      "--maxmemory-policy", "noeviction",
       "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed
       "--save", "1800", "100",  # Save every 30 min if 100+ keys changed
       "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed
       "--stop-writes-on-bgsave-error", "no"  # Don't stop writes if background save fails
     ]
     environment:
-      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (corrected from 3221225476)
-      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -223,13 +262,12 @@ services:
 
   # Crawler Scheduler - Progressive Warm-up Task Scheduler
   crawler-scheduler:
-    build: ./crawler-scheduler
+    image: ${CRAWLER_SCHEDULER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest}
     container_name: crawler-scheduler-worker
     restart: unless-stopped
     command: celery -A app.celery_app worker --beat --loglevel=info
     volumes:
       - ./crawler-scheduler/data:/app/data
-      - ./crawler-scheduler/app:/app/app  # Hot reload for development
     environment:
       # Celery Configuration
       - CELERY_BROKER_URL=redis://redis:6379/2
@@ -272,7 +310,7 @@ services:
   
   # Flower Web UI - Scheduler Monitoring Dashboard
   crawler-flower:
-    build: ./crawler-scheduler
+    image: ${CRAWLER_SCHEDULER_IMAGE:-ghcr.io/hatefsystems/search-engine-core/crawler-scheduler:latest}
     container_name: crawler-scheduler-flower
     restart: unless-stopped
     command: celery -A app.celery_app flower --port=5555
@@ -293,7 +331,7 @@ services:
 
   # Redis Sync Service - Syncs MongoDB indexed_pages to Redis for fast search
   redis-sync:
-    build: ./redis-sync-service
+    image: ${REDIS_SYNC_IMAGE:-ghcr.io/hatefsystems/search-engine-core/redis-sync:latest}
     container_name: redis-sync
     restart: unless-stopped
     environment:
@@ -321,5 +359,7 @@ networks:
     driver: bridge
 
 volumes:
+  profile_uploads:
+  profile_media:
   mongodb_data:
-  redis_data: 
+  redis_data:

@@ -1,0 +1,21 @@
+Administrative Persian translation attribution
+
+Model: quickmt/quickmt-en-fa
+Creator/publisher: quickmt
+Source: https://huggingface.co/quickmt/quickmt-en-fa
+Pinned revision: e6b227180baab6a3e3ca9a07e08c96debb40bbe7
+Model license: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License: https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Weights are not committed to this repository and are not downloaded by runtime.
+The prepared Persian text is explicitly a machine draft pending human review.
+Preparation changes include sentence segmentation, sentence casing/punctuation,
+Persian Unicode normalization and unambiguous exact matches from Hatef's
+assistant-authored editorial glossary. No endorsement by the model creator is
+claimed. Model benchmarks are not evidence of Hatef human acceptance.
+
+Underlying classification: European Commission ESCO 1.2.1.
+Original English, source URIs and relationships are preserved.
+ESCO reuse notice: https://commission.europa.eu/legal-notice_en
+Hatef Persian adaptations have not been approved by the European Commission.

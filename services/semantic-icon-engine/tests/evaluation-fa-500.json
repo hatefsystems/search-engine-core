@@ -1,0 +1,5526 @@
+[
+  {
+    "id": "fa-001",
+    "domain": "پزشکی و سلامت",
+    "text": "پزشکی عمومی",
+    "relevant": [
+      "lucide:stethoscope",
+      "iconify:lucide:stethoscope",
+      "lucide:hospital",
+      "iconify:lucide:hospital"
+    ]
+  },
+  {
+    "id": "fa-002",
+    "domain": "پزشکی و سلامت",
+    "text": "پرستاری از بیمار",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:stethoscope",
+      "iconify:lucide:stethoscope",
+      "lucide:hospital",
+      "iconify:lucide:hospital"
+    ]
+  },
+  {
+    "id": "fa-003",
+    "domain": "پزشکی و سلامت",
+    "text": "اندازه‌گیری فشار خون",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:activity",
+      "iconify:lucide:activity"
+    ]
+  },
+  {
+    "id": "fa-004",
+    "domain": "پزشکی و سلامت",
+    "text": "نوار قلب",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:activity",
+      "iconify:lucide:activity"
+    ]
+  },
+  {
+    "id": "fa-005",
+    "domain": "پزشکی و سلامت",
+    "text": "مراقبت‌های ویژه",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:hospital",
+      "iconify:lucide:hospital"
+    ]
+  },
+  {
+    "id": "fa-006",
+    "domain": "پزشکی و سلامت",
+    "text": "تزریق واکسن",
+    "relevant": [
+      "lucide:syringe",
+      "iconify:lucide:syringe"
+    ]
+  },
+  {
+    "id": "fa-007",
+    "domain": "پزشکی و سلامت",
+    "text": "تزریقات و پانسمان",
+    "relevant": [
+      "lucide:syringe",
+      "iconify:lucide:syringe",
+      "lucide:bandage",
+      "iconify:lucide:bandage"
+    ]
+  },
+  {
+    "id": "fa-008",
+    "domain": "پزشکی و سلامت",
+    "text": "آزمایش خون",
+    "relevant": [
+      "lucide:test-tubes",
+      "iconify:lucide:test-tubes",
+      "lucide:test-tube",
+      "iconify:lucide:test-tube",
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical"
+    ]
+  },
+  {
+    "id": "fa-009",
+    "domain": "پزشکی و سلامت",
+    "text": "تصویربرداری پزشکی",
+    "relevant": [
+      "lucide:scan",
+      "iconify:lucide:scan",
+      "lucide:scan-line",
+      "iconify:lucide:scan-line",
+      "lucide:scan-heart",
+      "iconify:lucide:scan-heart"
+    ]
+  },
+  {
+    "id": "fa-010",
+    "domain": "پزشکی و سلامت",
+    "text": "توانبخشی حرکتی",
+    "relevant": [
+      "lucide:accessibility",
+      "iconify:lucide:accessibility",
+      "lucide:person-standing",
+      "iconify:lucide:person-standing"
+    ]
+  },
+  {
+    "id": "fa-011",
+    "domain": "پزشکی و سلامت",
+    "text": "داروسازی",
+    "relevant": [
+      "lucide:pill",
+      "iconify:lucide:pill",
+      "lucide:pill-bottle",
+      "iconify:lucide:pill-bottle"
+    ]
+  },
+  {
+    "id": "fa-012",
+    "domain": "پزشکی و سلامت",
+    "text": "نسخه‌نویسی دارو",
+    "relevant": [
+      "lucide:pill",
+      "iconify:lucide:pill",
+      "lucide:clipboard-plus",
+      "iconify:lucide:clipboard-plus"
+    ]
+  },
+  {
+    "id": "fa-013",
+    "domain": "پزشکی و سلامت",
+    "text": "مشاوره تغذیه",
+    "relevant": [
+      "lucide:apple",
+      "iconify:lucide:apple",
+      "lucide:salad",
+      "iconify:lucide:salad"
+    ]
+  },
+  {
+    "id": "fa-014",
+    "domain": "پزشکی و سلامت",
+    "text": "پایش ضربان قلب",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:activity",
+      "iconify:lucide:activity"
+    ]
+  },
+  {
+    "id": "fa-015",
+    "domain": "پزشکی و سلامت",
+    "text": "خدمات اورژانس",
+    "relevant": [
+      "lucide:ambulance",
+      "iconify:lucide:ambulance",
+      "lucide:siren",
+      "iconify:lucide:siren"
+    ]
+  },
+  {
+    "id": "fa-016",
+    "domain": "پزشکی و سلامت",
+    "text": "جراحی",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:stethoscope",
+      "iconify:lucide:stethoscope",
+      "lucide:hospital",
+      "iconify:lucide:hospital"
+    ]
+  },
+  {
+    "id": "fa-017",
+    "domain": "پزشکی و سلامت",
+    "text": "تولید تجهیزات پزشکی",
+    "relevant": [
+      "lucide:stethoscope",
+      "iconify:lucide:stethoscope",
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse"
+    ]
+  },
+  {
+    "id": "fa-018",
+    "domain": "پزشکی و سلامت",
+    "text": "فیزیوتراپی",
+    "relevant": [
+      "lucide:accessibility",
+      "iconify:lucide:accessibility",
+      "lucide:person-standing",
+      "iconify:lucide:person-standing",
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell"
+    ]
+  },
+  {
+    "id": "fa-019",
+    "domain": "پزشکی و سلامت",
+    "text": "مدیریت بیمارستان",
+    "relevant": [
+      "lucide:hospital",
+      "iconify:lucide:hospital"
+    ]
+  },
+  {
+    "id": "fa-020",
+    "domain": "پزشکی و سلامت",
+    "text": "سلامت روان",
+    "relevant": [
+      "lucide:brain",
+      "iconify:lucide:brain",
+      "lucide:heart",
+      "iconify:lucide:heart",
+      "lucide:smile",
+      "iconify:lucide:smile"
+    ]
+  },
+  {
+    "id": "fa-021",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "دندانپزشکی",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-022",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ترمیم دندان",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-023",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "عصب‌کشی دندان",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-024",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ارتودنسی",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-025",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "جرم‌گیری دندان",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-026",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ساخت پروتز دندانی",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-027",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "جراحی لثه",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-028",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ایمپلنت دندان",
+    "relevant": [
+      "lucide:tooth",
+      "iconify:lucide:tooth"
+    ]
+  },
+  {
+    "id": "fa-029",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "چشم‌پزشکی",
+    "relevant": [
+      "lucide:eye",
+      "iconify:lucide:eye"
+    ]
+  },
+  {
+    "id": "fa-030",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "سنجش بینایی",
+    "relevant": [
+      "lucide:eye",
+      "iconify:lucide:eye",
+      "lucide:glasses",
+      "iconify:lucide:glasses"
+    ]
+  },
+  {
+    "id": "fa-031",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ساخت عینک طبی",
+    "relevant": [
+      "lucide:glasses",
+      "iconify:lucide:glasses"
+    ]
+  },
+  {
+    "id": "fa-032",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "شنوایی‌سنجی",
+    "relevant": [
+      "lucide:ear",
+      "iconify:lucide:ear"
+    ]
+  },
+  {
+    "id": "fa-033",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "ساخت سمعک",
+    "relevant": [
+      "lucide:ear",
+      "iconify:lucide:ear",
+      "lucide:ear-off",
+      "iconify:lucide:ear-off"
+    ]
+  },
+  {
+    "id": "fa-034",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "گفتاردرمانی",
+    "relevant": [
+      "lucide:speech",
+      "iconify:lucide:speech",
+      "lucide:messages-square",
+      "iconify:lucide:messages-square"
+    ]
+  },
+  {
+    "id": "fa-035",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "کاردرمانی",
+    "relevant": [
+      "lucide:accessibility",
+      "iconify:lucide:accessibility",
+      "lucide:person-standing",
+      "iconify:lucide:person-standing"
+    ]
+  },
+  {
+    "id": "fa-036",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "قلب و عروق",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:heart",
+      "iconify:lucide:heart"
+    ]
+  },
+  {
+    "id": "fa-037",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "متخصص مغز و اعصاب",
+    "relevant": [
+      "lucide:brain",
+      "iconify:lucide:brain"
+    ]
+  },
+  {
+    "id": "fa-038",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "متخصص ریه",
+    "relevant": [
+      "lucide:lung",
+      "iconify:lucide:lung"
+    ]
+  },
+  {
+    "id": "fa-039",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "درمان بیماری‌های کلیه",
+    "relevant": [
+      "lucide:kidney",
+      "iconify:lucide:kidney"
+    ]
+  },
+  {
+    "id": "fa-040",
+    "domain": "دندانپزشکی و خدمات درمانی تخصصی",
+    "text": "خدمات توانبخشی معلولان",
+    "relevant": [
+      "lucide:accessibility",
+      "iconify:lucide:accessibility"
+    ]
+  },
+  {
+    "id": "fa-041",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "تدریس خصوصی ریاضی",
+    "relevant": [
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:radical",
+      "iconify:lucide:radical",
+      "lucide:sigma",
+      "iconify:lucide:sigma"
+    ]
+  },
+  {
+    "id": "fa-042",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش زبان انگلیسی",
+    "relevant": [
+      "lucide:languages",
+      "iconify:lucide:languages",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-043",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش زبان آلمانی",
+    "relevant": [
+      "lucide:languages",
+      "iconify:lucide:languages",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-044",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش برنامه‌نویسی",
+    "relevant": [
+      "lucide:code",
+      "iconify:lucide:code",
+      "lucide:code-xml",
+      "iconify:lucide:code-xml",
+      "lucide:laptop",
+      "iconify:lucide:laptop"
+    ]
+  },
+  {
+    "id": "fa-045",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "تدریس دانشگاه",
+    "relevant": [
+      "lucide:graduation-cap",
+      "iconify:lucide:graduation-cap",
+      "lucide:presentation",
+      "iconify:lucide:presentation"
+    ]
+  },
+  {
+    "id": "fa-046",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش کودکان",
+    "relevant": [
+      "lucide:baby",
+      "iconify:lucide:baby",
+      "lucide:school",
+      "iconify:lucide:school"
+    ]
+  },
+  {
+    "id": "fa-047",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "مدیریت مدرسه",
+    "relevant": [
+      "lucide:school",
+      "iconify:lucide:school"
+    ]
+  },
+  {
+    "id": "fa-048",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "برگزاری کارگاه آموزشی",
+    "relevant": [
+      "lucide:presentation",
+      "iconify:lucide:presentation",
+      "lucide:projector",
+      "iconify:lucide:projector",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-049",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش آنلاین",
+    "relevant": [
+      "lucide:monitor-play",
+      "iconify:lucide:monitor-play",
+      "lucide:presentation",
+      "iconify:lucide:presentation",
+      "lucide:laptop",
+      "iconify:lucide:laptop"
+    ]
+  },
+  {
+    "id": "fa-050",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "طراحی دوره آموزشی",
+    "relevant": [
+      "lucide:book-open",
+      "iconify:lucide:book-open",
+      "lucide:presentation",
+      "iconify:lucide:presentation"
+    ]
+  },
+  {
+    "id": "fa-051",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "تولید محتوای درسی",
+    "relevant": [
+      "lucide:book-open",
+      "iconify:lucide:book-open",
+      "lucide:notebook-pen",
+      "iconify:lucide:notebook-pen"
+    ]
+  },
+  {
+    "id": "fa-052",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "مشاوره تحصیلی",
+    "relevant": [
+      "lucide:graduation-cap",
+      "iconify:lucide:graduation-cap",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-053",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "کتابداری",
+    "relevant": [
+      "lucide:library",
+      "iconify:lucide:library",
+      "lucide:library-big",
+      "iconify:lucide:library-big",
+      "lucide:book",
+      "iconify:lucide:book"
+    ]
+  },
+  {
+    "id": "fa-054",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش خواندن و نوشتن",
+    "relevant": [
+      "lucide:book-open",
+      "iconify:lucide:book-open",
+      "lucide:pencil",
+      "iconify:lucide:pencil"
+    ]
+  },
+  {
+    "id": "fa-055",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "تدریس شیمی",
+    "relevant": [
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical",
+      "lucide:flask-round",
+      "iconify:lucide:flask-round"
+    ]
+  },
+  {
+    "id": "fa-056",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "تدریس فیزیک",
+    "relevant": [
+      "lucide:atom",
+      "iconify:lucide:atom"
+    ]
+  },
+  {
+    "id": "fa-057",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش موسیقی",
+    "relevant": [
+      "lucide:music",
+      "iconify:lucide:music",
+      "lucide:piano",
+      "iconify:lucide:piano"
+    ]
+  },
+  {
+    "id": "fa-058",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش نقاشی",
+    "relevant": [
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush"
+    ]
+  },
+  {
+    "id": "fa-059",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "آموزش خوشنویسی",
+    "relevant": [
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool",
+      "lucide:pen-line",
+      "iconify:lucide:pen-line"
+    ]
+  },
+  {
+    "id": "fa-060",
+    "domain": "آموزش و پژوهش آموزشی",
+    "text": "ارزیابی و تصحیح آزمون",
+    "relevant": [
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check",
+      "lucide:list-checks",
+      "iconify:lucide:list-checks"
+    ]
+  },
+  {
+    "id": "fa-061",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "برنامه‌نویسی پایتون",
+    "relevant": [
+      "simple-icons:python",
+      "iconify:devicon:python"
+    ]
+  },
+  {
+    "id": "fa-062",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه با جاوااسکریپت",
+    "relevant": [
+      "simple-icons:javascript",
+      "iconify:devicon:javascript"
+    ]
+  },
+  {
+    "id": "fa-063",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "برنامه‌نویسی تایپ‌اسکریپت",
+    "relevant": [
+      "simple-icons:typescript",
+      "iconify:devicon:typescript"
+    ]
+  },
+  {
+    "id": "fa-064",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه نرم‌افزار با جاوا",
+    "relevant": [
+      "simple-icons:java",
+      "iconify:devicon:java"
+    ]
+  },
+  {
+    "id": "fa-065",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "برنامه‌نویسی سی‌شارپ",
+    "relevant": [
+      "simple-icons:csharp",
+      "iconify:devicon:csharp"
+    ]
+  },
+  {
+    "id": "fa-066",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "برنامه‌نویسی سی‌پلاس‌پلاس",
+    "relevant": [
+      "simple-icons:cplusplus",
+      "iconify:devicon:cplusplus"
+    ]
+  },
+  {
+    "id": "fa-067",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه با ری‌اکت",
+    "relevant": [
+      "simple-icons:react",
+      "iconify:devicon:react"
+    ]
+  },
+  {
+    "id": "fa-068",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه با انگولار",
+    "relevant": [
+      "simple-icons:angular",
+      "iconify:devicon:angular"
+    ]
+  },
+  {
+    "id": "fa-069",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه با ویو",
+    "relevant": [
+      "simple-icons:vuejs",
+      "iconify:devicon:vuejs",
+      "simple-icons:vuedotjs",
+      "iconify:devicon:vuedotjs"
+    ]
+  },
+  {
+    "id": "fa-070",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "برنامه‌نویسی دات‌نت",
+    "relevant": [
+      "simple-icons:dotnetcore",
+      "iconify:devicon:dotnetcore",
+      "simple-icons:dotnet",
+      "iconify:devicon:dotnet"
+    ]
+  },
+  {
+    "id": "fa-071",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "طراحی پایگاه داده",
+    "relevant": [
+      "lucide:database",
+      "iconify:lucide:database"
+    ]
+  },
+  {
+    "id": "fa-072",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "مدیریت پستگرس",
+    "relevant": [
+      "simple-icons:postgresql",
+      "iconify:devicon:postgresql"
+    ]
+  },
+  {
+    "id": "fa-073",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "کار با مای‌اس‌کیوال",
+    "relevant": [
+      "simple-icons:mysql",
+      "iconify:devicon:mysql"
+    ]
+  },
+  {
+    "id": "fa-074",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "کار با ردیس",
+    "relevant": [
+      "simple-icons:redis",
+      "iconify:devicon:redis"
+    ]
+  },
+  {
+    "id": "fa-075",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "طراحی رابط برنامه‌نویسی",
+    "relevant": [
+      "lucide:code",
+      "iconify:lucide:code",
+      "lucide:code-xml",
+      "iconify:lucide:code-xml",
+      "lucide:network",
+      "iconify:lucide:network"
+    ]
+  },
+  {
+    "id": "fa-076",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "تست خودکار نرم‌افزار",
+    "relevant": [
+      "lucide:bug",
+      "iconify:lucide:bug",
+      "lucide:bug-play",
+      "iconify:lucide:bug-play",
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check"
+    ]
+  },
+  {
+    "id": "fa-077",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "رفع اشکال برنامه",
+    "relevant": [
+      "lucide:bug",
+      "iconify:lucide:bug",
+      "lucide:bug-off",
+      "iconify:lucide:bug-off"
+    ]
+  },
+  {
+    "id": "fa-078",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "توسعه اپلیکیشن موبایل",
+    "relevant": [
+      "lucide:smartphone",
+      "iconify:lucide:smartphone",
+      "lucide:tablet-smartphone",
+      "iconify:lucide:tablet-smartphone"
+    ]
+  },
+  {
+    "id": "fa-079",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "طراحی الگوریتم",
+    "relevant": [
+      "lucide:workflow",
+      "iconify:lucide:workflow",
+      "lucide:brain-circuit",
+      "iconify:lucide:brain-circuit",
+      "lucide:code",
+      "iconify:lucide:code"
+    ]
+  },
+  {
+    "id": "fa-080",
+    "domain": "نرم‌افزار و فناوری",
+    "text": "مدیریت نسخه با گیت",
+    "relevant": [
+      "simple-icons:git",
+      "iconify:devicon:git",
+      "lucide:git-branch",
+      "iconify:lucide:git-branch"
+    ]
+  },
+  {
+    "id": "fa-081",
+    "domain": "ابر و زیرساخت",
+    "text": "خدمات ابری آمازون",
+    "relevant": [
+      "simple-icons:amazonwebservices",
+      "iconify:devicon:amazonwebservices"
+    ]
+  },
+  {
+    "id": "fa-082",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت ای دبلیو اس",
+    "relevant": [
+      "simple-icons:amazonwebservices",
+      "iconify:devicon:amazonwebservices"
+    ]
+  },
+  {
+    "id": "fa-083",
+    "domain": "ابر و زیرساخت",
+    "text": "زیرساخت به عنوان کد با ترافورم",
+    "relevant": [
+      "simple-icons:terraform",
+      "iconify:devicon:terraform"
+    ]
+  },
+  {
+    "id": "fa-084",
+    "domain": "ابر و زیرساخت",
+    "text": "کار با ترافرم",
+    "relevant": [
+      "simple-icons:terraform",
+      "iconify:devicon:terraform"
+    ]
+  },
+  {
+    "id": "fa-085",
+    "domain": "ابر و زیرساخت",
+    "text": "راه‌اندازی کوبرنتیز",
+    "relevant": [
+      "simple-icons:kubernetes",
+      "iconify:devicon:kubernetes"
+    ]
+  },
+  {
+    "id": "fa-086",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت کوبرنیتیز",
+    "relevant": [
+      "simple-icons:kubernetes",
+      "iconify:devicon:kubernetes"
+    ]
+  },
+  {
+    "id": "fa-087",
+    "domain": "ابر و زیرساخت",
+    "text": "کانتینرسازی با داکر",
+    "relevant": [
+      "simple-icons:docker",
+      "iconify:devicon:docker"
+    ]
+  },
+  {
+    "id": "fa-088",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت سرورهای لینوکسی",
+    "relevant": [
+      "simple-icons:linux",
+      "iconify:devicon:linux",
+      "lucide:server",
+      "iconify:lucide:server"
+    ]
+  },
+  {
+    "id": "fa-089",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت اوبونتو",
+    "relevant": [
+      "simple-icons:ubuntu",
+      "iconify:devicon:ubuntu"
+    ]
+  },
+  {
+    "id": "fa-090",
+    "domain": "ابر و زیرساخت",
+    "text": "خودکارسازی با انسیبل",
+    "relevant": [
+      "simple-icons:ansible",
+      "iconify:devicon:ansible"
+    ]
+  },
+  {
+    "id": "fa-091",
+    "domain": "ابر و زیرساخت",
+    "text": "تنظیم انجین ایکس",
+    "relevant": [
+      "simple-icons:nginx",
+      "iconify:devicon:nginx"
+    ]
+  },
+  {
+    "id": "fa-092",
+    "domain": "ابر و زیرساخت",
+    "text": "مانیتورینگ با پرومتئوس",
+    "relevant": [
+      "simple-icons:prometheus",
+      "iconify:devicon:prometheus"
+    ]
+  },
+  {
+    "id": "fa-093",
+    "domain": "ابر و زیرساخت",
+    "text": "داشبورد گرافانا",
+    "relevant": [
+      "simple-icons:grafana",
+      "iconify:devicon:grafana"
+    ]
+  },
+  {
+    "id": "fa-094",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت گیت‌لب",
+    "relevant": [
+      "simple-icons:gitlab",
+      "iconify:devicon:gitlab"
+    ]
+  },
+  {
+    "id": "fa-095",
+    "domain": "ابر و زیرساخت",
+    "text": "کار با گیت‌هاب",
+    "relevant": [
+      "simple-icons:github",
+      "iconify:devicon:github"
+    ]
+  },
+  {
+    "id": "fa-096",
+    "domain": "ابر و زیرساخت",
+    "text": "راه‌اندازی پایپ‌لاین انتشار",
+    "relevant": [
+      "lucide:workflow",
+      "iconify:lucide:workflow",
+      "lucide:git-branch",
+      "iconify:lucide:git-branch",
+      "lucide:git-pull-request",
+      "iconify:lucide:git-pull-request"
+    ]
+  },
+  {
+    "id": "fa-097",
+    "domain": "ابر و زیرساخت",
+    "text": "پشتیبان‌گیری از سرور",
+    "relevant": [
+      "lucide:database-backup",
+      "iconify:lucide:database-backup",
+      "lucide:hard-drive-download",
+      "iconify:lucide:hard-drive-download",
+      "lucide:archive",
+      "iconify:lucide:archive"
+    ]
+  },
+  {
+    "id": "fa-098",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت شبکه دیتاسنتر",
+    "relevant": [
+      "lucide:network",
+      "iconify:lucide:network",
+      "lucide:server",
+      "iconify:lucide:server"
+    ]
+  },
+  {
+    "id": "fa-099",
+    "domain": "ابر و زیرساخت",
+    "text": "مدیریت ماشین مجازی",
+    "relevant": [
+      "lucide:server",
+      "iconify:lucide:server",
+      "lucide:boxes",
+      "iconify:lucide:boxes",
+      "lucide:computer",
+      "iconify:lucide:computer"
+    ]
+  },
+  {
+    "id": "fa-100",
+    "domain": "ابر و زیرساخت",
+    "text": "ذخیره‌سازی ابری",
+    "relevant": [
+      "lucide:cloud",
+      "iconify:lucide:cloud",
+      "lucide:cloud-upload",
+      "iconify:lucide:cloud-upload",
+      "lucide:hard-drive",
+      "iconify:lucide:hard-drive"
+    ]
+  },
+  {
+    "id": "fa-101",
+    "domain": "حقوق و امور اداری",
+    "text": "وکالت در دادگاه",
+    "relevant": [
+      "lucide:scale",
+      "iconify:lucide:scale",
+      "lucide:gavel",
+      "iconify:lucide:gavel"
+    ]
+  },
+  {
+    "id": "fa-102",
+    "domain": "حقوق و امور اداری",
+    "text": "تنظیم قرارداد تجاری",
+    "relevant": [
+      "lucide:file-signature",
+      "iconify:lucide:file-signature",
+      "lucide:file-pen-line",
+      "iconify:lucide:file-pen-line",
+      "lucide:scroll-text",
+      "iconify:lucide:scroll-text"
+    ]
+  },
+  {
+    "id": "fa-103",
+    "domain": "حقوق و امور اداری",
+    "text": "مشاوره حقوقی",
+    "relevant": [
+      "lucide:scale",
+      "iconify:lucide:scale"
+    ]
+  },
+  {
+    "id": "fa-104",
+    "domain": "حقوق و امور اداری",
+    "text": "ثبت شرکت",
+    "relevant": [
+      "lucide:building-2",
+      "iconify:lucide:building-2",
+      "lucide:building",
+      "iconify:lucide:building",
+      "lucide:file-check",
+      "iconify:lucide:file-check"
+    ]
+  },
+  {
+    "id": "fa-105",
+    "domain": "حقوق و امور اداری",
+    "text": "حقوق مالکیت فکری",
+    "relevant": [
+      "lucide:copyright",
+      "iconify:lucide:copyright",
+      "lucide:scale",
+      "iconify:lucide:scale"
+    ]
+  },
+  {
+    "id": "fa-106",
+    "domain": "حقوق و امور اداری",
+    "text": "داوری اختلافات",
+    "relevant": [
+      "lucide:scale",
+      "iconify:lucide:scale",
+      "lucide:gavel",
+      "iconify:lucide:gavel"
+    ]
+  },
+  {
+    "id": "fa-107",
+    "domain": "حقوق و امور اداری",
+    "text": "پیگیری پرونده قضایی",
+    "relevant": [
+      "lucide:folder-open",
+      "iconify:lucide:folder-open",
+      "lucide:scale",
+      "iconify:lucide:scale"
+    ]
+  },
+  {
+    "id": "fa-108",
+    "domain": "حقوق و امور اداری",
+    "text": "امور اسناد رسمی",
+    "relevant": [
+      "lucide:stamp",
+      "iconify:lucide:stamp",
+      "lucide:file-signature",
+      "iconify:lucide:file-signature",
+      "lucide:file-pen-line",
+      "iconify:lucide:file-pen-line"
+    ]
+  },
+  {
+    "id": "fa-109",
+    "domain": "حقوق و امور اداری",
+    "text": "بررسی اسناد حقوقی",
+    "relevant": [
+      "lucide:file-search",
+      "iconify:lucide:file-search",
+      "lucide:file-check",
+      "iconify:lucide:file-check",
+      "lucide:scale",
+      "iconify:lucide:scale"
+    ]
+  },
+  {
+    "id": "fa-110",
+    "domain": "حقوق و امور اداری",
+    "text": "دفاع از حقوق کارگران",
+    "relevant": [
+      "lucide:scale",
+      "iconify:lucide:scale",
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat"
+    ]
+  },
+  {
+    "id": "fa-111",
+    "domain": "حقوق و امور اداری",
+    "text": "تنظیم اظهارنامه",
+    "relevant": [
+      "lucide:file-pen-line",
+      "iconify:lucide:file-pen-line",
+      "lucide:scroll-text",
+      "iconify:lucide:scroll-text"
+    ]
+  },
+  {
+    "id": "fa-112",
+    "domain": "حقوق و امور اداری",
+    "text": "ثبت اختراع",
+    "relevant": [
+      "lucide:lightbulb",
+      "iconify:lucide:lightbulb",
+      "lucide:copyright",
+      "iconify:lucide:copyright"
+    ]
+  },
+  {
+    "id": "fa-113",
+    "domain": "حقوق و امور اداری",
+    "text": "امور بیمه",
+    "relevant": [
+      "lucide:shield-check",
+      "iconify:lucide:shield-check",
+      "lucide:shield",
+      "iconify:lucide:shield"
+    ]
+  },
+  {
+    "id": "fa-114",
+    "domain": "حقوق و امور اداری",
+    "text": "مدیریت بایگانی",
+    "relevant": [
+      "lucide:archive",
+      "iconify:lucide:archive",
+      "lucide:folder-archive",
+      "iconify:lucide:folder-archive"
+    ]
+  },
+  {
+    "id": "fa-115",
+    "domain": "حقوق و امور اداری",
+    "text": "دفترداری",
+    "relevant": [
+      "lucide:notebook-pen",
+      "iconify:lucide:notebook-pen",
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list"
+    ]
+  },
+  {
+    "id": "fa-116",
+    "domain": "حقوق و امور اداری",
+    "text": "تنظیم صورتجلسه",
+    "relevant": [
+      "lucide:notebook-pen",
+      "iconify:lucide:notebook-pen",
+      "lucide:file-text",
+      "iconify:lucide:file-text"
+    ]
+  },
+  {
+    "id": "fa-117",
+    "domain": "حقوق و امور اداری",
+    "text": "تایپ اسناد اداری",
+    "relevant": [
+      "lucide:keyboard",
+      "iconify:lucide:keyboard",
+      "lucide:file-text",
+      "iconify:lucide:file-text"
+    ]
+  },
+  {
+    "id": "fa-118",
+    "domain": "حقوق و امور اداری",
+    "text": "امضای الکترونیکی",
+    "relevant": [
+      "lucide:signature",
+      "iconify:lucide:signature",
+      "lucide:file-signature",
+      "iconify:lucide:file-signature",
+      "lucide:file-pen-line",
+      "iconify:lucide:file-pen-line"
+    ]
+  },
+  {
+    "id": "fa-119",
+    "domain": "حقوق و امور اداری",
+    "text": "مهر و تایید اسناد",
+    "relevant": [
+      "lucide:stamp",
+      "iconify:lucide:stamp",
+      "lucide:badge-check",
+      "iconify:lucide:badge-check"
+    ]
+  },
+  {
+    "id": "fa-120",
+    "domain": "حقوق و امور اداری",
+    "text": "رسیدگی به شکایات",
+    "relevant": [
+      "lucide:scale",
+      "iconify:lucide:scale",
+      "lucide:message-square-warning",
+      "iconify:lucide:message-square-warning"
+    ]
+  },
+  {
+    "id": "fa-121",
+    "domain": "مالی و حسابداری",
+    "text": "حسابداری مالی",
+    "relevant": [
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:receipt",
+      "iconify:lucide:receipt"
+    ]
+  },
+  {
+    "id": "fa-122",
+    "domain": "مالی و حسابداری",
+    "text": "حسابرسی",
+    "relevant": [
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check",
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:file-search",
+      "iconify:lucide:file-search"
+    ]
+  },
+  {
+    "id": "fa-123",
+    "domain": "مالی و حسابداری",
+    "text": "تنظیم اظهارنامه مالیاتی",
+    "relevant": [
+      "lucide:receipt",
+      "iconify:lucide:receipt",
+      "lucide:file-text",
+      "iconify:lucide:file-text",
+      "lucide:calculator",
+      "iconify:lucide:calculator"
+    ]
+  },
+  {
+    "id": "fa-124",
+    "domain": "مالی و حسابداری",
+    "text": "مدیریت بودجه",
+    "relevant": [
+      "lucide:wallet",
+      "iconify:lucide:wallet",
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:chart-pie",
+      "iconify:lucide:chart-pie"
+    ]
+  },
+  {
+    "id": "fa-125",
+    "domain": "مالی و حسابداری",
+    "text": "تحلیل صورت‌های مالی",
+    "relevant": [
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined",
+      "lucide:chart-line",
+      "iconify:lucide:chart-line",
+      "lucide:calculator",
+      "iconify:lucide:calculator"
+    ]
+  },
+  {
+    "id": "fa-126",
+    "domain": "مالی و حسابداری",
+    "text": "مدیریت حقوق و دستمزد",
+    "relevant": [
+      "lucide:banknote",
+      "iconify:lucide:banknote",
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:wallet",
+      "iconify:lucide:wallet"
+    ]
+  },
+  {
+    "id": "fa-127",
+    "domain": "مالی و حسابداری",
+    "text": "حسابداری فروش",
+    "relevant": [
+      "lucide:receipt",
+      "iconify:lucide:receipt",
+      "lucide:calculator",
+      "iconify:lucide:calculator"
+    ]
+  },
+  {
+    "id": "fa-128",
+    "domain": "مالی و حسابداری",
+    "text": "خزانه‌داری",
+    "relevant": [
+      "lucide:vault",
+      "iconify:lucide:vault",
+      "lucide:wallet",
+      "iconify:lucide:wallet",
+      "lucide:banknote",
+      "iconify:lucide:banknote"
+    ]
+  },
+  {
+    "id": "fa-129",
+    "domain": "مالی و حسابداری",
+    "text": "بانکداری",
+    "relevant": [
+      "lucide:landmark",
+      "iconify:lucide:landmark",
+      "lucide:banknote",
+      "iconify:lucide:banknote"
+    ]
+  },
+  {
+    "id": "fa-130",
+    "domain": "مالی و حسابداری",
+    "text": "صندوق‌داری",
+    "relevant": [
+      "lucide:banknote",
+      "iconify:lucide:banknote",
+      "lucide:wallet",
+      "iconify:lucide:wallet"
+    ]
+  },
+  {
+    "id": "fa-131",
+    "domain": "مالی و حسابداری",
+    "text": "صدور فاکتور",
+    "relevant": [
+      "lucide:receipt",
+      "iconify:lucide:receipt",
+      "lucide:receipt-text",
+      "iconify:lucide:receipt-text"
+    ]
+  },
+  {
+    "id": "fa-132",
+    "domain": "مالی و حسابداری",
+    "text": "کنترل هزینه‌ها",
+    "relevant": [
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:wallet",
+      "iconify:lucide:wallet",
+      "lucide:chart-pie",
+      "iconify:lucide:chart-pie"
+    ]
+  },
+  {
+    "id": "fa-133",
+    "domain": "مالی و حسابداری",
+    "text": "مدیریت سرمایه‌گذاری",
+    "relevant": [
+      "lucide:chart-line",
+      "iconify:lucide:chart-line",
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined"
+    ]
+  },
+  {
+    "id": "fa-134",
+    "domain": "مالی و حسابداری",
+    "text": "تحلیل بورس",
+    "relevant": [
+      "lucide:chart-candlestick",
+      "iconify:lucide:chart-candlestick",
+      "lucide:chart-line",
+      "iconify:lucide:chart-line"
+    ]
+  },
+  {
+    "id": "fa-135",
+    "domain": "مالی و حسابداری",
+    "text": "ارزیابی ریسک مالی",
+    "relevant": [
+      "lucide:chart-line",
+      "iconify:lucide:chart-line",
+      "lucide:shield-alert",
+      "iconify:lucide:shield-alert"
+    ]
+  },
+  {
+    "id": "fa-136",
+    "domain": "مالی و حسابداری",
+    "text": "حسابداری انبار",
+    "relevant": [
+      "lucide:warehouse",
+      "iconify:lucide:warehouse",
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list",
+      "lucide:calculator",
+      "iconify:lucide:calculator"
+    ]
+  },
+  {
+    "id": "fa-137",
+    "domain": "مالی و حسابداری",
+    "text": "برنامه‌ریزی مالی",
+    "relevant": [
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:chart-pie",
+      "iconify:lucide:chart-pie",
+      "lucide:wallet",
+      "iconify:lucide:wallet"
+    ]
+  },
+  {
+    "id": "fa-138",
+    "domain": "مالی و حسابداری",
+    "text": "حسابداری پیمانکاری",
+    "relevant": [
+      "lucide:calculator",
+      "iconify:lucide:calculator",
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat"
+    ]
+  },
+  {
+    "id": "fa-139",
+    "domain": "مالی و حسابداری",
+    "text": "کار با کارت بانکی",
+    "relevant": [
+      "lucide:credit-card",
+      "iconify:lucide:credit-card"
+    ]
+  },
+  {
+    "id": "fa-140",
+    "domain": "مالی و حسابداری",
+    "text": "پرداخت الکترونیکی",
+    "relevant": [
+      "lucide:credit-card",
+      "iconify:lucide:credit-card",
+      "lucide:smartphone-nfc",
+      "iconify:lucide:smartphone-nfc"
+    ]
+  },
+  {
+    "id": "fa-141",
+    "domain": "فروش و بازاریابی",
+    "text": "فروشندگی فروشگاه",
+    "relevant": [
+      "lucide:store",
+      "iconify:lucide:store",
+      "lucide:shopping-bag",
+      "iconify:lucide:shopping-bag"
+    ]
+  },
+  {
+    "id": "fa-142",
+    "domain": "فروش و بازاریابی",
+    "text": "مدیریت فروشگاه",
+    "relevant": [
+      "lucide:store",
+      "iconify:lucide:store"
+    ]
+  },
+  {
+    "id": "fa-143",
+    "domain": "فروش و بازاریابی",
+    "text": "بازاریابی دیجیتال",
+    "relevant": [
+      "lucide:megaphone",
+      "iconify:lucide:megaphone",
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined"
+    ]
+  },
+  {
+    "id": "fa-144",
+    "domain": "فروش و بازاریابی",
+    "text": "تبلیغات اینترنتی",
+    "relevant": [
+      "lucide:megaphone",
+      "iconify:lucide:megaphone",
+      "lucide:mouse-pointer-click",
+      "iconify:lucide:mouse-pointer-click"
+    ]
+  },
+  {
+    "id": "fa-145",
+    "domain": "فروش و بازاریابی",
+    "text": "فروش تلفنی",
+    "relevant": [
+      "lucide:phone",
+      "iconify:lucide:phone",
+      "lucide:headset",
+      "iconify:lucide:headset"
+    ]
+  },
+  {
+    "id": "fa-146",
+    "domain": "فروش و بازاریابی",
+    "text": "مدیریت ارتباط با مشتری",
+    "relevant": [
+      "lucide:contact",
+      "iconify:lucide:contact",
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:headset",
+      "iconify:lucide:headset"
+    ]
+  },
+  {
+    "id": "fa-147",
+    "domain": "فروش و بازاریابی",
+    "text": "مذاکره فروش",
+    "relevant": [
+      "lucide:handshake",
+      "iconify:lucide:handshake",
+      "lucide:messages-square",
+      "iconify:lucide:messages-square"
+    ]
+  },
+  {
+    "id": "fa-148",
+    "domain": "فروش و بازاریابی",
+    "text": "بازاریابی محتوایی",
+    "relevant": [
+      "lucide:file-text",
+      "iconify:lucide:file-text",
+      "lucide:megaphone",
+      "iconify:lucide:megaphone"
+    ]
+  },
+  {
+    "id": "fa-149",
+    "domain": "فروش و بازاریابی",
+    "text": "تحقیق بازار",
+    "relevant": [
+      "lucide:search",
+      "iconify:lucide:search",
+      "lucide:chart-pie",
+      "iconify:lucide:chart-pie"
+    ]
+  },
+  {
+    "id": "fa-150",
+    "domain": "فروش و بازاریابی",
+    "text": "راه‌اندازی فروشگاه اینترنتی",
+    "relevant": [
+      "lucide:shopping-cart",
+      "iconify:lucide:shopping-cart",
+      "lucide:store",
+      "iconify:lucide:store"
+    ]
+  },
+  {
+    "id": "fa-151",
+    "domain": "فروش و بازاریابی",
+    "text": "مدیریت سبد خرید",
+    "relevant": [
+      "lucide:shopping-cart",
+      "iconify:lucide:shopping-cart"
+    ]
+  },
+  {
+    "id": "fa-152",
+    "domain": "فروش و بازاریابی",
+    "text": "چیدمان ویترین",
+    "relevant": [
+      "lucide:store",
+      "iconify:lucide:store",
+      "lucide:layout-grid",
+      "iconify:lucide:layout-grid"
+    ]
+  },
+  {
+    "id": "fa-153",
+    "domain": "فروش و بازاریابی",
+    "text": "برندسازی",
+    "relevant": [
+      "lucide:badge",
+      "iconify:lucide:badge",
+      "lucide:megaphone",
+      "iconify:lucide:megaphone",
+      "lucide:award",
+      "iconify:lucide:award"
+    ]
+  },
+  {
+    "id": "fa-154",
+    "domain": "فروش و بازاریابی",
+    "text": "قیمت‌گذاری محصول",
+    "relevant": [
+      "lucide:tags",
+      "iconify:lucide:tags",
+      "lucide:tag",
+      "iconify:lucide:tag",
+      "lucide:calculator",
+      "iconify:lucide:calculator"
+    ]
+  },
+  {
+    "id": "fa-155",
+    "domain": "فروش و بازاریابی",
+    "text": "مدیریت تخفیف‌ها",
+    "relevant": [
+      "lucide:badge-percent",
+      "iconify:lucide:badge-percent",
+      "lucide:percent",
+      "iconify:lucide:percent",
+      "lucide:ticket-percent",
+      "iconify:lucide:ticket-percent"
+    ]
+  },
+  {
+    "id": "fa-156",
+    "domain": "فروش و بازاریابی",
+    "text": "برنامه وفاداری مشتری",
+    "relevant": [
+      "lucide:heart",
+      "iconify:lucide:heart",
+      "lucide:award",
+      "iconify:lucide:award",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-157",
+    "domain": "فروش و بازاریابی",
+    "text": "فروش عمده",
+    "relevant": [
+      "lucide:boxes",
+      "iconify:lucide:boxes",
+      "lucide:warehouse",
+      "iconify:lucide:warehouse",
+      "lucide:shopping-cart",
+      "iconify:lucide:shopping-cart"
+    ]
+  },
+  {
+    "id": "fa-158",
+    "domain": "فروش و بازاریابی",
+    "text": "بازاریابی شبکه‌های اجتماعی",
+    "relevant": [
+      "lucide:share-2",
+      "iconify:lucide:share-2",
+      "lucide:megaphone",
+      "iconify:lucide:megaphone"
+    ]
+  },
+  {
+    "id": "fa-159",
+    "domain": "فروش و بازاریابی",
+    "text": "پشتیبانی مشتریان",
+    "relevant": [
+      "lucide:headset",
+      "iconify:lucide:headset",
+      "lucide:headphones",
+      "iconify:lucide:headphones"
+    ]
+  },
+  {
+    "id": "fa-160",
+    "domain": "فروش و بازاریابی",
+    "text": "پیگیری سفارش‌ها",
+    "relevant": [
+      "lucide:package-search",
+      "iconify:lucide:package-search",
+      "lucide:package-check",
+      "iconify:lucide:package-check",
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list"
+    ]
+  },
+  {
+    "id": "fa-161",
+    "domain": "کشاورزی و دامداری",
+    "text": "کشاورزی",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:tractor",
+      "iconify:lucide:tractor",
+      "lucide:wheat",
+      "iconify:lucide:wheat"
+    ]
+  },
+  {
+    "id": "fa-162",
+    "domain": "کشاورزی و دامداری",
+    "text": "باغبانی",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:flower",
+      "iconify:lucide:flower",
+      "lucide:trees",
+      "iconify:lucide:trees"
+    ]
+  },
+  {
+    "id": "fa-163",
+    "domain": "کشاورزی و دامداری",
+    "text": "پرورش گل و گیاه",
+    "relevant": [
+      "lucide:flower",
+      "iconify:lucide:flower",
+      "lucide:flower-2",
+      "iconify:lucide:flower-2",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-164",
+    "domain": "کشاورزی و دامداری",
+    "text": "کاشت گندم",
+    "relevant": [
+      "lucide:wheat",
+      "iconify:lucide:wheat",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-165",
+    "domain": "کشاورزی و دامداری",
+    "text": "رانندگی تراکتور",
+    "relevant": [
+      "lucide:tractor",
+      "iconify:lucide:tractor"
+    ]
+  },
+  {
+    "id": "fa-166",
+    "domain": "کشاورزی و دامداری",
+    "text": "آبیاری قطره‌ای",
+    "relevant": [
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-167",
+    "domain": "کشاورزی و دامداری",
+    "text": "هرس درختان",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:tree-deciduous",
+      "iconify:lucide:tree-deciduous"
+    ]
+  },
+  {
+    "id": "fa-168",
+    "domain": "کشاورزی و دامداری",
+    "text": "پیوند جوانه درخت پسته",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:tree-deciduous",
+      "iconify:lucide:tree-deciduous"
+    ]
+  },
+  {
+    "id": "fa-169",
+    "domain": "کشاورزی و دامداری",
+    "text": "مدیریت گلخانه",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:flower",
+      "iconify:lucide:flower",
+      "lucide:house",
+      "iconify:lucide:house"
+    ]
+  },
+  {
+    "id": "fa-170",
+    "domain": "کشاورزی و دامداری",
+    "text": "برداشت محصول",
+    "relevant": [
+      "lucide:wheat",
+      "iconify:lucide:wheat",
+      "lucide:tractor",
+      "iconify:lucide:tractor"
+    ]
+  },
+  {
+    "id": "fa-171",
+    "domain": "کشاورزی و دامداری",
+    "text": "تولید کود آلی",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:leaf",
+      "iconify:lucide:leaf"
+    ]
+  },
+  {
+    "id": "fa-172",
+    "domain": "کشاورزی و دامداری",
+    "text": "کنترل آفات گیاهی",
+    "relevant": [
+      "lucide:bug",
+      "iconify:lucide:bug",
+      "lucide:leaf",
+      "iconify:lucide:leaf"
+    ]
+  },
+  {
+    "id": "fa-173",
+    "domain": "کشاورزی و دامداری",
+    "text": "پرورش زنبور عسل",
+    "relevant": [
+      "lucide:hexagon",
+      "iconify:lucide:hexagon",
+      "lucide:flower",
+      "iconify:lucide:flower",
+      "lucide:bug",
+      "iconify:lucide:bug"
+    ]
+  },
+  {
+    "id": "fa-174",
+    "domain": "کشاورزی و دامداری",
+    "text": "دامداری",
+    "relevant": [
+      "lucide:beef",
+      "iconify:lucide:beef",
+      "lucide:milk",
+      "iconify:lucide:milk",
+      "lucide:cow",
+      "iconify:lucide:cow"
+    ]
+  },
+  {
+    "id": "fa-175",
+    "domain": "کشاورزی و دامداری",
+    "text": "پرورش طیور",
+    "relevant": [
+      "lucide:bird",
+      "iconify:lucide:bird",
+      "lucide:egg",
+      "iconify:lucide:egg"
+    ]
+  },
+  {
+    "id": "fa-176",
+    "domain": "کشاورزی و دامداری",
+    "text": "شیردوشی صنعتی",
+    "relevant": [
+      "lucide:milk",
+      "iconify:lucide:milk"
+    ]
+  },
+  {
+    "id": "fa-177",
+    "domain": "کشاورزی و دامداری",
+    "text": "پرورش ماهی",
+    "relevant": [
+      "lucide:fish",
+      "iconify:lucide:fish"
+    ]
+  },
+  {
+    "id": "fa-178",
+    "domain": "کشاورزی و دامداری",
+    "text": "مدیریت مزرعه",
+    "relevant": [
+      "lucide:tractor",
+      "iconify:lucide:tractor",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-179",
+    "domain": "کشاورزی و دامداری",
+    "text": "کشت هیدروپونیک",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-180",
+    "domain": "کشاورزی و دامداری",
+    "text": "مهندسی ماشین‌آلات کشاورزی",
+    "relevant": [
+      "lucide:tractor",
+      "iconify:lucide:tractor",
+      "lucide:cog",
+      "iconify:lucide:cog"
+    ]
+  },
+  {
+    "id": "fa-181",
+    "domain": "ساختمان و معماری",
+    "text": "معماری ساختمان",
+    "relevant": [
+      "lucide:building",
+      "iconify:lucide:building",
+      "lucide:ruler",
+      "iconify:lucide:ruler",
+      "lucide:house",
+      "iconify:lucide:house"
+    ]
+  },
+  {
+    "id": "fa-182",
+    "domain": "ساختمان و معماری",
+    "text": "طراحی نقشه ساختمان",
+    "relevant": [
+      "lucide:drafting-compass",
+      "iconify:lucide:drafting-compass",
+      "lucide:ruler",
+      "iconify:lucide:ruler",
+      "lucide:pencil-ruler",
+      "iconify:lucide:pencil-ruler"
+    ]
+  },
+  {
+    "id": "fa-183",
+    "domain": "ساختمان و معماری",
+    "text": "مهندسی عمران",
+    "relevant": [
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat",
+      "lucide:building",
+      "iconify:lucide:building",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-184",
+    "domain": "ساختمان و معماری",
+    "text": "بنایی",
+    "relevant": [
+      "lucide:brick-wall",
+      "iconify:lucide:brick-wall",
+      "lucide:trowel",
+      "iconify:lucide:trowel",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-185",
+    "domain": "ساختمان و معماری",
+    "text": "آجرچینی",
+    "relevant": [
+      "lucide:brick-wall",
+      "iconify:lucide:brick-wall"
+    ]
+  },
+  {
+    "id": "fa-186",
+    "domain": "ساختمان و معماری",
+    "text": "بتن‌ریزی",
+    "relevant": [
+      "lucide:construction",
+      "iconify:lucide:construction",
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat"
+    ]
+  },
+  {
+    "id": "fa-187",
+    "domain": "ساختمان و معماری",
+    "text": "آرماتوربندی",
+    "relevant": [
+      "lucide:construction",
+      "iconify:lucide:construction",
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat"
+    ]
+  },
+  {
+    "id": "fa-188",
+    "domain": "ساختمان و معماری",
+    "text": "کاشی‌کاری",
+    "relevant": [
+      "lucide:grid-2x2",
+      "iconify:lucide:grid-2x2",
+      "lucide:grid-3x3",
+      "iconify:lucide:grid-3x3",
+      "lucide:brick-wall",
+      "iconify:lucide:brick-wall"
+    ]
+  },
+  {
+    "id": "fa-189",
+    "domain": "ساختمان و معماری",
+    "text": "گچ‌کاری",
+    "relevant": [
+      "lucide:paint-roller",
+      "iconify:lucide:paint-roller",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-190",
+    "domain": "ساختمان و معماری",
+    "text": "نقاشی ساختمان",
+    "relevant": [
+      "lucide:paint-roller",
+      "iconify:lucide:paint-roller",
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush"
+    ]
+  },
+  {
+    "id": "fa-191",
+    "domain": "ساختمان و معماری",
+    "text": "نصب کناف",
+    "relevant": [
+      "lucide:construction",
+      "iconify:lucide:construction",
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat"
+    ]
+  },
+  {
+    "id": "fa-192",
+    "domain": "ساختمان و معماری",
+    "text": "نصب سقف کاذب",
+    "relevant": [
+      "lucide:house",
+      "iconify:lucide:house",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-193",
+    "domain": "ساختمان و معماری",
+    "text": "لوله‌کشی ساختمان",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:pipette",
+      "iconify:lucide:pipette",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-194",
+    "domain": "ساختمان و معماری",
+    "text": "نصب شیرآلات",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-195",
+    "domain": "ساختمان و معماری",
+    "text": "عایق‌کاری رطوبتی",
+    "relevant": [
+      "lucide:umbrella",
+      "iconify:lucide:umbrella",
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:house",
+      "iconify:lucide:house"
+    ]
+  },
+  {
+    "id": "fa-196",
+    "domain": "ساختمان و معماری",
+    "text": "نصب پنجره",
+    "relevant": [
+      "lucide:panels-top-left",
+      "iconify:lucide:panels-top-left",
+      "lucide:house",
+      "iconify:lucide:house"
+    ]
+  },
+  {
+    "id": "fa-197",
+    "domain": "ساختمان و معماری",
+    "text": "طراحی نمای ساختمان",
+    "relevant": [
+      "lucide:building-2",
+      "iconify:lucide:building-2",
+      "lucide:building",
+      "iconify:lucide:building"
+    ]
+  },
+  {
+    "id": "fa-198",
+    "domain": "ساختمان و معماری",
+    "text": "نقشه‌برداری زمین",
+    "relevant": [
+      "lucide:ruler",
+      "iconify:lucide:ruler",
+      "lucide:map-pinned",
+      "iconify:lucide:map-pinned",
+      "lucide:scan-line",
+      "iconify:lucide:scan-line"
+    ]
+  },
+  {
+    "id": "fa-199",
+    "domain": "ساختمان و معماری",
+    "text": "مدیریت کارگاه ساختمانی",
+    "relevant": [
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-200",
+    "domain": "ساختمان و معماری",
+    "text": "بازسازی خانه",
+    "relevant": [
+      "lucide:house",
+      "iconify:lucide:house",
+      "lucide:hammer",
+      "iconify:lucide:hammer",
+      "lucide:paint-roller",
+      "iconify:lucide:paint-roller"
+    ]
+  },
+  {
+    "id": "fa-201",
+    "domain": "صنعت و مکانیک",
+    "text": "جوشکاری آرگون",
+    "relevant": [
+      "lucide:welding",
+      "iconify:lucide:welding",
+      "lucide:flame",
+      "iconify:lucide:flame",
+      "lucide:construction",
+      "iconify:lucide:construction"
+    ]
+  },
+  {
+    "id": "fa-202",
+    "domain": "صنعت و مکانیک",
+    "text": "جوشکاری تیگ",
+    "relevant": [
+      "lucide:welding",
+      "iconify:lucide:welding",
+      "lucide:flame",
+      "iconify:lucide:flame"
+    ]
+  },
+  {
+    "id": "fa-203",
+    "domain": "صنعت و مکانیک",
+    "text": "جوشکاری برق",
+    "relevant": [
+      "lucide:welding",
+      "iconify:lucide:welding",
+      "lucide:zap",
+      "iconify:lucide:zap",
+      "lucide:flame",
+      "iconify:lucide:flame"
+    ]
+  },
+  {
+    "id": "fa-204",
+    "domain": "صنعت و مکانیک",
+    "text": "تراشکاری",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:factory",
+      "iconify:lucide:factory",
+      "lucide:settings",
+      "iconify:lucide:settings"
+    ]
+  },
+  {
+    "id": "fa-205",
+    "domain": "صنعت و مکانیک",
+    "text": "فرزکاری",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-206",
+    "domain": "صنعت و مکانیک",
+    "text": "کار با دستگاه سی‌ان‌سی",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-207",
+    "domain": "صنعت و مکانیک",
+    "text": "تعمیر موتور خودرو",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:car",
+      "iconify:lucide:car"
+    ]
+  },
+  {
+    "id": "fa-208",
+    "domain": "صنعت و مکانیک",
+    "text": "تعویض روغن خودرو",
+    "relevant": [
+      "lucide:oil-can",
+      "iconify:lucide:oil-can",
+      "lucide:droplet",
+      "iconify:lucide:droplet"
+    ]
+  },
+  {
+    "id": "fa-209",
+    "domain": "صنعت و مکانیک",
+    "text": "صافکاری خودرو",
+    "relevant": [
+      "lucide:hammer",
+      "iconify:lucide:hammer",
+      "lucide:car",
+      "iconify:lucide:car"
+    ]
+  },
+  {
+    "id": "fa-210",
+    "domain": "صنعت و مکانیک",
+    "text": "نقاشی خودرو",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:car",
+      "iconify:lucide:car"
+    ]
+  },
+  {
+    "id": "fa-211",
+    "domain": "صنعت و مکانیک",
+    "text": "تعمیر گیربکس",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-212",
+    "domain": "صنعت و مکانیک",
+    "text": "نصب و تعمیر پمپ",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-213",
+    "domain": "صنعت و مکانیک",
+    "text": "طراحی قطعات مکانیکی",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:ruler",
+      "iconify:lucide:ruler"
+    ]
+  },
+  {
+    "id": "fa-214",
+    "domain": "صنعت و مکانیک",
+    "text": "تعمیر ماشین‌آلات صنعتی",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:factory",
+      "iconify:lucide:factory",
+      "lucide:cog",
+      "iconify:lucide:cog"
+    ]
+  },
+  {
+    "id": "fa-215",
+    "domain": "صنعت و مکانیک",
+    "text": "نگهداری تجهیزات کارخانه",
+    "relevant": [
+      "lucide:factory",
+      "iconify:lucide:factory",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-216",
+    "domain": "صنعت و مکانیک",
+    "text": "مونتاژ قطعات",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:puzzle",
+      "iconify:lucide:puzzle"
+    ]
+  },
+  {
+    "id": "fa-217",
+    "domain": "صنعت و مکانیک",
+    "text": "ریخته‌گری فلزات",
+    "relevant": [
+      "lucide:flame",
+      "iconify:lucide:flame",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-218",
+    "domain": "صنعت و مکانیک",
+    "text": "قالب‌سازی صنعتی",
+    "relevant": [
+      "lucide:cog",
+      "iconify:lucide:cog",
+      "lucide:blocks",
+      "iconify:lucide:blocks",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-219",
+    "domain": "صنعت و مکانیک",
+    "text": "آهنگری",
+    "relevant": [
+      "lucide:anvil",
+      "iconify:lucide:anvil",
+      "lucide:hammer",
+      "iconify:lucide:hammer"
+    ]
+  },
+  {
+    "id": "fa-220",
+    "domain": "صنعت و مکانیک",
+    "text": "برش لیزری فلز",
+    "relevant": [
+      "lucide:scan-line",
+      "iconify:lucide:scan-line",
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-221",
+    "domain": "برق و الکترونیک",
+    "text": "برق‌کاری ساختمان",
+    "relevant": [
+      "lucide:zap",
+      "iconify:lucide:zap",
+      "lucide:plug",
+      "iconify:lucide:plug"
+    ]
+  },
+  {
+    "id": "fa-222",
+    "domain": "برق و الکترونیک",
+    "text": "سیم‌کشی برق",
+    "relevant": [
+      "lucide:cable",
+      "iconify:lucide:cable",
+      "lucide:plug",
+      "iconify:lucide:plug",
+      "lucide:zap",
+      "iconify:lucide:zap"
+    ]
+  },
+  {
+    "id": "fa-223",
+    "domain": "برق و الکترونیک",
+    "text": "نصب تابلو برق",
+    "relevant": [
+      "lucide:zap",
+      "iconify:lucide:zap",
+      "lucide:plug",
+      "iconify:lucide:plug",
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board"
+    ]
+  },
+  {
+    "id": "fa-224",
+    "domain": "برق و الکترونیک",
+    "text": "تعمیر برد الکترونیکی",
+    "relevant": [
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board",
+      "lucide:cpu",
+      "iconify:lucide:cpu"
+    ]
+  },
+  {
+    "id": "fa-225",
+    "domain": "برق و الکترونیک",
+    "text": "طراحی مدار الکترونیکی",
+    "relevant": [
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board"
+    ]
+  },
+  {
+    "id": "fa-226",
+    "domain": "برق و الکترونیک",
+    "text": "لحیم‌کاری",
+    "relevant": [
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-227",
+    "domain": "برق و الکترونیک",
+    "text": "تعمیر لوازم خانگی",
+    "relevant": [
+      "lucide:wrench",
+      "iconify:lucide:wrench",
+      "lucide:plug",
+      "iconify:lucide:plug"
+    ]
+  },
+  {
+    "id": "fa-228",
+    "domain": "برق و الکترونیک",
+    "text": "نصب دوربین مداربسته",
+    "relevant": [
+      "lucide:cctv",
+      "iconify:lucide:cctv",
+      "lucide:camera",
+      "iconify:lucide:camera"
+    ]
+  },
+  {
+    "id": "fa-229",
+    "domain": "برق و الکترونیک",
+    "text": "نصب سیستم اعلام حریق",
+    "relevant": [
+      "lucide:siren",
+      "iconify:lucide:siren",
+      "lucide:alarm-smoke",
+      "iconify:lucide:alarm-smoke"
+    ]
+  },
+  {
+    "id": "fa-230",
+    "domain": "برق و الکترونیک",
+    "text": "راه‌اندازی پنل خورشیدی",
+    "relevant": [
+      "lucide:solar-panel",
+      "iconify:lucide:solar-panel",
+      "lucide:sun",
+      "iconify:lucide:sun",
+      "lucide:zap",
+      "iconify:lucide:zap"
+    ]
+  },
+  {
+    "id": "fa-231",
+    "domain": "برق و الکترونیک",
+    "text": "تعمیر باتری",
+    "relevant": [
+      "lucide:battery",
+      "iconify:lucide:battery",
+      "lucide:battery-charging",
+      "iconify:lucide:battery-charging"
+    ]
+  },
+  {
+    "id": "fa-232",
+    "domain": "برق و الکترونیک",
+    "text": "نصب سیستم ارت",
+    "relevant": [
+      "lucide:zap",
+      "iconify:lucide:zap",
+      "lucide:plug",
+      "iconify:lucide:plug"
+    ]
+  },
+  {
+    "id": "fa-233",
+    "domain": "برق و الکترونیک",
+    "text": "برنامه‌نویسی پی‌ال‌سی",
+    "relevant": [
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board",
+      "lucide:cpu",
+      "iconify:lucide:cpu",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-234",
+    "domain": "برق و الکترونیک",
+    "text": "اتوماسیون صنعتی",
+    "relevant": [
+      "lucide:factory",
+      "iconify:lucide:factory",
+      "lucide:circuit-board",
+      "iconify:lucide:circuit-board",
+      "lucide:workflow",
+      "iconify:lucide:workflow"
+    ]
+  },
+  {
+    "id": "fa-235",
+    "domain": "برق و الکترونیک",
+    "text": "مهندسی مخابرات",
+    "relevant": [
+      "lucide:radio-tower",
+      "iconify:lucide:radio-tower",
+      "lucide:antenna",
+      "iconify:lucide:antenna"
+    ]
+  },
+  {
+    "id": "fa-236",
+    "domain": "برق و الکترونیک",
+    "text": "نصب آنتن",
+    "relevant": [
+      "lucide:antenna",
+      "iconify:lucide:antenna",
+      "lucide:radio-tower",
+      "iconify:lucide:radio-tower"
+    ]
+  },
+  {
+    "id": "fa-237",
+    "domain": "برق و الکترونیک",
+    "text": "تعمیر تلفن همراه",
+    "relevant": [
+      "lucide:smartphone",
+      "iconify:lucide:smartphone",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-238",
+    "domain": "برق و الکترونیک",
+    "text": "نصب فیبر نوری",
+    "relevant": [
+      "lucide:cable",
+      "iconify:lucide:cable",
+      "lucide:network",
+      "iconify:lucide:network"
+    ]
+  },
+  {
+    "id": "fa-239",
+    "domain": "برق و الکترونیک",
+    "text": "طراحی سیستم روشنایی",
+    "relevant": [
+      "lucide:lightbulb",
+      "iconify:lucide:lightbulb",
+      "lucide:lamp",
+      "iconify:lucide:lamp"
+    ]
+  },
+  {
+    "id": "fa-240",
+    "domain": "برق و الکترونیک",
+    "text": "ساخت ربات",
+    "relevant": [
+      "lucide:bot",
+      "iconify:lucide:bot",
+      "lucide:bot-message-square",
+      "iconify:lucide:bot-message-square"
+    ]
+  },
+  {
+    "id": "fa-241",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "رانندگی کامیون",
+    "relevant": [
+      "lucide:truck",
+      "iconify:lucide:truck"
+    ]
+  },
+  {
+    "id": "fa-242",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "رانندگی اتوبوس",
+    "relevant": [
+      "lucide:bus",
+      "iconify:lucide:bus"
+    ]
+  },
+  {
+    "id": "fa-243",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "رانندگی تاکسی",
+    "relevant": [
+      "lucide:car",
+      "iconify:lucide:car",
+      "lucide:taxi",
+      "iconify:lucide:taxi"
+    ]
+  },
+  {
+    "id": "fa-244",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "پیک موتوری",
+    "relevant": [
+      "lucide:bike",
+      "iconify:lucide:bike",
+      "lucide:motorbike",
+      "iconify:lucide:motorbike",
+      "lucide:package",
+      "iconify:lucide:package"
+    ]
+  },
+  {
+    "id": "fa-245",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "مدیریت ناوگان",
+    "relevant": [
+      "lucide:truck",
+      "iconify:lucide:truck",
+      "lucide:route",
+      "iconify:lucide:route"
+    ]
+  },
+  {
+    "id": "fa-246",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "برنامه‌ریزی مسیر",
+    "relevant": [
+      "lucide:route",
+      "iconify:lucide:route",
+      "lucide:map-pinned",
+      "iconify:lucide:map-pinned"
+    ]
+  },
+  {
+    "id": "fa-247",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "انبارداری",
+    "relevant": [
+      "lucide:warehouse",
+      "iconify:lucide:warehouse",
+      "lucide:boxes",
+      "iconify:lucide:boxes"
+    ]
+  },
+  {
+    "id": "fa-248",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "مدیریت موجودی کالا",
+    "relevant": [
+      "lucide:boxes",
+      "iconify:lucide:boxes",
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list"
+    ]
+  },
+  {
+    "id": "fa-249",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "بسته‌بندی سفارش",
+    "relevant": [
+      "lucide:package",
+      "iconify:lucide:package",
+      "lucide:package-check",
+      "iconify:lucide:package-check"
+    ]
+  },
+  {
+    "id": "fa-250",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "ارسال مرسوله پستی",
+    "relevant": [
+      "lucide:package-send",
+      "iconify:lucide:package-send",
+      "lucide:mail",
+      "iconify:lucide:mail"
+    ]
+  },
+  {
+    "id": "fa-251",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "ترخیص کالا از گمرک",
+    "relevant": [
+      "lucide:container",
+      "iconify:lucide:container",
+      "lucide:ship",
+      "iconify:lucide:ship",
+      "lucide:package-check",
+      "iconify:lucide:package-check"
+    ]
+  },
+  {
+    "id": "fa-252",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "حمل‌ونقل دریایی",
+    "relevant": [
+      "lucide:ship",
+      "iconify:lucide:ship",
+      "lucide:anchor",
+      "iconify:lucide:anchor"
+    ]
+  },
+  {
+    "id": "fa-253",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "خلبانی",
+    "relevant": [
+      "lucide:plane",
+      "iconify:lucide:plane"
+    ]
+  },
+  {
+    "id": "fa-254",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "کنترل ترافیک هوایی",
+    "relevant": [
+      "lucide:plane-takeoff",
+      "iconify:lucide:plane-takeoff",
+      "lucide:radar",
+      "iconify:lucide:radar"
+    ]
+  },
+  {
+    "id": "fa-255",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "نگهداری هواپیما",
+    "relevant": [
+      "lucide:plane",
+      "iconify:lucide:plane",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-256",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "راهبری قطار",
+    "relevant": [
+      "lucide:train-front",
+      "iconify:lucide:train-front",
+      "lucide:train",
+      "iconify:lucide:train"
+    ]
+  },
+  {
+    "id": "fa-257",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "باربری",
+    "relevant": [
+      "lucide:truck",
+      "iconify:lucide:truck",
+      "lucide:package",
+      "iconify:lucide:package"
+    ]
+  },
+  {
+    "id": "fa-258",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "ردیابی مرسوله",
+    "relevant": [
+      "lucide:package-search",
+      "iconify:lucide:package-search",
+      "lucide:map-pin",
+      "iconify:lucide:map-pin"
+    ]
+  },
+  {
+    "id": "fa-259",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "رانندگی لیفتراک",
+    "relevant": [
+      "lucide:forklift",
+      "iconify:lucide:forklift"
+    ]
+  },
+  {
+    "id": "fa-260",
+    "domain": "حمل‌ونقل و لجستیک",
+    "text": "زنجیره تامین",
+    "relevant": [
+      "lucide:boxes",
+      "iconify:lucide:boxes",
+      "lucide:truck",
+      "iconify:lucide:truck",
+      "lucide:workflow",
+      "iconify:lucide:workflow"
+    ]
+  },
+  {
+    "id": "fa-261",
+    "domain": "غذا و آشپزی",
+    "text": "آشپزی ایرانی",
+    "relevant": [
+      "lucide:cooking-pot",
+      "iconify:lucide:cooking-pot",
+      "lucide:chef-hat",
+      "iconify:lucide:chef-hat",
+      "lucide:utensils",
+      "iconify:lucide:utensils"
+    ]
+  },
+  {
+    "id": "fa-262",
+    "domain": "غذا و آشپزی",
+    "text": "آشپزی ایتالیایی",
+    "relevant": [
+      "lucide:pizza",
+      "iconify:lucide:pizza",
+      "lucide:chef-hat",
+      "iconify:lucide:chef-hat"
+    ]
+  },
+  {
+    "id": "fa-263",
+    "domain": "غذا و آشپزی",
+    "text": "شیرینی‌پزی",
+    "relevant": [
+      "lucide:cake",
+      "iconify:lucide:cake",
+      "lucide:cake-slice",
+      "iconify:lucide:cake-slice",
+      "lucide:cookie",
+      "iconify:lucide:cookie"
+    ]
+  },
+  {
+    "id": "fa-264",
+    "domain": "غذا و آشپزی",
+    "text": "نان‌پزی",
+    "relevant": [
+      "lucide:croissant",
+      "iconify:lucide:croissant",
+      "lucide:sandwich",
+      "iconify:lucide:sandwich",
+      "lucide:wheat",
+      "iconify:lucide:wheat"
+    ]
+  },
+  {
+    "id": "fa-265",
+    "domain": "غذا و آشپزی",
+    "text": "قنادی",
+    "relevant": [
+      "lucide:cake",
+      "iconify:lucide:cake",
+      "lucide:cookie",
+      "iconify:lucide:cookie"
+    ]
+  },
+  {
+    "id": "fa-266",
+    "domain": "غذا و آشپزی",
+    "text": "تهیه کیک تولد",
+    "relevant": [
+      "lucide:cake",
+      "iconify:lucide:cake"
+    ]
+  },
+  {
+    "id": "fa-267",
+    "domain": "غذا و آشپزی",
+    "text": "باریستا",
+    "relevant": [
+      "lucide:coffee",
+      "iconify:lucide:coffee"
+    ]
+  },
+  {
+    "id": "fa-268",
+    "domain": "غذا و آشپزی",
+    "text": "آماده‌سازی قهوه",
+    "relevant": [
+      "lucide:coffee",
+      "iconify:lucide:coffee"
+    ]
+  },
+  {
+    "id": "fa-269",
+    "domain": "غذا و آشپزی",
+    "text": "مدیریت رستوران",
+    "relevant": [
+      "lucide:utensils",
+      "iconify:lucide:utensils",
+      "lucide:store",
+      "iconify:lucide:store"
+    ]
+  },
+  {
+    "id": "fa-270",
+    "domain": "غذا و آشپزی",
+    "text": "مدیریت کافه",
+    "relevant": [
+      "lucide:coffee",
+      "iconify:lucide:coffee",
+      "lucide:store",
+      "iconify:lucide:store"
+    ]
+  },
+  {
+    "id": "fa-271",
+    "domain": "غذا و آشپزی",
+    "text": "تهیه سالاد",
+    "relevant": [
+      "lucide:salad",
+      "iconify:lucide:salad"
+    ]
+  },
+  {
+    "id": "fa-272",
+    "domain": "غذا و آشپزی",
+    "text": "طبخ غذاهای دریایی",
+    "relevant": [
+      "lucide:fish",
+      "iconify:lucide:fish",
+      "lucide:cooking-pot",
+      "iconify:lucide:cooking-pot"
+    ]
+  },
+  {
+    "id": "fa-273",
+    "domain": "غذا و آشپزی",
+    "text": "کباب‌پزی",
+    "relevant": [
+      "lucide:beef",
+      "iconify:lucide:beef",
+      "lucide:flame",
+      "iconify:lucide:flame",
+      "lucide:utensils",
+      "iconify:lucide:utensils"
+    ]
+  },
+  {
+    "id": "fa-274",
+    "domain": "غذا و آشپزی",
+    "text": "تزئین غذا",
+    "relevant": [
+      "lucide:utensils",
+      "iconify:lucide:utensils",
+      "lucide:chef-hat",
+      "iconify:lucide:chef-hat"
+    ]
+  },
+  {
+    "id": "fa-275",
+    "domain": "غذا و آشپزی",
+    "text": "کنترل بهداشت مواد غذایی",
+    "relevant": [
+      "lucide:shield-check",
+      "iconify:lucide:shield-check",
+      "lucide:utensils",
+      "iconify:lucide:utensils"
+    ]
+  },
+  {
+    "id": "fa-276",
+    "domain": "غذا و آشپزی",
+    "text": "بسته‌بندی مواد غذایی",
+    "relevant": [
+      "lucide:package",
+      "iconify:lucide:package",
+      "lucide:utensils",
+      "iconify:lucide:utensils"
+    ]
+  },
+  {
+    "id": "fa-277",
+    "domain": "غذا و آشپزی",
+    "text": "تولید نوشیدنی",
+    "relevant": [
+      "lucide:cup-soda",
+      "iconify:lucide:cup-soda",
+      "lucide:glass-water",
+      "iconify:lucide:glass-water"
+    ]
+  },
+  {
+    "id": "fa-278",
+    "domain": "غذا و آشپزی",
+    "text": "بستنی‌سازی",
+    "relevant": [
+      "lucide:ice-cream-cone",
+      "iconify:lucide:ice-cream-cone",
+      "lucide:ice-cream-bowl",
+      "iconify:lucide:ice-cream-bowl"
+    ]
+  },
+  {
+    "id": "fa-279",
+    "domain": "غذا و آشپزی",
+    "text": "آموزش آشپزی",
+    "relevant": [
+      "lucide:chef-hat",
+      "iconify:lucide:chef-hat",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-280",
+    "domain": "غذا و آشپزی",
+    "text": "خدمات پذیرایی",
+    "relevant": [
+      "lucide:utensils",
+      "iconify:lucide:utensils",
+      "lucide:concierge-bell",
+      "iconify:lucide:concierge-bell"
+    ]
+  },
+  {
+    "id": "fa-281",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی گرافیک",
+    "relevant": [
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-282",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی لوگو",
+    "relevant": [
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool",
+      "lucide:shapes",
+      "iconify:lucide:shapes"
+    ]
+  },
+  {
+    "id": "fa-283",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی پوستر",
+    "relevant": [
+      "lucide:image",
+      "iconify:lucide:image",
+      "lucide:layout-template",
+      "iconify:lucide:layout-template",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-284",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "تصویرسازی",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-285",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "نقاشی آبرنگ",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:palette",
+      "iconify:lucide:palette"
+    ]
+  },
+  {
+    "id": "fa-286",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "نقاشی رنگ روغن",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:palette",
+      "iconify:lucide:palette"
+    ]
+  },
+  {
+    "id": "fa-287",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی کاراکتر",
+    "relevant": [
+      "lucide:pencil",
+      "iconify:lucide:pencil",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-288",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی رابط کاربری",
+    "relevant": [
+      "lucide:panels-top-left",
+      "iconify:lucide:panels-top-left",
+      "lucide:layout-template",
+      "iconify:lucide:layout-template"
+    ]
+  },
+  {
+    "id": "fa-289",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی تجربه کاربری",
+    "relevant": [
+      "lucide:mouse-pointer-click",
+      "iconify:lucide:mouse-pointer-click",
+      "lucide:layout-template",
+      "iconify:lucide:layout-template"
+    ]
+  },
+  {
+    "id": "fa-290",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی صنعتی",
+    "relevant": [
+      "lucide:pencil-ruler",
+      "iconify:lucide:pencil-ruler",
+      "lucide:drafting-compass",
+      "iconify:lucide:drafting-compass"
+    ]
+  },
+  {
+    "id": "fa-291",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی محصول",
+    "relevant": [
+      "lucide:box",
+      "iconify:lucide:box",
+      "lucide:pencil-ruler",
+      "iconify:lucide:pencil-ruler"
+    ]
+  },
+  {
+    "id": "fa-292",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "مدلسازی سه‌بعدی",
+    "relevant": [
+      "lucide:box",
+      "iconify:lucide:box",
+      "lucide:boxes",
+      "iconify:lucide:boxes"
+    ]
+  },
+  {
+    "id": "fa-293",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی داخلی",
+    "relevant": [
+      "lucide:sofa",
+      "iconify:lucide:sofa",
+      "lucide:armchair",
+      "iconify:lucide:armchair",
+      "lucide:house",
+      "iconify:lucide:house"
+    ]
+  },
+  {
+    "id": "fa-294",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی مبلمان",
+    "relevant": [
+      "lucide:sofa",
+      "iconify:lucide:sofa",
+      "lucide:armchair",
+      "iconify:lucide:armchair"
+    ]
+  },
+  {
+    "id": "fa-295",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی جواهرات",
+    "relevant": [
+      "lucide:gem",
+      "iconify:lucide:gem",
+      "lucide:diamond",
+      "iconify:lucide:diamond"
+    ]
+  },
+  {
+    "id": "fa-296",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "سفالگری",
+    "relevant": [
+      "lucide:amphora",
+      "iconify:lucide:amphora",
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush"
+    ]
+  },
+  {
+    "id": "fa-297",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "مجسمه‌سازی",
+    "relevant": [
+      "lucide:shapes",
+      "iconify:lucide:shapes",
+      "lucide:hammer",
+      "iconify:lucide:hammer"
+    ]
+  },
+  {
+    "id": "fa-298",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "خوشنویسی",
+    "relevant": [
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool",
+      "lucide:pen-line",
+      "iconify:lucide:pen-line"
+    ]
+  },
+  {
+    "id": "fa-299",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "طراحی جلد کتاب",
+    "relevant": [
+      "lucide:book",
+      "iconify:lucide:book",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-300",
+    "domain": "طراحی و هنرهای تجسمی",
+    "text": "چاپ دستی",
+    "relevant": [
+      "lucide:printer",
+      "iconify:lucide:printer",
+      "lucide:stamp",
+      "iconify:lucide:stamp"
+    ]
+  },
+  {
+    "id": "fa-301",
+    "domain": "رسانه و تولید محتوا",
+    "text": "عکاسی پرتره",
+    "relevant": [
+      "lucide:camera",
+      "iconify:lucide:camera"
+    ]
+  },
+  {
+    "id": "fa-302",
+    "domain": "رسانه و تولید محتوا",
+    "text": "عکاسی صنعتی",
+    "relevant": [
+      "lucide:camera",
+      "iconify:lucide:camera",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-303",
+    "domain": "رسانه و تولید محتوا",
+    "text": "فیلمبرداری",
+    "relevant": [
+      "lucide:video",
+      "iconify:lucide:video",
+      "lucide:camera",
+      "iconify:lucide:camera"
+    ]
+  },
+  {
+    "id": "fa-304",
+    "domain": "رسانه و تولید محتوا",
+    "text": "تدوین فیلم",
+    "relevant": [
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard",
+      "lucide:film",
+      "iconify:lucide:film",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-305",
+    "domain": "رسانه و تولید محتوا",
+    "text": "ساخت انیمیشن",
+    "relevant": [
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard",
+      "lucide:film",
+      "iconify:lucide:film"
+    ]
+  },
+  {
+    "id": "fa-306",
+    "domain": "رسانه و تولید محتوا",
+    "text": "موشن گرافیک",
+    "relevant": [
+      "lucide:film",
+      "iconify:lucide:film",
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard"
+    ]
+  },
+  {
+    "id": "fa-307",
+    "domain": "رسانه و تولید محتوا",
+    "text": "تولید پادکست",
+    "relevant": [
+      "lucide:podcast",
+      "iconify:lucide:podcast",
+      "lucide:mic",
+      "iconify:lucide:mic"
+    ]
+  },
+  {
+    "id": "fa-308",
+    "domain": "رسانه و تولید محتوا",
+    "text": "صدابرداری",
+    "relevant": [
+      "lucide:mic",
+      "iconify:lucide:mic",
+      "lucide:audio-lines",
+      "iconify:lucide:audio-lines"
+    ]
+  },
+  {
+    "id": "fa-309",
+    "domain": "رسانه و تولید محتوا",
+    "text": "گویندگی",
+    "relevant": [
+      "lucide:mic",
+      "iconify:lucide:mic",
+      "lucide:speech",
+      "iconify:lucide:speech"
+    ]
+  },
+  {
+    "id": "fa-310",
+    "domain": "رسانه و تولید محتوا",
+    "text": "نویسندگی",
+    "relevant": [
+      "lucide:pen-line",
+      "iconify:lucide:pen-line",
+      "lucide:notebook-pen",
+      "iconify:lucide:notebook-pen"
+    ]
+  },
+  {
+    "id": "fa-311",
+    "domain": "رسانه و تولید محتوا",
+    "text": "روزنامه‌نگاری",
+    "relevant": [
+      "lucide:newspaper",
+      "iconify:lucide:newspaper"
+    ]
+  },
+  {
+    "id": "fa-312",
+    "domain": "رسانه و تولید محتوا",
+    "text": "ویراستاری متن",
+    "relevant": [
+      "lucide:file-pen-line",
+      "iconify:lucide:file-pen-line",
+      "lucide:spell-check",
+      "iconify:lucide:spell-check"
+    ]
+  },
+  {
+    "id": "fa-313",
+    "domain": "رسانه و تولید محتوا",
+    "text": "ترجمه متون",
+    "relevant": [
+      "lucide:languages",
+      "iconify:lucide:languages"
+    ]
+  },
+  {
+    "id": "fa-314",
+    "domain": "رسانه و تولید محتوا",
+    "text": "زیرنویس فیلم",
+    "relevant": [
+      "lucide:captions",
+      "iconify:lucide:captions",
+      "lucide:languages",
+      "iconify:lucide:languages"
+    ]
+  },
+  {
+    "id": "fa-315",
+    "domain": "رسانه و تولید محتوا",
+    "text": "کارگردانی سینما",
+    "relevant": [
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard",
+      "lucide:film",
+      "iconify:lucide:film"
+    ]
+  },
+  {
+    "id": "fa-316",
+    "domain": "رسانه و تولید محتوا",
+    "text": "تهیه‌کنندگی",
+    "relevant": [
+      "lucide:film",
+      "iconify:lucide:film",
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard"
+    ]
+  },
+  {
+    "id": "fa-317",
+    "domain": "رسانه و تولید محتوا",
+    "text": "موسیقی و آهنگسازی",
+    "relevant": [
+      "lucide:music",
+      "iconify:lucide:music",
+      "lucide:music-2",
+      "iconify:lucide:music-2"
+    ]
+  },
+  {
+    "id": "fa-318",
+    "domain": "رسانه و تولید محتوا",
+    "text": "نوازندگی پیانو",
+    "relevant": [
+      "lucide:piano",
+      "iconify:lucide:piano"
+    ]
+  },
+  {
+    "id": "fa-319",
+    "domain": "رسانه و تولید محتوا",
+    "text": "نوازندگی گیتار",
+    "relevant": [
+      "lucide:guitar",
+      "iconify:lucide:guitar"
+    ]
+  },
+  {
+    "id": "fa-320",
+    "domain": "رسانه و تولید محتوا",
+    "text": "مدیریت انتشار محتوا",
+    "relevant": [
+      "lucide:calendar",
+      "iconify:lucide:calendar",
+      "lucide:send",
+      "iconify:lucide:send",
+      "lucide:file-text",
+      "iconify:lucide:file-text"
+    ]
+  },
+  {
+    "id": "fa-321",
+    "domain": "گردشگری و هتلداری",
+    "text": "راهنمای گردشگری",
+    "relevant": [
+      "lucide:map",
+      "iconify:lucide:map",
+      "lucide:compass",
+      "iconify:lucide:compass"
+    ]
+  },
+  {
+    "id": "fa-322",
+    "domain": "گردشگری و هتلداری",
+    "text": "مدیریت هتل",
+    "relevant": [
+      "lucide:hotel",
+      "iconify:lucide:hotel",
+      "lucide:bed",
+      "iconify:lucide:bed"
+    ]
+  },
+  {
+    "id": "fa-323",
+    "domain": "گردشگری و هتلداری",
+    "text": "پذیرش هتل",
+    "relevant": [
+      "lucide:concierge-bell",
+      "iconify:lucide:concierge-bell",
+      "lucide:hotel",
+      "iconify:lucide:hotel"
+    ]
+  },
+  {
+    "id": "fa-324",
+    "domain": "گردشگری و هتلداری",
+    "text": "رزرو اقامتگاه",
+    "relevant": [
+      "lucide:bed",
+      "iconify:lucide:bed",
+      "lucide:calendar-check",
+      "iconify:lucide:calendar-check"
+    ]
+  },
+  {
+    "id": "fa-325",
+    "domain": "گردشگری و هتلداری",
+    "text": "برنامه‌ریزی سفر",
+    "relevant": [
+      "lucide:map",
+      "iconify:lucide:map",
+      "lucide:route",
+      "iconify:lucide:route",
+      "lucide:plane",
+      "iconify:lucide:plane"
+    ]
+  },
+  {
+    "id": "fa-326",
+    "domain": "گردشگری و هتلداری",
+    "text": "فروش بلیت هواپیما",
+    "relevant": [
+      "lucide:plane",
+      "iconify:lucide:plane",
+      "lucide:tickets",
+      "iconify:lucide:tickets",
+      "lucide:ticket",
+      "iconify:lucide:ticket"
+    ]
+  },
+  {
+    "id": "fa-327",
+    "domain": "گردشگری و هتلداری",
+    "text": "تور طبیعت‌گردی",
+    "relevant": [
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:mountain",
+      "iconify:lucide:mountain",
+      "lucide:compass",
+      "iconify:lucide:compass"
+    ]
+  },
+  {
+    "id": "fa-328",
+    "domain": "گردشگری و هتلداری",
+    "text": "راهنمای کوهنوردی",
+    "relevant": [
+      "lucide:mountain",
+      "iconify:lucide:mountain",
+      "lucide:footprints",
+      "iconify:lucide:footprints"
+    ]
+  },
+  {
+    "id": "fa-329",
+    "domain": "گردشگری و هتلداری",
+    "text": "مدیریت اقامتگاه بومگردی",
+    "relevant": [
+      "lucide:house",
+      "iconify:lucide:house",
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:bed",
+      "iconify:lucide:bed"
+    ]
+  },
+  {
+    "id": "fa-330",
+    "domain": "گردشگری و هتلداری",
+    "text": "مهمانداری هواپیما",
+    "relevant": [
+      "lucide:plane",
+      "iconify:lucide:plane",
+      "lucide:concierge-bell",
+      "iconify:lucide:concierge-bell"
+    ]
+  },
+  {
+    "id": "fa-331",
+    "domain": "گردشگری و هتلداری",
+    "text": "تشریفات و میزبانی",
+    "relevant": [
+      "lucide:concierge-bell",
+      "iconify:lucide:concierge-bell",
+      "lucide:handshake",
+      "iconify:lucide:handshake"
+    ]
+  },
+  {
+    "id": "fa-332",
+    "domain": "گردشگری و هتلداری",
+    "text": "خانه‌داری هتل",
+    "relevant": [
+      "lucide:bed",
+      "iconify:lucide:bed",
+      "lucide:spray-can",
+      "iconify:lucide:spray-can"
+    ]
+  },
+  {
+    "id": "fa-333",
+    "domain": "گردشگری و هتلداری",
+    "text": "برگزاری تور شهری",
+    "relevant": [
+      "lucide:map-pinned",
+      "iconify:lucide:map-pinned",
+      "lucide:bus",
+      "iconify:lucide:bus"
+    ]
+  },
+  {
+    "id": "fa-334",
+    "domain": "گردشگری و هتلداری",
+    "text": "راهنمای موزه",
+    "relevant": [
+      "lucide:landmark",
+      "iconify:lucide:landmark"
+    ]
+  },
+  {
+    "id": "fa-335",
+    "domain": "گردشگری و هتلداری",
+    "text": "معرفی آثار تاریخی",
+    "relevant": [
+      "lucide:landmark",
+      "iconify:lucide:landmark",
+      "lucide:castle",
+      "iconify:lucide:castle"
+    ]
+  },
+  {
+    "id": "fa-336",
+    "domain": "گردشگری و هتلداری",
+    "text": "مدیریت آژانس مسافرتی",
+    "relevant": [
+      "lucide:plane",
+      "iconify:lucide:plane",
+      "lucide:map",
+      "iconify:lucide:map"
+    ]
+  },
+  {
+    "id": "fa-337",
+    "domain": "گردشگری و هتلداری",
+    "text": "گردشگری دریایی",
+    "relevant": [
+      "lucide:ship",
+      "iconify:lucide:ship",
+      "lucide:anchor",
+      "iconify:lucide:anchor"
+    ]
+  },
+  {
+    "id": "fa-338",
+    "domain": "گردشگری و هتلداری",
+    "text": "رزرو بلیت قطار",
+    "relevant": [
+      "lucide:train-front",
+      "iconify:lucide:train-front",
+      "lucide:ticket",
+      "iconify:lucide:ticket"
+    ]
+  },
+  {
+    "id": "fa-339",
+    "domain": "گردشگری و هتلداری",
+    "text": "مدیریت کمپینگ",
+    "relevant": [
+      "lucide:tent",
+      "iconify:lucide:tent",
+      "lucide:trees",
+      "iconify:lucide:trees"
+    ]
+  },
+  {
+    "id": "fa-340",
+    "domain": "گردشگری و هتلداری",
+    "text": "خدمات اجاره خودرو",
+    "relevant": [
+      "lucide:car",
+      "iconify:lucide:car",
+      "lucide:key",
+      "iconify:lucide:key"
+    ]
+  },
+  {
+    "id": "fa-341",
+    "domain": "امنیت و امداد",
+    "text": "امنیت سایبری",
+    "relevant": [
+      "lucide:shield-check",
+      "iconify:lucide:shield-check",
+      "lucide:shield",
+      "iconify:lucide:shield",
+      "lucide:lock",
+      "iconify:lucide:lock"
+    ]
+  },
+  {
+    "id": "fa-342",
+    "domain": "امنیت و امداد",
+    "text": "تست نفوذ شبکه",
+    "relevant": [
+      "lucide:shield-alert",
+      "iconify:lucide:shield-alert",
+      "lucide:bug",
+      "iconify:lucide:bug",
+      "lucide:network",
+      "iconify:lucide:network"
+    ]
+  },
+  {
+    "id": "fa-343",
+    "domain": "امنیت و امداد",
+    "text": "رمزنگاری اطلاعات",
+    "relevant": [
+      "lucide:lock",
+      "iconify:lucide:lock",
+      "lucide:key-round",
+      "iconify:lucide:key-round"
+    ]
+  },
+  {
+    "id": "fa-344",
+    "domain": "امنیت و امداد",
+    "text": "مدیریت دسترسی کاربران",
+    "relevant": [
+      "lucide:key-round",
+      "iconify:lucide:key-round",
+      "lucide:lock",
+      "iconify:lucide:lock",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-345",
+    "domain": "امنیت و امداد",
+    "text": "پایش رخدادهای امنیتی",
+    "relevant": [
+      "lucide:shield-alert",
+      "iconify:lucide:shield-alert",
+      "lucide:radar",
+      "iconify:lucide:radar"
+    ]
+  },
+  {
+    "id": "fa-346",
+    "domain": "امنیت و امداد",
+    "text": "نگهبانی",
+    "relevant": [
+      "lucide:shield",
+      "iconify:lucide:shield",
+      "lucide:shield-check",
+      "iconify:lucide:shield-check"
+    ]
+  },
+  {
+    "id": "fa-347",
+    "domain": "امنیت و امداد",
+    "text": "حفاظت فیزیکی ساختمان",
+    "relevant": [
+      "lucide:shield",
+      "iconify:lucide:shield",
+      "lucide:lock",
+      "iconify:lucide:lock",
+      "lucide:cctv",
+      "iconify:lucide:cctv"
+    ]
+  },
+  {
+    "id": "fa-348",
+    "domain": "امنیت و امداد",
+    "text": "نصب قفل امنیتی",
+    "relevant": [
+      "lucide:lock",
+      "iconify:lucide:lock",
+      "lucide:key",
+      "iconify:lucide:key",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-349",
+    "domain": "امنیت و امداد",
+    "text": "آتش‌نشانی",
+    "relevant": [
+      "lucide:fire-extinguisher",
+      "iconify:lucide:fire-extinguisher",
+      "lucide:flame",
+      "iconify:lucide:flame"
+    ]
+  },
+  {
+    "id": "fa-350",
+    "domain": "امنیت و امداد",
+    "text": "اطفای حریق",
+    "relevant": [
+      "lucide:fire-extinguisher",
+      "iconify:lucide:fire-extinguisher"
+    ]
+  },
+  {
+    "id": "fa-351",
+    "domain": "امنیت و امداد",
+    "text": "نجات در کوهستان",
+    "relevant": [
+      "lucide:mountain",
+      "iconify:lucide:mountain",
+      "lucide:life-buoy",
+      "iconify:lucide:life-buoy"
+    ]
+  },
+  {
+    "id": "fa-352",
+    "domain": "امنیت و امداد",
+    "text": "نجات غریق",
+    "relevant": [
+      "lucide:life-buoy",
+      "iconify:lucide:life-buoy",
+      "lucide:waves",
+      "iconify:lucide:waves"
+    ]
+  },
+  {
+    "id": "fa-353",
+    "domain": "امنیت و امداد",
+    "text": "کمک‌های اولیه",
+    "relevant": [
+      "lucide:bandage",
+      "iconify:lucide:bandage",
+      "lucide:briefcase-medical",
+      "iconify:lucide:briefcase-medical"
+    ]
+  },
+  {
+    "id": "fa-354",
+    "domain": "امنیت و امداد",
+    "text": "ایمنی کارگاه",
+    "relevant": [
+      "lucide:hard-hat",
+      "iconify:lucide:hard-hat",
+      "lucide:shield-check",
+      "iconify:lucide:shield-check"
+    ]
+  },
+  {
+    "id": "fa-355",
+    "domain": "امنیت و امداد",
+    "text": "ارزیابی ریسک ایمنی",
+    "relevant": [
+      "lucide:triangle-alert",
+      "iconify:lucide:triangle-alert",
+      "lucide:shield-alert",
+      "iconify:lucide:shield-alert"
+    ]
+  },
+  {
+    "id": "fa-356",
+    "domain": "امنیت و امداد",
+    "text": "مدیریت بحران",
+    "relevant": [
+      "lucide:siren",
+      "iconify:lucide:siren",
+      "lucide:triangle-alert",
+      "iconify:lucide:triangle-alert"
+    ]
+  },
+  {
+    "id": "fa-357",
+    "domain": "امنیت و امداد",
+    "text": "بازرسی تجهیزات ایمنی",
+    "relevant": [
+      "lucide:shield-check",
+      "iconify:lucide:shield-check",
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check"
+    ]
+  },
+  {
+    "id": "fa-358",
+    "domain": "امنیت و امداد",
+    "text": "آموزش تخلیه اضطراری",
+    "relevant": [
+      "lucide:door-open",
+      "iconify:lucide:door-open",
+      "lucide:log-out",
+      "iconify:lucide:log-out",
+      "lucide:siren",
+      "iconify:lucide:siren"
+    ]
+  },
+  {
+    "id": "fa-359",
+    "domain": "امنیت و امداد",
+    "text": "امنیت داده‌های شخصی",
+    "relevant": [
+      "lucide:lock",
+      "iconify:lucide:lock",
+      "lucide:shield-check",
+      "iconify:lucide:shield-check"
+    ]
+  },
+  {
+    "id": "fa-360",
+    "domain": "امنیت و امداد",
+    "text": "تدوین برنامه بازیابی بحران",
+    "relevant": [
+      "lucide:database-backup",
+      "iconify:lucide:database-backup",
+      "lucide:shield-check",
+      "iconify:lucide:shield-check",
+      "lucide:archive-restore",
+      "iconify:lucide:archive-restore"
+    ]
+  },
+  {
+    "id": "fa-361",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت پروژه",
+    "relevant": [
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list",
+      "lucide:kanban",
+      "iconify:lucide:kanban",
+      "lucide:gantt-chart",
+      "iconify:lucide:gantt-chart"
+    ]
+  },
+  {
+    "id": "fa-362",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "برنامه‌ریزی راهبردی",
+    "relevant": [
+      "lucide:target",
+      "iconify:lucide:target",
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined"
+    ]
+  },
+  {
+    "id": "fa-363",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "رهبری تیم",
+    "relevant": [
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:flag",
+      "iconify:lucide:flag"
+    ]
+  },
+  {
+    "id": "fa-364",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت منابع انسانی",
+    "relevant": [
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:contact",
+      "iconify:lucide:contact"
+    ]
+  },
+  {
+    "id": "fa-365",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "استخدام و جذب نیرو",
+    "relevant": [
+      "lucide:user-plus",
+      "iconify:lucide:user-plus",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-366",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مصاحبه استخدامی",
+    "relevant": [
+      "lucide:messages-square",
+      "iconify:lucide:messages-square",
+      "lucide:user-round-search",
+      "iconify:lucide:user-round-search"
+    ]
+  },
+  {
+    "id": "fa-367",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "آموزش کارکنان",
+    "relevant": [
+      "lucide:presentation",
+      "iconify:lucide:presentation",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-368",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "ارزیابی عملکرد کارکنان",
+    "relevant": [
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check",
+      "lucide:chart-bar",
+      "iconify:lucide:chart-bar"
+    ]
+  },
+  {
+    "id": "fa-369",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت جلسات",
+    "relevant": [
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:calendar",
+      "iconify:lucide:calendar"
+    ]
+  },
+  {
+    "id": "fa-370",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مذاکره تجاری",
+    "relevant": [
+      "lucide:handshake",
+      "iconify:lucide:handshake"
+    ]
+  },
+  {
+    "id": "fa-371",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت زمان",
+    "relevant": [
+      "lucide:clock",
+      "iconify:lucide:clock",
+      "lucide:timer",
+      "iconify:lucide:timer"
+    ]
+  },
+  {
+    "id": "fa-372",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت فرآیندها",
+    "relevant": [
+      "lucide:workflow",
+      "iconify:lucide:workflow",
+      "lucide:git-branch",
+      "iconify:lucide:git-branch"
+    ]
+  },
+  {
+    "id": "fa-373",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "کنترل کیفیت",
+    "relevant": [
+      "lucide:badge-check",
+      "iconify:lucide:badge-check",
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check"
+    ]
+  },
+  {
+    "id": "fa-374",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت ریسک",
+    "relevant": [
+      "lucide:shield-alert",
+      "iconify:lucide:shield-alert",
+      "lucide:triangle-alert",
+      "iconify:lucide:triangle-alert"
+    ]
+  },
+  {
+    "id": "fa-375",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "برنامه‌ریزی تولید",
+    "relevant": [
+      "lucide:factory",
+      "iconify:lucide:factory",
+      "lucide:calendar",
+      "iconify:lucide:calendar"
+    ]
+  },
+  {
+    "id": "fa-376",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت عملیات",
+    "relevant": [
+      "lucide:settings",
+      "iconify:lucide:settings",
+      "lucide:workflow",
+      "iconify:lucide:workflow"
+    ]
+  },
+  {
+    "id": "fa-377",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "توسعه کسب‌وکار",
+    "relevant": [
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined",
+      "lucide:briefcase",
+      "iconify:lucide:briefcase"
+    ]
+  },
+  {
+    "id": "fa-378",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "مدیریت محصول",
+    "relevant": [
+      "lucide:package",
+      "iconify:lucide:package",
+      "lucide:kanban",
+      "iconify:lucide:kanban"
+    ]
+  },
+  {
+    "id": "fa-379",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "تسهیل کار تیمی",
+    "relevant": [
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:handshake",
+      "iconify:lucide:handshake"
+    ]
+  },
+  {
+    "id": "fa-380",
+    "domain": "مدیریت و منابع انسانی",
+    "text": "حل تعارض سازمانی",
+    "relevant": [
+      "lucide:handshake",
+      "iconify:lucide:handshake",
+      "lucide:messages-square",
+      "iconify:lucide:messages-square"
+    ]
+  },
+  {
+    "id": "fa-381",
+    "domain": "علوم و آزمایشگاه",
+    "text": "پژوهش شیمی",
+    "relevant": [
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical",
+      "lucide:flask-round",
+      "iconify:lucide:flask-round"
+    ]
+  },
+  {
+    "id": "fa-382",
+    "domain": "علوم و آزمایشگاه",
+    "text": "زیست‌شناسی سلولی",
+    "relevant": [
+      "lucide:microscope",
+      "iconify:lucide:microscope",
+      "lucide:dna",
+      "iconify:lucide:dna"
+    ]
+  },
+  {
+    "id": "fa-383",
+    "domain": "علوم و آزمایشگاه",
+    "text": "ژنتیک",
+    "relevant": [
+      "lucide:dna",
+      "iconify:lucide:dna"
+    ]
+  },
+  {
+    "id": "fa-384",
+    "domain": "علوم و آزمایشگاه",
+    "text": "میکروب‌شناسی",
+    "relevant": [
+      "lucide:microscope",
+      "iconify:lucide:microscope",
+      "lucide:bug",
+      "iconify:lucide:bug"
+    ]
+  },
+  {
+    "id": "fa-385",
+    "domain": "علوم و آزمایشگاه",
+    "text": "پژوهش فیزیک",
+    "relevant": [
+      "lucide:atom",
+      "iconify:lucide:atom"
+    ]
+  },
+  {
+    "id": "fa-386",
+    "domain": "علوم و آزمایشگاه",
+    "text": "نجوم",
+    "relevant": [
+      "lucide:telescope",
+      "iconify:lucide:telescope",
+      "lucide:orbit",
+      "iconify:lucide:orbit"
+    ]
+  },
+  {
+    "id": "fa-387",
+    "domain": "علوم و آزمایشگاه",
+    "text": "زمین‌شناسی",
+    "relevant": [
+      "lucide:mountain",
+      "iconify:lucide:mountain",
+      "lucide:pickaxe",
+      "iconify:lucide:pickaxe"
+    ]
+  },
+  {
+    "id": "fa-388",
+    "domain": "علوم و آزمایشگاه",
+    "text": "تحلیل داده‌های علمی",
+    "relevant": [
+      "lucide:chart-scatter",
+      "iconify:lucide:chart-scatter",
+      "lucide:chart-line",
+      "iconify:lucide:chart-line"
+    ]
+  },
+  {
+    "id": "fa-389",
+    "domain": "علوم و آزمایشگاه",
+    "text": "کار با میکروسکوپ",
+    "relevant": [
+      "lucide:microscope",
+      "iconify:lucide:microscope"
+    ]
+  },
+  {
+    "id": "fa-390",
+    "domain": "علوم و آزمایشگاه",
+    "text": "آزمایشگاه مواد",
+    "relevant": [
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical",
+      "lucide:microscope",
+      "iconify:lucide:microscope"
+    ]
+  },
+  {
+    "id": "fa-391",
+    "domain": "علوم و آزمایشگاه",
+    "text": "اندازه‌گیری دقیق",
+    "relevant": [
+      "lucide:ruler",
+      "iconify:lucide:ruler",
+      "lucide:gauge",
+      "iconify:lucide:gauge"
+    ]
+  },
+  {
+    "id": "fa-392",
+    "domain": "علوم و آزمایشگاه",
+    "text": "نمونه‌برداری آزمایشگاهی",
+    "relevant": [
+      "lucide:test-tube",
+      "iconify:lucide:test-tube",
+      "lucide:pipette",
+      "iconify:lucide:pipette"
+    ]
+  },
+  {
+    "id": "fa-393",
+    "domain": "علوم و آزمایشگاه",
+    "text": "کشت سلول",
+    "relevant": [
+      "lucide:microscope",
+      "iconify:lucide:microscope",
+      "lucide:dna",
+      "iconify:lucide:dna"
+    ]
+  },
+  {
+    "id": "fa-394",
+    "domain": "علوم و آزمایشگاه",
+    "text": "تحقیق در انرژی هسته‌ای",
+    "relevant": [
+      "lucide:atom",
+      "iconify:lucide:atom",
+      "lucide:radiation",
+      "iconify:lucide:radiation"
+    ]
+  },
+  {
+    "id": "fa-395",
+    "domain": "علوم و آزمایشگاه",
+    "text": "پژوهش علوم اعصاب",
+    "relevant": [
+      "lucide:brain",
+      "iconify:lucide:brain"
+    ]
+  },
+  {
+    "id": "fa-396",
+    "domain": "علوم و آزمایشگاه",
+    "text": "آمار و احتمال",
+    "relevant": [
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined",
+      "lucide:sigma",
+      "iconify:lucide:sigma"
+    ]
+  },
+  {
+    "id": "fa-397",
+    "domain": "علوم و آزمایشگاه",
+    "text": "مدلسازی ریاضی",
+    "relevant": [
+      "lucide:sigma",
+      "iconify:lucide:sigma",
+      "lucide:radical",
+      "iconify:lucide:radical"
+    ]
+  },
+  {
+    "id": "fa-398",
+    "domain": "علوم و آزمایشگاه",
+    "text": "آزمایش آب و خاک",
+    "relevant": [
+      "lucide:test-tube",
+      "iconify:lucide:test-tube",
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-399",
+    "domain": "علوم و آزمایشگاه",
+    "text": "طیف‌سنجی",
+    "relevant": [
+      "lucide:chart-no-axes-combined",
+      "iconify:lucide:chart-no-axes-combined",
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical"
+    ]
+  },
+  {
+    "id": "fa-400",
+    "domain": "علوم و آزمایشگاه",
+    "text": "پژوهش نانوفناوری",
+    "relevant": [
+      "lucide:atom",
+      "iconify:lucide:atom",
+      "lucide:microscope",
+      "iconify:lucide:microscope"
+    ]
+  },
+  {
+    "id": "fa-401",
+    "domain": "ورزش و تندرستی",
+    "text": "مربیگری بدنسازی",
+    "relevant": [
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell"
+    ]
+  },
+  {
+    "id": "fa-402",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش شنا",
+    "relevant": [
+      "lucide:waves",
+      "iconify:lucide:waves",
+      "lucide:person-standing",
+      "iconify:lucide:person-standing"
+    ]
+  },
+  {
+    "id": "fa-403",
+    "domain": "ورزش و تندرستی",
+    "text": "مربیگری فوتبال",
+    "relevant": [
+      "lucide:goal",
+      "iconify:lucide:goal",
+      "lucide:trophy",
+      "iconify:lucide:trophy"
+    ]
+  },
+  {
+    "id": "fa-404",
+    "domain": "ورزش و تندرستی",
+    "text": "مربیگری بسکتبال",
+    "relevant": [
+      "lucide:trophy",
+      "iconify:lucide:trophy",
+      "lucide:medal",
+      "iconify:lucide:medal"
+    ]
+  },
+  {
+    "id": "fa-405",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش دوچرخه‌سواری",
+    "relevant": [
+      "lucide:bike",
+      "iconify:lucide:bike"
+    ]
+  },
+  {
+    "id": "fa-406",
+    "domain": "ورزش و تندرستی",
+    "text": "مربیگری دوومیدانی",
+    "relevant": [
+      "lucide:footprints",
+      "iconify:lucide:footprints",
+      "lucide:timer",
+      "iconify:lucide:timer"
+    ]
+  },
+  {
+    "id": "fa-407",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش یوگا",
+    "relevant": [
+      "lucide:person-standing",
+      "iconify:lucide:person-standing",
+      "lucide:heart",
+      "iconify:lucide:heart"
+    ]
+  },
+  {
+    "id": "fa-408",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش پیلاتس",
+    "relevant": [
+      "lucide:person-standing",
+      "iconify:lucide:person-standing",
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell"
+    ]
+  },
+  {
+    "id": "fa-409",
+    "domain": "ورزش و تندرستی",
+    "text": "مربیگری کوهنوردی",
+    "relevant": [
+      "lucide:mountain",
+      "iconify:lucide:mountain"
+    ]
+  },
+  {
+    "id": "fa-410",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش اسکی",
+    "relevant": [
+      "lucide:mountain",
+      "iconify:lucide:mountain",
+      "lucide:snowflake",
+      "iconify:lucide:snowflake"
+    ]
+  },
+  {
+    "id": "fa-411",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش ورزش‌های رزمی",
+    "relevant": [
+      "lucide:swords",
+      "iconify:lucide:swords",
+      "lucide:medal",
+      "iconify:lucide:medal"
+    ]
+  },
+  {
+    "id": "fa-412",
+    "domain": "ورزش و تندرستی",
+    "text": "داوری مسابقات",
+    "relevant": [
+      "lucide:flag",
+      "iconify:lucide:flag",
+      "lucide:whistle",
+      "iconify:lucide:whistle",
+      "lucide:trophy",
+      "iconify:lucide:trophy"
+    ]
+  },
+  {
+    "id": "fa-413",
+    "domain": "ورزش و تندرستی",
+    "text": "برنامه تمرینی ورزشی",
+    "relevant": [
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell",
+      "lucide:clipboard-list",
+      "iconify:lucide:clipboard-list"
+    ]
+  },
+  {
+    "id": "fa-414",
+    "domain": "ورزش و تندرستی",
+    "text": "ارزیابی آمادگی جسمانی",
+    "relevant": [
+      "lucide:activity",
+      "iconify:lucide:activity",
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell"
+    ]
+  },
+  {
+    "id": "fa-415",
+    "domain": "ورزش و تندرستی",
+    "text": "مدیریت باشگاه ورزشی",
+    "relevant": [
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell",
+      "lucide:trophy",
+      "iconify:lucide:trophy"
+    ]
+  },
+  {
+    "id": "fa-416",
+    "domain": "ورزش و تندرستی",
+    "text": "برگزاری مسابقات ورزشی",
+    "relevant": [
+      "lucide:trophy",
+      "iconify:lucide:trophy",
+      "lucide:medal",
+      "iconify:lucide:medal"
+    ]
+  },
+  {
+    "id": "fa-417",
+    "domain": "ورزش و تندرستی",
+    "text": "آموزش تنیس",
+    "relevant": [
+      "lucide:trophy",
+      "iconify:lucide:trophy",
+      "lucide:medal",
+      "iconify:lucide:medal"
+    ]
+  },
+  {
+    "id": "fa-418",
+    "domain": "ورزش و تندرستی",
+    "text": "تمرینات هوازی",
+    "relevant": [
+      "lucide:heart-pulse",
+      "iconify:lucide:heart-pulse",
+      "lucide:activity",
+      "iconify:lucide:activity"
+    ]
+  },
+  {
+    "id": "fa-419",
+    "domain": "ورزش و تندرستی",
+    "text": "تغذیه ورزشی",
+    "relevant": [
+      "lucide:apple",
+      "iconify:lucide:apple",
+      "lucide:salad",
+      "iconify:lucide:salad",
+      "lucide:dumbbell",
+      "iconify:lucide:dumbbell"
+    ]
+  },
+  {
+    "id": "fa-420",
+    "domain": "ورزش و تندرستی",
+    "text": "ماساژ ورزشی",
+    "relevant": [
+      "lucide:hand",
+      "iconify:lucide:hand",
+      "lucide:heart",
+      "iconify:lucide:heart"
+    ]
+  },
+  {
+    "id": "fa-421",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "آرایشگری",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-422",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "کوتاهی موی مردانه",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-423",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "کوتاهی موی زنانه",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-424",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "رنگ و مش مو",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-425",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "شینیون مو",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-426",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "اصلاح صورت",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:razor",
+      "iconify:lucide:razor"
+    ]
+  },
+  {
+    "id": "fa-427",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "مراقبت از پوست",
+    "relevant": [
+      "lucide:sparkles",
+      "iconify:lucide:sparkles",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-428",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "پاکسازی پوست",
+    "relevant": [
+      "lucide:sparkles",
+      "iconify:lucide:sparkles",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-429",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "آرایش صورت",
+    "relevant": [
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-430",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "طراحی ناخن",
+    "relevant": [
+      "lucide:paintbrush",
+      "iconify:lucide:paintbrush",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-431",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "کاشت ناخن",
+    "relevant": [
+      "lucide:hand",
+      "iconify:lucide:hand",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-432",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "خدمات ابرو",
+    "relevant": [
+      "lucide:eye",
+      "iconify:lucide:eye",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-433",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "خدمات مژه",
+    "relevant": [
+      "lucide:eye",
+      "iconify:lucide:eye",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-434",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "ماساژ صورت",
+    "relevant": [
+      "lucide:hand",
+      "iconify:lucide:hand",
+      "lucide:smile",
+      "iconify:lucide:smile"
+    ]
+  },
+  {
+    "id": "fa-435",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "مشاوره زیبایی",
+    "relevant": [
+      "lucide:sparkles",
+      "iconify:lucide:sparkles",
+      "lucide:smile",
+      "iconify:lucide:smile"
+    ]
+  },
+  {
+    "id": "fa-436",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "مدیریت سالن زیبایی",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:store",
+      "iconify:lucide:store"
+    ]
+  },
+  {
+    "id": "fa-437",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "ساخت محصولات آرایشی",
+    "relevant": [
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical",
+      "lucide:sparkles",
+      "iconify:lucide:sparkles"
+    ]
+  },
+  {
+    "id": "fa-438",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "عطرسازی",
+    "relevant": [
+      "lucide:spray-can",
+      "iconify:lucide:spray-can",
+      "lucide:flask-conical",
+      "iconify:lucide:flask-conical"
+    ]
+  },
+  {
+    "id": "fa-439",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "آموزش آرایشگری",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:book-open",
+      "iconify:lucide:book-open"
+    ]
+  },
+  {
+    "id": "fa-440",
+    "domain": "زیبایی و مراقبت فردی",
+    "text": "پیرایش و گریم سینمایی",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:clapperboard",
+      "iconify:lucide:clapperboard"
+    ]
+  },
+  {
+    "id": "fa-441",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "خیاطی",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:spool",
+      "iconify:lucide:spool"
+    ]
+  },
+  {
+    "id": "fa-442",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "الگوسازی لباس",
+    "relevant": [
+      "lucide:ruler",
+      "iconify:lucide:ruler",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-443",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "دوخت لباس مجلسی",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-444",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "طراحی لباس",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:pen-tool",
+      "iconify:lucide:pen-tool"
+    ]
+  },
+  {
+    "id": "fa-445",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "دوخت مانتو",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-446",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "تعمیر لباس",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:scissors",
+      "iconify:lucide:scissors"
+    ]
+  },
+  {
+    "id": "fa-447",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "بافتنی",
+    "relevant": [
+      "lucide:spool",
+      "iconify:lucide:spool",
+      "lucide:shirt",
+      "iconify:lucide:shirt"
+    ]
+  },
+  {
+    "id": "fa-448",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "قلاب‌بافی",
+    "relevant": [
+      "lucide:spool",
+      "iconify:lucide:spool"
+    ]
+  },
+  {
+    "id": "fa-449",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "گلدوزی",
+    "relevant": [
+      "lucide:spool",
+      "iconify:lucide:spool",
+      "lucide:flower",
+      "iconify:lucide:flower"
+    ]
+  },
+  {
+    "id": "fa-450",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "قالیبافی",
+    "relevant": [
+      "lucide:grid-3x3",
+      "iconify:lucide:grid-3x3",
+      "lucide:spool",
+      "iconify:lucide:spool"
+    ]
+  },
+  {
+    "id": "fa-451",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "طراحی فرش",
+    "relevant": [
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:grid-3x3",
+      "iconify:lucide:grid-3x3"
+    ]
+  },
+  {
+    "id": "fa-452",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "رنگرزی پارچه",
+    "relevant": [
+      "lucide:palette",
+      "iconify:lucide:palette",
+      "lucide:droplets",
+      "iconify:lucide:droplets"
+    ]
+  },
+  {
+    "id": "fa-453",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "تولید پوشاک",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:factory",
+      "iconify:lucide:factory"
+    ]
+  },
+  {
+    "id": "fa-454",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "کنترل کیفیت پارچه",
+    "relevant": [
+      "lucide:shirt",
+      "iconify:lucide:shirt",
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check"
+    ]
+  },
+  {
+    "id": "fa-455",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "چرم‌دوزی",
+    "relevant": [
+      "lucide:scissors",
+      "iconify:lucide:scissors",
+      "lucide:briefcase",
+      "iconify:lucide:briefcase"
+    ]
+  },
+  {
+    "id": "fa-456",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "ساخت کیف چرمی",
+    "relevant": [
+      "lucide:briefcase",
+      "iconify:lucide:briefcase",
+      "lucide:shopping-bag",
+      "iconify:lucide:shopping-bag"
+    ]
+  },
+  {
+    "id": "fa-457",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "کفاشی",
+    "relevant": [
+      "lucide:footprints",
+      "iconify:lucide:footprints",
+      "lucide:hammer",
+      "iconify:lucide:hammer"
+    ]
+  },
+  {
+    "id": "fa-458",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "ساخت زیورآلات دست‌ساز",
+    "relevant": [
+      "lucide:gem",
+      "iconify:lucide:gem",
+      "lucide:diamond",
+      "iconify:lucide:diamond"
+    ]
+  },
+  {
+    "id": "fa-459",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "نجاری",
+    "relevant": [
+      "lucide:hammer",
+      "iconify:lucide:hammer",
+      "lucide:axe",
+      "iconify:lucide:axe"
+    ]
+  },
+  {
+    "id": "fa-460",
+    "domain": "پوشاک و صنایع دستی",
+    "text": "منبت‌کاری چوب",
+    "relevant": [
+      "lucide:axe",
+      "iconify:lucide:axe",
+      "lucide:hammer",
+      "iconify:lucide:hammer",
+      "lucide:tree-deciduous",
+      "iconify:lucide:tree-deciduous"
+    ]
+  },
+  {
+    "id": "fa-461",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "حفاظت از محیط زیست",
+    "relevant": [
+      "lucide:leaf",
+      "iconify:lucide:leaf",
+      "lucide:earth",
+      "iconify:lucide:earth"
+    ]
+  },
+  {
+    "id": "fa-462",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "مدیریت پسماند",
+    "relevant": [
+      "lucide:trash-2",
+      "iconify:lucide:trash-2",
+      "lucide:recycle",
+      "iconify:lucide:recycle"
+    ]
+  },
+  {
+    "id": "fa-463",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "بازیافت مواد",
+    "relevant": [
+      "lucide:recycle",
+      "iconify:lucide:recycle"
+    ]
+  },
+  {
+    "id": "fa-464",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "تصفیه آب",
+    "relevant": [
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:filter",
+      "iconify:lucide:filter"
+    ]
+  },
+  {
+    "id": "fa-465",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "تصفیه فاضلاب",
+    "relevant": [
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:filter",
+      "iconify:lucide:filter"
+    ]
+  },
+  {
+    "id": "fa-466",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "پایش آلودگی هوا",
+    "relevant": [
+      "lucide:wind",
+      "iconify:lucide:wind",
+      "lucide:cloud-fog",
+      "iconify:lucide:cloud-fog"
+    ]
+  },
+  {
+    "id": "fa-467",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "مدیریت منابع آب",
+    "relevant": [
+      "lucide:droplets",
+      "iconify:lucide:droplets",
+      "lucide:waves",
+      "iconify:lucide:waves"
+    ]
+  },
+  {
+    "id": "fa-468",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "حفاظت از جنگل‌ها",
+    "relevant": [
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:tree-pine",
+      "iconify:lucide:tree-pine"
+    ]
+  },
+  {
+    "id": "fa-469",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "جنگل‌کاری",
+    "relevant": [
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:sprout",
+      "iconify:lucide:sprout"
+    ]
+  },
+  {
+    "id": "fa-470",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "حفاظت از حیات وحش",
+    "relevant": [
+      "lucide:paw-print",
+      "iconify:lucide:paw-print",
+      "lucide:leaf",
+      "iconify:lucide:leaf"
+    ]
+  },
+  {
+    "id": "fa-471",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "طراحی فضای سبز",
+    "relevant": [
+      "lucide:trees",
+      "iconify:lucide:trees",
+      "lucide:flower",
+      "iconify:lucide:flower"
+    ]
+  },
+  {
+    "id": "fa-472",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "نظافت شهری",
+    "relevant": [
+      "lucide:trash-2",
+      "iconify:lucide:trash-2",
+      "lucide:spray-can",
+      "iconify:lucide:spray-can"
+    ]
+  },
+  {
+    "id": "fa-473",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "خدمات آتش‌نشانی شهری",
+    "relevant": [
+      "lucide:fire-extinguisher",
+      "iconify:lucide:fire-extinguisher"
+    ]
+  },
+  {
+    "id": "fa-474",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "جمع‌آوری زباله",
+    "relevant": [
+      "lucide:trash-2",
+      "iconify:lucide:trash-2",
+      "lucide:truck",
+      "iconify:lucide:truck"
+    ]
+  },
+  {
+    "id": "fa-475",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "بهینه‌سازی مصرف انرژی",
+    "relevant": [
+      "lucide:zap",
+      "iconify:lucide:zap",
+      "lucide:leaf",
+      "iconify:lucide:leaf",
+      "lucide:battery",
+      "iconify:lucide:battery"
+    ]
+  },
+  {
+    "id": "fa-476",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "ارزیابی اثرات زیست‌محیطی",
+    "relevant": [
+      "lucide:leaf",
+      "iconify:lucide:leaf",
+      "lucide:clipboard-check",
+      "iconify:lucide:clipboard-check"
+    ]
+  },
+  {
+    "id": "fa-477",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "اندازه‌گیری آلودگی صوتی",
+    "relevant": [
+      "lucide:ear",
+      "iconify:lucide:ear",
+      "lucide:volume-2",
+      "iconify:lucide:volume-2"
+    ]
+  },
+  {
+    "id": "fa-478",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "هواشناسی",
+    "relevant": [
+      "lucide:cloud-sun",
+      "iconify:lucide:cloud-sun",
+      "lucide:cloud-rain",
+      "iconify:lucide:cloud-rain"
+    ]
+  },
+  {
+    "id": "fa-479",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "مدیریت سیلاب",
+    "relevant": [
+      "lucide:waves",
+      "iconify:lucide:waves",
+      "lucide:cloud-rain",
+      "iconify:lucide:cloud-rain"
+    ]
+  },
+  {
+    "id": "fa-480",
+    "domain": "محیط زیست و خدمات شهری",
+    "text": "حفاظت از خاک",
+    "relevant": [
+      "lucide:sprout",
+      "iconify:lucide:sprout",
+      "lucide:leaf",
+      "iconify:lucide:leaf"
+    ]
+  },
+  {
+    "id": "fa-481",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "پاسخگویی تلفنی",
+    "relevant": [
+      "lucide:phone",
+      "iconify:lucide:phone",
+      "lucide:headset",
+      "iconify:lucide:headset"
+    ]
+  },
+  {
+    "id": "fa-482",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "اپراتوری مرکز تماس",
+    "relevant": [
+      "lucide:headset",
+      "iconify:lucide:headset",
+      "lucide:phone",
+      "iconify:lucide:phone"
+    ]
+  },
+  {
+    "id": "fa-483",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "ترجمه همزمان",
+    "relevant": [
+      "lucide:languages",
+      "iconify:lucide:languages",
+      "lucide:mic",
+      "iconify:lucide:mic"
+    ]
+  },
+  {
+    "id": "fa-484",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "زبان اشاره",
+    "relevant": [
+      "lucide:hand",
+      "iconify:lucide:hand",
+      "lucide:languages",
+      "iconify:lucide:languages"
+    ]
+  },
+  {
+    "id": "fa-485",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "روابط عمومی",
+    "relevant": [
+      "lucide:megaphone",
+      "iconify:lucide:megaphone",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-486",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "مدیریت ارتباطات سازمانی",
+    "relevant": [
+      "lucide:messages-square",
+      "iconify:lucide:messages-square",
+      "lucide:users",
+      "iconify:lucide:users"
+    ]
+  },
+  {
+    "id": "fa-487",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "ارسال ایمیل سازمانی",
+    "relevant": [
+      "lucide:mail",
+      "iconify:lucide:mail",
+      "lucide:send",
+      "iconify:lucide:send"
+    ]
+  },
+  {
+    "id": "fa-488",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "مدیریت تلگرام",
+    "relevant": [
+      "simple-icons:telegram",
+      "iconify:devicon:telegram"
+    ]
+  },
+  {
+    "id": "fa-489",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "تولید محتوا در لینکدین",
+    "relevant": [
+      "simple-icons:linkedin",
+      "iconify:devicon:linkedin"
+    ]
+  },
+  {
+    "id": "fa-490",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "مدیریت شبکه اجتماعی",
+    "relevant": [
+      "lucide:share-2",
+      "iconify:lucide:share-2",
+      "lucide:messages-square",
+      "iconify:lucide:messages-square"
+    ]
+  },
+  {
+    "id": "fa-491",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "برگزاری رویداد",
+    "relevant": [
+      "lucide:calendar",
+      "iconify:lucide:calendar",
+      "lucide:party-popper",
+      "iconify:lucide:party-popper"
+    ]
+  },
+  {
+    "id": "fa-492",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "طراحی دعوتنامه",
+    "relevant": [
+      "lucide:mail",
+      "iconify:lucide:mail",
+      "lucide:party-popper",
+      "iconify:lucide:party-popper"
+    ]
+  },
+  {
+    "id": "fa-493",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "خدمات چاپ",
+    "relevant": [
+      "lucide:printer",
+      "iconify:lucide:printer"
+    ]
+  },
+  {
+    "id": "fa-494",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "صحافی کتاب",
+    "relevant": [
+      "lucide:book",
+      "iconify:lucide:book",
+      "lucide:library",
+      "iconify:lucide:library"
+    ]
+  },
+  {
+    "id": "fa-495",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "تعمیر رایانه",
+    "relevant": [
+      "lucide:computer",
+      "iconify:lucide:computer",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-496",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "نصب نرم‌افزار",
+    "relevant": [
+      "lucide:download",
+      "iconify:lucide:download",
+      "lucide:laptop",
+      "iconify:lucide:laptop"
+    ]
+  },
+  {
+    "id": "fa-497",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "خدمات اینترنت و شبکه",
+    "relevant": [
+      "lucide:wifi",
+      "iconify:lucide:wifi",
+      "lucide:network",
+      "iconify:lucide:network"
+    ]
+  },
+  {
+    "id": "fa-498",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "تعمیر تجهیزات صوتی",
+    "relevant": [
+      "lucide:speaker",
+      "iconify:lucide:speaker",
+      "lucide:wrench",
+      "iconify:lucide:wrench"
+    ]
+  },
+  {
+    "id": "fa-499",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "مدیریت انجمن کاربران",
+    "relevant": [
+      "lucide:users",
+      "iconify:lucide:users",
+      "lucide:messages-square",
+      "iconify:lucide:messages-square"
+    ]
+  },
+  {
+    "id": "fa-500",
+    "domain": "ارتباطات و خدمات عمومی",
+    "text": "اطلاع‌رسانی عمومی",
+    "relevant": [
+      "lucide:megaphone",
+      "iconify:lucide:megaphone",
+      "lucide:bell",
+      "iconify:lucide:bell"
+    ]
+  }
+]

@@ -42,7 +42,7 @@ void CacheController::getCacheStats(uWS::HttpResponse<false>* res, uWS::HttpRequ
     res->writeStatus("200 OK")
        ->writeHeader("Content-Type", "application/json")
        ->writeHeader("Cache-Control", "no-cache")
-       ->end(json.str());
+       ->writeHeader("Server", "HatefEngine 1.0")->end(json.str());
     
     LOG_INFO("Cache stats requested - Hit rate: " + std::to_string(hitRate * 100) + "%");
 }
@@ -59,7 +59,7 @@ void CacheController::clearCache(uWS::HttpResponse<false>* res, uWS::HttpRequest
     
     res->writeStatus("200 OK")
        ->writeHeader("Content-Type", "application/json")
-       ->end(response);
+       ->writeHeader("Server", "HatefEngine 1.0")->end(response);
     
     LOG_INFO("Cache metrics cleared");
 }
@@ -87,7 +87,7 @@ void CacheController::getCacheInfo(uWS::HttpResponse<false>* res, uWS::HttpReque
     res->writeStatus("200 OK")
        ->writeHeader("Content-Type", "application/json")
        ->writeHeader("Cache-Control", "public, max-age=300") // Cache for 5 minutes
-       ->end(json.str());
+       ->writeHeader("Server", "HatefEngine 1.0")->end(json.str());
 }
 
 void CacheController::recordCacheHit(uint64_t cacheTimeUs) {

@@ -1,7 +1,40 @@
 services:
+  semantic-icon-engine:
+    profiles: [icons]
+    image: ${ICON_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core/semantic-icon-engine:latest}
+    pull_policy: missing
+    platform: linux/amd64
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${ICON_CPUS:-1.0}
+    mem_limit: ${ICON_MEMORY:-1536m}
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    environment:
+      ICON_DATA_DIR: /opt/icon-artifacts/data
+      ICON_MODEL_DIR: /opt/icon-artifacts/models
+      ICON_VECTOR_DIR: /opt/icon-artifacts/vectors
+      ICON_SEMANTIC_ENABLED: ${ICON_SEMANTIC_ENABLED:-true}
+      ICON_THREADS: "1"
+      ICON_TIMEOUT_SECONDS: "2"
+    networks: [search-network]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
   search-engine:
-    image: ghcr.io/hatefsystems/search-engine-core:latest
+    image: ${SEARCH_ENGINE_IMAGE:-ghcr.io/hatefsystems/search-engine-core:latest}
     container_name: search-engine-core
+    volumes:
+      - profile_uploads:/app/uploads
     pull_policy: always
     restart: unless-stopped
     environment:
@@ -12,9 +45,17 @@ services:
       - SEARCH_REDIS_URI=${SEARCH_REDIS_URI:-tcp://redis:6379}
       - SEARCH_REDIS_POOL_SIZE=${SEARCH_REDIS_POOL_SIZE:-16}
       - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME:-search_index}
+      - PULSE_ANALYTICS_ENABLED=${PULSE_ANALYTICS_ENABLED:-false}
+      - PULSE_MONGODB_URI=${PULSE_MONGODB_URI:-}
+      - PULSE_MONGODB_DATABASE=${PULSE_MONGODB_DATABASE:-hatef_pulse}
+      - PULSE_RAW_RETENTION_DAYS=${PULSE_RAW_RETENTION_DAYS:-14}
+      - PULSE_FLUSH_INTERVAL_SECONDS=${PULSE_FLUSH_INTERVAL_SECONDS:-5}
+      - PULSE_MAX_QUEUE_SIZE=${PULSE_MAX_QUEUE_SIZE:-1000}
+      - PULSE_PUBLIC_MIN_EVENTS=${PULSE_PUBLIC_MIN_EVENTS:-3}
       - MINIFY_JS=${MINIFY_JS:-true}
       - MINIFY_JS_LEVEL=${MINIFY_JS_LEVEL:-advanced}
       - REDIS_SEARCH_ENABLED=${REDIS_SEARCH_ENABLED:-true} 
+      - ICON_ENGINE_URL=http://semantic-icon-engine:8080
       - JS_MINIFIER_SERVICE_URL=http://js-minifier:3002
       - JS_CACHE_ENABLED=${JS_CACHE_ENABLED:-true}
       - JS_CACHE_TYPE=${JS_CACHE_TYPE:-redis}
@@ -86,10 +127,9 @@ services:
     # AOF-only persistence is more stable for datasets with frequent updates
     command: [
       "redis-stack-server",
-      "--appendonly", "yes",
-      "--appendfsync", "everysec",
+      "--appendonly", "no",
       "--maxmemory", "3gb",
-      "--maxmemory-policy", "allkeys-lfu",
+      "--maxmemory-policy", "noeviction",
       "--save", "3600", "1",  # Save every 1 hour if 1+ keys changed (reduced from 15 min)
       "--save", "1800", "100",  # Save every 30 min if 100+ keys changed (reduced from 5 min)
       "--save", "900", "10000",  # Save every 15 min if 10k+ keys changed (reduced from 1 min)
@@ -98,8 +138,8 @@ services:
       "--rdbchecksum", "yes"  # Checksum RDB files for integrity
     ]
     environment:
-      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes (updated from 4GB)
-      - REDIS_MAXMEMORY_POLICY=allkeys-lfu
+      - REDIS_MAXMEMORY=3221225472  # 3GB in bytes
+      - REDIS_MAXMEMORY_POLICY=noeviction
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -404,7 +444,6 @@ networks:
     driver: bridge
 
 volumes:
+  profile_uploads:
   mongodb_data:
   redis_data:
-
-

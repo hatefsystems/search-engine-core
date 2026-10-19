@@ -106,7 +106,7 @@ public:
      * @param id Link block ID
      * @return Result with success status
      */
-    Result<bool> deleteLink(const std::string& id);
+    Result<bool> deleteLink(const std::string& id, std::optional<int64_t> version = std::nullopt);
     
     /**
      * @brief Count link blocks for a profile

@@ -1,0 +1,320 @@
+import importlib.util
+import io
+import json
+from pathlib import Path
+import tarfile
+import pytest
+from app import ingest as ingestion
+from app.catalog import Catalog
+from app.text import CONFIG
+from app.ingest import ingest, atomic_json, simple_slug
+from scripts import bootstrap
+
+spec = importlib.util.spec_from_file_location(
+    "manage", Path(__file__).resolve().parents[1] / "scripts/manage.py"
+)
+manage = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(manage)
+
+
+@pytest.fixture
+def sources(tmp_path, monkeypatch):
+    upstream = tmp_path / "upstream"
+    lock = json.loads((CONFIG / "sources.lock.json").read_text())
+    for source in ("lucide", "simple-icons", "iconify"):
+        (upstream / source).mkdir(parents=True)
+
+    def git(args, **kw):
+        return "" if "status" in args else lock[Path(args[2]).name]["revision"] + "\n"
+
+    monkeypatch.setattr(ingestion.subprocess, "check_output", git)
+    lucide = upstream / "lucide"
+    (lucide / "icons").mkdir()
+    (lucide / "LICENSE").write_text(
+        "ISC License\nCopyright fixture. Permission to use, copy, modify, and/or distribute this software is granted."
+    )
+    for name in ["briefcase", "cloud"]:
+        (lucide / "icons" / f"{name}.svg").write_text(
+            '<svg viewBox="0 0 24 24"><path d="M0 0h1"/></svg>'
+        )
+    simple = upstream / "simple-icons"
+    (simple / "icons").mkdir()
+    (simple / "_data").mkdir()
+    (simple / "LICENSE.md").write_text("CC0 1.0 Universal fixture")
+    atomic_json(simple / "_data/simple-icons.json", [{"title": "GitHub"}])
+    (simple / "icons/github.svg").write_text(
+        '<svg viewBox="0 0 24 24"><path d="M0 0h2"/></svg>'
+    )
+    iconify = upstream / "iconify"
+    (iconify / "json").mkdir()
+    atomic_json(
+        iconify / "json/lucide.json",
+        {
+            "prefix": "lucide",
+            "info": {"license": {"spdx": "ISC"}},
+            "width": 24,
+            "height": 24,
+            "icons": {"cloud": {"body": '<path d="M0 0h3"/>'}},
+            "aliases": {"cloud-alias": {"parent": "cloud"}},
+        },
+    )
+    policy = json.loads((CONFIG / "policy.json").read_text())
+    policy["reviewedBrandSources"] = []
+    policy_path = tmp_path / "policy.json"
+    atomic_json(policy_path, policy)
+    return upstream, policy_path
+
+
+def test_resumable_atomic_ingestion_and_dedup(tmp_path, sources):
+    upstream, policy = sources
+    root = tmp_path / "data"
+    with pytest.raises(InterruptedError):
+        ingest(root, upstream, policy, stop_after=1)
+    assert not (root / "current.json").exists()
+    report = ingest(root, upstream, policy)
+    assert report["total"] == 4
+    cat = Catalog(root)
+    assert cat.count == 4
+    assert cat.get("lucide:cloud")["hash"] == cat.get("lucide:briefcase")["hash"]
+    assert cat.get("iconify:lucide:cloud-alias")["raw"]["alias"]["parent"] == "cloud"
+    assert ingest(root, upstream, policy)["version"] == report["version"]
+    with cat.db() as db:
+        assert db.execute("SELECT count(*) FROM search").fetchone()[0] == 4
+
+
+def test_license_and_brand_policy(tmp_path, sources):
+    upstream, path = sources
+    p = json.loads(path.read_text())
+    p["reviewedCollections"] = {}
+    atomic_json(path, p)
+    report = ingest(tmp_path / "first", upstream, path)
+    assert report["total"] == 2
+    assert (
+        report["sources"]["iconify"]["reasons"]["original license notice needs review"]
+        == 2
+    )
+    p["publicBrands"] = ["simple-icons:github"]
+    atomic_json(path, p)
+    report = ingest(tmp_path / "second", upstream, path)
+    assert report["total"] == 3
+    assert Catalog(tmp_path / "second").get("simple-icons:github")["brand"]
+
+
+def test_individual_brand_license_not_overridden(tmp_path, sources):
+    upstream, path = sources
+    p = json.loads(path.read_text())
+    p["publicBrands"] = ["simple-icons:github"]
+    atomic_json(path, p)
+    atomic_json(
+        upstream / "simple-icons/_data/simple-icons.json",
+        [{"title": "GitHub", "license": {"type": "GPL-3.0"}}],
+    )
+    report = ingest(tmp_path / "data", upstream, path)
+    assert (
+        report["sources"]["simple-icons"]["reasons"][
+            "individual icon license disallowed"
+        ]
+        == 1
+    )
+
+
+def test_source_integrity_and_slug(tmp_path, sources, monkeypatch):
+    upstream, policy = sources
+    monkeypatch.setattr(
+        ingestion.subprocess, "check_output", lambda *a, **kw: "wrong-sha"
+    )
+    with pytest.raises(ValueError, match="revision mismatch"):
+        ingest(tmp_path / "data", upstream, policy)
+    assert simple_slug({"title": "C++"}) == "cplusplus"
+    assert (
+        simple_slug({"title": "Name", "slug": "hive_blockchain"}) == "hive_blockchain"
+    )
+
+
+def test_bundle_roundtrip_and_checksum(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "data").mkdir()
+    (root / "data/a.txt").write_text("offline")
+    archive = tmp_path / "bundle.tgz"
+    manage.bundle_export(root, archive)
+    manage.bundle_restore(archive, tmp_path / "restored", 1024 * 1024)
+    assert (tmp_path / "restored/data/a.txt").read_text() == "offline"
+    with pytest.raises(ValueError):
+        manage.bundle_restore(archive, tmp_path / "restored", 1024 * 1024)
+    with pytest.raises(ValueError):
+        manage.bundle_restore(archive, tmp_path / "small", 1)
+
+
+@pytest.mark.parametrize("name", ["../escape", "/absolute", "bundle/../../escape"])
+def test_bundle_rejects_traversal(tmp_path, name):
+    archive = tmp_path / "bad.tgz"
+    with tarfile.open(archive, "w:gz") as tar:
+        item = tarfile.TarInfo(name)
+        item.size = 1
+        tar.addfile(item, io.BytesIO(b"a"))
+    with pytest.raises(ValueError):
+        manage.bundle_restore(archive, tmp_path / "result", 1024)
+    assert not (tmp_path / "result").exists()
+
+
+def test_bundle_rejects_symlink(tmp_path):
+    archive = tmp_path / "bad.tgz"
+    with tarfile.open(archive, "w:gz") as tar:
+        item = tarfile.TarInfo("bundle/link")
+        item.type = tarfile.SYMTYPE
+        item.linkname = "/etc/passwd"
+        tar.addfile(item)
+    with pytest.raises(ValueError):
+        manage.bundle_restore(archive, tmp_path / "result", 1024)
+
+
+def test_editorial_keywords(tmp_path, sources):
+    upstream, path = sources
+    p = json.loads(path.read_text())
+    p["metadataOverrides"] = {
+        "lucide:cloud": {"labelFa": "ابر اختصاصی", "keywordsFa": ["میزبانی سازمانی"]}
+    }
+    atomic_json(path, p)
+    ingest(tmp_path / "data", upstream, path)
+    cat = Catalog(tmp_path / "data")
+    assert cat.get("lucide:cloud")["labelFa"] == "ابر اختصاصی"
+    assert cat.search("میزبانی")[0]["id"] == "lucide:cloud"
+
+
+def test_incremental_source_reuse(tmp_path, sources, monkeypatch):
+    import shutil
+
+    upstream, path = sources
+    root = tmp_path / "data"
+    ingest(root, upstream, path)
+    config = tmp_path / "config"
+    shutil.copytree(CONFIG, config)
+    lock = json.loads((config / "sources.lock.json").read_text())
+    lock["lucide"]["revision"] = "0" * 40
+    atomic_json(config / "sources.lock.json", lock)
+    monkeypatch.setattr(ingestion, "CONFIG", config)
+    monkeypatch.setattr(
+        ingestion.subprocess,
+        "check_output",
+        lambda args, **kw: (
+            "" if "status" in args else lock[Path(args[2]).name]["revision"] + "\n"
+        ),
+    )
+    report = ingest(root, upstream, path)
+    assert report["reusedSources"] == ["iconify", "simple-icons"]
+    assert report["total"] == 4
+    with Catalog(root).db() as db:
+        assert db.execute("SELECT count(*) FROM search").fetchone()[0] == 4
+
+
+def test_bootstrap_catalog_only(tmp_path, sources, monkeypatch, knowledge_fixture):
+    upstream, _ = sources
+    monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
+    result = bootstrap.bootstrap(tmp_path / "artifacts", upstream, skip_index=True)
+    assert result["approvedIcons"] == 5 and result["indexSkipped"]
+    assert result["indexedIcons"] is None
+    assert not (tmp_path / "artifacts/vectors").exists()
+
+
+def test_bootstrap_resumes_vectors(tmp_path, sources, monkeypatch, knowledge_fixture):
+    import numpy as np
+    from app import embeddings
+
+    calls = []
+
+    class Model:
+        version = "bootstrap-fixture"
+
+        def __init__(self, *args):
+            pass
+
+        def encode(self, texts):
+            calls.extend(texts)
+            return np.full((len(texts), 384), 1 / np.sqrt(384), dtype=np.float32)
+
+    upstream, _ = sources
+    monkeypatch.setattr(bootstrap, "prepare", lambda *args: None)
+    monkeypatch.setattr(bootstrap, "build_bank", knowledge_fixture)
+    monkeypatch.setattr(embeddings, "E5", Model)
+    root = tmp_path / "artifacts"
+    first = bootstrap.bootstrap(root, upstream)
+    assert first["indexedIcons"] == first["approvedIcons"] == 5
+    assert first["knowledgeConcepts"] == 5
+    assert len(calls) == 10
+    second = bootstrap.bootstrap(root, upstream)
+    assert second == first and len(calls) == 10
+    assert (root / "data/current.json").stat().st_mode & 0o004
+    assert (root / "vectors/shard-000000.npy").stat().st_mode & 0o004
+
+
+def test_bootstrap_preserves_failure_and_rejects_concurrent_setup(
+    tmp_path, monkeypatch
+):
+    import fcntl
+
+    def fail(*args):
+        raise ValueError("fixture preparation failure")
+
+    monkeypatch.setattr(bootstrap, "prepare", fail)
+    with pytest.raises(ValueError, match="preparation failure"):
+        bootstrap.bootstrap(tmp_path, tmp_path / "upstream")
+    assert not (tmp_path / "data/current.json").exists()
+    with (tmp_path / ".setup.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(BlockingIOError):
+            bootstrap.bootstrap(tmp_path, tmp_path / "upstream")
+
+
+def test_bootstrap_rejects_invalid_batch(tmp_path):
+    with pytest.raises(ValueError, match="batch"):
+        bootstrap.bootstrap(tmp_path / "unused", tmp_path, batch=0)
+    assert not (tmp_path / "unused").exists()
+
+
+def test_reviewed_simple_icons_and_devicon_preserve_brand_colors(tmp_path, sources):
+    upstream, path = sources
+    policy = json.loads(path.read_text())
+    policy["reviewedBrandSources"] = ["simple-icons", "iconify:devicon"]
+    atomic_json(path, policy)
+    atomic_json(
+        upstream / "simple-icons/_data/simple-icons.json",
+        [{"title": "Terraform", "hex": "844FBA"}],
+    )
+    (upstream / "simple-icons/icons/terraform.svg").write_text(
+        '<svg viewBox="0 0 24 24"><path d="M0 0h2"/></svg>'
+    )
+    atomic_json(
+        upstream / "iconify/json/devicon.json",
+        {
+            "prefix": "devicon",
+            "info": {"license": {"spdx": "MIT"}},
+            "width": 128,
+            "height": 128,
+            "icons": {
+                "amazonwebservices": {"body": '<path fill="#f90" d="M0 0h2"/>'},
+                "terraform": {"body": '<path fill="#5c4ee5" d="M0 0h3"/>'},
+            },
+        },
+    )
+    report = ingest(tmp_path / "data", upstream, path)
+    catalog = Catalog(tmp_path / "data")
+    assert catalog.get("simple-icons:terraform")["brand"]
+    assert catalog.get("iconify:devicon:terraform")["brand"]
+    assert catalog.search("AWS")[0]["id"] == "iconify:devicon:amazonwebservices"
+    assert report["acceptedBySource"]["simple-icons"] == 1
+    with catalog.db() as db:
+        svg = db.execute(
+            "SELECT svg FROM assets WHERE hash=?",
+            (catalog.get("simple-icons:terraform")["hash"],),
+        ).fetchone()[0]
+        assert 'fill="#844FBA"' in svg
+        devicon = catalog.get("iconify:devicon:terraform")
+        assert (
+            "#5c4ee5"
+            in db.execute(
+                "SELECT svg FROM assets WHERE hash=?", (devicon["hash"],)
+            ).fetchone()[0]
+        )
+    assert all(c["labelFa"] != c["category"] for c in catalog.categories())

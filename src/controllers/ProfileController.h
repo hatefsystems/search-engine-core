@@ -25,6 +25,17 @@ public:
     ~ProfileController() = default;
 
     // API Endpoints
+    void newProfilePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void editProfilePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void createOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void deleteOwnerSession(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileContent(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileLayout(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileCompletion(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileContentSchema(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void profileMedia(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void peoplePage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void searchPeople(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getProfileById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getPublicProfile(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -47,6 +58,7 @@ public:
 
     // Link block endpoints
     void redirectLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void writeLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void createLink(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getLinks(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     void getLinkById(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
@@ -55,6 +67,15 @@ public:
     
     // Link analytics endpoints
     void getLinkAnalytics(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Image upload endpoints
+    void uploadAvatar(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void uploadCover(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
+    // Skills management endpoints
+    void addSkills(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void removeSkill(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+    void getSkillsAutocomplete(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
 private:
     mutable std::unique_ptr<search_engine::storage::ProfileStorage> storage_;
@@ -78,11 +99,20 @@ private:
     search_engine::storage::LinkClickAnalyticsStorage* getLinkClickAnalyticsStorage() const;
     ApiRateLimiter* getLinkRedirectRateLimiter() const;
 
+    bool checkOwnerMutationRateLimit(uWS::HttpResponse<false>* res, const std::string& id);
+    bool sameOrigin(uWS::HttpRequest* req);
+    bool secureCookies() const;
+    void renderProfileEntry(uWS::HttpResponse<false>* res, const std::string& slug, const std::string& state, const std::string& id = "");
+    void savePersonPatch(uWS::HttpResponse<false>* res, const search_engine::storage::PersonProfile& person, const nlohmann::json& body);
+
     // Helper to parse JSON request body
     search_engine::storage::Profile parseProfileFromJson(const nlohmann::json& json);
 
     // Helper to convert Profile to JSON response
     nlohmann::json profileToJson(const search_engine::storage::Profile& profile);
+    
+    // Helper to convert PersonProfile to JSON response
+    nlohmann::json personProfileToJson(const search_engine::storage::PersonProfile& profile);
 
     // Helper to convert ProfileType enum to string
     static std::string profileTypeToString(search_engine::storage::ProfileType type);
@@ -97,7 +127,8 @@ private:
     void servePublicProfileBySlug(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const std::string& slug);
     
     // Helper to render HTML profile page with SEO
-    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile);
+    void renderProfilePage(uWS::HttpResponse<false>* res, const search_engine::storage::Profile& profile,
+                           const search_engine::storage::PersonProfile* person = nullptr);
     
     // Helper to render Inja templates
     std::string renderTemplate(const std::string& templateName, const nlohmann::json& data);
@@ -122,12 +153,41 @@ private:
     // Link helpers
     search_engine::storage::LinkBlock parseLinkFromJson(const nlohmann::json& json);
     nlohmann::json linkToJson(const search_engine::storage::LinkBlock& link) const;
+    
+    // Image upload helpers
+    std::string saveImageToFile(const std::vector<unsigned char>& imageData, 
+                                const std::string& profileId,
+                                const std::string& imageType,  // "avatar" or "cover"
+                                const std::string& extension);
+    std::string generateSecureFilename(const std::string& profileId, const std::string& extension);
 };
 
 // Route registration
 ROUTE_CONTROLLER(ProfileController) {
     using namespace routing;
     LOG_INFO("ProfileController::registerRoutes() called - registering routes");
+
+    REGISTER_ROUTE(HttpMethod::GET, "/people", peoplePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/people", searchPeople, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/content-schema", profileContentSchema, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/completion", profileCompletion, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/layout", profileLayout, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/layout", profileLayout, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/content/:section", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/content/:section", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/content/:section/order", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::PUT, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/content/:section/:itemId", profileContent, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/projects/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/experiences/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/services/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/skills/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/achievements/:itemId/media", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/media/:mediaId", profileMedia, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/profiles/new", newProfilePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug/edit", editProfilePage, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/session", createOwnerSession, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/session", deleteOwnerSession, ProfileController);
 
     // API routes
     REGISTER_ROUTE(HttpMethod::POST, "/api/profiles", createProfile, ProfileController);
@@ -155,6 +215,15 @@ ROUTE_CONTROLLER(ProfileController) {
     
     // Link analytics API routes
     REGISTER_ROUTE(HttpMethod::GET, "/api/profiles/:id/links/analytics", getLinkAnalytics, ProfileController);
+
+    // Image upload API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/avatar", uploadAvatar, ProfileController);
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/cover", uploadCover, ProfileController);
+
+    // Skills management API routes
+    REGISTER_ROUTE(HttpMethod::POST, "/api/profiles/:id/skills", addSkills, ProfileController);
+    REGISTER_ROUTE(HttpMethod::DELETE, "/api/profiles/:id/skills/:skillName", removeSkill, ProfileController);
+    REGISTER_ROUTE(HttpMethod::GET, "/api/skills/autocomplete", getSkillsAutocomplete, ProfileController);
 
     // Legacy profile route
     REGISTER_ROUTE(HttpMethod::GET, "/profiles/:slug", getPublicProfile, ProfileController);

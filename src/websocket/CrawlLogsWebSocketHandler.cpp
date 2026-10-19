@@ -29,6 +29,11 @@ void CrawlLogsWebSocketHandler::registerEndpoint(uWS::App& app) {
 
     LOG_DEBUG("CrawlLogsWebSocketHandler::registerEndpoint - Configuring WebSocket handlers");
     app.ws<PerSocketData>("/crawl-logs", {
+        .upgrade = [](auto* res, auto* req, auto* context) {
+            res->writeStatus("101 Switching Protocols")->writeHeader("Server", "HatefEngine 1.0");
+            res->template upgrade<PerSocketData>({}, req->getHeader("sec-websocket-key"),
+                req->getHeader("sec-websocket-protocol"), req->getHeader("sec-websocket-extensions"), context);
+        },
         .open = [this](auto* ws) {
             LOG_TRACE("CrawlLogsWebSocketHandler::registerEndpoint - Open handler triggered");
             onOpen(ws);

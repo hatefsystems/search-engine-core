@@ -149,7 +149,7 @@ void TrackingController::serveTrackingPixel(uWS::HttpResponse<false>* res) {
     res->writeHeader("Expires", "0");
     
     // Write pixel data
-    res->end(std::string_view(reinterpret_cast<const char*>(pixelData), sizeof(pixelData)));
+    res->writeHeader("Server", "HatefEngine 1.0")->end(std::string_view(reinterpret_cast<const char*>(pixelData), sizeof(pixelData)));
 }
 
 std::string TrackingController::getClientIP(uWS::HttpRequest* req) {

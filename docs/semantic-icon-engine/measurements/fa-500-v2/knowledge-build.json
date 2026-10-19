@@ -1,0 +1,36 @@
+{
+  "curatedIconMappings": 1039,
+  "editorialPersianConcepts": 267,
+  "escoGroups": 1259,
+  "escoOccupations": 3039,
+  "escoSkills": 13939,
+  "missingEditorialIcons": [],
+  "provenance": {
+    "esco": {
+      "attribution": "European Commission, ESCO v1.2.1; adapted with Hatef Persian editorial overlays.",
+      "expectedISCOGroups": 619,
+      "expectedOccupations": 3039,
+      "expectedSkillGroups": 640,
+      "expectedSkills": 13939,
+      "language": "en",
+      "noticeURL": "https://commission.europa.eu/legal-notice_en",
+      "sha256": "f9761b0b52be1828b38a3e5e0ae59a93a7b0ce358bc800f52f57a8b002adeb3e",
+      "url": "https://ec.europa.eu/esco/download/ESCO%20dataset%20-%20v1.2.1%20-%20classification%20-%20en%20-%20csv.zip",
+      "version": "1.2.1"
+    },
+    "schema": 1
+  },
+  "relationships": 156336,
+  "translationStatusCounts": {
+    "editorial": 267,
+    "reviewed": 0,
+    "untranslated": 18237
+  },
+  "version": "35cfbfbe24b244d07bf81d36",
+  "mappingPreparation": {
+    "automaticSelectionAuthorized": false,
+    "conceptsConsidered": 18237,
+    "conceptsWithMappings": 18237,
+    "method": "editorial-alias rules or E5 cosine proposals; not human-reviewed"
+  }
+}

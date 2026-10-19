@@ -1,3 +1,8 @@
+#include "search_engine/profile/ProfileProjection.h"
+#include "search_engine/profile/ProfileJson.h"
+#include "search_engine/profile/PublicProfile.h"
+#include <bsoncxx/json.hpp>
+#include <mongocxx/pipeline.hpp>
 #include "../../include/search_engine/storage/ProfileStorage.h"
 #include "../../include/search_engine/storage/DataEncryption.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
@@ -12,8 +17,11 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
+#include <mongocxx/pipeline.hpp>
 #include <bsoncxx/types.hpp>
-#include <regex>
+#include "../../include/search_engine/common/ProfileSlug.h"
+
+#include <set>
 
 using bsoncxx::builder::stream::document;
 using bsoncxx::builder::stream::finalize;
@@ -93,16 +101,7 @@ ProfileType ProfileStorage::stringToProfileType(const std::string& type) {
 }
 
 bool ProfileStorage::isValidSlug(const std::string& slug) {
-    if (slug.empty()) return false;
-
-    // Enforce maximum length
-    if (slug.length() > 100) return false;
-
-    // Regex pattern for Persian letters (U+0600-U+06FF) + English letters + numbers + hyphens
-    // Pattern: ^[\u0600-\u06FFa-zA-Z0-9-]+$
-    static const std::regex slugRegex("^[\u0600-\u06FFa-zA-Z0-9-]+$", std::regex_constants::extended);
-
-    return std::regex_match(slug, slugRegex);
+    return search_engine::common::isValidProfileSlug(slug);
 }
 
 bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) const {
@@ -148,6 +147,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const Profile& profile) c
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -208,6 +209,8 @@ Profile ProfileStorage::bsonToProfile(const bsoncxx::document::view& doc) const 
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -228,6 +231,14 @@ void ProfileStorage::ensureIndexes() {
         using bsoncxx::builder::basic::kvp;
         using bsoncxx::builder::basic::make_document;
         
+        {
+            mongocxx::options::index opts; opts.name("people_public_text"); opts.default_language("none");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"publicSearch.name":"text","publicSearch.title":"text","publicSearch.text":"text"})").view(), opts);
+            mongocxx::options::index city; city.name("people_public_city");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"type":1,"isPublic":1,"publicSearch.location":1})").view(), city);
+            mongocxx::options::index skill; skill.name("people_public_skill");
+            profileCollection_.create_index(bsoncxx::from_json(R"({"type":1,"isPublic":1,"publicSearch.skills":1})").view(), skill);
+        }
         // 1. slug_unique: Unique index on slug for fast lookups
         {
             mongocxx::options::index opts{};
@@ -307,7 +318,7 @@ Result<std::string> ProfileStorage::store(const Profile& profile) {
     try {
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Check if slug is reserved
@@ -398,7 +409,7 @@ Result<bool> ProfileStorage::update(const Profile& profile) {
 
         // Validate slug format if slug is being updated
         if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Check if slug is reserved
@@ -449,8 +460,10 @@ Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
         auto update = document{} 
             << "$set" << open_document
                 << "deletedAt" << timePointToDate(now)
+                << "publicSearch" << open_document << close_document
                 << "updatedAt" << timePointToDate(now)
             << close_document
+            << "$inc" << open_document << "version" << int64_t{1} << close_document
             << finalize;
         
         auto result = profileCollection_.update_one(filter.view(), update.view());
@@ -469,31 +482,28 @@ Result<bool> ProfileStorage::deleteProfile(const std::string& id) {
 
 Result<bool> ProfileStorage::restoreProfile(const std::string& id) {
     try {
-        auto filter = document{} << "_id" << bsoncxx::oid{id} << finalize;
-        
-        // Restore: unset deletedAt and update updatedAt
-        auto now = std::chrono::system_clock::now();
-        auto update = document{} 
-            << "$unset" << open_document
-                << "deletedAt" << ""
-            << close_document
-            << "$set" << open_document
-                << "updatedAt" << timePointToDate(now)
-            << close_document
-            << finalize;
-        
-        auto result = profileCollection_.update_one(filter.view(), update.view());
-
-        if (result && result->modified_count() > 0) {
-            LOG_INFO("Restored profile with ID: " + id);
-            return Result<bool>::Success(true, "Profile restored successfully");
-        } else {
-            return Result<bool>::Failure("No profile found with given ID or profile was not deleted");
+        using bsoncxx::builder::basic::kvp;
+        using bsoncxx::builder::basic::make_document;
+        using bsoncxx::builder::basic::make_array;
+        auto identity=make_document(kvp("_id",bsoncxx::oid{id}));
+        auto existing=profileCollection_.find_one(identity.view());
+        if(!existing) return Result<bool>::Failure("Profile not found");
+        auto base=bsonToProfile(existing->view());
+        bsoncxx::builder::basic::document filter,values;
+        filter.append(kvp("_id",bsoncxx::oid{id}));
+        if(base.version==0)filter.append(kvp("$or",make_array(make_document(kvp("version",0)),make_document(kvp("version",make_document(kvp("$exists",false)))))));
+        else filter.append(kvp("version",base.version));
+        values.append(kvp("updatedAt",timePointToDate(std::chrono::system_clock::now())));
+        if(base.type==ProfileType::PERSON) {
+            auto person=bsonToPersonProfile(existing->view());person.deletedAt.reset();
+            auto search=bsoncxx::from_json(search_engine::profile::searchableProfile(person).dump());
+            values.append(kvp("publicSearch",search.view()));
         }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error restoring profile: " + std::string(e.what()));
-        return Result<bool>::Failure("Database error: " + std::string(e.what()));
-    }
+        auto update=make_document(kvp("$set",values.view()),kvp("$unset",make_document(kvp("deletedAt",""))),kvp("$inc",make_document(kvp("version",int64_t{1}))));
+        auto result=profileCollection_.update_one(filter.view(),update.view());
+        if(result && result->matched_count()==1)return Result<bool>::Success(true,"Profile restored successfully");
+        return Result<bool>::Failure("VERSION_CONFLICT");
+    }catch(const std::exception&){return Result<bool>::Failure("Profile restore failed");}
 }
 
 Result<std::vector<Profile>> ProfileStorage::findAll(int limit, int skip) {
@@ -567,7 +577,6 @@ Result<bool> ProfileStorage::checkSlugAvailability(const std::string& slug) {
         // Query for existing profile with this slug, excluding soft-deleted profiles
         auto filter = document{}
             << "slug" << slug
-            << "deletedAt" << open_document << "$exists" << false << close_document
             << finalize;
         auto result = profileCollection_.find_one(filter.view());
 
@@ -613,7 +622,7 @@ Result<bool> ProfileStorage::updateSlug(const std::string& profileId, const std:
     try {
         // Validate new slug format
         if (!isValidSlug(newSlug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(newSlug));
         }
 
         // Check if slug is reserved
@@ -757,6 +766,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -770,6 +781,45 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
     }
 
     // PersonProfile-specific fields (optional)
+    
+    // Header Information
+    if (profile.displayName) {
+        builder.append(kvp("displayName", profile.displayName.value()));
+    }
+    if (profile.englishName) {
+        builder.append(kvp("englishName", profile.englishName.value()));
+    }
+    if (profile.tagline) {
+        builder.append(kvp("tagline", profile.tagline.value()));
+    }
+    if (profile.professionalSummary) {
+        builder.append(kvp("professionalSummary", profile.professionalSummary.value()));
+    }
+    if (profile.location) {
+        builder.append(kvp("location", profile.location.value()));
+    }
+    if (!profile.languages.empty()) {
+        auto languagesArray = bsoncxx::builder::basic::array{};
+        for (const auto& lang : profile.languages) {
+            languagesArray.append(lang);
+        }
+        builder.append(kvp("languages", languagesArray));
+    }
+    
+    // Images
+    if (profile.avatarUrl) {
+        builder.append(kvp("avatarUrl", profile.avatarUrl.value()));
+    }
+    if (profile.coverImageUrl) {
+        builder.append(kvp("coverImageUrl", profile.coverImageUrl.value()));
+    }
+    
+    // Availability
+    if (profile.availabilityStatus) {
+        builder.append(kvp("availabilityStatus", profile.availabilityStatus.value()));
+    }
+    
+    // Professional Info
     if (profile.title) {
         builder.append(kvp("title", profile.title.value()));
     }
@@ -782,6 +832,19 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
             skillsArray.append(skill);
         }
         builder.append(kvp("skills", skillsArray));
+    }
+    
+    // Skills with level
+    if (!profile.skillsWithLevel.empty()) {
+        auto skillsLevelArray = bsoncxx::builder::basic::array{};
+        for (const auto& skill : profile.skillsWithLevel) {
+            auto skillDoc = bsoncxx::builder::basic::document{};
+            skillDoc.append(kvp("name", skill.name));
+            skillDoc.append(kvp("level", skill.level));
+            skillDoc.append(kvp("category", skill.category));
+            skillsLevelArray.append(skillDoc);
+        }
+        builder.append(kvp("skillsWithLevel", skillsLevelArray));
     }
     if (profile.experienceLevel) {
         builder.append(kvp("experienceLevel", profile.experienceLevel.value()));
@@ -811,6 +874,23 @@ bsoncxx::document::value ProfileStorage::profileToBson(const PersonProfile& prof
         builder.append(kvp("phone", encryptedPhone));
     }
 
+    // Privacy Settings
+    auto privacyDoc = bsoncxx::builder::basic::document{};
+    privacyDoc.append(kvp("showEmail", profile.privacy.showEmail));
+    privacyDoc.append(kvp("showPhone", profile.privacy.showPhone));
+    privacyDoc.append(kvp("showLocation", profile.privacy.showLocation));
+    privacyDoc.append(kvp("showAvailability", profile.privacy.showAvailability));
+    builder.append(kvp("privacy", privacyDoc));
+
+    auto content = search_engine::profile::contentJson(profile.content);
+    if (content["sections"].contains("contacts")) for (auto& contact : content["sections"]["contacts"]) {
+        if (contact.value("type", "") == "EMAIL" || contact.value("type", "") == "PHONE")
+            contact["value"] = DataEncryption::encrypt(contact.value("value", ""), encryptionKey_);
+    }
+    const auto contentBson = bsoncxx::from_json(content.dump());
+    builder.append(kvp("content", contentBson.view()));
+    const auto searchBson = bsoncxx::from_json(search_engine::profile::searchableProfile(profile).dump());
+    builder.append(kvp("publicSearch", searchBson.view()));
     return builder.extract();
 }
 
@@ -856,6 +936,8 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -869,6 +951,48 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
     }
 
     // PersonProfile-specific fields
+    
+    // Header Information
+    if (doc["displayName"]) {
+        profile.displayName = std::string(doc["displayName"].get_string().value);
+    }
+    if (doc["englishName"]) {
+        profile.englishName = std::string(doc["englishName"].get_string().value);
+    }
+    if (doc["tagline"]) {
+        profile.tagline = std::string(doc["tagline"].get_string().value);
+    }
+    if (doc["professionalSummary"]) {
+        profile.professionalSummary = std::string(doc["professionalSummary"].get_string().value);
+    }
+    if (doc["location"]) {
+        profile.location = std::string(doc["location"].get_string().value);
+    }
+    if (doc["languages"] && doc["languages"].type() == bsoncxx::type::k_array) {
+        std::vector<std::string> languages;
+        auto languagesArray = doc["languages"].get_array();
+        for (const auto& element : languagesArray.value) {
+            if (element.type() == bsoncxx::type::k_string) {
+                languages.push_back(std::string(element.get_string().value));
+            }
+        }
+        profile.languages = languages;
+    }
+    
+    // Images
+    if (doc["avatarUrl"]) {
+        profile.avatarUrl = std::string(doc["avatarUrl"].get_string().value);
+    }
+    if (doc["coverImageUrl"]) {
+        profile.coverImageUrl = std::string(doc["coverImageUrl"].get_string().value);
+    }
+    
+    // Availability
+    if (doc["availabilityStatus"]) {
+        profile.availabilityStatus = std::string(doc["availabilityStatus"].get_string().value);
+    }
+    
+    // Professional Info
     if (doc["title"]) {
         profile.title = std::string(doc["title"].get_string().value);
     }
@@ -884,6 +1008,29 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
             }
         }
         profile.skills = skills;
+    }
+    
+    // Skills with level
+    if (doc["skillsWithLevel"] && doc["skillsWithLevel"].type() == bsoncxx::type::k_array) {
+        std::vector<SkillWithLevel> skillsWithLevel;
+        auto skillsArray = doc["skillsWithLevel"].get_array();
+        for (const auto& element : skillsArray.value) {
+            if (element.type() == bsoncxx::type::k_document) {
+                auto skillDoc = element.get_document().view();
+                SkillWithLevel skill;
+                if (skillDoc["name"]) {
+                    skill.name = std::string(skillDoc["name"].get_string().value);
+                }
+                if (skillDoc["level"]) {
+                    skill.level = std::string(skillDoc["level"].get_string().value);
+                }
+                if (skillDoc["category"]) {
+                    skill.category = std::string(skillDoc["category"].get_string().value);
+                }
+                skillsWithLevel.push_back(skill);
+            }
+        }
+        profile.skillsWithLevel = skillsWithLevel;
     }
     if (doc["experienceLevel"]) {
         profile.experienceLevel = std::string(doc["experienceLevel"].get_string().value);
@@ -913,6 +1060,31 @@ PersonProfile ProfileStorage::bsonToPersonProfile(const bsoncxx::document::view&
         profile.phone = DataEncryption::decrypt(encryptedPhone, encryptionKey_);
     }
 
+    // Privacy Settings
+    if (doc["privacy"] && doc["privacy"].type() == bsoncxx::type::k_document) {
+        auto privacyDoc = doc["privacy"].get_document().view();
+        if (privacyDoc["showEmail"]) {
+            profile.privacy.showEmail = privacyDoc["showEmail"].get_bool().value;
+        }
+        if (privacyDoc["showPhone"]) {
+            profile.privacy.showPhone = privacyDoc["showPhone"].get_bool().value;
+        }
+        if (privacyDoc["showLocation"]) {
+            profile.privacy.showLocation = privacyDoc["showLocation"].get_bool().value;
+        }
+        if (privacyDoc["showAvailability"]) {
+            profile.privacy.showAvailability = privacyDoc["showAvailability"].get_bool().value;
+        }
+    }
+
+    if (doc["content"] && doc["content"].type() == bsoncxx::type::k_document) {
+        auto content = nlohmann::json::parse(bsoncxx::to_json(doc["content"].get_document().view()));
+        if (content["sections"].contains("contacts")) for (auto& contact : content["sections"]["contacts"]) {
+            if (contact.value("type", "") == "EMAIL" || contact.value("type", "") == "PHONE")
+                contact["value"] = DataEncryption::decrypt(contact.value("value", ""), encryptionKey_);
+        }
+        profile.content = search_engine::profile::parseContent(content);
+    }
     return profile;
 }
 
@@ -959,6 +1131,8 @@ bsoncxx::document::value ProfileStorage::profileToBson(const BusinessProfile& pr
     }
 
     // Optional ownership fields
+    builder.append(kvp("version", profile.version));
+    if (profile.ownerTokenHash) builder.append(kvp("ownerTokenHash", *profile.ownerTokenHash));
     if (profile.ownerToken) {
         builder.append(kvp("ownerToken", profile.ownerToken.value()));
     }
@@ -1063,6 +1237,8 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
     }
 
     // Optional ownership fields
+    if (doc["version"]) profile.version = doc["version"].type() == bsoncxx::type::k_int64 ? doc["version"].get_int64().value : doc["version"].get_int32().value;
+    if (doc["ownerTokenHash"]) profile.ownerTokenHash = std::string(doc["ownerTokenHash"].get_string().value);
     if (doc["ownerToken"]) {
         profile.ownerToken = std::string(doc["ownerToken"].get_string().value);
     }
@@ -1132,9 +1308,11 @@ BusinessProfile ProfileStorage::bsonToBusinessProfile(const bsoncxx::document::v
 
 Result<std::string> ProfileStorage::store(const PersonProfile& profile) {
     try {
+        if (search_engine::common::SlugGenerator::isReservedSlug(profile.slug))
+            return Result<std::string>::Failure("Slug is reserved");
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Validate profile
@@ -1236,53 +1414,47 @@ Result<std::optional<PersonProfile>> ProfileStorage::findPersonBySlug(const std:
 }
 
 Result<bool> ProfileStorage::update(const PersonProfile& profile) {
+    return updatePersonFields(profile, {"name", "displayName", "englishName", "title", "company", "bio",
+        "tagline", "professionalSummary", "location", "languages", "availabilityStatus", "avatarUrl", "coverImageUrl",
+        "skills", "skillsWithLevel", "experienceLevel", "education", "school", "linkedinUrl", "githubUrl",
+        "portfolioUrl", "email", "phone", "privacy", "isPublic"}, profile.version);
+}
+
+Result<bool> ProfileStorage::updatePersonFields(const PersonProfile& profile,
+    const std::vector<std::string>& fields, int64_t expectedVersion) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+    using bsoncxx::builder::basic::make_array;
     try {
-        if (!profile.id) {
-            return Result<bool>::Failure("Profile ID is required for update");
+        if (!profile.id || expectedVersion < 0) return Result<bool>::Failure("Invalid profile update");
+        auto source = profileToBson(profile);
+        bsoncxx::builder::basic::document values;
+        const std::set<std::string> allowed = {"name", "displayName", "englishName", "title", "company", "bio",
+            "tagline", "professionalSummary", "location", "languages", "availabilityStatus", "avatarUrl", "coverImageUrl",
+            "skills", "skillsWithLevel", "experienceLevel", "education", "school", "linkedinUrl", "githubUrl",
+            "portfolioUrl", "email", "phone", "privacy", "isPublic", "content"};
+        for (const auto& field : fields) {
+            if (!allowed.count(field)) return Result<bool>::Failure("Field is not editable");
+            auto element = source.view()[field];
+            if (element) values.append(kvp(field, element.get_value()));
+            else if (field == "skills" || field == "skillsWithLevel" || field == "languages")
+                values.append(kvp(field, make_array()));
         }
-
-        // Validate profile
-        if (!profile.isValid()) {
-            return Result<bool>::Failure("Invalid PersonProfile: validation failed");
-        }
-
-        // Validate slug format
-        if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
-        }
-
-        auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
-
-        // Check slug uniqueness (excluding current profile)
-        auto existingResult = findBySlug(profile.slug);
-        if (existingResult.success && existingResult.value.has_value() &&
-            existingResult.value.value().id != profile.id) {
-            return Result<bool>::Failure("Slug '" + profile.slug + "' is already taken by another profile.");
-        }
-
-        // Create mutable copy and set updatedAt timestamp
-        PersonProfile updatedProfile = profile;
-        updatedProfile.updatedAt = std::chrono::system_clock::now();
-
-        // Build full update document with all fields
-        auto updateDoc = profileToBson(updatedProfile);
-        
-        // Use $set to update all fields
-        using bsoncxx::builder::basic::kvp;
-        auto setDoc = bsoncxx::builder::basic::document{};
-        setDoc.append(kvp("$set", updateDoc));
-
-        auto result = profileCollection_.update_one(filter.view(), setDoc.view());
-
-        if (result && result->modified_count() > 0) {
-            LOG_INFO("Updated PersonProfile with ID: " + profile.id.value());
-            return Result<bool>::Success(true, "PersonProfile updated successfully");
-        } else {
-            return Result<bool>::Failure("No profile found with given ID or no changes made");
-        }
-    } catch (const mongocxx::exception& e) {
-        LOG_ERROR("MongoDB error updating PersonProfile: " + std::string(e.what()));
-        return Result<bool>::Failure("Database error: " + std::string(e.what()));
+        values.append(kvp("publicSearch", source.view()["publicSearch"].get_value()));
+        values.append(kvp("updatedAt", timePointToDate(std::chrono::system_clock::now())));
+        bsoncxx::builder::basic::document filter;
+        filter.append(kvp("_id", bsoncxx::oid{*profile.id}), kvp("deletedAt", make_document(kvp("$exists", false))));
+        if (expectedVersion == 0) {
+            filter.append(kvp("$or", make_array(make_document(kvp("version", int64_t{0})),
+                make_document(kvp("version", make_document(kvp("$exists", false)))))));
+        } else filter.append(kvp("version", expectedVersion));
+        auto update = make_document(kvp("$set", values.view()), kvp("$inc", make_document(kvp("version", int64_t{1}))));
+        auto result = profileCollection_.update_one(filter.view(), update.view());
+        if (result && result->matched_count() == 1) return Result<bool>::Success(true, "Profile updated");
+        return Result<bool>::Failure("VERSION_CONFLICT");
+    } catch (const std::exception& e) {
+        LOG_ERROR("Profile update failed: " + std::string(e.what()));
+        return Result<bool>::Failure("Database update failed");
     }
 }
 
@@ -1292,7 +1464,7 @@ Result<std::string> ProfileStorage::store(const BusinessProfile& profile) {
     try {
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<std::string>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<std::string>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         // Validate profile
@@ -1406,7 +1578,7 @@ Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
 
         // Validate slug format
         if (!isValidSlug(profile.slug)) {
-            return Result<bool>::Failure("Invalid slug format. Slug must contain only Persian letters, English letters, numbers, and hyphens.");
+            return Result<bool>::Failure(search_engine::common::profileSlugValidationError(profile.slug));
         }
 
         auto filter = document{} << "_id" << bsoncxx::oid{profile.id.value()} << finalize;
@@ -1442,6 +1614,65 @@ Result<bool> ProfileStorage::update(const BusinessProfile& profile) {
         LOG_ERROR("MongoDB error updating BusinessProfile: " + std::string(e.what()));
         return Result<bool>::Failure("Database error: " + std::string(e.what()));
     }
+}
+
+Result<nlohmann::json> ProfileStorage::searchPeople(const std::string& query, const std::string& skill,
+    const std::string& location, const std::string& availability, int page, int limit) {
+    using Json = nlohmann::json;
+    try {
+        Json filter={{"type","PERSON"},{"isPublic",true},{"deletedAt",{{"$exists",false}}},{"publicSearch.name",{{"$exists",true}}}};
+        if(!query.empty())filter["$text"]={{"$search",search_engine::profile::profileSearchText(query)},{"$language","none"}};
+        if(!skill.empty())filter["publicSearch.skills"]=search_engine::profile::normalizeProfileTerm(skill);
+        if(!location.empty())filter["publicSearch.location"]=search_engine::profile::normalizeProfileTerm(location);
+        if(!availability.empty())filter["publicSearch.availability"]=availability;
+        auto filterBson=bsoncxx::from_json(filter.dump());
+        mongocxx::options::find options;options.skip(int64_t(page-1)*limit);options.limit(limit);
+        Json sort=query.empty()?Json{{"publicSearch.name",1},{"_id",1}}:Json{{"score",{{"$meta","textScore"}}},{"_id",1}};
+        auto sortBson=bsoncxx::from_json(sort.dump());options.sort(sortBson.view());
+        Json items=Json::array();
+        for(const auto& doc:profileCollection_.find(filterBson.view(),options)) {
+            auto p=search_engine::profile::publicPersonProfile(bsonToPersonProfile(doc));
+            auto json=search_engine::profile::personProfileToJson(p);
+            Json card={{"id",p.id.value_or("")},{"slug",p.slug},{"name",p.displayName.value_or(p.name)},
+                {"title",p.title.value_or("")},{"skills",Json::array()},{"projectCount",p.content.sections.count("projects")?p.content.sections.at("projects").size():0}};
+            if(p.location)card["location"]=*p.location;
+            if(p.avatarUrl)card["avatarUrl"]=*p.avatarUrl;
+            for(const auto& v:p.skillsWithLevel)if(card["skills"].size()<6)card["skills"].push_back(v.name);
+            items.push_back(card);
+        }
+        // Facets are calculated from exactly the same current public filter, not a stale cache.
+        Json facets=Json::object();
+        for(const auto& field:{"skills","location","availability"}) {
+            mongocxx::pipeline pipe;pipe.match(filterBson.view());
+            if(std::string(field)!="location")pipe.unwind(std::string("$publicSearch.")+field);
+            auto group=bsoncxx::from_json(Json{{"_id",std::string("$publicSearch.")+field},{"count",{{"$sum",1}}}}.dump());pipe.group(group.view());
+            pipe.sort(bsoncxx::from_json(R"({"count":-1,"_id":1})").view());pipe.limit(30);
+            facets[field]=Json::array();
+            for(const auto& doc:profileCollection_.aggregate(pipe)) {
+                auto item=Json::parse(bsoncxx::to_json(doc));
+                if(item.contains("_id") && item["_id"].is_string() && !item["_id"].get<std::string>().empty())facets[field].push_back({{"value",item["_id"]},{"count",item["count"]}});
+            }
+        }
+        return Result<Json>::Success({{"items",items},{"total",profileCollection_.count_documents(filterBson.view())},{"page",page},{"facets",facets}}, "People found");
+    }catch(const std::exception&){return Result<Json>::Failure("People search unavailable");}
+}
+Result<int64_t> ProfileStorage::rebuildPeopleSearch(bool apply) {
+    try {
+        int64_t count=0;
+        auto filter=bsoncxx::from_json(R"({"type":"PERSON"})");
+        for(const auto& doc:profileCollection_.find(filter.view())) {
+            auto person=bsonToPersonProfile(doc);++count;
+            if(!apply)continue;
+            auto search=search_engine::profile::searchableProfile(person);
+            nlohmann::json match={{"_id",{{"$oid",*person.id}}}};
+            if(person.version==0)match["$or"]=nlohmann::json::array({{{"version",0}},{{"version",{{"$exists",false}}}}});else match["version"]=person.version;
+            auto filterDoc=bsoncxx::from_json(match.dump());
+            auto update=bsoncxx::from_json(nlohmann::json{{"$set",{{"publicSearch",search}}}}.dump());
+            auto written=profileCollection_.update_one(filterDoc.view(),update.view());
+            if(!written || written->matched_count()!=1) return Result<int64_t>::Failure("Concurrent profile change; rerun the idempotent reindex");
+        }
+        return Result<int64_t>::Success(count, "Profiles inspected");
+    }catch(const std::exception&){return Result<int64_t>::Failure("Index rebuild failed");}
 }
 
 } // namespace storage

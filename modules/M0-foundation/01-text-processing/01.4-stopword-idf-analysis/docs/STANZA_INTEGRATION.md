@@ -218,7 +218,7 @@ These POS tags indicate content words (NOT stopwords):
 | Tag | Description | Example |
 |-----|-------------|---------|
 | `NOUN` | Noun | cat, city, quantum |
-| `PROPN` | Proper noun | London, Google, API |
+| `PROPN` | Proper noun | London, Maria, API |
 | `VERB` | Verb | run, think, build |
 | `ADJ` | Adjective | quick, brown, fast |
 | `ADV` | Adverb | quickly, very, really |
@@ -403,4 +403,3 @@ print(stats)
 - See [QUICK_START.md](QUICK_START.md) for basic usage
 - See [ALGORITHMS.md](ALGORITHMS.md) for technical details
 - See [README.md](README.md) for full project overview
-

@@ -16,6 +16,11 @@ void DateTimeWebSocketHandler::registerEndpoint(uWS::App& app) {
     this->app = &app;
     
     app.ws<PerSocketData>("/datetime", {
+        .upgrade = [](auto* res, auto* req, auto* context) {
+            res->writeStatus("101 Switching Protocols")->writeHeader("Server", "HatefEngine 1.0");
+            res->template upgrade<PerSocketData>({}, req->getHeader("sec-websocket-key"),
+                req->getHeader("sec-websocket-protocol"), req->getHeader("sec-websocket-extensions"), context);
+        },
         .open = [this](auto* ws) { 
             // Mark socket as open for lifecycle management
             ws->getUserData()->open = true;

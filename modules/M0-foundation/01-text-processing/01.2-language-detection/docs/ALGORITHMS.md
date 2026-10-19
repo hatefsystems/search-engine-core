@@ -1113,7 +1113,7 @@ class TextProcessingPipeline:
 **General Language Detection:**
 - **[Language Identification Survey (2019)](https://jair.org/index.php/jair/article/view/11675)** - Comprehensive survey paper
 - **[langid.py Documentation](https://github.com/saffsd/langid.py)** - Popular Python language detection library
-- **[Google's Compact Language Detector](https://github.com/google/cld3)** - Google's language detection library
+- **[Compact Language Detector v3 (CLD3)](https://github.com/google/cld3)** - Compact neural language identification library
 
 **FastText Language Models:**
 - **[Pre-trained Language Models](https://fasttext.cc/docs/en/language-identification.html)** - FastText's pre-trained language identification models
@@ -1130,7 +1130,7 @@ class TextProcessingPipeline:
 **Hands-on Tutorials:**
 - **[FastText Tutorial (Kaggle)](https://www.kaggle.com/code/jhoward/fastai-v2-fasttext)** - Kaggle notebook with examples
 - **[Building Language Detector (Medium)](https://medium.com/@ageitgey/natural-language-processing-is-fun-part-2-using-a-machine-learning-classifier-to-build-a-language-3c594d3d7253)** - Building from scratch
-- **[FastText Colab Notebook](https://colab.research.google.com/github/facebookresearch/fastText/blob/master/tutorials/supervised_learning.ipynb)** - Interactive Google Colab tutorial
+- **[FastText Supervised Tutorial](https://fasttext.cc/docs/en/supervised-tutorial.html)** - Official supervised-learning tutorial
 
 ### Advanced Topics
 
@@ -1193,4 +1193,3 @@ class TextProcessingPipeline:
 ---
 
 **Technical implementation for 250+ language detection** 🔬
-

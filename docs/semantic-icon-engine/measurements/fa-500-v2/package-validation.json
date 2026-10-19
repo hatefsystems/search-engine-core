@@ -1,0 +1,13 @@
+{
+  "approvedIcons": 7770,
+  "catalogVersion": "d5d5d387eb4c71f3c9ed15e8",
+  "concepts": 18504,
+  "embeddingVersion": "9e7de405834077a2725957fa46473582fe56119600a86eed34abcd14119dc60d",
+  "indexedConcepts": 18504,
+  "indexedIcons": 7770,
+  "knowledgeLockSha256": "a0a477de56b2dbb92b3e3ec37312fab02890be3270b3c8657cef744bd34c3424",
+  "knowledgeVersion": "35cfbfbe24b244d07bf81d36",
+  "schema": 1,
+  "sourceLockSha256": "63418d9a17637051b663bb2ef3f3947139524f336f51cd9c0f4723fdefa3d0df",
+  "scope": "Native packaging integrity/coverage checks; container isolation is checked separately in CI."
+}
