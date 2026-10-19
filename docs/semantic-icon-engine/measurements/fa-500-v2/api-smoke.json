@@ -12,29 +12,17 @@
     },
     {
       "text": "وکالت در دادگاه",
-      "top3": [
-        "lucide:scale",
-        "lucide:gavel",
-        "iconify:lucide:file-signature"
-      ],
+      "top3": ["lucide:scale", "lucide:gavel", "iconify:lucide:file-signature"],
       "engine": "hybrid"
     },
     {
       "text": "تدریس خصوصی ریاضی",
-      "top3": [
-        "lucide:calculator",
-        "lucide:sigma",
-        "lucide:radical"
-      ],
+      "top3": ["lucide:calculator", "lucide:sigma", "lucide:radical"],
       "engine": "hybrid"
     },
     {
       "text": "نقاشی ساختمان",
-      "top3": [
-        "lucide:paintbrush",
-        "lucide:paint-roller",
-        "lucide:building"
-      ],
+      "top3": ["lucide:paintbrush", "lucide:paint-roller", "lucide:building"],
       "engine": "hybrid"
     }
   ],

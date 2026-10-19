@@ -4,14 +4,14 @@ The ESCO Persian draft corpus covers every pinned ESCO 1.2.1 source ID. It is a 
 
 ## Translation provenance and coverage
 
-| Prepared item | Count |
-| --- | ---: |
-| ESCO records with Persian draft titles | 18,237 |
-| Nonempty source definitions with draft translations | 18,104 |
-| Source aliases with aligned draft translations | 117,009 |
-| Source-bound assistant title corrections | 256 |
-| Records flagged for priority human review | 1,299 |
-| Human-approved ESCO translations | **0** |
+| Prepared item                                       |   Count |
+| --------------------------------------------------- | ------: |
+| ESCO records with Persian draft titles              |  18,237 |
+| Nonempty source definitions with draft translations |  18,104 |
+| Source aliases with aligned draft translations      | 117,009 |
+| Source-bound assistant title corrections            |     256 |
+| Records flagged for priority human review           |   1,299 |
+| Human-approved ESCO translations                    |   **0** |
 
 The assistant corrected titles that the neural translator left in Latin text, plus one untranslated definition, using the original English definitions. These edits are recorded separately in `config/esco-fa-corrections.json` and are also **not human-reviewed**. Some technical aliases retain Latin names and remain flagged. Unflagged records are not presumed accurate. [Coverage evidence](measurements/esco-fa/translation-coverage.json) and [human-work readiness](measurements/esco-fa/human-review-readiness.json) distinguish preparation from actual human approval.
 
