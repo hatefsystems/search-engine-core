@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   session-tests:
@@ -38,3 +39,10 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: ctest --test-dir build-sessions --output-on-failure --repeat until-fail:20
+
+  # The original PR pipeline already builds the app. Also validate the complete
+  # adapter/application on the review branch when fork writes are unavailable.
+  # The reusable workflow publishes only from master, never from this branch.
+  core-build:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/build-search-engine.yml
