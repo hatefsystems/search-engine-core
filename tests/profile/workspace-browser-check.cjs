@@ -24,7 +24,8 @@ const {start,sections}=require('./workspace-fixture.cjs');
   await page.goto(base);await page.locator('#editor-section-nav button').first().waitFor();await page.evaluate(()=>document.fonts.ready);
   assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
   const geo=await page.locator('.editor-columns').evaluate(e=>[...e.children].map(c=>c.getBoundingClientRect().x));
-  assert.ok(geo[0]>geo[1]&&geo[1]>geo[2],'sidebar right, editor center, preview left');
+  assert.ok(geo[0]>geo[1],'sidebar right, full-width form left');
+  assert.equal(await page.locator('#preview').isVisible(),false,'desktop preview opens on demand');
   await page.locator('#profile-name').fill('هاتف آزمایشی');await saved();assert.equal((await data()).name,'هاتف آزمایشی');
   assert.equal(await preview.locator('#preview-name').textContent(),'هاتف آزمایشی');
   await page.locator('#profile-bio').fill('معرفی زنده با متن فارسی و DevOps');await saved();
@@ -46,8 +47,8 @@ const {start,sections}=require('./workspace-fixture.cjs');
   await nav('about');await form().locator('[data-field=description] textarea').fill('معرفی ساخت‌یافتهٔ عمومی');await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();
   assert.equal(await preview.locator('#preview-bio').textContent(),'معرفی ساخت‌یافتهٔ عمومی');
   await nav('basic');await page.locator('#profile-bio').fill('ویرایش معرفی از فرم اصلی');await saved();assert.equal((await data()).sections.about[0].description,'ویرایش معرفی از فرم اصلی');assert.equal(await preview.locator('#preview-bio').textContent(),'ویرایش معرفی از فرم اصلی');await nav('about');
-  await form().getByLabel('نمایش عمومی',{exact:true}).uncheck();await saved();assert.equal(await preview.locator('#preview-about').isVisible(),false);
-  await nav('availability');await form().locator('[data-field=status] select').selectOption('AVAILABLE');await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();assert.equal(await preview.locator('#preview-availability').isVisible(),true);
+  await form().getByLabel('نمایش عمومی',{exact:true}).uncheck();await saved();await page.locator('#open-dashboard-preview').click();assert.equal(await preview.locator('#preview-about').isVisible(),false);await page.locator('#close-public-preview').click();
+  await nav('availability');await form().locator('[data-field=status] select').selectOption('AVAILABLE');await form().getByLabel('نمایش عمومی',{exact:true}).check();await saved();await page.locator('#open-dashboard-preview').click();await preview.locator('#preview-availability').waitFor({state:'visible'});await page.locator('#close-public-preview').click();
   await nav('basic');await page.locator('#profile-availability').selectOption('BUSY');await saved();assert.equal((await data()).sections.availability[0].status,'BUSY');
   await nav('experiences');assert.equal(await form().count(),1);assert.equal(await page.locator('.item-choice').count(),2);
   await form().getByRole('button',{name:'کپی',exact:true}).click();await saved();
@@ -71,7 +72,7 @@ const {start,sections}=require('./workspace-fixture.cjs');
   await form().getByLabel('نقش شما',{exact:true}).fill('توسعه‌دهنده');await nav('basic');await page.locator('#profile-title').fill('مهندس پلتفرم');await saved();assert.equal((await data()).sections.projects[0].role,'توسعه‌دهنده');
   // Upload preview uses the actual media response; clearing updates both thumbnails.
   await page.locator('#avatar-file').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5l8AAAAASUVORK5CYII=','base64')});
-  await page.locator('#editor-avatar:not([hidden])').waitFor();await saved();assert.ok(await preview.locator('#preview-avatar').isVisible());
+  await page.locator('#editor-avatar:not([hidden])').waitFor();await saved();await page.locator('#open-dashboard-preview').click();await preview.locator('#preview-avatar').waitFor({state:'visible'});await page.locator('#close-public-preview').click();
   await page.locator('[data-clear=avatarUrl]').click();await saved();assert.equal(await page.locator('#editor-avatar').isVisible(),false);
   await nav('links');await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
   await page.getByLabel('عنوان لینک',{exact:true}).fill('لینک تست');await page.getByLabel('آدرس کامل',{exact:true}).fill('https://example.com');await page.getByLabel('نمایش لینک',{exact:true}).selectOption('PUBLIC');await saved();
@@ -87,7 +88,7 @@ const {start,sections}=require('./workspace-fixture.cjs');
    await nav('experiences');await assertLayout(width);await page.screenshot({path:`${out}/experience-${width}.png`,fullPage:true});
    if(width<=760){await page.locator('#preview-tab').click();assert.ok(await page.locator('#preview').isVisible());assert.equal(await page.locator('#profile-form').isVisible(),false);await assertLayout(width);await page.screenshot({path:`${out}/preview-${width}.png`,fullPage:true});await page.locator('#form-tab').click();}
   }
-  await page.setViewportSize({width:1440,height:1050});await nav('basic');await page.locator('[data-preview-size=mobile]').click();assert.ok((await page.locator('.preview-surface').boundingBox()).width<=360);await page.locator('[data-preview-size=desktop]').click();
+  await page.setViewportSize({width:1440,height:1050});await nav('basic');await page.locator('#open-dashboard-preview').click();await page.locator('[data-preview-size=mobile]').click();assert.ok((await page.locator('#expanded-preview-host').boundingBox()).width<=360);await page.locator('[data-preview-size=desktop]').click();await page.locator('#close-public-preview').click();
   await page.locator('#publish').click();await page.waitForFunction(()=>document.querySelector('#publication-label').textContent==='صفحهٔ منتشرشده');assert.equal((await data()).isPublic,true);
   await page.locator('#logout').click();await page.locator('#login-panel:not([hidden])').waitFor();
   assert.equal(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('hatef.profile.pending.'))),false);

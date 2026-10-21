@@ -32,6 +32,7 @@ jobs:
         run: |
           node tests/profile/fallback-browser-check.cjs
           node tests/profile/workspace-browser-check.cjs
+          node tests/profile/dashboard-browser-check.cjs
           node tests/profile/media-autosave-browser-check.cjs
           node tests/profile/public-browser-check.cjs
           node tests/profile/icon-picker-browser-check.cjs

@@ -189,7 +189,7 @@ const demo=require('./demo-profile.cjs');
    }
    await publicPage.setViewportSize({width:1440,height:1080});
    for(const section of ['experiences','projects','skills'])await publicPage.locator('#section-'+section).screenshot({path:`${out}/24-public-${section}.png`,style:'.pp-nav{position:static!important}'});
-   await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
+   await page.locator('#open-dashboard-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
    await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
    await publicResponse.close();
   }

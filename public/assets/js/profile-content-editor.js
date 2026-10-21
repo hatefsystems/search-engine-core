@@ -1,4 +1,5 @@
 import { mountIconPicker } from "./profile-icon-picker.js";
+import { dashboardIcon } from "./profile-dashboard.js?v=dashboard-1";
 const iconSections = ["projects", "experiences", "services", "skills", "achievements"];
 import { ProfileAutosave } from "./profile-autosave.js?v=media-save-3";
 import {
@@ -393,22 +394,24 @@ export class ProfileContentEditor {
   renderNavigation() {
     const nav = document.getElementById("editor-section-nav");
     nav.replaceChildren();
-    const sections = { basic: "اطلاعات اصلی و معرفی", experiences: sectionLabels.experiences,
-      projects: sectionLabels.projects, skills: sectionLabels.skills, education: sectionLabels.education,
+    const sections = { basic: "اطلاعات اصلی و معرفی", education: sectionLabels.education, experiences: sectionLabels.experiences,
+      skills: sectionLabels.skills, projects: sectionLabels.projects, links: "شبکه‌های اجتماعی و لینک‌ها",
       certifications: sectionLabels.certifications, publications: sectionLabels.publications,
       openSource: sectionLabels.openSource, services: sectionLabels.services,
       achievements: sectionLabels.achievements, languages: sectionLabels.languages,
       recommendations: sectionLabels.recommendations, contacts: sectionLabels.contacts,
-      links: "لینک‌های صفحه", availability: sectionLabels.availability, about: sectionLabels.about };
-    const symbols = {basic:"◉",experiences:"▣",projects:"▱",skills:"◇",education:"▰",certifications:"▧",
-      publications:"▤",openSource:"‹/›",services:"▢",achievements:"☆",languages:"◎",recommendations:"❞",contacts:"✉",links:"↗",availability:"♧",about:"☰"};
+      availability: sectionLabels.availability, about: sectionLabels.about };
+    const symbols = {basic:"user",experiences:"briefcase",projects:"layers",skills:"chart",education:"graduation",certifications:"file",
+      publications:"file",openSource:"link",services:"briefcase",achievements:"wand",languages:"file",recommendations:"user",contacts:"user",links:"link",availability:"user",about:"info"};
     for (const [key, label] of Object.entries(sections)) {
-      const button = this.button(label, () => this.select(key));
+      const button = this.button("", () => this.select(key));
       button.dataset.section = key;
       button.setAttribute("aria-label", label);
       button.setAttribute("aria-pressed", String(this.selected === key));
-      const icon = el("span", symbols[key], "section-symbol"); icon.setAttribute("aria-hidden", "true");
-      button.prepend(icon);
+      const icon = dashboardIcon(symbols[key]); icon.classList.add("section-symbol");
+      const text = el("span", label, "nav-label");
+      text.append(el("small", this.selected === key ? "در حال ویرایش" : "مشاهده و ویرایش"));
+      button.append(icon, text);
       nav.append(button);
     }
     const picker = document.getElementById("section-picker-options");
@@ -423,18 +426,24 @@ export class ProfileContentEditor {
   renderSettings() {
     const settings = document.getElementById("profile-settings");
     settings.replaceChildren();
-    const goalLabel = el("label", "هدف صفحه (اختیاری)");
+    const goalHost = document.getElementById("profile-goal"); goalHost.replaceChildren();
+    const goalLabel = el("label", "هدف صفحه (اختیاری)"); goalLabel.htmlFor = "profile-goal-select";
+    goalLabel.prepend(dashboardIcon("wand"));
     const goal = el("select");
+    goal.id = "profile-goal-select";
     for (const [v, t] of Object.entries(goals)) goal.add(new Option(t, v));
     goal.value = this.layout.goal || "PERSONAL_IDENTITY";
     goal.onchange = () => this.setLayout({ goal: goal.value });
-    goalLabel.append(goal); settings.append(goalLabel);
-    const privacy = el("fieldset"); privacy.append(el("legend", "نمایش اطلاعات اصلی"));
+    goalHost.append(goalLabel, goal);
+    const privacy = el("fieldset", "", "privacy-grid"); privacy.append(el("legend", "نمایش اطلاعات اصلی", "visually-hidden"));
     for (const [field, title] of Object.entries({ showEmail: "ایمیل", showPhone: "تلفن", showLocation: "شهر", showAvailability: "وضعیت همکاری" })) {
-      const label = el("label", title); const input = el("input"); input.type = "checkbox";
+      const label = el("label", "", "privacy-choice"); const input = el("input", "", "privacy-toggle"); input.type = "checkbox";
+      input.setAttribute("aria-label", title);
       input.checked = (this.layout.privacy || this.server.privacy || {})[field] !== false;
-      input.onchange = () => this.setLayout({ privacy: { ...(this.layout.privacy || this.server.privacy || {}), [field]: input.checked } });
-      label.prepend(input); privacy.append(label);
+      const name = el("span", title, "privacy-name"); name.prepend(dashboardIcon(field === "showLocation" ? "map" : "user"));
+      const state = el("span", input.checked ? "عمومی" : "خصوصی", "privacy-state"); state.setAttribute("aria-hidden", "true");
+      input.onchange = () => { state.textContent = input.checked ? "عمومی" : "خصوصی"; this.setLayout({ privacy: { ...(this.layout.privacy || this.server.privacy || {}), [field]: input.checked } }); };
+      label.append(name, state, input); privacy.append(label);
     }
     settings.append(privacy);
   }
