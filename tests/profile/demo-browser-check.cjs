@@ -117,6 +117,11 @@ const demo=require('./demo-profile.cjs');
   await page.setViewportSize({width:1440,height:1080});await nav('basic');await page.locator('#publish').click();await page.waitForFunction(()=>document.querySelector('#publication-label').textContent==='صفحهٔ منتشرشده');
   const owner=(await api(endpoint)).data;
   for(const section of Object.keys(demo.sections))assert.equal(owner.sections[section].length,demo.sections[section].length);
+  // Desktop preview is opened on demand. Exercise the same transition in both
+  // fixture and real-backend runs before comparing it with the public page.
+  await page.locator('#open-dashboard-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
+  const preview=page.frameLocator('#public-preview');await preview.locator('#preview-name').waitFor();
+  assert.equal(await preview.locator('#preview-name').textContent(),owner.displayName||owner.name);
   if(fixture){
    const review=await context.newPage();await review.goto(base+'/assets/profile-preview.html');
    await review.evaluate(async owner=>{const m=await import('/assets/js/profile-public.js');m.renderPublicProfile(document.getElementById('public-preview-root'),m.projectPublicProfile(owner),{preview:true});},owner);
@@ -124,7 +129,7 @@ const demo=require('./demo-profile.cjs');
    await review.waitForFunction(()=>document.querySelectorAll('.content-gallery img').length===7&&[...document.querySelectorAll('.content-gallery img')].every(img=>img.complete&&img.naturalWidth>0));
    await review.screenshot({path:`${out}/fixture-public-full.png`,fullPage:true});
    for(const section of ['experiences','projects','skills'])await review.locator('#section-'+section).screenshot({path:`${out}/fixture-${section}.png`,style:'.pp-nav{position:static!important}'});
-   await review.close();
+   await review.close();await page.keyboard.press('Escape');
   }
   if(!fixture){
    const publicResponse=await browser.newContext();const publicPage=await publicResponse.newPage();
@@ -170,7 +175,6 @@ const demo=require('./demo-profile.cjs');
    await publicPage.evaluate(()=>document.fonts.ready);
    assert.ok(await publicPage.locator('#section-projects .pp-card').count());
    assert.equal(await publicPage.locator('#section-recommendations').count(),0);
-   const preview=page.frameLocator('#public-preview');await preview.locator('#preview-name').waitFor();
    assert.equal(await preview.locator('#preview-name').textContent(),await publicPage.locator('#preview-name').textContent());
    assert.equal(await preview.locator('#preview-bio').textContent(),await publicPage.locator('#preview-bio').textContent());
    await publicPage.waitForFunction(()=>document.querySelectorAll('#section-skills .pp-card').length===8);
@@ -189,7 +193,6 @@ const demo=require('./demo-profile.cjs');
    }
    await publicPage.setViewportSize({width:1440,height:1080});
    for(const section of ['experiences','projects','skills'])await publicPage.locator('#section-'+section).screenshot({path:`${out}/24-public-${section}.png`,style:'.pp-nav{position:static!important}'});
-   await page.locator('#expand-preview').click();await page.locator('#public-preview-dialog[open]').waitFor();
    await preview.locator('#preview-name').waitFor();await page.screenshot({path:`${out}/21-owner-preview.png`});await page.keyboard.press('Escape');
    await publicResponse.close();
   }

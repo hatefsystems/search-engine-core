@@ -7,7 +7,8 @@ const autosave=dataURL(await readFile(new URL('profile-autosave.js',root),'utf8'
 const picker=dataURL(await readFile(new URL('profile-icon-picker.js',root),'utf8'));
 const ui=dataURL((await readFile(new URL('profile-content-ui.js',root),'utf8')).replace(/(['"])\.\/profile-icon-picker\.js\1/,JSON.stringify(picker)));
 const source=(await readFile(new URL('profile-content-editor.js',root),'utf8')).replace(/(['"])\.\/profile-autosave\.js(?:\?[^\x22\x27]+)?\1/,JSON.stringify(autosave)).replace(/(['"])\.\/profile-content-ui\.js\1/,JSON.stringify(ui));
-const resolvedSource=source.replace(/(['"])\.\/profile-icon-picker\.js\1/,JSON.stringify(picker));
+const dashboard=dataURL(await readFile(new URL('profile-dashboard.js',root),'utf8'));
+const resolvedSource=source.replace(/(['"])\.\/profile-icon-picker\.js\1/,JSON.stringify(picker)).replace(/(['"])\.\/profile-dashboard\.js(?:\?[^\x22\x27]+)?\1/,JSON.stringify(dashboard));
 const {ProfileContentEditor}=await import(dataURL(resolvedSource));
 function fixture(server,api){
     const values=new Map();globalThis.localStorage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k),removeItem:k=>values.delete(k)};

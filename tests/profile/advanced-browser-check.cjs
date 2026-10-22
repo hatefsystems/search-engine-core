@@ -56,7 +56,7 @@ const out='build/profile/advanced-screenshots';fs.mkdirSync(out,{recursive:true}
    assert.ok((await ownerData()).sections[section].some(i=>i.visibility==='PUBLIC'),section);
   }
   // Links have their own versions and retain incomplete private drafts.
-  await nav('لینک‌های صفحه');await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
+  await nav('شبکه‌های اجتماعی و لینک‌ها');await page.getByRole('button',{name:'+ افزودن لینک',exact:true}).click();
   const linkBox=()=>page.locator('#links-editor fieldset').last();
   await linkBox().getByLabel('عنوان لینک',{exact:true}).fill('ل');await saved();
   await page.reload();await page.waitForSelector('#links-editor fieldset');

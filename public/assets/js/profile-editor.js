@@ -1,7 +1,8 @@
 import {projectPublicProfile} from './profile-public.js';
 import {ProfileLinksEditor} from './profile-links-editor.js';
-import {ProfileContentEditor} from './profile-content-editor.js?v=media-save-3';
+import {ProfileContentEditor} from './profile-content-editor.js?v=dashboard-1';
 import {ProfileAutosave} from './profile-autosave.js?v=media-save-3';
+import {updateBasicCompletion, bindImageCrop} from './profile-dashboard.js?v=dashboard-1';
 
 const $ = id => document.getElementById(id);
 const fields = ['name', 'title', 'tagline', 'company', 'bio', 'location', 'availabilityStatus'];
@@ -86,10 +87,16 @@ function preview() {
         const input = $('profile-form').elements.namedItem(field);
         if (Object.hasOwn(content, section) && document.activeElement !== input) input.value = content[section][0]?.[property] || '';
     }
+    updateBasicCompletion({...current, bio:$('profile-bio').value, availabilityStatus:$('profile-availability').value, sections:content});
+    for (const button of document.querySelectorAll('[data-crop]')) {
+        const field = button.dataset.crop === 'avatar' ? 'avatarUrl' : 'coverImageUrl';
+        button.disabled = uploading || !current[field];
+    }
     const profile = projectPublicProfile({...fullData, ...current, id, sections:content, contentLayout:layout, sectionOrder:layout.order, featured:layout.featured, privacy:layout.privacy || fullData?.privacy || {}}, linksEditor?.links || []);
     $('public-preview').contentWindow?.postMessage({type:'hatef-profile-preview', profile}, location.origin);
     $('publication-label').textContent = current.isPublic ? 'صفحهٔ منتشرشده' : 'پیش‌نویس خصوصی';
     $('publish').hidden = current.isPublic;
+    $('view-page').hidden = !current.isPublic;
 }
 window.addEventListener('message', event => {
     if (event.origin === location.origin && event.source === $('public-preview').contentWindow && event.data?.type === 'hatef-profile-preview-ready' && fullData) preview();
@@ -212,6 +219,15 @@ $('publish').onclick = async () => {
         if (!await autosave.flush()) notice('انتشار انجام نشد؛ وضعیت ذخیره را بررسی کنید.');
     } finally { $('publish').disabled = false; }
 };
+$('save-profile').onclick = async () => {
+    if (!autosave || uploading) return;
+    $('save-profile').disabled = true;
+    try {
+        const basicSaved = await autosave.flush(), contentSaved = await contentEditor.flush(), linksSaved = await linksEditor.flush();
+        if (!basicSaved || !contentSaved || !linksSaved) { contentEditor.showFirstError(); notice('تغییرات ذخیره‌نشده را بررسی کنید.'); }
+    } catch (error) { notice(error.message); }
+    finally { $('save-profile').disabled = false; }
+};
 $('reload-version').onclick = async () => {
     try {
         latest = (await api(endpoint())).data;
@@ -284,8 +300,8 @@ async function saveMedia(kind, file) {
         if (error.status === 409) conflict();
         notice(error.message || 'بارگذاری تصویر انجام نشد.');
     } finally {
-        delete mediaPreviews[kind]; preview();
-        uploading = false; $('profile-form').inert = false; $('publish').disabled = false;
+        delete mediaPreviews[kind]; uploading = false; preview();
+        $('profile-form').inert = false; $('publish').disabled = false;
         panel.removeAttribute('aria-busy'); progress.remove(); input.value = '';
         if (mediaSaved) status('ذخیره شد');
     }
@@ -298,10 +314,13 @@ $('add-section').onclick = () => $('section-picker').showModal();
 $('close-section-picker').onclick = () => $('section-picker').close();
 const previewFrame = $('public-preview'), previewSurface = previewFrame.parentElement;
 $('expand-preview').onclick = () => { $('expanded-preview-host').append(previewFrame); $('public-preview-dialog').showModal(); preview(); };
+$('open-dashboard-preview').onclick = $('expand-preview').onclick;
 $('close-public-preview').onclick = () => $('public-preview-dialog').close();
-$('public-preview-dialog').addEventListener('close', () => { previewSurface.append(previewFrame); preview(); $('expand-preview').focus(); });
+$('public-preview-dialog').addEventListener('close', () => { previewSurface.append(previewFrame); preview(); $('open-dashboard-preview').focus(); });
+bindImageCrop({getSource:kind => current[kind === 'avatar' ? 'avatarUrl' : 'coverImageUrl'], save:saveMedia, notice});
 for (const button of document.querySelectorAll('[data-preview-size]')) button.onclick = () => {
     $('preview').dataset.device = button.dataset.previewSize;
+    $('public-preview-dialog').dataset.device = button.dataset.previewSize;
     for (const other of document.querySelectorAll('[data-preview-size]')) other.setAttribute('aria-pressed',String(other === button));
 };
 for (const tab of ['form', 'preview']) $(`${tab}-tab`).onclick = () => {
