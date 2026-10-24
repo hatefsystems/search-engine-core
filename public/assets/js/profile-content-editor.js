@@ -63,6 +63,7 @@ export class ProfileContentEditor {
       notice,
       headerPreview,
     });
+    this.advancedSectionsEnabled = document.body?.dataset.advancedSections === "true";
     this.selected = "basic";
     this.selectedItems = {};
     this.filters = {};
@@ -385,6 +386,7 @@ export class ProfileContentEditor {
       );
   }
   select(section, focus = true) {
+    if (!this.advancedSectionsEnabled && section !== "basic") return;
     this.selected = section;
     try { sessionStorage.setItem(`hatef.editor.section.${this.id}`, section); } catch {}
     this.render();
@@ -394,28 +396,44 @@ export class ProfileContentEditor {
   renderNavigation() {
     const nav = document.getElementById("editor-section-nav");
     nav.replaceChildren();
-    const sections = { basic: "اطلاعات اصلی و معرفی", education: sectionLabels.education, experiences: sectionLabels.experiences,
+    const sections = this.advancedSectionsEnabled ? { basic: "اطلاعات اصلی و معرفی", education: sectionLabels.education, experiences: sectionLabels.experiences,
       skills: sectionLabels.skills, projects: sectionLabels.projects, links: "شبکه‌های اجتماعی و لینک‌ها",
       certifications: sectionLabels.certifications, publications: sectionLabels.publications,
       openSource: sectionLabels.openSource, services: sectionLabels.services,
       achievements: sectionLabels.achievements, languages: sectionLabels.languages,
       recommendations: sectionLabels.recommendations, contacts: sectionLabels.contacts,
-      availability: sectionLabels.availability, about: sectionLabels.about };
+      availability: sectionLabels.availability, about: sectionLabels.about } : {
+      basic: "اطلاعات اصلی و معرفی", education: "سوابق تحصیلی", experiences: "سوابق شغلی",
+      skills: "مهارت‌ها", projects: "پروژه‌ها", links: "شبکه‌های اجتماعی", settings: "تنظیمات پیشرفته"
+    };
     const symbols = {basic:"user",experiences:"briefcase",projects:"layers",skills:"chart",education:"graduation",certifications:"file",
-      publications:"file",openSource:"link",services:"briefcase",achievements:"wand",languages:"file",recommendations:"user",contacts:"user",links:"link",availability:"user",about:"info"};
+      publications:"file",openSource:"link",services:"briefcase",achievements:"wand",languages:"file",recommendations:"user",contacts:"user",links:"share",availability:"user",about:"info",settings:"settings"};
     for (const [key, label] of Object.entries(sections)) {
+      const locked = !this.advancedSectionsEnabled && key !== "basic";
       const button = this.button("", () => this.select(key));
       button.dataset.section = key;
       button.setAttribute("aria-label", label);
       button.setAttribute("aria-pressed", String(this.selected === key));
+      button.disabled = locked;
+      if (locked) {
+        button.setAttribute("aria-disabled", "true");
+        button.setAttribute("aria-describedby", "sidebar-release-description");
+        button.classList.add("section-locked");
+      }
       const icon = dashboardIcon(symbols[key]); icon.classList.add("section-symbol");
       const text = el("span", label, "nav-label");
-      text.append(el("small", this.selected === key ? "در حال ویرایش" : "مشاهده و ویرایش"));
+      text.append(el("small", locked ? "به‌زودی فعال می‌شود" : this.selected === key ? "در حال ویرایش" : "مشاهده و ویرایش"));
       button.append(icon, text);
+      if (locked) { const lock = dashboardIcon("lock"); lock.classList.add("section-lock"); button.append(lock); }
       nav.append(button);
     }
+    const add = document.getElementById("add-section");
+    add.hidden = !this.advancedSectionsEnabled; add.disabled = !this.advancedSectionsEnabled;
+    document.getElementById("sidebar-release-card").hidden = this.advancedSectionsEnabled;
+    document.querySelector(".completion-details").hidden = !this.advancedSectionsEnabled;
     const picker = document.getElementById("section-picker-options");
     picker.replaceChildren();
+    if (!this.advancedSectionsEnabled) return;
     for (const [key, label] of Object.entries(sections)) {
       if (key === "basic") continue;
       picker.append(this.button(label, () => {
@@ -448,6 +466,7 @@ export class ProfileContentEditor {
     settings.append(privacy);
   }
   render() {
+    if (!this.advancedSectionsEnabled) this.selected = "basic";
     if (!["basic", "links", ...Object.keys(sectionLabels)].includes(this.selected)) this.selected = "basic";
     this.renderNavigation(); this.renderSettings();
     document.getElementById("basic-editor").hidden = this.selected !== "basic";

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {start} = require('./workspace-fixture.cjs');
 (async () => {
-    const server = start(0);
+    const server = start(0, {advancedSections:false});
     await new Promise(resolve => server.listening ? resolve() : server.once('listening', resolve));
     const browser = await chromium.launch({headless:true, executablePath:process.env.PROFILE_CHROMIUM_EXECUTABLE || undefined, args:['--no-sandbox','--disable-dev-shm-usage']});
     const context = await browser.newContext({viewport:{width:1440,height:1080}});
@@ -19,6 +19,26 @@ const {start} = require('./workspace-fixture.cjs');
         await page.goto(base);
         await page.locator('#editor-section-nav button').first().waitFor();
         await page.evaluate(() => document.fonts.ready);
+        const nav = page.locator('#editor-section-nav');
+        assert.equal(await nav.locator('button').count(), 7);
+        assert.equal(await nav.locator('button:enabled').count(), 1);
+        assert.equal(await nav.locator('button:disabled .section-lock').count(), 6);
+        assert.equal(await nav.locator('[data-section=basic]').getAttribute('aria-pressed'), 'true');
+        assert.equal(await page.locator('#add-section').isVisible(), false);
+        assert.equal(await page.locator('#sidebar-release-card').isVisible(), true);
+        assert.equal(await page.getByRole('button', {name:'اطلاع از زمان فعال‌سازی'}).isDisabled(), true);
+        const previousSections = structuredClone((await data()).sections);
+        // A restored section, synthetic click or old picker must not reopen staged forms.
+        await page.evaluate(() => {
+            sessionStorage.setItem('hatef.editor.section.fixture', 'projects');
+            document.querySelector('#editor-section-nav [data-section=projects]').dispatchEvent(new MouseEvent('click', {bubbles:true}));
+            document.getElementById('add-section').click();
+        });
+        assert.equal(await page.locator('#basic-editor').isVisible(), true);
+        assert.equal(await page.locator('#advanced-editor').isVisible(), false);
+        assert.equal(await page.locator('#section-picker').isVisible(), false);
+        await page.reload(); await nav.locator('button').first().waitFor();
+        assert.equal(await page.locator('#basic-editor').isVisible(), true);
         const ring = page.getByRole('progressbar');
         assert.equal(await ring.getAttribute('aria-valuenow'), '67');
         assert.equal(await page.locator('[data-crop=cover]').isDisabled(), true);
@@ -89,12 +109,16 @@ const {start} = require('./workspace-fixture.cjs');
             assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overflow at ${width}`);
             const clipped = await page.locator('#profile-form input, #profile-form select, #profile-form textarea').evaluateAll(nodes => nodes.filter(n => n.getClientRects().length).filter(n => {const b = n.getBoundingClientRect(); return b.x < 0 || b.right > innerWidth + 1;}).map(n => n.id));
             assert.deepEqual(clipped, [], `clipped fields at ${width}`);
+            const menuSize = await nav.evaluate(node => ({height:node.clientHeight, contentHeight:node.scrollHeight, width:node.clientWidth, contentWidth:node.scrollWidth}));
+            assert.ok(menuSize.contentHeight <= menuSize.height + 1, `menu scrolls vertically at ${width}`);
+            assert.ok(menuSize.contentWidth <= menuSize.width + 1, `menu scrolls horizontally at ${width}`);
             await page.screenshot({path:`${out}/dashboard-${width}.png`, fullPage:true});
         }
         // Savebar must not cover the last privacy controls on a narrow screen.
         await page.locator('#profile-settings').scrollIntoViewIfNeeded();
         const overlap = await page.evaluate(() => document.querySelector('#profile-settings').getBoundingClientRect().bottom > document.querySelector('.editor-savebar').getBoundingClientRect().top);
         assert.equal(overlap, false);
+        assert.deepEqual((await data()).sections, previousSections, 'basic edits preserve pre-existing advanced data');
         assert.deepEqual(errors, []);
         console.log('PASS dashboard: completion, manual save, crop bytes/ratios/cancel, privacy and goal persistence, preview focus/devices, 7 responsive widths. Fixture API only.');
     } finally {
