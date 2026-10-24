@@ -5,6 +5,7 @@
 #include "../../include/search_engine/storage/ProfileValidator.h"
 #include "../../include/search_engine/common/SlugGenerator.h"
 #include <inja/inja.hpp>
+#include <cstdlib>
 #include <set>
 #include "../../include/search_engine/profile/ProfileProjection.h"
 
@@ -39,6 +40,9 @@ void ProfileController::renderProfileEntry(uWS::HttpResponse<false>* res, const 
     const auto encoded = common::encodeProfileSlug(slug);
     Json data = {{"slug", slug}, {"encodedSlug", encoded}, {"state", state}, {"profileId", id},
         {"editUrl", "/profiles/" + encoded + "/edit"}, {"createUrl", "/profiles/new?slug=" + encoded}};
+    // Advanced forms are staged behind an operator-controlled rollout switch.
+    const auto* advanced = std::getenv("PROFILE_EDITOR_ADVANCED_SECTIONS");
+    data["advancedEditorSections"] = advanced && std::string(advanced) == "true" ? "true" : "false";
     inja::Environment env("templates/");
     auto html = env.render_file(state == "editor" || state == "new" ? "profile_editor.inja" : "profile_entry.inja",
         profile::escapeTemplateStrings(data));

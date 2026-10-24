@@ -31,7 +31,7 @@ function seed(id){
  Object.assign(state.sections.skills[0],{category:'زیرساخت ابری',proficiencyLevel:'ADVANCED',yearsOfExperience:3});
  profiles.set(id,state);links.set(id,[]);return state;
 }
-function start(port=4173){
+function start(port=4173,{advancedSections=true}={}){
  const server=http.createServer(async(req,res)=>{
   try{
    const url=new URL(req.url,'http://localhost'),parts=url.pathname.split('/').filter(Boolean);
@@ -84,6 +84,7 @@ function start(port=4173){
    }
    const id=url.searchParams.get('id')||'fixture';if(!profiles.has(id))seed(id);
    let html=fs.readFileSync(path.join(root,'templates/profile_editor.inja'),'utf8').replace(/{% if state != "new" %}hidden{% endif %}/g,'hidden').replace(/{{ state }}/g,'edit').replace(/{{ profileId }}/g,id).replace(/{{ (?:encodedSlug|slug) }}/g,'آزمایش');
+   html=html.replace(/{{ advancedEditorSections }}/g, String(advancedSections));
    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);
   }catch(e){res.writeHead(500);res.end(String(e));}
  });

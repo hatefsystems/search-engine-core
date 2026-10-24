@@ -1,6 +1,6 @@
 import {projectPublicProfile} from './profile-public.js';
 import {ProfileLinksEditor} from './profile-links-editor.js';
-import {ProfileContentEditor} from './profile-content-editor.js?v=dashboard-1';
+import {ProfileContentEditor} from './profile-content-editor.js?v=sidebar-release-1';
 import {ProfileAutosave} from './profile-autosave.js?v=media-save-3';
 import {updateBasicCompletion, bindImageCrop} from './profile-dashboard.js?v=dashboard-1';
 
@@ -310,7 +310,7 @@ for (const kind of ['avatar', 'cover']) $(`${kind}-file`).onchange = event => {
     const file = event.target.files[0]; if (file) saveMedia(kind, file);
 };
 for (const button of document.querySelectorAll('[data-section-shortcut]')) button.onclick = () => contentEditor?.select(button.dataset.sectionShortcut);
-$('add-section').onclick = () => $('section-picker').showModal();
+$('add-section').onclick = () => { if (contentEditor?.advancedSectionsEnabled) $('section-picker').showModal(); };
 $('close-section-picker').onclick = () => $('section-picker').close();
 const previewFrame = $('public-preview'), previewSurface = previewFrame.parentElement;
 $('expand-preview').onclick = () => { $('expanded-preview-host').append(previewFrame); $('public-preview-dialog').showModal(); preview(); };

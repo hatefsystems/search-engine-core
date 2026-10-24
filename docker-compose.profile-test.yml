@@ -41,6 +41,8 @@ services:
       COMPLIANCE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
       PROFILE_API_RATE_LIMIT_REQUESTS: '10000'
       PROFILE_MEDIA_DIR: /app/profile-media
+      # Keep the complete pre-release forms covered by the advanced integration suite.
+      PROFILE_EDITOR_ADVANCED_SECTIONS: 'true'
       MINIFY_JS: 'false'
       JS_MINIFIER_SERVICE_URL: http://127.0.0.1:3002
     volumes:
