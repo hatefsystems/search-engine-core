@@ -413,9 +413,9 @@
         <span aria-hidden="true">•</span>
         <a href="{{ base_url }}/crawl-request">{{ t.footer.crawl_request }}</a>
         <span aria-hidden="true">•</span>
-        <a href="{{ base_url }}/privacy{% if t.language.code == "en" %}?lang=en{% endif %}">{{ t.footer.privacy }}</a>
+        <a href="{{ base_url }}{% if t.language.code == "fa" %}/حریم-خصوصی{% else %}/privacy{% endif %}">{{ t.footer.privacy }}</a>
         <span aria-hidden="true">•</span>
-        <a href="{{ base_url }}/terms{% if t.language.code == "en" %}?lang=en{% endif %}">{{ t.footer.terms }}</a>
+        <a href="{{ base_url }}{% if t.language.code == "fa" %}/شرایط-استفاده{% else %}/terms{% endif %}">{{ t.footer.terms }}</a>
       </nav>
       <div class="copyright">{{ t.footer.copyright }}</div>
     </footer>

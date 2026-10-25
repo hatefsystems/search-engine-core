@@ -172,34 +172,56 @@ void HomeController::index(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
     }
 }
 
-// Public bilingual legal documents. Default to Persian; English is an explicit opt-in.
+// Explicit public paths keep each language independently linkable and cacheable.
 void HomeController::legalPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
-    const std::string url(req->getUrl());
-    const bool isPrivacy = (url == "/privacy" || url == "/privacy.html");
-    const bool isTerms = (url == "/terms" || url == "/terms.html");
+    std::string url(req->getUrl());
+    // Browsers percent-encode Persian paths. Decode once, then match an allowlist.
+    const auto hex = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        return -1;
+    };
+    std::string decoded;
+    for (size_t i = 0; i < url.size(); ++i) {
+        if (url[i] == '%' && i + 2 < url.size() &&
+            hex(url[i + 1]) >= 0 && hex(url[i + 2]) >= 0) {
+            decoded += static_cast<char>((hex(url[i + 1]) << 4) | hex(url[i + 2]));
+            i += 2;
+        } else {
+            decoded += url[i];
+        }
+    }
+    const bool isPrivacy = decoded == "/privacy" || decoded == "/حریم-خصوصی";
+    const bool isTerms = decoded == "/terms" || decoded == "/شرایط-استفاده";
+    if (decoded == "/privacy.html" || decoded == "/terms.html") {
+        res->writeStatus("301 Moved Permanently");
+        res->writeHeader("Location", decoded == "/privacy.html" ? "/privacy" : "/terms");
+        res->end();
+        return;
+    }
     if (!isPrivacy && !isTerms) {
         notFound(res);
         return;
     }
-
-    const auto params = parseQuery(req);
-    const auto languageIt = params.find("lang");
-    const std::string lang =
-        (languageIt != params.end() && languageIt->second == "en") ? "en" : "fa";
+    const std::string lang = (decoded == "/privacy" || decoded == "/terms") ? "en" : "fa";
     const std::string document = isPrivacy ? "privacy" : "terms";
     const std::string filePath = "public/legal/" + document + "-" + lang + ".html";
     const std::string content = loadFile(filePath);
-
     if (content.empty()) {
         LOG_ERROR("Legal page unavailable: " + filePath);
         serverError(res, "Legal page unavailable");
         return;
     }
-
+    res->writeStatus("200 OK");
+    res->writeHeader("Content-Type", "text/html; charset=utf-8");
     res->writeHeader("Content-Language", lang);
+    res->writeHeader("X-Frame-Options", "DENY");
     res->writeHeader("Cache-Control", "public, max-age=300");
     res->writeHeader("X-Content-Type-Options", "nosniff");
-    html(res, content);
+    res->writeHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res->writeHeader("Content-Security-Policy", "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+    res->end(content);
 }
 
 void HomeController::searchPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {

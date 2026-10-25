@@ -38,7 +38,7 @@ public:
     // GET /crawling-notification/{lang}
     void crawlingNotificationPageWithLang(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     
-    // GET /privacy and /terms. Language is selected by the ?lang=en query parameter.
+    // Public legal documents. The path selects the language, never query parameters.
     void legalPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
     // GET /about
@@ -71,6 +71,12 @@ ROUTE_CONTROLLER(HomeController) {
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification.html", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification/*", crawlingNotificationPageWithLang, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/حریم-خصوصی", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/%D8%AD%D8%B1%DB%8C%D9%85-%D8%AE%D8%B5%D9%88%D8%B5%DB%8C", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/%d8%ad%d8%b1%db%8c%d9%85-%d8%ae%d8%b5%d9%88%d8%b5%db%8c", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/شرایط-استفاده", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/%D8%B4%D8%B1%D8%A7%DB%8C%D8%B7-%D8%A7%D8%B3%D8%AA%D9%81%D8%A7%D8%AF%D9%87", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/%d8%b4%d8%b1%d8%a7%db%8c%d8%b7-%d8%a7%d8%b3%d8%aa%d9%81%d8%a7%d8%af%d9%87", legalPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/privacy", legalPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/privacy.html", legalPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/terms", legalPage, HomeController);
