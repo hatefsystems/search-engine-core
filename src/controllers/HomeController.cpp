@@ -172,6 +172,36 @@ void HomeController::index(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
     }
 }
 
+// Public bilingual legal documents. Default to Persian; English is an explicit opt-in.
+void HomeController::legalPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    const std::string url(req->getUrl());
+    const bool isPrivacy = (url == "/privacy" || url == "/privacy.html");
+    const bool isTerms = (url == "/terms" || url == "/terms.html");
+    if (!isPrivacy && !isTerms) {
+        notFound(res);
+        return;
+    }
+
+    const auto params = parseQuery(req);
+    const auto languageIt = params.find("lang");
+    const std::string lang =
+        (languageIt != params.end() && languageIt->second == "en") ? "en" : "fa";
+    const std::string document = isPrivacy ? "privacy" : "terms";
+    const std::string filePath = "public/legal/" + document + "-" + lang + ".html";
+    const std::string content = loadFile(filePath);
+
+    if (content.empty()) {
+        LOG_ERROR("Legal page unavailable: " + filePath);
+        serverError(res, "Legal page unavailable");
+        return;
+    }
+
+    res->writeHeader("Content-Language", lang);
+    res->writeHeader("Cache-Control", "public, max-age=300");
+    res->writeHeader("X-Content-Type-Options", "nosniff");
+    html(res, content);
+}
+
 void HomeController::searchPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
     LOG_INFO("HomeController::searchPage - Serving search engine interface");
     LOG_DEBUG("HomeController::searchPage called from: " + std::string(req->getHeader("user-agent")).substr(0, 50) + "...");
