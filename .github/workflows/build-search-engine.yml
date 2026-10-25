@@ -5,7 +5,7 @@ on:
     inputs:
       cache_version:
         type: string
-        default: '1'
+        default: "1"
       force_rebuild:
         type: boolean
         default: false
@@ -26,7 +26,7 @@ jobs:
     env:
       CACHE_VERSION: ${{ inputs.cache_version }}
       FORCE_REBUILD: ${{ inputs.force_rebuild }}
-      BUILD_JOBS: '2'
+      BUILD_JOBS: "2"
       PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v6
@@ -69,6 +69,27 @@ jobs:
 
       - name: Compile, run short tests and verify runtime
         run: python3 scripts/docker_images.py build
+
+      - name: Check public legal routes in the compiled runtime
+        run: |
+          docker run -d --name legal-route-check -p 127.0.0.1:3021:3000 --entrypoint /app/server -e MINIFY_JS=false "$CANDIDATE_IMAGE"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3021/privacy >/dev/null; then break; fi
+            sleep 2
+          done
+          BASE_URL=http://127.0.0.1:3021 bash tests/integration/test_legal_pages.sh
+      - name: Save legal route runtime diagnostics
+        if: always()
+        run: |
+          mkdir -p build/legal
+          docker logs legal-route-check > build/legal/runtime.log 2>&1 || true
+          docker rm -f legal-route-check || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: legal-route-runtime
+          path: build/legal/runtime.log
+          retention-days: 14
 
       - name: Publish verified core image
         if: env.PUBLISH_IMAGES == 'true'

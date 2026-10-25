@@ -1,0 +1,51 @@
+name: Legal pages UI
+on:
+  pull_request:
+    paths:
+      [
+        "public/legal/**",
+        "public/legal.css",
+        "tests/legal/**",
+        "src/controllers/HomeController*",
+        "templates/home.inja",
+        "templates/search.inja",
+        ".github/workflows/legal-pages.yml",
+      ]
+  push:
+    branches: [master]
+    paths:
+      [
+        "public/legal/**",
+        "public/legal.css",
+        "tests/legal/**",
+        "src/controllers/HomeController*",
+        "templates/home.inja",
+        "templates/search.inja",
+        ".github/workflows/legal-pages.yml",
+      ]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Install isolated browser dependencies
+        run: |
+          npm install --prefix /tmp/legal-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/legal-ui-tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check both documents in Persian and English
+        env:
+          NODE_PATH: /tmp/legal-ui-tests/node_modules
+        run: node tests/legal/browser-check.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: legal-page-screenshots
+          path: build/legal/screenshots/
+          retention-days: 14
