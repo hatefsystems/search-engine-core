@@ -38,6 +38,9 @@ public:
     // GET /crawling-notification/{lang}
     void crawlingNotificationPageWithLang(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
     
+    // GET /privacy and /terms. Language is selected by the ?lang=en query parameter.
+    void legalPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+
     // GET /about
     void aboutPage(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
@@ -68,5 +71,9 @@ ROUTE_CONTROLLER(HomeController) {
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification.html", crawlingNotificationPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/crawling-notification/*", crawlingNotificationPageWithLang, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/privacy", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/privacy.html", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/terms", legalPage, HomeController);
+    REGISTER_ROUTE(HttpMethod::GET, "/terms.html", legalPage, HomeController);
     REGISTER_ROUTE(HttpMethod::GET, "/about", aboutPage, HomeController);
 } 
