@@ -31,7 +31,7 @@ const fixture = http.createServer((req, res) => {
       ".html": "text/html; charset=utf-8",
       ".css": "text/css",
       ".woff2": "font/woff2",
-    }[path.extname(file)] || "application/octet-stream",
+    }[path.extname(file)] || "application/octet-stream"
   );
   res.end(fs.readFileSync(file));
 });
@@ -67,11 +67,11 @@ const fixture = http.createServer((req, res) => {
         assert.equal(await page.locator("html").getAttribute("lang"), lang);
         assert.equal(
           await page.locator("html").getAttribute("dir"),
-          lang === "fa" ? "rtl" : "ltr",
+          lang === "fa" ? "rtl" : "ltr"
         );
         assert.equal(
           await page.locator("link[rel=canonical]").getAttribute("href"),
-          "https://hatef.ir" + route,
+          "https://hatef.ir" + route
         );
         assert.equal(await page.locator("h1").count(), 1);
         assert.equal(await page.locator("article section").count(), 10);
@@ -82,45 +82,93 @@ const fixture = http.createServer((req, res) => {
         assert.deepEqual(
           ids,
           headingIds[doc],
-          "Translations must cover the same sections",
+          "Translations must cover the same sections"
         );
         assert.equal(
           await page.locator("link[hreflang=fa]").getAttribute("href"),
-          "https://hatef.ir" + languages.fa,
+          "https://hatef.ir" + languages.fa
         );
         assert.equal(
           await page.locator("link[hreflang=en]").getAttribute("href"),
-          "https://hatef.ir" + languages.en,
+          "https://hatef.ir" + languages.en
         );
         assert.equal(
           await page.locator("link[hreflang=x-default]").getAttribute("href"),
-          "https://hatef.ir" + languages.fa,
+          "https://hatef.ir" + languages.fa
         );
         assert.equal(
           await page.locator("script").count(),
           0,
-          "Legal text works without JavaScript",
+          "Legal text works without JavaScript"
         );
         assert.equal(await page.locator('a[href*="?lang="]').count(), 0);
         if (lang === "fa")
           assert(
-            await page.evaluate(() => document.fonts.check("15px Vazirmatn")),
+            await page.evaluate(() => document.fonts.check("15px Vazirmatn"))
           );
         for (const width of [1440, 1024, 768, 390, 320]) {
           await page.setViewportSize({ width, height: 1120 });
           assert(
             await page.evaluate(
-              () => document.documentElement.scrollWidth <= innerWidth,
+              () => document.documentElement.scrollWidth <= innerWidth
             ),
-            `${doc}-${lang}: horizontal overflow at ${width}`,
+            `${doc}-${lang}: horizontal overflow at ${width}`
           );
           assert(await page.locator("h1").isVisible());
+          assert(
+            await page
+              .locator("article section p")
+              .first()
+              .evaluate(
+                (node) => parseFloat(getComputedStyle(node).fontSize) >= 16
+              ),
+            "Long-form legal copy stays at least 16px on mobile and desktop"
+          );
           assert(await page.locator("a.language").isVisible());
           if (width === 1440 || width === 390) {
             await page.screenshot({
               path: path.join(shots, `${doc}-${lang}-${width}.png`),
             });
           }
+        }
+        for (const width of [1440, 390, 320]) {
+          await page.setViewportSize({ width, height: 1120 });
+          await page.evaluate(
+            () => (document.documentElement.style.fontSize = "200%")
+          );
+          assert(
+            await page
+              .locator("article section p")
+              .first()
+              .evaluate(
+                (node) => parseFloat(getComputedStyle(node).fontSize) >= 32
+              )
+          );
+          assert(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= innerWidth
+            ),
+            `${doc}-${lang}: overflow with 200% text at ${width}: ` +
+              JSON.stringify(
+                await page.locator("body *").evaluateAll((nodes) =>
+                  nodes
+                    .filter((n) => n.getClientRects().length)
+                    .filter(
+                      (n) =>
+                        n.getBoundingClientRect().right > innerWidth + 1 ||
+                        n.getBoundingClientRect().left < -1
+                    )
+                    .map((n) => [
+                      n.tagName,
+                      n.className,
+                      n.getBoundingClientRect().width,
+                    ])
+                )
+              )
+          );
+          await page.evaluate(() =>
+            document.documentElement.style.removeProperty("font-size")
+          );
         }
         await page.setViewportSize({ width: 1440, height: 1120 });
         await page.screenshot({
@@ -133,7 +181,7 @@ const fixture = http.createServer((req, res) => {
         await page.locator("a.language").click();
         assert.equal(
           decodeURIComponent(new URL(page.url()).pathname),
-          languages[other],
+          languages[other]
         );
         assert.equal(new URL(page.url()).search, "");
         assert.equal(await page.locator("html").getAttribute("lang"), other);
@@ -141,10 +189,10 @@ const fixture = http.createServer((req, res) => {
         const otherDoc = doc === "privacy" ? "terms" : "privacy";
         assert.equal(
           decodeURIComponent(new URL(page.url()).pathname),
-          paths[otherDoc][other],
+          paths[otherDoc][other]
         );
         console.log(
-          `PASS ${doc}-${lang}: desktop/mobile, anchors, language/document navigation, metadata, fonts`,
+          `PASS ${doc}-${lang}: desktop/mobile, anchors, language/document navigation, metadata, fonts`
         );
       }
     }

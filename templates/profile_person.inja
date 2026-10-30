@@ -26,7 +26,7 @@
     <meta name="robots" content="index, follow">
     
     <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
-    <link rel="stylesheet" href="/assets/css/profile-public.css?v=20261017-first-paint">
+    <link rel="stylesheet" href="/assets/css/profile-public.css?v=readability-1">
     <script src="/assets/js/profile-public-bootstrap.js?v=20261018-fallback-dom"></script>
     <script type="module" src="/assets/js/profile-public.js?v=20261017-first-paint" data-public-profile-module></script>
 </head>

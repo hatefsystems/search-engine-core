@@ -4,10 +4,10 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>ساخت و ویرایش صفحه | هاتف</title>
 <link rel="stylesheet" href="/assets/fonts/vazirmatn/Vazirmatn-FD-font-face.css">
-<link rel="stylesheet" href="/assets/css/profile-editor.css?v=sidebar-release-1">
-<link rel="stylesheet" href="/assets/css/profile-content.css">
-<link rel="stylesheet" href="/assets/css/profile-workspace.css">
-<link rel="stylesheet" href="/assets/css/profile-dashboard.css?v=sidebar-release-1">
+<link rel="stylesheet" href="/assets/css/profile-editor.css?v=readability-1">
+<link rel="stylesheet" href="/assets/css/profile-content.css?v=readability-1">
+<link rel="stylesheet" href="/assets/css/profile-workspace.css?v=readability-1">
+<link rel="stylesheet" href="/assets/css/profile-dashboard.css?v=readability-1">
 <script type="module" src="/assets/js/profile-editor.js?v=sidebar-release-1"></script>
 </head>
 <body class="profile-editor-page" data-state="{{ state }}" data-slug="{{ slug }}" data-profile-id="{{ profileId }}" data-advanced-sections="{{ advancedEditorSections }}">
