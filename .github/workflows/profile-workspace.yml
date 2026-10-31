@@ -33,6 +33,7 @@ jobs:
           node tests/profile/fallback-browser-check.cjs
           node tests/profile/workspace-browser-check.cjs
           node tests/profile/dashboard-browser-check.cjs
+          node tests/profile/typography-browser-check.cjs
           node tests/profile/media-autosave-browser-check.cjs
           node tests/profile/public-browser-check.cjs
           node tests/profile/icon-picker-browser-check.cjs
@@ -44,6 +45,7 @@ jobs:
           path: |
             build/profile/workspace-screenshots
             build/profile/public-screenshots
+            build/profile/typography-screenshots
           retention-days: 14
   integration:
     runs-on: ubuntu-latest

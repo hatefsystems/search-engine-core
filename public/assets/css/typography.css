@@ -1,0 +1,12 @@
+/* Hatef text scale. Keep the browser root size and user font preferences intact. */
+:root {
+  --text-meta: 0.75rem; /* 12px, counters and nonessential metadata only */
+  --text-small: 0.875rem; /* 14px, labels, help, errors and statuses */
+  --text-nav: 0.9375rem; /* 15px, desktop navigation */
+  --text-body: 1rem; /* 16px, body copy and form values */
+  --text-section: 1.125rem; /* 18px, subsection headings */
+  --text-heading: 1.375rem; /* 22px, editor heading */
+  --leading-body: 1.85;
+  --leading-ui: 1.7;
+  --leading-heading: 1.6;
+}

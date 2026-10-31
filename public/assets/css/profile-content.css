@@ -236,7 +236,7 @@
     gap: 5px;
   }
   .content-navigation button {
-    font-size: 0.8rem;
+    font-size:var(--text-small);
     padding: 7px 10px;
   }
 }
@@ -336,5 +336,5 @@
 
 .icon-results button { position: relative; flex-wrap: wrap; border: 2px solid transparent; border-radius: 8px; }
 .icon-results button.is-selected { border-color: var(--icon-selection-color, #7c3aed); background: var(--icon-selection-background, #f3e8ff); color: var(--icon-selection-text, #5b21b6); }
-.icon-selection-badge { width: 100%; font-size: .75rem; font-weight: 600; }
+.icon-selection-badge { width: 100%; font-size:var(--text-small); font-weight: 600; }
 .icon-selection-badge[hidden] { display: none; }

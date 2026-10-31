@@ -46,3 +46,11 @@ No inline handlers (`onclick`, etc.). Use `data-*` attributes and `addEventListe
 ```
 
 Use `addEventListener()` and event delegation for dynamic elements. No `onclick`, `onload`, `onsubmit`, etc. in HTML.
+
+## Typography and accessibility
+
+Follow the typography and readability rules in the root `AGENTS.md`. Reuse
+`public/assets/css/typography.css`: 1rem body/form values, .875rem functional
+help/labels/statuses, .75rem nonessential metadata only. Never reduce mobile
+functional text to fit. Verify computed sizes, text contrast, 200% enlargement,
+320px reflow and fixed-footer clearance with the typography browser suite.

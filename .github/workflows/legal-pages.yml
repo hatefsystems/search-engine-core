@@ -5,6 +5,7 @@ on:
       [
         "public/legal/**",
         "public/legal.css",
+        "public/assets/css/typography.css",
         "tests/legal/**",
         "src/controllers/HomeController*",
         "templates/home.inja",
@@ -17,6 +18,7 @@ on:
       [
         "public/legal/**",
         "public/legal.css",
+        "public/assets/css/typography.css",
         "tests/legal/**",
         "src/controllers/HomeController*",
         "templates/home.inja",

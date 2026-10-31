@@ -26,7 +26,7 @@ for document, languages in PAGES.items():
             assert not response.headers.get('Set-Cookie'), path
         assert f'<html lang="{language}" dir="{"rtl" if language == "fa" else "ltr"}">' in body
         assert f'rel="canonical" href="https://hatef.ir{path}"' in body
-        assert 'href="/assets/legal.css?v=2"' in body
+        assert 'href="/assets/legal.css?v=readability-1"' in body
         assert 'Google' in body
         if document == 'privacy':
             assert 'gmail.send' in body and 'contacts.readonly' in body
@@ -51,7 +51,8 @@ for name in PAGES:
         assert error.headers['Location'] == '/' + name
     print('PASS legacy redirect:', name)
 
-for path, mime in [('/assets/legal.css?v=2', 'text/css'),
+for path, mime in [('/assets/legal.css?v=readability-1', 'text/css'),
+                   ('/assets/css/typography.css?v=readability-1', 'text/css'),
                    ('/assets/fonts/vazirmatn/fonts/webfonts/Vazirmatn-FD-Regular.woff2', 'font/woff2')]:
     with get(path) as response:
         assert response.status == 200 and response.read()
