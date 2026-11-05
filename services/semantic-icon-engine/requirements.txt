@@ -12,9 +12,9 @@ anyio==4.15.1 \
     --hash=sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101 \
     --hash=sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94
     # via starlette
-certifi==2026.7.22 \
-    --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
-    --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
+certifi==2026.10.19 \
+    --hash=sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae \
+    --hash=sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b
     # via requests
 charset-normalizer==3.5.2 \
     --hash=sha256:01077390b03f7988f11d700a2194e69b119741a86b1a638b1db88891e3eced8e \
@@ -201,11 +201,11 @@ coloredlogs==15.0.1 \
 defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
-    # via -r services/semantic-icon-engine/requirements.in
+    # via -r requirements.in
 fastapi==0.115.6 \
     --hash=sha256:9ec46f7addc14ea472958a96aae5b5de65f39721a46aaf5705c480d9a8b76654 \
     --hash=sha256:e9240b29e36fa8f4bb7290316988e90c381e5092e0cbe84e7818cc3713bcf305
-    # via -r services/semantic-icon-engine/requirements.in
+    # via -r requirements.in
 filelock==4.0.12 \
     --hash=sha256:5f17ee83ecee8a6f3e389c75822fb70a1c2f0506b99438a6dffa1d56793588c8 \
     --hash=sha256:cf42711a7ac791818b299fab0332a088c65aeeefa36290de98db92c434303b0c
@@ -315,7 +315,7 @@ numpy==2.2.1 \
     --hash=sha256:f9b57eaa3b0cd8db52049ed0330747b0364e899e8a606a624813452b8203d5f7 \
     --hash=sha256:fce4f615f8ca31b2e61aa0eb5865a21e14f5629515c9151850aa936c02a1ee51
     # via
-    #   -r services/semantic-icon-engine/requirements.in
+    #   -r requirements.in
     #   onnxruntime
 onnxruntime==1.20.1 \
     --hash=sha256:06bfbf02ca9ab5f28946e0f912a562a5f005301d0c419283dc57b3ed7969bb7b \
@@ -339,7 +339,7 @@ onnxruntime==1.20.1 \
     --hash=sha256:f1f56e898815963d6dc4ee1c35fc6c36506466eff6d16f3cb9848cea4e8c8172 \
     --hash=sha256:f6243e34d74423bdd1edf0ae9596dd61023b260f546ee17d701723915f06a9f7 \
     --hash=sha256:fb44b08e017a648924dbe91b82d89b0c105b1adcfe31e90d1dc06b8677ad37be
-    # via -r services/semantic-icon-engine/requirements.in
+    # via -r requirements.in
 packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
@@ -602,7 +602,7 @@ tokenizers==0.21.0 \
     --hash=sha256:eb7202d231b273c34ec67767378cd04c767e967fda12d4a9e36208a34e2f137e \
     --hash=sha256:ee0894bf311b75b0c03079f33859ae4b2334d675d4e93f5a4132e1eae2834fe4 \
     --hash=sha256:f53ea537c925422a2e0e92a24cce96f6bc5046bbef24a1652a5edc8ba975f62e
-    # via -r services/semantic-icon-engine/requirements.in
+    # via -r requirements.in
 tqdm==4.70.1 \
     --hash=sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73 \
     --hash=sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4
@@ -628,4 +628,4 @@ urllib3==2.8.0 \
 uvicorn==0.34.0 \
     --hash=sha256:023dc038422502fa28a09c7a30bf2b6991512da7dcdb8fd35fe57cfc154126f4 \
     --hash=sha256:404051050cd7e905de2c9a7e61790943440b3416f49cb409f965d9dcd0fa73e9
-    # via -r services/semantic-icon-engine/requirements.in
+    # via -r requirements.in
