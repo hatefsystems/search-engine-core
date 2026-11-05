@@ -1,0 +1,27 @@
+name: Homepage theme
+on:
+  pull_request:
+    paths: ['public/home.html', 'public/styles.css', 'public/script.js', 'templates/home.inja', 'templates/search.inja', 'locales/*/home.json', 'tests/home/**', '.github/workflows/home-theme.yml']
+  push:
+    branches: [master]
+    paths: ['public/home.html', 'public/styles.css', 'public/script.js', 'templates/home.inja', 'templates/search.inja', 'locales/*/home.json', 'tests/home/**', '.github/workflows/home-theme.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install isolated browser dependencies
+        run: |
+          npm install --prefix /tmp/home-ui-tests --ignore-scripts playwright@1.58.2
+          /tmp/home-ui-tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check manual and system themes
+        env:
+          NODE_PATH: /tmp/home-ui-tests/node_modules
+        run: node tests/home/theme-browser-check.cjs
