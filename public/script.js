@@ -26,31 +26,43 @@
     };
   };
 
-  const setThemeMetaColor = () => {
-    const isLight = docEl.classList.contains('light');
-    themeColorMeta?.setAttribute('content', isLight ? '#f8fafc' : '#0b0f14');
-  };
-
   // ---------- Theme ----------
   const THEME_KEY = 'theme'; // 'light' | 'dark'
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (savedTheme === 'light') docEl.classList.add('light');
-  if (savedTheme === 'dark') docEl.classList.remove('light');
-  setThemeMetaColor();
+  const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+  let savedTheme;
+  try {
+    savedTheme = localStorage.getItem(THEME_KEY);
+  } catch {
+    // Theme switching must still work when browser storage is unavailable.
+  }
+  let hasManualTheme = savedTheme === 'light' || savedTheme === 'dark';
+
+  function applyTheme(theme) {
+    const isLight = theme === 'light';
+    docEl.classList.toggle('light', isLight);
+    docEl.classList.toggle('dark', !isLight);
+    themeColorMeta?.setAttribute('content', isLight ? '#f8fafc' : '#0b0f14');
+    if (themeToggle) {
+      themeToggle.setAttribute('aria-pressed', String(isLight));
+      themeToggle.textContent = isLight ? '☀️' : '🌙';
+    }
+  }
+
+  applyTheme(hasManualTheme ? savedTheme : (systemTheme?.matches ? 'dark' : 'light'));
 
   themeToggle?.addEventListener('click', () => {
-    const isLight = docEl.classList.toggle('light');
-    localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
-    themeToggle.setAttribute('aria-pressed', String(isLight));
-    themeToggle.textContent = isLight ? '☀️' : '🌙';
-    setThemeMetaColor();
+    const theme = docEl.classList.contains('light') ? 'dark' : 'light';
+    hasManualTheme = true;
+    applyTheme(theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // Keep the manual selection for this page even if it cannot be saved.
+    }
   });
-  // Initialize toggle state icon
-  if (themeToggle) {
-    const isLight = docEl.classList.contains('light');
-    themeToggle.setAttribute('aria-pressed', String(isLight));
-    themeToggle.textContent = isLight ? '☀️' : '🌙';
-  }
+  systemTheme?.addEventListener?.('change', (event) => {
+    if (!hasManualTheme) applyTheme(event.matches ? 'dark' : 'light');
+  });
 
   // ---------- Copyright year ----------
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());

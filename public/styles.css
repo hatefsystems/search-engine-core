@@ -2,7 +2,7 @@
   Hatef minimal homepage styles
   - Modern reset
   - CSS variables for theming
-  - Dark by default, light via .light
+  - System preference by default, manual .light / .dark overrides
   - Responsive, accessible, small footprint
 */
 
@@ -54,6 +54,7 @@ select {
 
 /* ---------- Theme Variables ---------- */
 :root {
+  color-scheme: light;
   --bg: #f8fafc;
   --surface: #ffffff;
   --text: #0f172a;
@@ -73,7 +74,8 @@ select {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light):not(.dark) {
+    color-scheme: dark;
     --bg: #0b0f14;
     --surface: #111827;
     --text: #e5e7eb;
@@ -84,7 +86,19 @@ select {
   }
 }
 
+html.dark {
+  color-scheme: dark;
+  --bg: #0b0f14;
+  --surface: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #22d3ee;
+  --ring: #22d3ee;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
 html.light {
+  color-scheme: light;
   --bg: #f8fafc;
   --surface: #ffffff;
   --text: #0f172a;

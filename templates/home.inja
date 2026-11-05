@@ -6,8 +6,6 @@
     <title>{{ t.meta.title }}</title>
     <meta name="description" content="{{ t.meta.description }}" />
     <meta name="theme-color" content="#0b0f14" id="theme-color" />
-    <meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
     <meta property="og:title" content="{{ t.meta.title }}" />
     <meta property="og:description" content="{{ t.meta.description }}" />
     <meta property="og:type" content="website" />
@@ -22,8 +20,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111827'/%3E%3Cpath fill='%2322d3ee' d='M18 16h8v12h12V16h8v32h-8V36H26v12h-8z'/%3E%3C/svg%3E"
     />
-    <link rel="preload" href="{{ base_url }}/assets/styles.css" as="style" />
-    <link rel="stylesheet" href="{{ base_url }}/assets/styles.css" />
+    <link rel="preload" href="{{ base_url }}/assets/styles.css?v=20261105-theme" as="style" />
+    <link rel="stylesheet" href="{{ base_url }}/assets/styles.css?v=20261105-theme" />
     
     <style>
       /* Language Switch Styles */
@@ -165,6 +163,6 @@
       }); #}
     </script>
     
-    <script defer src="{{ base_url }}/assets/script.js"></script>
+    <script defer src="{{ base_url }}/assets/script.js?v=20261105-theme"></script>
   </body>
 </html>
